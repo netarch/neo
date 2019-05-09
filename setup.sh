@@ -6,13 +6,14 @@
 set -e
 set -o nounset
 
-cd "$(dirname ${BASH_SOURCE[0]})"
+SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
+cd "$SCRIPT_DIR"
 
 [ $UID -eq 0 ] && \
     (echo '[!] Please run this script without root privilege' >&2; exit 1)
 
-# Dependencies needed for this script
-depends=(git curl)
+# Dependencies needed for development
+depends=(spin astyle)
 
 
 get_distro() {
@@ -85,10 +86,16 @@ main() {
     get_distro
 
     if [ "$DISTRO" = "Arch" ]; then
-        sudo pacman -S --needed --noconfirm --asdeps ${depends[@]}
-        aur_install spin $@
+        # Dependencies needed for this script (AUR)
+        script_depends=(git curl)
+
+        sudo pacman -S --needed --noconfirm --asdeps ${script_depends[@]}
+        aur_install yay --asdeps
+        yay -S --needed --noconfirm ${depends[@]} $@
+
     elif [ "$DISTRO" = "Ubuntu" ]; then
-        sudo apt install -y ${depends[@]} spin
+        sudo apt install -y ${depends[@]}
+
     else
         echo "[!] unsupported distribution: $DISTRO" >&2
         exit 1
