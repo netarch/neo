@@ -1,25 +1,24 @@
 #include <getopt.h>
 #include <cstdlib>
+#include <iostream>
 #include <string>
 
-#include "lib/logger.hpp"
+#include "plankton.hpp"
 
 
 static void usage(const std::string& progname)
 {
-    Logger& logger = Logger::get_instance();
-    logger.out(
-        "Usage: " + progname + " [-h] -i dir -o dir\n"
-        "    -h, --help             print this help message\n"
-        "    -i, --input dir        input directory\n"
-        "    -o, --output dir       output directory\n");
+    std::cout <<
+              "Usage: " + progname + " [-h] -i <dir> -o <dir>\n"
+              "    -h, --help             print this help message\n"
+              "    -i, --input <dir>      input directory\n"
+              "    -o, --output <dir>     output directory\n";
 }
 
 static void parse_args(int argc, char **argv, std::string& input_dir,
                        std::string& output_dir)
 {
     int opt;
-    bool noinput = true, nooutput = true;
     const char *optstring = "hi:o:";
 
     const struct option longopts[] = {
@@ -36,11 +35,9 @@ static void parse_args(int argc, char **argv, std::string& input_dir,
                 exit(EXIT_SUCCESS);
             case 'i':
                 input_dir = optarg;
-                noinput = false;
                 break;
             case 'o':
                 output_dir = optarg;
-                nooutput = false;
                 break;
             default:
                 usage(argv[0]);
@@ -48,16 +45,16 @@ static void parse_args(int argc, char **argv, std::string& input_dir,
         }
     }
 
-    if (noinput) {
-        Logger& logger = Logger::get_instance();
-        logger.err("missing input directory\n");
-        usage(argv[0]);
+    if (input_dir.empty()) {
+        std::cerr << "Error: missing input directory" << std::endl
+                  << "Try '" << argv[0] << " --help' for more information"
+                  << std::endl;
         exit(EXIT_FAILURE);
     }
-    if (nooutput) {
-        Logger& logger = Logger::get_instance();
-        logger.err("missing output directory\n");
-        usage(argv[0]);
+    if (output_dir.empty()) {
+        std::cerr << "Error: missing output directory" << std::endl
+                  << "Try '" << argv[0] << " --help' for more information"
+                  << std::endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -65,16 +62,10 @@ static void parse_args(int argc, char **argv, std::string& input_dir,
 int main(int argc, char **argv)
 {
     std::string input_dir, output_dir;
-
     parse_args(argc, argv, input_dir, output_dir);
 
-
-
-    //static char param0[] = "neo";  // argv[0]
-    //static char param1[] = "-m100000";
-    //static char *spin_args[] = {param0, param1};
-
-    //spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
+    Plankton plankton(input_dir, output_dir);
+    plankton.run();
 
     return EXIT_SUCCESS;
 }

@@ -49,7 +49,7 @@ for FILE in $FILES; do
             cp "$newfile" "$FILE"
             echo "[+] $FILE updated." >&2
         else
-            echo "[-] $FILE does not follow the coding style." >&2
+            echo "[-] $FILE style mismatch." >&2
         fi
         EXITCODE=1
     fi

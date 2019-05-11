@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <cstring>
+#include <clocale>
 
 #include "lib/logger.hpp"
 
@@ -49,4 +51,12 @@ void Logger::err(const std::string& msg)
 {
     log("ERRO", msg);
     std::cerr << "Error: " << msg << std::endl;
+}
+
+void Logger::err(const std::string& msg, int errnum)
+{
+    locale_t locale = newlocale(LC_ALL_MASK, "", 0);
+    std::string err_str = strerror_l(errnum, locale);
+    freelocale(locale);
+    err(msg + err_str);
 }
