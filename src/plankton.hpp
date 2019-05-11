@@ -8,11 +8,12 @@
 class Plankton
 {
 private:
-    std::string in_dir, out_dir;
+    int max_jobs;
     Logger& logger;
+    std::string in_dir, out_dir;
 
 public:
-    Plankton(const std::string&, const std::string&);
+    Plankton(int, const std::string&, const std::string&);
 
     void run();
 };

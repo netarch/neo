@@ -2,8 +2,9 @@
 #include "lib/fs.hpp"
 
 
-Plankton::Plankton(const std::string& input_dir, const std::string& output_dir)
-    : logger(Logger::get_instance())
+Plankton::Plankton(int max_jobs, const std::string& input_dir,
+                   const std::string& output_dir)
+    : max_jobs(max_jobs), logger(Logger::get_instance())
 {
     fs::mkdir(output_dir);
     in_dir = fs::realpath(input_dir);
