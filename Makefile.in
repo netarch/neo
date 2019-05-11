@@ -1,0 +1,91 @@
+#
+# Makefile for Neo
+#
+
+# Package information
+PACKAGE_NAME       = @PACKAGE_NAME@
+PACKAGE_VERSION    = @PACKAGE_VERSION@
+PACKAGE_STRING     = @PACKAGE_STRING@
+PACKAGE_BUGREPORT  = @PACKAGE_BUGREPORT@
+PACKAGE_TARNAME    = @PACKAGE_TARNAME@
+PACKAGE_URL        = @PACKAGE_URL@
+TARGET             = $(PACKAGE_TARNAME)
+
+# Source files and directories
+srcdir      = @srcdir@
+SRCS        = $(shell find $(srcdir)/src -type f -name '*.cpp')
+OBJS        = $(notdir $(SRCS:%.cpp=%.o)) pan.o
+VPATH       = $(shell find $(srcdir)/src -type d)
+
+# Install directories
+prefix      = @prefix@
+exec_prefix = @exec_prefix@
+bindir      = @bindir@
+includedir  = @includedir@/$(PACKAGE_TARNAME)
+libdir      = @libdir@
+datarootdir = @datarootdir@
+mandir      = @mandir@
+docdir      = @docdir@
+licensedir  = @licensedir@
+
+# Programs and flags
+CC          = @CC@
+CXX         = @CXX@
+LD          = @CXX@
+LN_S        = @LN_S@
+INSTALL     = @INSTALL@
+MKDIR_P     = @MKDIR_P@
+CFLAGS      = @CFLAGS@
+CXXFLAGS    = @CXXFLAGS@
+CPPFLAGS    = @CPPFLAGS@
+LDFLAGS     = @LDFLAGS@
+LIBS        = @LIBS@
+SPINFLAGS   = @SPINFLAGS@
+
+.SUFFIXES:
+.SUFFIXES: .c .o
+.SUFFIXES: .cpp .o
+
+all: $(TARGET) install-git-hooks #neo.1.gz
+
+$(TARGET): $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+pan.o: pan.c
+	sed -i -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/' $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+pan.c pan.h: $(srcdir)/src/network.pml
+	spin $(SPINFLAGS) $<
+
+neo.1.gz:
+	# TODO
+
+install-git-hooks: $(srcdir)/test/pre-commit.sh
+	-@$(LN_S) -f ../../test/pre-commit.sh $(srcdir)/.git/hooks/pre-commit
+
+install: all
+	$(INSTALL) -Dm 755 "$(TARGET)" -t "$(bindir)"
+	$(INSTALL) -Dm 644 neo.1.gz -t "$(mandir)/man1"
+	$(INSTALL) -Dm 644 "$(srcdir)/LICENSE" -t "$(licensedir)"
+
+uninstall:
+	-rm -f "$(bindir)/$(TARGET)"
+	-rm -f "$(mandir)/man1/neo.1.gz"
+	-rm -rf "$(licensedir)"
+
+clean:
+	-@rm -f $(TARGET) *.o pan.{b,c,h,m,p,t} neo.1.gz
+
+distclean: clean
+	-@rm -rf autom4te.cache config.log config.status Makefile
+
+check: all
+	# run tests against the built results
+	# TODO
+
+installcheck: install
+	# run tests against the installed package
+	# TODO
+
+.PHONY: all install-git-hooks install uninstall clean distclean check installcheck
