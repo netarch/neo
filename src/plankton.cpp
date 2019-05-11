@@ -9,6 +9,7 @@ Plankton::Plankton(int max_jobs, const std::string& input_dir,
     fs::mkdir(output_dir);
     in_dir = fs::realpath(input_dir);
     out_dir = fs::realpath(output_dir);
+    logger.set_file(fs::append(out_dir, "verify.log"));
 }
 
 void Plankton::run()

@@ -6,8 +6,9 @@
 namespace fs
 {
 
-std::string realpath(const std::string&);
 void mkdir(const std::string&);
+std::string realpath(const std::string&);
+std::string append(const std::string&, const std::string&);
 
 } // namespace fs
 
