@@ -78,7 +78,7 @@ clean:
 	-@rm -f $(TARGET) *.o pan.{b,c,h,m,p,t} neo.1.gz
 
 distclean: clean
-	-@rm -rf autom4te.cache config.log config.status Makefile
+	-@rm -rf autom4te.cache config.log config.status configure Makefile
 
 check: all
 	# run tests against the built results
