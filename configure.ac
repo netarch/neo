@@ -169,8 +169,8 @@ define([CHECK_LIB], [
 ##
 ## Compiler and linker flags
 ##
-ADD_CFLAG([-std=c11 -I${srcdir}/src])
-ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++14 -I${srcdir}/src])
+ADD_CFLAG([-std=c17 -I${srcdir}/src])
+ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17 -I${srcdir}/src])
 ADD_SPINFLAG([-a])
 #AS_IF([test "$enable_coverage" = "yes"], [
 #        CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-O0/g')"
