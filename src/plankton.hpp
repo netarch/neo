@@ -10,7 +10,9 @@ class Plankton
 private:
     int max_jobs;
     Logger& logger;
-    std::string in_dir, out_dir;
+    std::string in_file, out_dir;
+
+    //void input();
 
 public:
     Plankton(int, const std::string&, const std::string&);
