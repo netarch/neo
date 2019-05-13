@@ -3,10 +3,10 @@
     type = "L3"
     [[nodes.interfaces]]
     name = "eth0"
-    prefix = "192.168.0.1/24"
+    ip = "192.168.0.1/24"
     [[nodes.interfaces]]
     name = "eth1"
-    prefix = "192.168.1.1/24"
+    ip = "192.168.1.1/24"
     [[nodes.static_routes]]
     dst_prefix = "0.0.0.0/0"
     next_hop = "192.168.0.2"
@@ -15,7 +15,7 @@
     type = "L3"
     [[nodes.interfaces]]
     name = "eth0"
-    prefix = "10.0.0.1/24"
+    ip = "10.0.0.1/24"
     [[nodes.static_routes]]
     dst_prefix = "192.168.0.0/23"
     next_hop = "10.0.0.2"
@@ -35,8 +35,8 @@
     name = "eth1"
 [[nodes]]
     name = "fw"
-    type = "netfilter"
-    driver = "linux-netns"
+    type = "middlebox"
+    driver = "netfilter-netns"
     config = """
     *nat
     :PREROUTING ACCEPT [0:0]
@@ -57,29 +57,39 @@
     """
     [[nodes.interfaces]]
     name = "eth0"
-    prefix = "192.168.0.2/24"
+    ip = "192.168.0.2/24"
     [[nodes.interfaces]]
     name = "eth1"
-    prefix = "192.168.1.2/24"
+    ip = "192.168.1.2/24"
     [[nodes.interfaces]]
     name = "eth2"
-    prefix = "10.0.0.2/24"
+    ip = "10.0.0.2/24"
 
 [[links]]
-    endpoint1 = ["h1", "eth0"]
-    endpoint2 = ["s1", "eth0"]
+    node1 = "h1"
+    intf1 = "eth0"
+    node2 = "s1"
+    intf2 = "eth0"
 [[links]]
-    endpoint1 = ["h1", "eth1"]
-    endpoint2 = ["s2", "eth0"]
+    node1 = "h1"
+    intf1 = "eth1"
+    node2 = "s2"
+    intf2 = "eth0"
 [[links]]
-    endpoint1 = ["s1", "eth1"]
-    endpoint2 = ["fw", "eth0"]
+    node1 = "s1"
+    intf1 = "eth1"
+    node2 = "fw"
+    intf2 = "eth0"
 [[links]]
-    endpoint1 = ["s2", "eth1"]
-    endpoint2 = ["fw", "eth1"]
+    node1 = "s2"
+    intf1 = "eth1"
+    node2 = "fw"
+    intf2 = "eth1"
 [[links]]
-    endpoint1 = ["fw", "eth2"]
-    endpoint2 = ["h2", "eth0"]
+    node1 = "fw"
+    intf1 = "eth2"
+    node2 = "h2"
+    intf2 = "eth0"
 
 # Policy:
 #   1. Outgoing packets are always allowed.

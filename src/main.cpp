@@ -9,21 +9,23 @@
 static void usage(const std::string& progname)
 {
     std::cout <<
-              "Usage: " + progname + " [-h] [-j <nprocs>] -i <file> -o <dir>\n"
+              "Usage: " + progname + " [-h] [-v] [-j <nprocs>] -i <file> -o <dir>\n"
               "    -h, --help             print this help message\n"
+              "    -v, --verbose          print more debugging information\n"
               "    -j, --jobs <nprocs>    number of parallel tasks\n"
               "    -i, --input <file>     network configuration file\n"
               "    -o, --output <dir>     output directory\n";
 }
 
-static void parse_args(int argc, char **argv, int& max_jobs,
+static void parse_args(int argc, char **argv, bool& verbose, int& max_jobs,
                        std::string& input_file, std::string& output_dir)
 {
     int opt;
-    const char *optstring = "hj:i:o:";
+    const char *optstring = "hvj:i:o:";
 
     const struct option longopts[] = {
         {"help",       no_argument,       0, 'h'},
+        {"verbose",    no_argument,       0, 'v'},
         {"jobs",       required_argument, 0, 'j'},
         {"input",      required_argument, 0, 'i'},
         {"output",     required_argument, 0, 'o'},
@@ -35,6 +37,9 @@ static void parse_args(int argc, char **argv, int& max_jobs,
             case 'h':
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
+            case 'v':
+                verbose = true;
+                break;
             case 'j':
                 if ((max_jobs = atoi(optarg)) < 1) {
                     max_jobs = 1;
@@ -68,11 +73,12 @@ static void parse_args(int argc, char **argv, int& max_jobs,
 
 int main(int argc, char **argv)
 {
+    bool verbose = false;
     int max_jobs = 1;
     std::string input_file, output_dir;
-    parse_args(argc, argv, max_jobs, input_file, output_dir);
+    parse_args(argc, argv, verbose, max_jobs, input_file, output_dir);
 
-    Plankton plankton(max_jobs, input_file, output_dir);
+    Plankton plankton(verbose, max_jobs, input_file, output_dir);
     plankton.run();
 
     return EXIT_SUCCESS;

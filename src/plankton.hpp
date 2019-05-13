@@ -3,19 +3,23 @@
 
 #include <string>
 
+#include "topology.hpp"
 #include "lib/logger.hpp"
 
 class Plankton
 {
 private:
-    int max_jobs;
     Logger& logger;
+    int max_jobs;
     std::string in_file, out_dir;
 
-    //void input();
+    Topology topology;
+    //policies;
+
+    void load_config();
 
 public:
-    Plankton(int, const std::string&, const std::string&);
+    Plankton(bool, int, const std::string&, const std::string&);
 
     void run();
 };
