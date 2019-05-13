@@ -1,0 +1,104 @@
+[[nodes]]
+    name = "h1"
+    type = "L3"
+    [[nodes.interfaces]]
+    name = "eth0"
+    prefix = "192.168.0.1/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    prefix = "192.168.1.1/24"
+    [[nodes.static_routes]]
+    dst_prefix = "0.0.0.0/0"
+    next_hop = "192.168.0.2"
+[[nodes]]
+    name = "h2"
+    type = "L3"
+    [[nodes.interfaces]]
+    name = "eth0"
+    prefix = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    dst_prefix = "192.168.0.0/23"
+    next_hop = "10.0.0.2"
+[[nodes]]
+    name = "s1"
+    type = "L2"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+[[nodes]]
+    name = "s2"
+    type = "L2"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+[[nodes]]
+    name = "fw"
+    type = "netfilter"
+    driver = "linux-netns"
+    config = """
+    *nat
+    :PREROUTING ACCEPT [0:0]
+    :INPUT ACCEPT [0:0]
+    :OUTPUT ACCEPT [0:0]
+    :POSTROUTING ACCEPT [0:0]
+    -A POSTROUTING -s 192.168.0.0/23 -o eth2 -j MASQUERADE
+    COMMIT
+
+    *filter
+    :INPUT DROP [0:0]
+    :FORWARD DROP [0:0]
+    :OUTPUT ACCEPT [0:0]
+    -A FORWARD -i eth0 -j ACCEPT
+    -A FORWARD -i eth1 -j ACCEPT
+    -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    COMMIT
+    """
+    [[nodes.interfaces]]
+    name = "eth0"
+    prefix = "192.168.0.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    prefix = "192.168.1.2/24"
+    [[nodes.interfaces]]
+    name = "eth2"
+    prefix = "10.0.0.2/24"
+
+[[links]]
+    endpoint1 = ["h1", "eth0"]
+    endpoint2 = ["s1", "eth0"]
+[[links]]
+    endpoint1 = ["h1", "eth1"]
+    endpoint2 = ["s2", "eth0"]
+[[links]]
+    endpoint1 = ["s1", "eth1"]
+    endpoint2 = ["fw", "eth0"]
+[[links]]
+    endpoint1 = ["s2", "eth1"]
+    endpoint2 = ["fw", "eth1"]
+[[links]]
+    endpoint1 = ["fw", "eth2"]
+    endpoint2 = ["h2", "eth0"]
+
+# Policy:
+#   1. Outgoing packets are always allowed.
+#   2. Incoming packets are always denied, unless they're replies to past
+#      requests.
+
+[[policies]]
+    type = "reachability"
+    pkt_src = "192.168.1.1"
+    pkt_dst = "10.0.0.1"
+    reachable = true
+[[policies]]
+    type = "stateful-reachability"
+    pkt_src = "10.0.0.1"
+    pkt_dst = "192.168.1.1"
+    reachable = false
+    [[policies.states]]
+    type = "waypoint"
+    pkt_src = "192.168.1.1"
+    pkt_dst = "10.0.0.1"
+    pass_through = true
+    stateful_reachable = true
