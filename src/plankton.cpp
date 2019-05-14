@@ -3,10 +3,13 @@
 #include "lib/cpptoml.hpp"
 
 
-Plankton::Plankton(bool verbose, int max_jobs, const std::string& input_file,
-                   const std::string& output_dir)
+Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
+                   const std::string& input_file, const std::string& output_dir)
     : logger(Logger::get_instance()), max_jobs(max_jobs)
 {
+    if (rm_out_dir && fs::exists(output_dir)) {
+        fs::remove(output_dir);
+    }
     fs::mkdir(output_dir);
     in_file = fs::realpath(input_file);
     out_dir = fs::realpath(output_dir);

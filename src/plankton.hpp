@@ -19,7 +19,7 @@ private:
     void load_config();
 
 public:
-    Plankton(bool, int, const std::string&, const std::string&);
+    Plankton(bool, bool, int, const std::string&, const std::string&);
 
     void run();
 };

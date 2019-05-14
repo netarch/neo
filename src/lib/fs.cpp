@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <climits>
 #include <sys/stat.h>
+#include <ftw.h>
 
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
@@ -10,12 +11,51 @@
 namespace fs
 {
 
+static Logger& logger = Logger::get_instance();
+
 void mkdir(const std::string& p)
 {
     if (::mkdir(p.c_str(), 0777) < 0) {
-        Logger& logger = Logger::get_instance();
         logger.err(p + ": ", errno);
-        exit(EXIT_FAILURE);
+    }
+}
+
+bool exists(const std::string& p)
+{
+    struct stat buffer;
+    int ret = ::stat(p.c_str(), &buffer);
+    if (ret == -1) {
+        if (errno == ENOENT) {
+            return false;
+        }
+        logger.err(p + ": ", errno);
+    }
+    return true;
+}
+
+static int rm(const char *fpath, const struct stat *sb, int typeflag,
+              struct FTW *ftwbuf)
+{
+    if (typeflag == FTW_DP) {
+        if (rmdir(fpath) == -1) {
+            logger.err(std::string(fpath) + ": ", errno);
+        }
+    } else {
+        if (unlink(fpath) == -1) {
+            logger.err(std::string(fpath) + ": ", errno);
+        }
+    }
+
+    // these two lines are just for suppressing the unused parameter warnings
+    sb = (const struct stat *)ftwbuf;
+    ftwbuf = (struct FTW *)sb;
+    return 0;
+}
+
+void remove(const std::string& p)
+{
+    if (nftw(p.c_str(), &rm, 10000, FTW_DEPTH | FTW_PHYS) < 0) {
+        logger.err("Failed to remove " + p + ": ", errno);
     }
 }
 
@@ -24,9 +64,7 @@ std::string realpath(const std::string& rel_p)
     char p[PATH_MAX];
 
     if (::realpath(rel_p.c_str(), p) == NULL) {
-        Logger& logger = Logger::get_instance();
         logger.err(rel_p + ": ", errno);
-        exit(EXIT_FAILURE);
     }
 
     return std::string(p);
