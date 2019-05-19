@@ -81,7 +81,6 @@ private:
 public:
     IPNetwork() = default;
     IPNetwork(const IPNetwork&) = default;
-    IPNetwork(const IPInterface<Addr>&);
     IPNetwork(const Addr&, int);
     IPNetwork(const std::string&, int);
     IPNetwork(uint32_t, int);
@@ -186,7 +185,8 @@ Addr IPInterface<Addr>::addr() const
 template <class Addr>
 IPNetwork<Addr> IPInterface<Addr>::network() const
 {
-    return IPNetwork<Addr>(*this);
+    uint32_t mask = (1 << (Addr::length() - prefix)) - 1;
+    return IPNetwork<Addr>(Addr::value & (~mask), prefix);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -194,21 +194,12 @@ IPNetwork<Addr> IPInterface<Addr>::network() const
 template <class Addr>
 bool IPNetwork<Addr>::is_network() const
 {
-    uint32_t mask = (1 << (Addr::length() - IPInterface<Addr>::prefix)) - 1;
+    uint32_t mask = (1 << (IPInterface<Addr>::length()
+                           - IPInterface<Addr>::prefix)) - 1;
     if (IPInterface<Addr>::value & mask == 0) {
         return true;
     } else {
         return false;
-    }
-}
-
-template <class Addr>
-IPNetwork<Addr>::IPNetwork(const IPInterface<Addr>& intf)
-    : IPInterface<Addr>(intf)
-{
-    if (!is_network()) {
-        Logger::get_instance().err("Invalid network: " +
-                                   IPInterface<Addr>::to_string());
     }
 }
 
@@ -274,7 +265,8 @@ Addr IPNetwork<Addr>::network_addr() const
 template <class Addr>
 Addr IPNetwork<Addr>::broadcast_addr() const
 {
-    uint32_t mask = (1 << (Addr::length() - IPInterface<Addr>::prefix)) - 1;
+    uint32_t mask = (1 << (IPInterface<Addr>::length()
+                           - IPInterface<Addr>::prefix)) - 1;
     return Addr(IPInterface<Addr>::value | mask);
 }
 
