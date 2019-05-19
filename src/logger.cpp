@@ -4,7 +4,7 @@
 #include <clocale>
 #include <stdexcept>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 
 void Logger::log(const std::string& type, const std::string& msg)
 {

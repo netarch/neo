@@ -5,8 +5,8 @@
 #include <sys/stat.h>
 #include <ftw.h>
 
+#include "logger.hpp"
 #include "lib/fs.hpp"
-#include "lib/logger.hpp"
 
 namespace fs
 {

@@ -7,11 +7,10 @@ class Interface
 {
 private:
     std::string name;
-    //ip;
+    //ipv4;
 
 public:
     Interface(const std::string& name);
-    //Interface(const std::string& name, ip);
 };
 
 #endif

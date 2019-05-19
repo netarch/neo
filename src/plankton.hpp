@@ -3,8 +3,8 @@
 
 #include <string>
 
+#include "logger.hpp"
 #include "topology.hpp"
-#include "lib/logger.hpp"
 
 class Plankton
 {

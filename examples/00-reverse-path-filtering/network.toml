@@ -3,10 +3,10 @@
     type = "L3"
     [[nodes.interfaces]]
     name = "eth0"
-    ip = "192.168.0.1/24"
+    ipv4 = "192.168.0.1/24"
     [[nodes.interfaces]]
     name = "eth1"
-    ip = "192.168.1.1/24"
+    ipv4 = "192.168.1.1/24"
     [[nodes.static_routes]]
     dst_prefix = "0.0.0.0/0"
     next_hop = "192.168.0.2"
@@ -15,7 +15,7 @@
     type = "L3"
     [[nodes.interfaces]]
     name = "eth0"
-    ip = "10.0.0.1/24"
+    ipv4 = "10.0.0.1/24"
     [[nodes.static_routes]]
     dst_prefix = "192.168.0.0/23"
     next_hop = "10.0.0.2"
@@ -57,13 +57,13 @@
     """
     [[nodes.interfaces]]
     name = "eth0"
-    ip = "192.168.0.2/24"
+    ipv4 = "192.168.0.2/24"
     [[nodes.interfaces]]
     name = "eth1"
-    ip = "192.168.1.2/24"
+    ipv4 = "192.168.1.2/24"
     [[nodes.interfaces]]
     name = "eth2"
-    ip = "10.0.0.2/24"
+    ipv4 = "10.0.0.2/24"
 
 [[links]]
     node1 = "h1"
