@@ -33,8 +33,8 @@ bool exists(const std::string& p)
     return true;
 }
 
-static int rm(const char *fpath, const struct stat *sb, int typeflag,
-              struct FTW *ftwbuf)
+static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
+              int typeflag, struct FTW *ftwbuf __attribute__((unused)))
 {
     if (typeflag == FTW_DP) {
         if (rmdir(fpath) == -1) {
@@ -45,10 +45,6 @@ static int rm(const char *fpath, const struct stat *sb, int typeflag,
             logger.err(std::string(fpath) + ": ", errno);
         }
     }
-
-    // these two lines are just for suppressing the unused parameter warnings
-    sb = (const struct stat *)ftwbuf;
-    ftwbuf = (struct FTW *)sb;
     return 0;
 }
 
