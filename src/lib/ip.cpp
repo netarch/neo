@@ -33,6 +33,16 @@ std::string IPv4Address::to_string() const
            std::to_string((value      ) & 255);
 }
 
+size_t IPv4Address::length() const
+{
+    return 32;
+}
+
+uint32_t IPv4Address::get_value() const
+{
+    return value;
+}
+
 bool IPv4Address::operator<(const IPv4Address& rhs) const
 {
     return value < rhs.value;
@@ -163,14 +173,4 @@ IPv4Address IPv4Address::operator|(const std::string& rhs) const
 uint32_t IPv4Address::operator|(uint32_t rhs) const
 {
     return value | rhs;
-}
-
-size_t IPv4Address::length() const
-{
-    return 32;
-}
-
-uint32_t IPv4Address::get_value() const
-{
-    return value;
 }

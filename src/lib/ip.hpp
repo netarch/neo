@@ -17,6 +17,8 @@ public:
     IPv4Address(uint32_t);
 
     std::string to_string() const;
+    size_t length() const;
+    uint32_t get_value() const;
     bool operator< (const IPv4Address&) const;
     bool operator<=(const IPv4Address&) const;
     bool operator> (const IPv4Address&) const;
@@ -42,8 +44,6 @@ public:
     IPv4Address operator|(const IPv4Address&) const;
     IPv4Address operator|(const std::string&) const;
     uint32_t    operator|(uint32_t) const;
-    size_t length() const;
-    uint32_t get_value() const;
 };
 
 template <class Addr>
@@ -67,6 +67,8 @@ public:
     int prefix_length() const;
     Addr addr() const;
     IPNetwork<Addr> network() const;
+    bool operator==(const IPInterface<Addr>&) const;
+    bool operator!=(const IPInterface<Addr>&) const;
 };
 
 template <class Addr>
@@ -189,6 +191,26 @@ IPNetwork<Addr> IPInterface<Addr>::network() const
     return IPNetwork<Addr>(Addr::value & (~mask), prefix);
 }
 
+template <class Addr>
+bool IPInterface<Addr>::operator==(const IPInterface<Addr>& rhs) const
+{
+    if (Addr::value == rhs.value && prefix == rhs.prefix) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <class Addr>
+bool IPInterface<Addr>::operator!=(const IPInterface<Addr>& rhs) const
+{
+    if (Addr::value == rhs.value && prefix == rhs.prefix) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class Addr>
@@ -196,7 +218,7 @@ bool IPNetwork<Addr>::is_network() const
 {
     uint32_t mask = (1 << (IPInterface<Addr>::length()
                            - IPInterface<Addr>::prefix)) - 1;
-    if (IPInterface<Addr>::value & mask == 0) {
+    if ((IPInterface<Addr>::value & mask) == 0) {
         return true;
     } else {
         return false;
