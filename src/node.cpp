@@ -6,9 +6,26 @@ Node::Node(const std::string& name, const std::string& type)
 {
 }
 
-const std::string& Node::get_name() const
+std::string Node::get_name() const
 {
     return name;
+}
+
+void Node::add_interface(const std::shared_ptr<Interface>& interface)
+{
+    auto res = intfs.insert(std::pair<std::string, std::shared_ptr<Interface> >
+                            (interface->get_name(), interface));
+    if (res.second == false) {
+        Logger::get_instance().err("Duplicate interface name: " +
+                                   res.first->first);
+    }
+    auto res2 = intfs_ipv4.insert(
+                    std::pair<IPv4Address, std::shared_ptr<Interface> >
+                    (interface->addr(), interface));
+    if (res2.second == false) {
+        Logger::get_instance().err("Duplicate interface IP: " +
+                                   res.first->first);
+    }
 }
 
 void Node::load_interfaces(
@@ -22,9 +39,12 @@ void Node::load_interfaces(
         if (!name) {
             Logger::get_instance().err("Key error: name");
         }
-        interface = std::make_shared<Interface>(*name);
         if (ipv4) {
-            //interface->set_ipv4(*ipv4);
+            interface = std::make_shared<Interface>(*name, *ipv4);
+        } else {
+            interface = std::make_shared<Interface>(*name);
         }
+
+        add_interface(interface);
     }
 }

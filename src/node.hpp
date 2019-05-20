@@ -14,9 +14,9 @@ private:
     std::string name;
     std::string type;
 
-    // interfaces indexed by name and ipv4
-    std::map<std::string, std::shared_ptr<Interface> > interfaces;
-    //std::map< ipv4 , std::shared_ptr<Interface> > interfaces_ipv4;
+    // interfaces indexed by name and ip address
+    std::map<std::string, std::shared_ptr<Interface> > intfs;
+    std::map<IPv4Address, std::shared_ptr<Interface> > intfs_ipv4;
 
     // (sorted list by longest prefix, then numerical order) static_routes;
     // () links;
@@ -26,9 +26,8 @@ private:
 public:
     Node(const std::string&, const std::string&);
 
-    const std::string& get_name() const;
-
-    //virtual void add_interface();
+    virtual std::string get_name() const;
+    virtual void add_interface(const std::shared_ptr<Interface>&);
     virtual void load_interfaces(const std::shared_ptr<cpptoml::table_array>);
     //virtual void load_static_routes(const std::shared_ptr<cpptoml::table_array>);
 };
