@@ -18,7 +18,7 @@ std::string Interface::get_name() const
 IPv4Address Interface::addr() const
 {
     if (!L3) {
-        Logger::get_instance().err("Switching port");
+        Logger::get_instance().err("Switching port: " + name);
     }
     return ipv4.addr();
 }
@@ -26,7 +26,7 @@ IPv4Address Interface::addr() const
 int Interface::prefix_length() const
 {
     if (!L3) {
-        Logger::get_instance().err("Switching port");
+        Logger::get_instance().err("Switching port: " + name);
     }
     return ipv4.prefix_length();
 }
@@ -34,7 +34,7 @@ int Interface::prefix_length() const
 IPNetwork<IPv4Address> Interface::network() const
 {
     if (!L3) {
-        Logger::get_instance().err("Switching port");
+        Logger::get_instance().err("Switching port: " + name);
     }
     return ipv4.network();
 }
