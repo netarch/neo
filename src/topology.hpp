@@ -1,5 +1,4 @@
-#ifndef TOPOLOGY_HPP
-#define TOPOLOGY_HPP
+#pragma once
 
 #include <map>
 #include <memory>
@@ -23,5 +22,3 @@ public:
     void load_config(const std::shared_ptr<cpptoml::table_array>,
                      const std::shared_ptr<cpptoml::table_array>);
 };
-
-#endif

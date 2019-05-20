@@ -1,5 +1,4 @@
-#ifndef LOGGER_HPP
-#define LOGGER_HPP
+#pragma once
 
 #include <fstream>
 #include <string>
@@ -30,5 +29,3 @@ public:
     void err(const std::string&);       // log error and print to stderr
     void err(const std::string&, int);  // log error and print to stderr
 };
-
-#endif

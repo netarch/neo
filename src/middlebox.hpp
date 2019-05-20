@@ -1,5 +1,4 @@
-#ifndef MIDDLEBOX_HPP
-#define MIDDLEBOX_HPP
+#pragma once
 
 #include <string>
 
@@ -13,5 +12,3 @@ private:
 public:
     Middlebox(const std::string&, const std::string&);
 };
-
-#endif

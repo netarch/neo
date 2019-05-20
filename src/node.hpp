@@ -1,5 +1,4 @@
-#ifndef NODE_HPP
-#define NODE_HPP
+#pragma once
 
 #include <string>
 #include <map>
@@ -31,5 +30,3 @@ public:
     virtual void load_interfaces(const std::shared_ptr<cpptoml::table_array>);
     //virtual void load_static_routes(const std::shared_ptr<cpptoml::table_array>);
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef PLANKTON_HPP
-#define PLANKTON_HPP
+#pragma once
 
 #include <string>
 
@@ -23,5 +22,3 @@ public:
 
     void run();
 };
-
-#endif

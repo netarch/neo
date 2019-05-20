@@ -1,5 +1,4 @@
-#ifndef INTERFACE_HPP
-#define INTERFACE_HPP
+#pragma once
 
 #include <string>
 #include <memory>
@@ -23,5 +22,3 @@ public:
     IPNetwork<IPv4Address> network() const;
     bool switching() const;
 };
-
-#endif
