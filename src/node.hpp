@@ -3,9 +3,9 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <cpptoml/cpptoml.hpp>
 
 #include "interface.hpp"
-#include "lib/cpptoml.hpp"
 
 class Node
 {

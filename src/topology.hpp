@@ -2,10 +2,10 @@
 
 #include <map>
 #include <memory>
+#include <cpptoml/cpptoml.hpp>
 
 #include "logger.hpp"
 #include "node.hpp"
-#include "lib/cpptoml.hpp"
 
 class Topology
 {

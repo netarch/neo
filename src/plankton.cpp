@@ -1,6 +1,7 @@
+#include <cpptoml/cpptoml.hpp>
+
 #include "plankton.hpp"
 #include "lib/fs.hpp"
-#include "lib/cpptoml.hpp"
 
 
 Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
