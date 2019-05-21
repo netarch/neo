@@ -18,9 +18,8 @@ void Topology::add_node(const std::shared_ptr<Node>& node)
     }
 }
 
-void Topology::load_config(
-    const std::shared_ptr<cpptoml::table_array> nodes_config,
-    const std::shared_ptr<cpptoml::table_array> links_config)
+void Topology::load_nodes(
+    const std::shared_ptr<cpptoml::table_array> nodes_config)
 {
     for (const std::shared_ptr<cpptoml::table>& node_config : *nodes_config) {
         std::shared_ptr<Node> node;
@@ -35,31 +34,47 @@ void Topology::load_config(
         } else if (*type == "middlebox") {
             node = std::static_pointer_cast<Node>
                    (std::make_shared<Middlebox>(*name, *type));
-            auto intfs_config = node_config->get_table_array("interfaces");
-            node->load_interfaces(intfs_config);
-            auto sroutes_config = node_config->get_table_array("static_routes");
-            //node->load_static_routes(sroutes_config);
+            // TODO read "driver", "config", ...
         } else if (*type == "L2" || *type == "L3") {
             node = std::make_shared<Node>(*name, *type);
-            auto intfs_config = node_config->get_table_array("interfaces");
-            node->load_interfaces(intfs_config);
-            auto sroutes_config = node_config->get_table_array("static_routes");
-            //node->load_static_routes(sroutes_config);
         } else {
             logger.err("Unknown node type: " + *type);
         }
 
+        if (auto config = node_config->get_table_array("interfaces")) {
+            node->load_interfaces(config);
+        }
+        if (auto config = node_config->get_table_array("static_routes")) {
+            node->load_static_routes(config);
+        }
+        // TODO read "RIB"
+
         add_node(node);
     }
+}
 
-    logger.info("Loaded " + std::to_string(nodes.size()) + " nodes");
-
+void Topology::load_links(
+    const std::shared_ptr<cpptoml::table_array> links_config)
+{
     for (const std::shared_ptr<cpptoml::table>& link_config : *links_config) {
         link_config->get_as<std::string>("node1");
         link_config->get_as<std::string>("intf1");
         link_config->get_as<std::string>("node2");
         link_config->get_as<std::string>("intf2");
     }
+}
 
+void Topology::load_config(
+    const std::shared_ptr<cpptoml::table_array> nodes_config,
+    const std::shared_ptr<cpptoml::table_array> links_config)
+{
+    if (nodes_config) {
+        load_nodes(nodes_config);
+    }
+    logger.info("Loaded " + std::to_string(nodes.size()) + " nodes");
+
+    if (links_config) {
+        load_links(links_config);
+    }
     //logger.info("Loaded " + std::to_string(links.size()) + " links");
 }

@@ -8,7 +8,7 @@
     name = "eth1"
     ipv4 = "192.168.1.1/24"
     [[nodes.static_routes]]
-    dst_prefix = "0.0.0.0/0"
+    network = "0.0.0.0/0"
     next_hop = "192.168.0.2"
 [[nodes]]
     name = "h2"
@@ -17,7 +17,7 @@
     name = "eth0"
     ipv4 = "10.0.0.1/24"
     [[nodes.static_routes]]
-    dst_prefix = "192.168.0.0/23"
+    network = "192.168.0.0/23"
     next_hop = "10.0.0.2"
 [[nodes]]
     name = "s1"

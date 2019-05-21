@@ -13,25 +13,29 @@ std::string Node::get_name() const
 
 void Node::add_interface(const std::shared_ptr<Interface>& interface)
 {
-    auto res = intfs.insert(std::pair<std::string, std::shared_ptr<Interface> >
-                            (interface->get_name(), interface));
+    auto res = intfs.insert(
+                   std::pair<std::string, std::shared_ptr<Interface> >
+                   (interface->get_name(), interface));
     if (res.second == false) {
         Logger::get_instance().err("Duplicate interface name: " +
                                    res.first->first);
     }
-    auto res2 = intfs_ipv4.insert(
-                    std::pair<IPv4Address, std::shared_ptr<Interface> >
-                    (interface->addr(), interface));
-    if (res2.second == false) {
-        Logger::get_instance().err("Duplicate interface IP: " +
-                                   res.first->first);
+    if (!interface->switching()) {
+        auto res2 = intfs_ipv4.insert(
+                        std::pair<IPv4Address, std::shared_ptr<Interface> >
+                        (interface->addr(), interface));
+        if (res2.second == false) {
+            Logger::get_instance().err("Duplicate interface IP: " +
+                                       res.first->first);
+        }
+        // TODO add connected route to rib
     }
 }
 
 void Node::load_interfaces(
-    const std::shared_ptr<cpptoml::table_array> intfs_config)
+    const std::shared_ptr<cpptoml::table_array> config)
 {
-    for (const std::shared_ptr<cpptoml::table>& intf_config : *intfs_config) {
+    for (const std::shared_ptr<cpptoml::table>& intf_config : *config) {
         std::shared_ptr<Interface> interface;
         auto name = intf_config->get_as<std::string>("name");
         auto ipv4 = intf_config->get_as<std::string>("ipv4");
@@ -46,5 +50,14 @@ void Node::load_interfaces(
         }
 
         add_interface(interface);
+    }
+}
+
+void Node::load_static_routes(
+    const std::shared_ptr<cpptoml::table_array> config)
+{
+    for (const std::shared_ptr<cpptoml::table>& sroute_config : *config) {
+        auto net = sroute_config->get_as<std::string>("network");
+        auto nhop = sroute_config->get_as<std::string>("next_hop");
     }
 }

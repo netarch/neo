@@ -1,12 +1,12 @@
 #include "interface.hpp"
 #include "logger.hpp"
 
-Interface::Interface(const std::string& name): name(name), L3(false)
+Interface::Interface(const std::string& name): name(name), switchport(true)
 {
 }
 
 Interface::Interface(const std::string& name, const std::string& intf)
-    : name(name), ipv4(intf), L3(true)
+    : name(name), ipv4(intf), switchport(false)
 {
 }
 
@@ -17,29 +17,29 @@ std::string Interface::get_name() const
 
 IPv4Address Interface::addr() const
 {
-    if (!L3) {
-        Logger::get_instance().err("Switching port: " + name);
+    if (switchport) {
+        Logger::get_instance().err("Switchport: " + name);
     }
     return ipv4.addr();
 }
 
 int Interface::prefix_length() const
 {
-    if (!L3) {
-        Logger::get_instance().err("Switching port: " + name);
+    if (switchport) {
+        Logger::get_instance().err("Switchport: " + name);
     }
     return ipv4.prefix_length();
 }
 
 IPNetwork<IPv4Address> Interface::network() const
 {
-    if (!L3) {
-        Logger::get_instance().err("Switching port: " + name);
+    if (switchport) {
+        Logger::get_instance().err("Switchport: " + name);
     }
     return ipv4.network();
 }
 
 bool Interface::switching() const
 {
-    return !L3;
+    return switchport;
 }

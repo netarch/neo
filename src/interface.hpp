@@ -10,7 +10,8 @@ class Interface
 private:
     std::string name;
     IPInterface<IPv4Address> ipv4;
-    bool L3;
+    bool switchport;
+    // TODO std::vector<int> vlans;
 
 public:
     Interface(const std::string& name);
