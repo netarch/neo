@@ -1,5 +1,5 @@
 #include "interface.hpp"
-#include "logger.hpp"
+#include "lib/logger.hpp"
 
 Interface::Interface(const std::string& name): name(name), switchport(true)
 {

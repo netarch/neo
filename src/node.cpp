@@ -1,5 +1,5 @@
 #include "node.hpp"
-#include "logger.hpp"
+#include "lib/logger.hpp"
 
 Node::Node(const std::string& name, const std::string& type)
     : name(name), type(type)

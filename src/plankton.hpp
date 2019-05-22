@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "logger.hpp"
+#include "lib/logger.hpp"
 #include "topology.hpp"
 
 class Plankton

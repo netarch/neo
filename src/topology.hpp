@@ -4,7 +4,7 @@
 #include <memory>
 #include <cpptoml/cpptoml.hpp>
 
-#include "logger.hpp"
+#include "lib/logger.hpp"
 #include "node.hpp"
 
 class Topology
