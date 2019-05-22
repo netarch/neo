@@ -35,7 +35,8 @@ ASTYLE_OPTS=(
 )
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 SRC_DIR="$(realpath ${SCRIPT_DIR}/../src)"
-FILES=$(find ${SRC_DIR} -type f | grep -E '\.(c|h|cpp|hpp|pml)$')
+TEST_DIR="$(realpath ${SCRIPT_DIR}/../test)"
+FILES=$(find ${SRC_DIR} ${TEST_DIR} -type f | grep -E '\.(c|h|cpp|hpp|pml)$')
 
 for FILE in $FILES; do
     newfile="$(mktemp "tmp.XXXXXX")" || exit 1

@@ -32,7 +32,7 @@ AS_IF([test "$OS" = "Debian" -o "$OS" = "Ubuntu"],
 ## Config files and directories
 ##
 AC_CONFIG_FILES([Makefile])
-#AC_CONFIG_FILES([codecov.sh:test/codecov.sh.in], [chmod +x codecov.sh])
+AC_CONFIG_FILES([codecov.sh:test/codecov.sh.in], [chmod +x codecov.sh])
 AC_CONFIG_SRCDIR([src/network.pml])
 AC_CONFIG_AUX_DIR([build-aux])
 
@@ -66,19 +66,19 @@ AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 
 
-###
-### Configure arguments
-###
-#AC_ARG_ENABLE([coverage],
-#    AS_HELP_STRING([--enable-coverage], [Enable coverage testing using gcov]))
-#AC_ARG_ENABLE([asan],
-#    AS_HELP_STRING([--enable-asan], [Enable AddressSanitizer, LeakSanitizer,
-#                                     and UndefinedBehaviorSanitizer]))
-#AC_ARG_ENABLE([tsan],
-#    AS_HELP_STRING([--enable-tsan], [Enable ThreadSanitizer]))
-#AS_IF([test "$enable_asan" = "yes" -a "$enable_tsan" = "yes"], [
-#    AC_ERROR([ASan and TSan cannot be used at the same time])
-#])
+##
+## Configure arguments
+##
+AC_ARG_ENABLE([coverage],
+    AS_HELP_STRING([--enable-coverage], [Enable coverage testing using gcov]))
+AC_ARG_ENABLE([asan],
+    AS_HELP_STRING([--enable-asan], [Enable AddressSanitizer, LeakSanitizer,
+                                     and UndefinedBehaviorSanitizer]))
+AC_ARG_ENABLE([tsan],
+    AS_HELP_STRING([--enable-tsan], [Enable ThreadSanitizer]))
+AS_IF([test "$enable_asan" = "yes" -a "$enable_tsan" = "yes"], [
+    AC_ERROR([ASan and TSan cannot be used at the same time])
+])
 
 
 ###
@@ -91,6 +91,10 @@ define([ADD_CFLAG], [
 define([ADD_CXXFLAG], [
     AS_IF([test -z "$CXXFLAGS"], [CXXFLAGS="$1"],
           [AS_IF([test -n "${CXXFLAGS##*$1*}"], [CXXFLAGS="$CXXFLAGS $1"])])
+])
+define([ADD_CFLAG_CXXFLAG], [
+    ADD_CFLAG([$1])
+    ADD_CXXFLAG([$1])
 ])
 define([ADD_LDFLAG], [
     AS_IF([test -z "$LDFLAGS"], [LDFLAGS="$1"],
@@ -169,54 +173,50 @@ define([CHECK_LIB], [
 ##
 ## Compiler and linker flags
 ##
-ADD_CFLAG([-std=c17 -iquote ${srcdir}/src])
+ADD_CFLAG([-std=c17])
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
-ADD_CXXFLAG([-iquote ${srcdir}/src -isystem ${srcdir}/third_party])
+ADD_CFLAG_CXXFLAG([-iquote ${srcdir}/src -isystem ${srcdir}/third_party])
 ADD_SPINFLAG([-a])
-#AS_IF([test "$enable_coverage" = "yes"], [
-#        CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-O0/g')"
-#        TESTCFLAGS="$(echo $TESTCFLAGS | sed 's/-O[[0-9]]/-O0/g')"
-#        ADD_CFLAG(-g)
-#        ADD_CFLAG(--coverage)
-#        ADD_TESTCFLAG(-g)
-#        ADD_TESTCFLAG(--coverage)
-#        ADD_LIB(--coverage)
-#        ADD_TESTLIB(--coverage)
-#        AS_IF([test -z "$GCOV"], [      # if GCOV is not defined or null
-#               AS_IF([test -z "${CC##*gcc*}"], [GCOV="$(which gcov)"],
-#                     [test -z "${CC##*clang*}"], [GCOV="$(which llvm-cov) gcov"],
-#                     [AC_ERROR([unsupported compiler: $CC])])],
-#              [test -n "${GCOV##/*}"], [        # else if GCOV is not an abs path
-#               GCOV_PATH="$(which $(echo $GCOV | cut -f 1 -d ' ') 2>/dev/null)"
-#               AS_IF([test -z "$GCOV_PATH"],
-#                     [AC_ERROR(["$(echo $GCOV | cut -f 1 -d ' ')" file not found])])
-#               GCOV="$(echo $GCOV | sed "s|[[^ ]]\+|$GCOV_PATH|")"])
-#        AC_MSG_CHECKING([for $(echo $GCOV | cut -f 1 -d ' ')])
-#        AS_IF([test -x "$(echo $GCOV | cut -f 1 -d ' ')"], [AC_MSG_RESULT(yes)], [
-#               AC_MSG_RESULT(no)
-#               AC_ERROR([$(echo $GCOV | cut -f 1 -d ' ') cannot be executed])])
-#        CC_VER="$($CC --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
-#        GCOV_VER="$($GCOV --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
-#        AS_IF([test "$CC_VER" != "$GCOV_VER"],
-#              [AC_ERROR([$GCOV $GCOV_VER and $CC $CC_VER version mismatch])])
-#        AC_SUBST([GCOV], [$GCOV])
-#])
-#AS_IF([test "$enable_asan" = "yes"], [
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fsanitize=address)
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fsanitize=pointer-compare)
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fsanitize=pointer-subtract)
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fsanitize=leak)
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fno-omit-frame-pointer)
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fno-common)
-#        SAFE_ADD_LDFLAG_AND_TESTLDFLAG(-fsanitize=address)
-#        SAFE_ADD_LDFLAG_AND_TESTLDFLAG(-fsanitize=pointer-compare)
-#        SAFE_ADD_LDFLAG_AND_TESTLDFLAG(-fsanitize=pointer-subtract)
-#        SAFE_ADD_LDFLAG_AND_TESTLDFLAG(-fsanitize=leak)
-#])
-#AS_IF([test "$enable_tsan" = "yes"], [
-#        SAFE_ADD_CFLAG_AND_TESTCFLAG(-fsanitize=thread)
-#        SAFE_ADD_LDFLAG_AND_TESTLDFLAG(-fsanitize=thread)
-#])
+AS_IF([test "$enable_coverage" = "yes"], [
+    CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-O0/g')"
+    CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O[[0-9]]/-O0/g')"
+    ADD_CFLAG_CXXFLAG([-g --coverage])
+    ADD_LIB(--coverage)
+    AS_IF([test -z "$GCOV"], [      # if GCOV is not defined or null
+           AS_IF([test -z "${CXX##*g++*}"], [GCOV="$(which gcov)"],
+                 [test -z "${CXX##*clang++*}"], [GCOV="$(which llvm-cov) gcov"],
+                 [AC_ERROR([unsupported compiler: $CXX])])],
+          [test -n "${GCOV##/*}"], [        # else if GCOV is not an abs path
+           GCOV_PATH="$(which $(echo $GCOV | cut -f 1 -d ' ') 2>/dev/null)"
+           AS_IF([test -z "$GCOV_PATH"],
+                 [AC_ERROR(["$(echo $GCOV | cut -f 1 -d ' ')" file not found])])
+           GCOV="$(echo $GCOV | sed "s|[[^ ]]\+|$GCOV_PATH|")"])
+    AC_MSG_CHECKING([for $(echo $GCOV | cut -f 1 -d ' ')])
+    AS_IF([test -x "$(echo $GCOV | cut -f 1 -d ' ')"], [AC_MSG_RESULT(yes)], [
+           AC_MSG_RESULT(no)
+           AC_ERROR([$(echo $GCOV | cut -f 1 -d ' ') cannot be executed])])
+    CXX_VER="$($CXX --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
+    GCOV_VER="$($GCOV --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
+    AS_IF([test "$CXX_VER" != "$GCOV_VER"],
+          [AC_ERROR([$GCOV $GCOV_VER and $CXX $CXX_VER version mismatch])])
+    AC_SUBST([GCOV], [$GCOV])
+])
+AS_IF([test "$enable_asan" = "yes"], [
+    ADD_CFLAG_CXXFLAG(-fsanitize=address)
+    ADD_CFLAG_CXXFLAG(-fsanitize=pointer-compare)
+    ADD_CFLAG_CXXFLAG(-fsanitize=pointer-subtract)
+    ADD_CFLAG_CXXFLAG(-fsanitize=leak)
+    ADD_CFLAG_CXXFLAG(-fno-omit-frame-pointer)
+    ADD_CFLAG_CXXFLAG(-fno-common)
+    ADD_LDFLAG(-fsanitize=address)
+    ADD_LDFLAG(-fsanitize=pointer-compare)
+    ADD_LDFLAG(-fsanitize=pointer-subtract)
+    ADD_LDFLAG(-fsanitize=leak)
+])
+AS_IF([test "$enable_tsan" = "yes"], [
+    ADD_CFLAG_CXXFLAG(-fsanitize=thread)
+    ADD_LDFLAG(-fsanitize=thread)
+])
 
 
 ##

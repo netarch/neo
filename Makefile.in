@@ -10,6 +10,7 @@ PACKAGE_BUGREPORT  = @PACKAGE_BUGREPORT@
 PACKAGE_TARNAME    = @PACKAGE_TARNAME@
 PACKAGE_URL        = @PACKAGE_URL@
 TARGET             = $(PACKAGE_TARNAME)
+TEST_TARGET		   = test-$(TARGET)
 
 # Source files and directories
 srcdir      = @srcdir@
@@ -41,6 +42,11 @@ CPPFLAGS    = @CPPFLAGS@
 LDFLAGS     = @LDFLAGS@
 LIBS        = @LIBS@
 SPINFLAGS   = @SPINFLAGS@
+
+# Test files and directories
+TEST_SRCS   = $(shell find $(srcdir)/test -type f -name '*.cpp')
+TEST_OBJS   = $(notdir $(TEST_SRCS:%.cpp=%.o)) $(filter-out main.o,$(OBJS))
+VPATH      += $(shell find $(srcdir)/test -type d)
 
 .SUFFIXES:
 .SUFFIXES: .c .o
@@ -75,17 +81,19 @@ uninstall:
 	-rm -rf "$(licensedir)"
 
 clean:
-	-@rm -f $(TARGET) *.o pan.{b,c,h,m,p,t} neo.1.gz
+	-@rm -f $(TARGET) $(TEST_TARGET) *.o pan.{b,c,h,m,p,t} neo.1.gz
 
 distclean: clean
 	-@rm -rf autom4te.cache config.log config.status configure Makefile
 
-check: all
-	# run tests against the built results
-	# TODO
+check: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
+$(TEST_TARGET): $(TEST_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 installcheck: install
-	# run tests against the installed package
 	# TODO
 
-.PHONY: all install-git-hooks install uninstall clean distclean check installcheck
+.PHONY: all install-git-hooks install uninstall clean distclean check \
+		installcheck

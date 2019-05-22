@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Please see https://github.com/codecov/codecov-bash/blob/master/codecov for
+# Codecov-bash's detailed options
+#
+
+set -e
+
+[ -z "$GCOV" ] && GCOV="@GCOV@"
+
+NAME='test'
+[ -n "$TRAVIS_JOB_NAME" ] && \
+    NAME="$TRAVIS_JOB_NAME"
+
+bash <(curl -s https://codecov.io/bash) -Z -x "$GCOV" -a '\-l' -n "$NAME"

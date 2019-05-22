@@ -4,7 +4,7 @@ usage()
 {
     echo "[!] Usage: $0 [OPTIONS]" >&2
     echo '    Options:' >&2
-    echo '        -T    enable testing against the built results' >&2
+    echo '        -T    enable unit testing' >&2
     echo '        -c    enable coverage testing' >&2
     echo '        -a    enable AddressSanitizer' >&2
     echo '        -t    enable ThreadSanitizer' >&2
@@ -71,12 +71,7 @@ for i in 0; do
         EXITCODE=1
         break
     }
-    make -j$(nproc --all) || {
-        echo '[-] make failed.' >&2
-        EXITCODE=1
-        break
-    }
-    [ $TEST -ne 0 ] && {
+    if [ $TEST -ne 0 ]; then
         make -j$(nproc --all) check || {
             echo '[-] make check failed.' >&2
             EXITCODE=1
@@ -89,7 +84,13 @@ for i in 0; do
                 break
             }
         }
-    }
+    else
+        make -j$(nproc --all) || {
+            echo '[-] make failed.' >&2
+            EXITCODE=1
+            break
+        }
+    fi
 done
 popd >/dev/null 2>&1
 rm -rf "$tmpdir" "${PROJECT_DIR}/autom4te.cache" "${PROJECT_DIR}/configure"

@@ -45,7 +45,7 @@ get_distro() {
         # Fall back to uname
         DISTRO="$(uname -s)"
     else
-        echo '[!] unable to determine the distribution' >&2
+        echo '[!] Unable to determine the distribution' >&2
         exit 1
     fi
 }
@@ -65,6 +65,10 @@ aur_pkg_exists() {
 }
 
 aur_install() {
+    # Dependencies needed for this script (AUR)
+    script_depends=(curl git)
+    sudo pacman -S --needed --noconfirm --asdeps ${script_depends[@]}
+
     TARGET="$1"
     shift
     if pacman -Q "$TARGET" &>/dev/null; then
@@ -86,18 +90,16 @@ main() {
     get_distro
 
     if [ "$DISTRO" = "Arch" ]; then
-        # Dependencies needed for this script (AUR)
-        script_depends=(git curl)
-
-        sudo pacman -S --needed --noconfirm --asdeps ${script_depends[@]}
-        aur_install yay --asdeps
+        sudo pacman -Syy
+        aur_install yay --needed --asdeps
         yay -S --needed --noconfirm ${depends[@]} $@
 
     elif [ "$DISTRO" = "Ubuntu" ]; then
-        sudo apt install -y ${depends[@]}
+        sudo apt update -y -qq
+        sudo apt install -y -qq ${depends[@]}
 
     else
-        echo "[!] unsupported distribution: $DISTRO" >&2
+        echo "[!] Unsupported distribution: $DISTRO" >&2
         exit 1
     fi
 
