@@ -70,7 +70,8 @@ std::string append(const std::string& parent, const std::string& child)
 {
     std::string p(parent);
 
-    if (!p.empty() && p.back() != '/') {
+    if (!p.empty() && p.back() != '/' &&
+            !child.empty() && child.front() != '/') {
         p.push_back('/');
     }
     p.append(child);

@@ -6,52 +6,35 @@
 TEST_CASE("logger")
 {
     Logger& logger = Logger::get_instance();
-    logger.set_verbose(true);
-
-    SECTION("standard output") {
-        logger.out("Hello, world!");
-    }
 
     SECTION("no log file") {
-        logger.out("no log file");
-        logger.info("no log file");
-        logger.warn("no log file");
+        logger.info("");
+        logger.warn("");
         try {
-            logger.err("no log file");
-        } catch (std::exception& e) {
-            logger.out(e.what());
-        }
+            logger.err("");
+        } catch (std::exception& e) {}
         try {
-            logger.err("no log file", ENOENT);
-        } catch (std::exception& e) {
-            logger.out(e.what());
-        }
+            logger.err("", ENOENT);
+        } catch (std::exception& e) {}
     }
 
     SECTION("non-existent log file") {
         logger.set_file("non/existent/log/file");
         try {
-            logger.info("log message");
-        } catch (std::exception& e) {
-            logger.out(e.what());
-        }
+            logger.info("");
+        } catch (std::exception& e) {}
     }
 
     SECTION("normal log file") {
         logger.set_file("normal.log");
-        logger.out("normal log file");
-        logger.info("normal log file");
-        logger.warn("normal log file");
+        logger.info("");
+        logger.warn("");
         try {
-            logger.err("normal log file");
-        } catch (std::exception& e) {
-            logger.out(e.what());
-        }
+            logger.err("");
+        } catch (std::exception& e) {}
         try {
-            logger.err("normal log file", 0);
-        } catch (std::exception& e) {
-            logger.out(e.what());
-        }
+            logger.err("", 0);
+        } catch (std::exception& e) {}
         fs::remove("normal.log");
     }
 }
