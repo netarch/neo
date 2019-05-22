@@ -12,7 +12,7 @@ void Logger::log(const std::string& type, const std::string& msg)
     if (!logfile.is_open() && !filename.empty()) {
         logfile.open(filename);
         if (logfile.fail()) {
-            err("Failed to open log file: " + filename);
+            throw std::runtime_error("Failed to open log file: " + filename);
         }
     }
 
@@ -70,5 +70,5 @@ void Logger::err(const std::string& msg, int errnum)
     locale_t locale = newlocale(LC_ALL_MASK, "", 0);
     std::string err_str = strerror_l(errnum, locale);
     freelocale(locale);
-    err(msg + err_str);
+    err(msg + ": " + err_str);
 }
