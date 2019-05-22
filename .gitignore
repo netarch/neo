@@ -1,7 +1,7 @@
 # Compiled objects/libraries
+*.a
 *.o
 *.so
-*.a
 
 # Executables
 neo
@@ -11,9 +11,10 @@ test-neo
 tags
 
 # Intermediate build files
+Makefile
 autom4te.cache/
+codecov.sh
 config.log
 config.status
 configure
-Makefile
 pan.[bchmpt]
