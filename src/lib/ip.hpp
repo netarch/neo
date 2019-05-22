@@ -25,6 +25,12 @@ public:
     bool operator>=(const IPv4Address&) const;
     bool operator==(const IPv4Address&) const;
     bool operator!=(const IPv4Address&) const;
+    bool operator< (const std::string&) const;
+    bool operator<=(const std::string&) const;
+    bool operator> (const std::string&) const;
+    bool operator>=(const std::string&) const;
+    bool operator==(const std::string&) const;
+    bool operator!=(const std::string&) const;
     IPv4Address& operator=(const IPv4Address&);
     IPv4Address& operator+=(const IPv4Address&);
     IPv4Address& operator+=(uint32_t);

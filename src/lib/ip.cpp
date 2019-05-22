@@ -73,6 +73,36 @@ bool IPv4Address::operator!=(const IPv4Address& rhs) const
     return value != rhs.value;
 }
 
+bool IPv4Address::operator<(const std::string& rhs) const
+{
+    return *this < IPv4Address(rhs);
+}
+
+bool IPv4Address::operator<=(const std::string& rhs) const
+{
+    return *this <= IPv4Address(rhs);
+}
+
+bool IPv4Address::operator>(const std::string& rhs) const
+{
+    return *this > IPv4Address(rhs);
+}
+
+bool IPv4Address::operator>=(const std::string& rhs) const
+{
+    return *this >= IPv4Address(rhs);
+}
+
+bool IPv4Address::operator==(const std::string& rhs) const
+{
+    return *this == IPv4Address(rhs);
+}
+
+bool IPv4Address::operator!=(const std::string& rhs) const
+{
+    return *this != IPv4Address(rhs);
+}
+
 IPv4Address& IPv4Address::operator=(const IPv4Address& rhs)
 {
     value = rhs.value;
