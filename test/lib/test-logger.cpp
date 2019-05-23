@@ -53,6 +53,7 @@ TEST_CASE("logger")
             err++;
         }
         CHECK(err == 2);
+        logger.set_file(std::string());
         fs::remove("normal.log");
     }
 }
