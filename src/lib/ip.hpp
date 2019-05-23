@@ -32,6 +32,7 @@ public:
     bool operator==(const std::string&) const;
     bool operator!=(const std::string&) const;
     IPv4Address& operator=(const IPv4Address&);
+    IPv4Address& operator=(const std::string&);
     IPv4Address& operator+=(const IPv4Address&);
     IPv4Address& operator+=(uint32_t);
     IPv4Address& operator-=(const IPv4Address&);
@@ -75,6 +76,10 @@ public:
     IPNetwork<Addr> network() const;
     bool operator==(const IPInterface<Addr>&) const;
     bool operator!=(const IPInterface<Addr>&) const;
+    bool operator==(const std::string&) const;
+    bool operator!=(const std::string&) const;
+    IPInterface<Addr>& operator=(const IPInterface<Addr>&);
+    IPInterface<Addr>& operator=(const std::string&);
 };
 
 template <class Addr>
@@ -98,7 +103,14 @@ public:
     Addr network_addr() const;
     Addr broadcast_addr() const;
     bool contains(const Addr&) const;
+    bool contains(const std::string&) const;
     IPRange<Addr> range() const;
+    bool operator==(const IPNetwork<Addr>&) const;
+    bool operator!=(const IPNetwork<Addr>&) const;
+    bool operator==(const std::string&) const;
+    bool operator!=(const std::string&) const;
+    IPNetwork<Addr>& operator=(const IPNetwork<Addr>&);
+    IPNetwork<Addr>& operator=(const std::string&);
 };
 
 template <class Addr>
@@ -112,18 +124,32 @@ public:
     IPRange() = default;
     IPRange(const IPRange&) = default;
     IPRange(const Addr& lb, const Addr& ub);
+    IPRange(const std::string& lb, const std::string& ub);
     IPRange(const IPNetwork<Addr>&);
+    IPRange(const std::string&);
 
     std::string to_string() const;
     size_t size() const;
     size_t length() const;
     void set_lb(const Addr&);
     void set_ub(const Addr&);
+    void set_lb(const std::string&);
+    void set_ub(const std::string&);
     Addr get_lb() const;
     Addr get_ub() const;
     bool contains(const Addr&) const;
+    bool contains(const std::string&) const;
     bool is_network() const;
     IPNetwork<Addr> network() const;
+    bool operator==(const IPRange<Addr>&) const;
+    bool operator!=(const IPRange<Addr>&) const;
+    bool operator==(const IPNetwork<Addr>&) const;
+    bool operator!=(const IPNetwork<Addr>&) const;
+    bool operator==(const std::string&) const;
+    bool operator!=(const std::string&) const;
+    IPRange<Addr>& operator=(const IPRange<Addr>&);
+    IPRange<Addr>& operator=(const IPNetwork<Addr>&);
+    IPRange<Addr>& operator=(const std::string&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -132,27 +158,38 @@ template <class Addr>
 IPInterface<Addr>::IPInterface(const Addr& addr, int prefix)
     : Addr(addr), prefix(prefix)
 {
+    if (prefix < 0 || (size_t)prefix > Addr::length()) {
+        Logger::get_instance().err("Invalid prefix length: " +
+                                   std::to_string(prefix));
+    }
 }
 
 template <class Addr>
 IPInterface<Addr>::IPInterface(const std::string& ips, int prefix)
     : Addr(ips), prefix(prefix)
 {
+    if (prefix < 0 || (size_t)prefix > Addr::length()) {
+        Logger::get_instance().err("Invalid prefix length: " +
+                                   std::to_string(prefix));
+    }
 }
 
 template <class Addr>
 IPInterface<Addr>::IPInterface(uint32_t ip, int prefix)
     : Addr(ip), prefix(prefix)
 {
+    if (prefix < 0 || (size_t)prefix > Addr::length()) {
+        Logger::get_instance().err("Invalid prefix length: " +
+                                   std::to_string(prefix));
+    }
 }
 
 template <class Addr>
 IPInterface<Addr>::IPInterface(const std::string& cidr)
 {
-    int parsed, r, oct[4];
-    unsigned int prefix_len;
+    int r, prefix_len, parsed, oct[4];
 
-    r = sscanf(cidr.c_str(), "%d.%d.%d.%d/%u%n", oct, oct + 1, oct + 2, oct + 3,
+    r = sscanf(cidr.c_str(), "%d.%d.%d.%d/%d%n", oct, oct + 1, oct + 2, oct + 3,
                &prefix_len, &parsed);
     if (r != 5 || parsed != (int)cidr.size()) {
         Logger::get_instance().err("Failed to parse IP: " + cidr);
@@ -165,11 +202,11 @@ IPInterface<Addr>::IPInterface(const std::string& cidr)
         }
         Addr::value = (Addr::value << 8) + oct[i];
     }
-    if (prefix_len > Addr::length()) {
-        Logger::get_instance().err("Invalid prefix length: " +
-                                   std::to_string(prefix_len));
-    }
     prefix = prefix_len;
+    if (prefix < 0 || (size_t)prefix > Addr::length()) {
+        Logger::get_instance().err("Invalid prefix length: " +
+                                   std::to_string(prefix));
+    }
 }
 
 template <class Addr>
@@ -217,13 +254,39 @@ bool IPInterface<Addr>::operator!=(const IPInterface<Addr>& rhs) const
     }
 }
 
+template <class Addr>
+bool IPInterface<Addr>::operator==(const std::string& rhs) const
+{
+    return *this == IPInterface<Addr>(rhs);
+}
+
+template <class Addr>
+bool IPInterface<Addr>::operator!=(const std::string& rhs) const
+{
+    return *this != IPInterface<Addr>(rhs);
+}
+
+template <class Addr>
+IPInterface<Addr>& IPInterface<Addr>::operator=(const IPInterface<Addr>& rhs)
+{
+    Addr::value = rhs.value;
+    prefix = rhs.prefix;
+    return *this;
+}
+
+template <class Addr>
+IPInterface<Addr>& IPInterface<Addr>::operator=(const std::string& rhs)
+{
+    return (*this = IPInterface<Addr>(rhs));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 template <class Addr>
 bool IPNetwork<Addr>::is_network() const
 {
-    uint32_t mask = (1 << (IPInterface<Addr>::length()
-                           - IPInterface<Addr>::prefix)) - 1;
+    uint32_t mask = (1ULL << (IPInterface<Addr>::length()
+                              - IPInterface<Addr>::prefix)) - 1;
     if ((IPInterface<Addr>::value & mask) == 0) {
         return true;
     } else {
@@ -309,9 +372,53 @@ bool IPNetwork<Addr>::contains(const Addr& addr) const
 }
 
 template <class Addr>
+bool IPNetwork<Addr>::contains(const std::string& addr) const
+{
+    return contains(Addr(addr));
+}
+
+template <class Addr>
 IPRange<Addr> IPNetwork<Addr>::range() const
 {
     return IPRange<Addr>(*this);
+}
+
+template <class Addr>
+bool IPNetwork<Addr>::operator==(const IPNetwork<Addr>& rhs) const
+{
+    return IPInterface<Addr>::operator==(rhs);
+}
+
+template <class Addr>
+bool IPNetwork<Addr>::operator!=(const IPNetwork<Addr>& rhs) const
+{
+    return IPInterface<Addr>::operator!=(rhs);
+}
+
+template <class Addr>
+bool IPNetwork<Addr>::operator==(const std::string& rhs) const
+{
+    return IPInterface<Addr>::operator==(rhs);
+}
+
+template <class Addr>
+bool IPNetwork<Addr>::operator!=(const std::string& rhs) const
+{
+    return IPInterface<Addr>::operator!=(rhs);
+}
+
+template <class Addr>
+IPNetwork<Addr>& IPNetwork<Addr>::operator=(const IPNetwork<Addr>& rhs)
+{
+    IPInterface<Addr>::operator=(rhs);
+    return *this;
+}
+
+template <class Addr>
+IPNetwork<Addr>& IPNetwork<Addr>::operator=(const std::string& rhs)
+{
+    IPInterface<Addr>::operator=(rhs);
+    return *this;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -325,12 +432,24 @@ IPRange<Addr>::IPRange(const Addr& lb, const Addr& ub): lb(lb), ub(ub)
 }
 
 template <class Addr>
-IPRange<Addr>::IPRange(const IPNetwork<Addr>& net)
-    : lb(net.network_addr()), ub(net.broadcast_addr())
+IPRange<Addr>::IPRange(const std::string& lbs, const std::string& ubs)
+    : lb(lbs), ub(ubs)
 {
     if (lb > ub) {
         Logger::get_instance().err("Invalid IP range: " + to_string());
     }
+}
+
+template <class Addr>
+IPRange<Addr>::IPRange(const IPNetwork<Addr>& net)
+    : lb(net.network_addr()), ub(net.broadcast_addr())
+{
+}
+
+template <class Addr>
+IPRange<Addr>::IPRange(const std::string& net)
+    : IPRange(IPNetwork<Addr>(net))
+{
 }
 
 template <class Addr>
@@ -364,6 +483,18 @@ void IPRange<Addr>::set_ub(const Addr& addr)
 }
 
 template <class Addr>
+void IPRange<Addr>::set_lb(const std::string& addr)
+{
+    lb = addr;
+}
+
+template <class Addr>
+void IPRange<Addr>::set_ub(const std::string& addr)
+{
+    ub = addr;
+}
+
+template <class Addr>
 Addr IPRange<Addr>::get_lb() const
 {
     return lb;
@@ -386,6 +517,12 @@ bool IPRange<Addr>::contains(const Addr& addr) const
 }
 
 template <class Addr>
+bool IPRange<Addr>::contains(const std::string& addr) const
+{
+    return contains(Addr(addr));
+}
+
+template <class Addr>
 bool IPRange<Addr>::is_network() const
 {
     uint32_t n = size();
@@ -401,4 +538,76 @@ template <class Addr>
 IPNetwork<Addr> IPRange<Addr>::network() const
 {
     return IPNetwork<Addr>(*this);
+}
+
+template <class Addr>
+bool IPRange<Addr>::operator==(const IPRange<Addr>& rhs) const
+{
+    if (lb == rhs.lb && ub == rhs.ub) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <class Addr>
+bool IPRange<Addr>::operator!=(const IPRange<Addr>& rhs) const
+{
+    if (lb == rhs.lb && ub == rhs.ub) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+template <class Addr>
+bool IPRange<Addr>::operator==(const IPNetwork<Addr>& rhs) const
+{
+    if (lb == rhs.network_addr() && ub == rhs.broadcast_addr()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <class Addr>
+bool IPRange<Addr>::operator!=(const IPNetwork<Addr>& rhs) const
+{
+    if (lb == rhs.network_addr() && ub == rhs.broadcast_addr()) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+template <class Addr>
+bool IPRange<Addr>::operator==(const std::string& rhs) const
+{
+    return *this == IPRange<Addr>(rhs);
+}
+
+template <class Addr>
+bool IPRange<Addr>::operator!=(const std::string& rhs) const
+{
+    return *this != IPRange<Addr>(rhs);
+}
+
+template <class Addr>
+IPRange<Addr>& IPRange<Addr>::operator=(const IPRange<Addr>& rhs)
+{
+    lb = rhs.lb;
+    ub = rhs.ub;
+    return *this;
+}
+
+template <class Addr>
+IPRange<Addr>& IPRange<Addr>::operator=(const IPNetwork<Addr>& rhs)
+{
+    return (*this = IPRange<Addr>(rhs));
+}
+
+template <class Addr>
+IPRange<Addr>& IPRange<Addr>::operator=(const std::string& rhs)
+{
+    return (*this = IPRange<Addr>(rhs));
 }
