@@ -8,52 +8,26 @@ TEST_CASE("logger")
     Logger& logger = Logger::get_instance();
 
     SECTION("no log file") {
-        int err = 0;
         logger.info("");
         logger.warn("");
-        try {
-            logger.err("");
-        } catch (std::exception& e) {
-            err++;
-        }
-        CHECK(err == 1);
-        try {
-            logger.err("", ENOENT);
-        } catch (std::exception& e) {
-            err++;
-        }
-        CHECK(err == 2);
+        CHECK_THROWS_WITH(logger.err(""), "");
+        CHECK_THROWS_WITH(logger.err("", ENOENT),
+                          ": No such file or directory");
     }
 
     SECTION("non-existent log file") {
-        int err = 0;
         logger.set_file("non/existent/log/file");
-        try {
-            logger.info("");
-        } catch (std::exception& e) {
-            err++;
-        }
-        CHECK(err == 1);
+        CHECK_THROWS_WITH(logger.info(""),
+                          "Failed to open log file: non/existent/log/file");
     }
 
     SECTION("normal log file") {
-        int err = 0;
         logger.set_file("normal.log");
         logger.info("");
         logger.warn("");
-        try {
-            logger.err("");
-        } catch (std::exception& e) {
-            err++;
-        }
-        CHECK(err == 1);
-        try {
-            logger.err("", 0);
-        } catch (std::exception& e) {
-            err++;
-        }
-        CHECK(err == 2);
+        CHECK_THROWS_WITH(logger.err(""), "");
+        CHECK_THROWS_WITH(logger.err("", 0), ": Success");
         logger.set_file(std::string());
-        fs::remove("normal.log");
+        REQUIRE_NOTHROW(fs::remove("normal.log"));
     }
 }
