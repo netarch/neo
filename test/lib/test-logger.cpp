@@ -1,4 +1,7 @@
 #include <catch2/catch.hpp>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "lib/logger.hpp"
 #include "lib/fs.hpp"
@@ -8,10 +11,20 @@ TEST_CASE("logger")
     Logger& logger = Logger::get_instance();
 
     SECTION("verbosity") {
+        int outfd, nullfd;
+        REQUIRE((nullfd = open("/dev/null", O_WRONLY)) > 2);
+        REQUIRE((outfd = dup(1)) > nullfd);
+        REQUIRE(dup2(nullfd, 1) == 1);
+        REQUIRE(close(nullfd) == 0);
+
         logger.set_verbose(true);
+        logger.out("");
         logger.info("");
         logger.warn("");
         logger.set_verbose(false);
+
+        REQUIRE(dup2(outfd, 1) == 1);
+        REQUIRE(close(outfd) == 0);
     }
 
     SECTION("no log file") {
