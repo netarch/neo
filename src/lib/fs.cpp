@@ -38,11 +38,11 @@ static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
 {
     if (typeflag == FTW_D || typeflag == FTW_DNR || typeflag == FTW_DP) {
         if (rmdir(fpath) == -1) {
-            logger.err(std::string(fpath), errno);
+            return -1;
         }
     } else {
         if (unlink(fpath) == -1) {
-            logger.err(std::string(fpath), errno);
+            return -1;
         }
     }
     return 0;
@@ -51,7 +51,7 @@ static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
 void remove(const std::string& p)
 {
     if (nftw(p.c_str(), &rm, 10000, FTW_DEPTH | FTW_PHYS) < 0) {
-        logger.err("Failed to remove " + p, errno);
+        logger.err(p, errno);
     }
 }
 

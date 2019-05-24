@@ -25,8 +25,7 @@ TEST_CASE("fs")
         REQUIRE_NOTHROW(fs::mkdir("hey"));
         REQUIRE_NOTHROW(fs::remove("hey"));
         CHECK_THROWS_WITH(fs::remove("a/b/c/deep/dir"),
-                          "Failed to remove a/b/c/deep/dir: "
-                          "No such file or directory");
+                          "a/b/c/deep/dir: No such file or directory");
         CHECK_THROWS_WITH(fs::remove("/proc/1/fd"),
                           "/proc/1/fd: Operation not permitted");
         CHECK_THROWS_WITH(fs::remove("/proc/1/stat"),
