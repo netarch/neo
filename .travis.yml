@@ -1,0 +1,183 @@
+language: cpp
+dist: xenial
+#sudo: enabled
+matrix:
+  include:
+    - name: "GCC 4.9 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-4.9
+      env:
+        - CC              =  'gcc-4.9'
+        - CXX             =  'g++-4.9'
+        - GCOV            = 'gcov-4.9'
+        - TRAVIS_JOB_NAME =  'GCC 4.9 Test'
+        #- MATRIX_EVAL="export CC=gcc-4.9 && export CXX=g++-4.9 && export GCOV=gcov-4.9"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='GCC 4.9 Test'"
+    - name: "GCC 5 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-5
+      env:
+        - CC              =  'gcc-5'
+        - CXX             =  'g++-5'
+        - GCOV            = 'gcov-5'
+        - TRAVIS_JOB_NAME =  'GCC 5 Test'
+        #- MATRIX_EVAL="export CXX=gcc-5 && export CXX=g++-5 && export GCOV=gcov-5"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='GCC 5 Test'"
+    - name: "GCC 6 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-6
+      env:
+        - CC              =  'gcc-6'
+        - CXX             =  'g++-6'
+        - GCOV            = 'gcov-6'
+        - TRAVIS_JOB_NAME =  'GCC 6 Test'
+        #- MATRIX_EVAL="export CXX=gcc-6 && export CXX=g++-6 && export GCOV=gcov-6"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='GCC 6 Test'"
+    - name: "GCC 7 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-7
+      env:
+        - CC              =  'gcc-7'
+        - CXX             =  'g++-7'
+        - GCOV            = 'gcov-7'
+        - TRAVIS_JOB_NAME =  'GCC 7 Test'
+        #- MATRIX_EVAL="export CXX=g++-7 && export GCOV=gcov-7"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='GCC 7 Test'"
+    - name: "GCC 8 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+      env:
+        - CC              =  'gcc-8'
+        - CXX             =  'g++-8'
+        - GCOV            = 'gcov-8'
+        - TRAVIS_JOB_NAME =  'GCC 8 Test'
+        #- MATRIX_EVAL="export CXX=g++-8 && export GCOV=gcov-8"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='GCC 8 Test'"
+    - name: "Clang 3.8 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-3.8
+          packages:
+            - clang-3.8
+            - llvm-3.8
+      env:
+        - CC              =    'clang-3.8'
+        - CXX             =  'clang++-3.8'
+        - GCOV            = 'llvm-cov-3.8 gcov'
+        - TRAVIS_JOB_NAME =    'Clang 3.8 Test'
+        #- MATRIX_EVAL="export CXX=clang++-3.8 && export GCOV='llvm-cov-3.8 gcov'"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='Clang 3.8 Test'"
+    - name: "Clang 3.9 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-3.9
+          packages:
+            - clang-3.9
+            - llvm-3.9
+      env:
+        - CC              =    'clang-3.9'
+        - CXX             =  'clang++-3.9'
+        - GCOV            = 'llvm-cov-3.9 gcov'
+        - TRAVIS_JOB_NAME =    'Clang 3.9 Test'
+        #- MATRIX_EVAL="export CXX=clang++-3.9 && export GCOV='llvm-cov-3.9 gcov'"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='Clang 3.9 Test'"
+    - name: "Clang 4.0 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-4.0
+          packages:
+            - clang-4.0
+            - llvm-4.0
+      env:
+        - CC              =    'clang-4.0'
+        - CXX             =  'clang++-4.0'
+        - GCOV            = 'llvm-cov-4.0 gcov'
+        - TRAVIS_JOB_NAME =    'Clang 4.0 Test'
+        #- MATRIX_EVAL="export CXX=clang++-4.0 && export GCOV='llvm-cov-4.0 gcov'"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='Clang 4.0 Test'"
+    - name: "Clang 5.0 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-5.0
+          packages:
+            - clang-5.0
+            - llvm-5.0
+      env:
+        - CC              =    'clang-5.0'
+        - CXX             =  'clang++-5.0'
+        - GCOV            = 'llvm-cov-5.0 gcov'
+        - TRAVIS_JOB_NAME =    'Clang 5.0 Test'
+        #- MATRIX_EVAL="export CXX=clang++-5.0 && export GCOV='llvm-cov-5.0 gcov'"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='Clang 5.0 Test'"
+    - name: "Clang 6.0 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-6.0
+          packages:
+            - clang-6.0
+            - llvm-6.0
+      env:
+        - CC              =    'clang-6.0'
+        - CXX             =  'clang++-6.0'
+        - GCOV            = 'llvm-cov-6.0 gcov'
+        - TRAVIS_JOB_NAME =    'Clang 6.0 Test'
+        #- MATRIX_EVAL="CXX=clang++-6.0 && export GCOV='llvm-cov-6.0 gcov'"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='Clang 6.0 Test'"
+    - name: "Clang 7 Test"
+      os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-xenial-7
+          packages:
+            - clang-7
+            - llvm-7
+      env:
+        - CC              =    'clang-7.0'
+        - CXX             =  'clang++-7.0'
+        - GCOV            = 'llvm-cov-7.0 gcov'
+        - TRAVIS_JOB_NAME =    'Clang 7.0 Test'
+        #- MATRIX_EVAL="CXX=clang++-7 && export GCOV='llvm-cov-7 gcov'"
+        #- TRAVIS_JOB_NAME_EVAL="export TRAVIS_JOB_NAME='Clang 7 Test'"
+#before_install:
+#  - eval "${MATRIX_EVAL}"
+#  - eval "${TRAVIS_JOB_NAME_EVAL}"
+install:
+  - ./setup.sh
+script:
+  - ./test/all.sh
