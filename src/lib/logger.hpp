@@ -10,7 +10,7 @@ private:
     std::ofstream logfile;
     bool verbose;
 
-    Logger(): verbose(false) {}
+    Logger();
     void log(const std::string&, const std::string&);
 
 public:

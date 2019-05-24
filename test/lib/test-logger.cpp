@@ -7,6 +7,13 @@ TEST_CASE("logger")
 {
     Logger& logger = Logger::get_instance();
 
+    SECTION("verbosity") {
+        logger.set_verbose(true);
+        logger.info("");
+        logger.warn("");
+        logger.set_verbose(false);
+    }
+
     SECTION("no log file") {
         logger.info("");
         logger.warn("");

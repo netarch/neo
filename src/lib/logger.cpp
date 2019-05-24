@@ -6,6 +6,10 @@
 
 #include "lib/logger.hpp"
 
+Logger::Logger(): verbose(false)
+{
+}
+
 void Logger::log(const std::string& type, const std::string& msg)
 {
     // open file if needed

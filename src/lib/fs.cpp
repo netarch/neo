@@ -36,7 +36,7 @@ bool exists(const std::string& p)
 static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
               int typeflag, struct FTW *ftwbuf __attribute__((unused)))
 {
-    if (typeflag == FTW_DP) {
+    if (typeflag == FTW_D || typeflag == FTW_DNR || typeflag == FTW_DP) {
         if (rmdir(fpath) == -1) {
             logger.err(std::string(fpath), errno);
         }
