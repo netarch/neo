@@ -81,7 +81,8 @@ uninstall:
 	-rm -rf "$(licensedir)"
 
 clean:
-	-@rm -f $(TARGET) $(TEST_TARGET) *.o pan.{b,c,h,m,p,t} neo.1.gz
+	-@rm -f $(TARGET) $(TEST_TARGET) *.o pan.{b,c,h,m,p,t} *.gcov *.gcda \
+			*.gcno neo.1.gz
 
 distclean: clean
 	-@rm -rf autom4te.cache codecov.sh config.log config.status configure \
