@@ -86,6 +86,71 @@ aur_install() {
     unset TARGET
 }
 
+aur_install_ubuntu() {
+    # Dependencies needed for this script (AUR)
+    script_depends=(curl git build-essential flex bison)
+    sudo apt install -y -qq ${script_depends[@]}
+
+    TARGET="$1"
+    if ! aur_pkg_exists "$TARGET"; then
+        echo "[!] AUR package $TARGET not found" >&2
+        return 1
+    fi
+    git clone "https://aur.archlinux.org/$TARGET.git"
+    pushd "$TARGET"
+    source PKGBUILD
+    srcdir="$(realpath src)"
+    pkgdir=/
+    set +o nounset
+    if [ -n "$md5sums" ]; then
+        checksum="md5sum"
+        checksums=${md5sums[@]}
+    elif [ -n "$sha1sums" ]; then
+        checksum="sha1sum"
+        checksums=${sha1sums[@]}
+    elif [ -n "$sha224sums" ]; then
+        checksum="sha224sum"
+        checksums=${sha224sums[@]}
+    elif [ -n "$sha256sums" ]; then
+        checksum="sha256sum"
+        checksums=${sha256sums[@]}
+    elif [ -n "$sha384sums" ]; then
+        checksum="sha384sum"
+        checksums=${sha384sums[@]}
+    elif [ -n "$sha512sums" ]; then
+        checksum="sha512sum"
+        checksums=${sha512sums[@]}
+    else
+        echo "[!] No checksum in PKGBUILD of $TARGET" >&2
+        return 1
+    fi
+    set -o nounset
+    mkdir -p "$srcdir"
+    i=0
+    for s in ${source[@]}; do
+        # only support common tarball sources
+        curl -LO "$s" &>/dev/null
+        if [ "${checksums[$i]}" != "SKIP" ]; then
+            echo "${checksums[$i]} $(basename $s)" | $checksum -c
+        fi
+        pushd "$srcdir"
+        ln -s "../$(basename $s)" "$(basename $s)"
+        tar xf $(basename $s)
+        popd
+        i=$((i + 1))
+    done
+    pushd "$srcdir"
+    [ "$(type -t prepare)" = "function" ] && prepare
+    [ "$(type -t build)" = "function" ] && build
+    [ "$(type -t check)" = "function" ] && check
+    sudo bash -c "pkgdir=\"$pkgdir\"; srcdir=\"$srcdir\";
+                  source \"$srcdir/../PKGBUILD\"; package"
+    popd
+    popd
+    rm -rf "$TARGET"
+    unset TARGET
+}
+
 main() {
     get_distro
 
@@ -96,7 +161,14 @@ main() {
 
     elif [ "$DISTRO" = "Ubuntu" ]; then
         sudo apt update -y -qq
-        sudo apt install -y -qq ${depends[@]}
+        deps=()
+        for dep in ${depends[@]}; do
+            if [ "$dep" != "spin" ]; then
+                deps+=("$dep")
+            fi
+        done
+        sudo apt install -y -qq ${deps[@]}
+        aur_install_ubuntu spin
 
     else
         echo "[!] Unsupported distribution: $DISTRO" >&2
