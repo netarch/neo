@@ -18,3 +18,8 @@ config.log
 config.status
 configure
 pan.[bchmpt]
+
+# coverage files
+*.gcov
+*.gcda
+*.gcno
