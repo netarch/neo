@@ -9,6 +9,14 @@ usage() {
     echo '        -h    show this message and exit' >&2
 }
 
+verle() {
+    [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
+}
+
+verlt() {
+    [ "$1" = "$2" ] && return 1 || verle $1 $2
+}
+
 AUTO=0
 while getopts 'ah' op; do
     case $op in
@@ -21,18 +29,25 @@ while getopts 'ah' op; do
 done
 
 EXITCODE=0
+ASTYLE_VER="$(astyle --version | head -n1 | cut -d ' ' -f 4)"
 ASTYLE_OPTS=(
     '--style=kr'
     '--indent=spaces=4'
     '--indent-switches'
     '--pad-oper'
-    '--pad-comma'
     '--pad-header'
     '--align-pointer=name'
     '--align-reference=type'
-    '--add-braces'
     '--suffix=none'
 )
+if verle 2.06 $ASTYLE_VER; then
+    ASTYLE_OPTS+=('--pad-comma')    # >= 2.06
+fi
+if verlt $ASTYLE_VER 3.0; then
+    ASTYLE_OPTS+=('--add-brackets') # < 3.0
+else
+    ASTYLE_OPTS+=('--add-braces')   # >= 3.0
+fi
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 SRC_DIR="$(realpath ${SCRIPT_DIR}/../src)"
 TEST_DIR="$(realpath ${SCRIPT_DIR}/../test)"
