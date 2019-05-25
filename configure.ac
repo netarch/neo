@@ -173,7 +173,7 @@ define([CHECK_LIB], [
 ##
 ## Compiler and linker flags
 ##
-ADD_CFLAG([-std=c17])
+ADD_CFLAG([-std=c11])
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
 ADD_CFLAG_CXXFLAG([-iquote ${srcdir}/src -isystem ${srcdir}/third_party])
 ADD_SPINFLAG([-a])
@@ -202,18 +202,14 @@ AS_IF([test "$enable_coverage" = "yes"], [
     AC_SUBST([GCOV], [$GCOV])
 ])
 AS_IF([test "$enable_asan" = "yes"], [
+    ADD_CFLAG_CXXFLAG(-g)
     ADD_CFLAG_CXXFLAG(-fsanitize=address)
-    ADD_CFLAG_CXXFLAG(-fsanitize=pointer-compare)
-    ADD_CFLAG_CXXFLAG(-fsanitize=pointer-subtract)
-    ADD_CFLAG_CXXFLAG(-fsanitize=leak)
     ADD_CFLAG_CXXFLAG(-fno-omit-frame-pointer)
     ADD_CFLAG_CXXFLAG(-fno-common)
     ADD_LDFLAG(-fsanitize=address)
-    ADD_LDFLAG(-fsanitize=pointer-compare)
-    ADD_LDFLAG(-fsanitize=pointer-subtract)
-    ADD_LDFLAG(-fsanitize=leak)
 ])
 AS_IF([test "$enable_tsan" = "yes"], [
+    ADD_CFLAG_CXXFLAG(-g)
     ADD_CFLAG_CXXFLAG(-fsanitize=thread)
     ADD_LDFLAG(-fsanitize=thread)
 ])
