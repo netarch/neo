@@ -10,6 +10,12 @@ Route::Route(const std::string& net, const std::string& nh)
 {
 }
 
+Route::Route(const std::string& net, const std::string& nh,
+             const std::string& ifn)
+    : network(net), next_hop(nh), ifname(ifn)
+{
+}
+
 std::string Route::to_string() const
 {
     return network.to_string() + " --> " + next_hop.to_string();
@@ -23,6 +29,16 @@ IPNetwork<IPv4Address> Route::get_network() const
 IPv4Address Route::get_next_hop() const
 {
     return next_hop;
+}
+
+std::string Route::get_ifname() const
+{
+    return ifname;
+}
+
+void Route::set_ifname(const std::string& ifn)
+{
+    ifname = ifn;
 }
 
 bool Route::operator<(const Route& rhs) const
