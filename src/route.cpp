@@ -36,6 +36,16 @@ std::string Route::get_ifname() const
     return ifname;
 }
 
+void Route::set_next_hop(const IPv4Address& nhop)
+{
+    next_hop = nhop;
+}
+
+void Route::set_next_hop(const std::string& nhop)
+{
+    next_hop = nhop;
+}
+
 void Route::set_ifname(const std::string& ifn)
 {
     ifname = ifn;
@@ -83,8 +93,7 @@ bool Route::operator>=(const Route& rhs) const
 
 bool Route::operator==(const Route& rhs) const
 {
-    if (network.prefix_length() == rhs.network.prefix_length()
-            && network.addr() == rhs.network.addr()) {
+    if (network == rhs.network) {
         return true;
     }
     return false;
@@ -93,4 +102,12 @@ bool Route::operator==(const Route& rhs) const
 bool Route::operator!=(const Route& rhs) const
 {
     return !(*this == rhs);
+}
+
+bool Route::identical(const Route& other) const
+{
+    if (network == other.network && next_hop == other.next_hop) {
+        return true;
+    }
+    return false;
 }

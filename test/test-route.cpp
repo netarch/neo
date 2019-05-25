@@ -41,6 +41,10 @@ TEST_CASE("route")
         CHECK(route2.get_next_hop() == "172.16.1.1");
         CHECK(route1.get_ifname().empty());
         CHECK(route2.get_ifname().empty());
+        REQUIRE_NOTHROW(route1.set_next_hop(IPv4Address("0.0.1.164")));
+        CHECK(route1.to_string() == "10.0.0.0/8 --> 0.0.1.164");
+        REQUIRE_NOTHROW(route1.set_next_hop("0.0.0.0"));
+        CHECK(route1.to_string() == "10.0.0.0/8 --> 0.0.0.0");
         route1.set_ifname("duck");
         CHECK(route1.get_ifname() == "duck");
     }
@@ -68,5 +72,9 @@ TEST_CASE("route")
         CHECK(route1 != Route("10.0.0.0/7", "0.0.0.1"));
         CHECK(route1 != Route("11.0.0.0/8", "0.0.0.1"));
         CHECK_FALSE(route1 != Route("10.0.0.0/8", "0.0.0.1"));
+        CHECK(route1.identical(route1));
+        CHECK(route1.identical(Route("10.0.0.0/8", "1.2.3.4")));
+        CHECK_FALSE(route1.identical(Route("10.0.0.0/8", "1.2.3.3")));
+        CHECK_FALSE(route1.identical(route2));
     }
 }

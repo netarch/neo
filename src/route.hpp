@@ -22,6 +22,8 @@ public:
     IPNetwork<IPv4Address> get_network() const;
     IPv4Address get_next_hop() const;
     std::string get_ifname() const;
+    void set_next_hop(const IPv4Address&);
+    void set_next_hop(const std::string&);
     void set_ifname(const std::string&);
     bool operator< (const Route&) const;    // this precede other
     bool operator<=(const Route&) const;
@@ -29,4 +31,5 @@ public:
     bool operator>=(const Route&) const;
     bool operator==(const Route&) const;
     bool operator!=(const Route&) const;
+    bool identical(const Route&) const;
 };
