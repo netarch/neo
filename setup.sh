@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
     (echo '[!] Please run this script without root privilege' >&2; exit 1)
 
 # Dependencies needed for development
-depends=(spin astyle)
+depends=(spin astyle autoconf)
 
 
 get_distro() {
@@ -161,7 +161,7 @@ main() {
 
     elif [ "$DISTRO" = "Ubuntu" ]; then
         sudo apt update -y -qq
-        deps=()
+        deps=(build-essential)
         for dep in ${depends[@]}; do
             if [ "$dep" != "spin" ]; then
                 deps+=("$dep")
