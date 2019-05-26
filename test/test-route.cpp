@@ -11,9 +11,6 @@ TEST_CASE("route")
     SECTION("constructors") {
         std::shared_ptr<Route> r;
 
-        REQUIRE_NOTHROW(r = std::make_shared<Route>());
-        CHECK(r->get_network() == "0.0.0.0/0");
-        CHECK(r->get_next_hop() == "0.0.0.0");
         REQUIRE_NOTHROW(r = std::make_shared<Route>(route1));
         CHECK(r->get_network() == "10.0.0.0/8");
         CHECK(r->get_next_hop() == "1.2.3.4");
@@ -22,14 +19,31 @@ TEST_CASE("route")
                                 IPv4Address("192.168.1.1")));
         CHECK(r->get_network() == "192.168.113.128/25");
         CHECK(r->get_next_hop() == "192.168.1.1");
+        REQUIRE_NOTHROW(r = std::make_shared<Route>(
+                                IPNetwork<IPv4Address>("192.168.113.128/25"),
+                                IPv4Address("192.168.1.1"), 1));
+        REQUIRE_NOTHROW(r = std::make_shared<Route>(
+                                IPNetwork<IPv4Address>("192.168.113.128/25"),
+                                IPv4Address("192.168.1.1"), "eth0"));
+        CHECK(r->get_network() == "192.168.113.128/25");
+        CHECK(r->get_next_hop() == "192.168.1.1");
+        CHECK(r->get_ifname() == "eth0");
+        REQUIRE_NOTHROW(r = std::make_shared<Route>(
+                                IPNetwork<IPv4Address>("192.168.113.128/25"),
+                                IPv4Address("192.168.1.1"), "eth0", 1));
         REQUIRE_NOTHROW(r = std::make_shared<Route>("0.0.0.0/0", "10.1.1.1"));
         CHECK(r->get_network() == "0.0.0.0/0");
         CHECK(r->get_next_hop() == "10.1.1.1");
+        REQUIRE_NOTHROW(r = std::make_shared<Route>("0.0.0.0/0", "10.1.1.1",
+                            1));
         REQUIRE_NOTHROW(r = std::make_shared<Route>(
                                 "0.0.0.0/0", "10.1.1.1", "eth0"));
         CHECK(r->get_network() == "0.0.0.0/0");
         CHECK(r->get_next_hop() == "10.1.1.1");
         CHECK(r->get_ifname() == "eth0");
+        REQUIRE_NOTHROW(r = std::make_shared<Route>(
+                                "0.0.0.0/0", "10.1.1.1", "eth0", 1));
+        CHECK(r->get_adm_dist() == 1);
     }
 
     SECTION("basic information access") {
@@ -41,6 +55,8 @@ TEST_CASE("route")
         CHECK(route2.get_next_hop() == "172.16.1.1");
         CHECK(route1.get_ifname().empty());
         CHECK(route2.get_ifname().empty());
+        CHECK(route1.get_adm_dist() == 255);
+        CHECK(route2.get_adm_dist() == 255);
         REQUIRE_NOTHROW(route1.set_next_hop(IPv4Address("0.0.1.164")));
         CHECK(route1.to_string() == "10.0.0.0/8 --> 0.0.1.164");
         REQUIRE_NOTHROW(route1.set_next_hop("0.0.0.0"));
@@ -76,5 +92,10 @@ TEST_CASE("route")
         CHECK(route1.identical(Route("10.0.0.0/8", "1.2.3.4")));
         CHECK_FALSE(route1.identical(Route("10.0.0.0/8", "1.2.3.3")));
         CHECK_FALSE(route1.identical(route2));
+    }
+
+    SECTION("assignment operations") {
+        route1 = route2;
+        CHECK(route1.to_string() == "192.168.0.0/16 --> 172.16.1.1");
     }
 }
