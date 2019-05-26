@@ -47,10 +47,9 @@ void Topology::load_nodes(
         if (auto config = node_config->get_table_array("static_routes")) {
             node->load_static_routes(config);
         }
-        //if (auto config = node_config->get_table_array("installed_routes")) {
-        //    node->load_installed_routes(config);
-        //}
-        // TODO read "RIB"
+        if (auto config = node_config->get_table_array("installed_routes")) {
+            node->load_installed_routes(config);
+        }
 
         add_node(node);
     }

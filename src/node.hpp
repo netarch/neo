@@ -20,9 +20,10 @@ protected:
     std::map<IPv4Address, std::shared_ptr<Interface> > intfs_ipv4;
 
     std::set<Route> static_routes;
-    // () links;
+    // (TODO) links;
+    std::set<Route> rib;    // global RIB for this node
 
-    // rib
+    void rib_install(const Route&);
 
 public:
     Node(const std::string&, const std::string&);
@@ -30,5 +31,7 @@ public:
     virtual std::string get_name() const;
     virtual void load_interfaces(const std::shared_ptr<cpptoml::table_array>);
     virtual void load_static_routes(
+        const std::shared_ptr<cpptoml::table_array>);
+    virtual void load_installed_routes(
         const std::shared_ptr<cpptoml::table_array>);
 };
