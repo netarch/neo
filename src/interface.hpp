@@ -17,7 +17,7 @@ public:
     Interface() = delete;
     Interface(const Interface&) = default;
     Interface(const std::string& name);
-    Interface(const std::string& name, const std::string& intf);
+    Interface(const std::string& name, const std::string& ip);
 
     std::string to_string() const;
     std::string get_name() const;

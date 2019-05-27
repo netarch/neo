@@ -5,8 +5,8 @@ Interface::Interface(const std::string& name): name(name), switchport(true)
 {
 }
 
-Interface::Interface(const std::string& name, const std::string& intf)
-    : name(name), ipv4(intf), switchport(false)
+Interface::Interface(const std::string& name, const std::string& ip)
+    : name(name), ipv4(ip), switchport(false)
 {
 }
 
