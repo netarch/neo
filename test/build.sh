@@ -72,7 +72,7 @@ for i in 0; do
         break
     }
     if [ $TEST -ne 0 ]; then
-        make -j$(nproc --all) check || {
+        make -j check || {
             echo '[-] make check failed.' >&2
             EXITCODE=1
             break
@@ -85,7 +85,7 @@ for i in 0; do
             }
         }
     else
-        make -j$(nproc --all) || {
+        make -j || {
             echo '[-] make failed.' >&2
             EXITCODE=1
             break
