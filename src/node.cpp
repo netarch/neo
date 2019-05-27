@@ -24,9 +24,26 @@ Node::Node(const std::string& name, const std::string& type)
 {
 }
 
+std::string Node::to_string() const
+{
+    return name;
+}
+
 std::string Node::get_name() const
 {
     return name;
+}
+
+const std::shared_ptr<Interface>& Node::get_interface(
+    const std::string& intf_name) const
+{
+    return intfs.at(intf_name);
+}
+
+const std::shared_ptr<Interface>& Node::get_interface(
+    const IPv4Address& addr) const
+{
+    return intfs_ipv4.at(addr);
 }
 
 void Node::load_interfaces(
@@ -47,18 +64,16 @@ void Node::load_interfaces(
         }
 
         // Add the new interface to intfs
-        auto res = intfs.insert(
-                       std::pair<std::string, std::shared_ptr<Interface> >
-                       (interface->get_name(), interface));
+        auto res = intfs.insert
+                   (std::make_pair(interface->get_name(), interface));
         if (res.second == false) {
             Logger::get_instance().err("Duplicate interface name: " +
                                        res.first->first);
         }
         // Add the new interface to intfs_ipv4
         if (!interface->switching()) {
-            auto res = intfs_ipv4.insert(
-                           std::pair<IPv4Address, std::shared_ptr<Interface> >
-                           (interface->addr(), interface));
+            auto res = intfs_ipv4.insert
+                       (std::make_pair(interface->addr(), interface));
             if (res.second == false) {
                 Logger::get_instance().err("Duplicate interface IP: " +
                                            res.first->first.to_string());
@@ -114,5 +129,25 @@ void Node::load_installed_routes(
         }
 
         rib_install(Route(*net, *nhop));
+    }
+}
+
+void Node::add_peer(const std::string& intf_name,
+                    const std::shared_ptr<Node>& node,
+                    const std::shared_ptr<Interface>& intf)
+{
+    auto res = active_peers.insert
+               (std::make_pair(intf_name, std::make_pair(node, intf)));
+    if (res.second == false) {
+        Logger::get_instance().err("Two peers on interface: " + intf_name);
+    }
+}
+
+void Node::add_link(const std::string& intf_name,
+                    const std::shared_ptr<Link>& link)
+{
+    auto res = active_links.insert(std::make_pair(intf_name, link));
+    if (res.second == false) {
+        Logger::get_instance().err("Two links on interface: " + intf_name);
     }
 }

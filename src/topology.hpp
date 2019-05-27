@@ -7,15 +7,15 @@
 #include "lib/logger.hpp"
 #include "node.hpp"
 
-class Topology
+class Topology  // undirected graph
 {
 private:
     Logger& logger;
 
     std::map<std::string, std::shared_ptr<Node> > nodes;
-    // (sorted list of shared_ptr<Link> by ) links;
+    std::map<Link, std::shared_ptr<Link> > links;   // all links
+    std::set<std::shared_ptr<Link> > failed_links;  // failed links
 
-    void add_node(const std::shared_ptr<Node>&);
     void load_nodes(const std::shared_ptr<cpptoml::table_array>);
     void load_links(const std::shared_ptr<cpptoml::table_array>);
 

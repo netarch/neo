@@ -10,6 +10,11 @@ Interface::Interface(const std::string& name, const std::string& intf)
 {
 }
 
+std::string Interface::to_string() const
+{
+    return name;
+}
+
 std::string Interface::get_name() const
 {
     return name;
