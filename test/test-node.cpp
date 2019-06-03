@@ -169,7 +169,7 @@ TEST_CASE("node test bad peer/link and basic information access")
         switch (i) {
             case 0:
                 link1 = link;
-                __attribute__((fallthrough));
+                [[fallthrough]];
             case 1:
                 link2 = link;
                 CHECK_NOTHROW(node1->add_peer(*intf1_name, node2, intf2));
