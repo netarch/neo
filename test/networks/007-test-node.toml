@@ -1,0 +1,9 @@
+[[nodes]]
+    name = "duplicate_static_route"
+    type = "generic"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "1.2.3.4"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "1.2.3.5"

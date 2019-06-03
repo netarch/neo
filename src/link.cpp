@@ -5,10 +5,10 @@
 
 void Link::normalize()
 {
-    if (node1 > node2) {
+    if (node1.lock() > node2.lock()) {
         std::swap(node1, node2);
         std::swap(intf1, intf2);
-    } else if (node1 == node2) {
+    } else if (node1.lock() == node2.lock()) {
         Logger::get_instance().err("Invalid link: " + to_string());
     }
 }
@@ -24,28 +24,29 @@ Link::Link(const std::shared_ptr<Node>& node1,
 
 std::string Link::to_string() const
 {
-    return node1->to_string() + ":" + intf1->to_string() + " --- " +
-           node2->to_string() + ":" + intf2->to_string();
+    return node1.lock()->to_string() + ":" + intf1.lock()->to_string() +
+           " --- " +
+           node2.lock()->to_string() + ":" + intf2.lock()->to_string();
 }
 
 std::shared_ptr<Node> Link::get_node1() const
 {
-    return node1;
+    return node1.lock();
 }
 
 std::shared_ptr<Node> Link::get_node2() const
 {
-    return node2;
+    return node2.lock();
 }
 
 std::shared_ptr<Interface> Link::get_intf1() const
 {
-    return intf1;
+    return intf1.lock();
 }
 
 std::shared_ptr<Interface> Link::get_intf2() const
 {
-    return intf2;
+    return intf2.lock();
 }
 
 bool Link::fail() const
@@ -60,27 +61,27 @@ void Link::set_fail(bool f)
 
 bool Link::operator<(const Link& rhs) const
 {
-    if (node1 < rhs.node1) {
+    if (node1.lock() < rhs.node1.lock()) {
         return true;
-    } else if (node1 > rhs.node1) {
+    } else if (node1.lock() > rhs.node1.lock()) {
         return false;
     }
 
-    if (intf1 < rhs.intf1) {
+    if (intf1.lock() < rhs.intf1.lock()) {
         return true;
-    } else if (intf1 > rhs.intf1) {
+    } else if (intf1.lock() > rhs.intf1.lock()) {
         return false;
     }
 
-    if (node2 < rhs.node2) {
+    if (node2.lock() < rhs.node2.lock()) {
         return true;
-    } else if (node2 > rhs.node2) {
+    } else if (node2.lock() > rhs.node2.lock()) {
         return false;
     }
 
-    if (intf2 < rhs.intf2) {
+    if (intf2.lock() < rhs.intf2.lock()) {
         return true;
-    } else if (intf2 > rhs.intf2) {
+    } else if (intf2.lock() > rhs.intf2.lock()) {
         return false;
     }
 
@@ -94,27 +95,27 @@ bool Link::operator<=(const Link& rhs) const
 
 bool Link::operator>(const Link& rhs) const
 {
-    if (node1 > rhs.node1) {
+    if (node1.lock() > rhs.node1.lock()) {
         return true;
-    } else if (node1 < rhs.node1) {
+    } else if (node1.lock() < rhs.node1.lock()) {
         return false;
     }
 
-    if (intf1 > rhs.intf1) {
+    if (intf1.lock() > rhs.intf1.lock()) {
         return true;
-    } else if (intf1 < rhs.intf1) {
+    } else if (intf1.lock() < rhs.intf1.lock()) {
         return false;
     }
 
-    if (node2 > rhs.node2) {
+    if (node2.lock() > rhs.node2.lock()) {
         return true;
-    } else if (node2 < rhs.node2) {
+    } else if (node2.lock() < rhs.node2.lock()) {
         return false;
     }
 
-    if (intf2 > rhs.intf2) {
+    if (intf2.lock() > rhs.intf2.lock()) {
         return true;
-    } else if (intf2 < rhs.intf2) {
+    } else if (intf2.lock() < rhs.intf2.lock()) {
         return false;
     }
 
@@ -128,8 +129,10 @@ bool Link::operator>=(const Link& rhs) const
 
 bool Link::operator==(const Link& rhs) const
 {
-    if (node1 == rhs.node1 && intf1 == rhs.intf1 &&
-            node2 == rhs.node2 && intf2 == rhs.intf2) {
+    if (node1.lock() == rhs.node1.lock() &&
+            intf1.lock() == rhs.intf1.lock() &&
+            node2.lock() == rhs.node2.lock() &&
+            intf2.lock() == rhs.intf2.lock()) {
         return true;
     }
     return false;

@@ -9,10 +9,10 @@ class Link;
 class Link
 {
 private:
-    std::shared_ptr<Node> node1;
-    std::shared_ptr<Interface> intf1;
-    std::shared_ptr<Node> node2;
-    std::shared_ptr<Interface> intf2;
+    std::weak_ptr<Node>      node1;
+    std::weak_ptr<Interface> intf1;
+    std::weak_ptr<Node>      node2;
+    std::weak_ptr<Interface> intf2;
     bool failed;
 
     // called by every constructor except for copy constructor

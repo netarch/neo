@@ -10,7 +10,8 @@ PACKAGE_BUGREPORT  = @PACKAGE_BUGREPORT@
 PACKAGE_TARNAME    = @PACKAGE_TARNAME@
 PACKAGE_URL        = @PACKAGE_URL@
 TARGET             = $(PACKAGE_TARNAME)
-TEST_TARGET		   = test-$(TARGET)
+TEST_TARGET        = test-$(TARGET)
+TEST_NETWORKS      = test-networks
 
 # Source files and directories
 srcdir      = @srcdir@
@@ -44,6 +45,7 @@ LIBS        = @LIBS@
 SPINFLAGS   = @SPINFLAGS@
 
 # Test files and directories
+TEST_NETS   = $(shell find $(srcdir)/test/networks -type f -name '*.toml')
 TEST_SRCS   = $(shell find $(srcdir)/test -type f -name '*.cpp')
 TEST_OBJS   = $(notdir $(TEST_SRCS:%.cpp=%.o)) $(filter-out main.o,$(OBJS))
 VPATH      += $(shell find $(srcdir)/test -type d)
@@ -82,20 +84,25 @@ uninstall:
 
 clean:
 	-@rm -f $(TARGET) $(TEST_TARGET) *.o pan.{b,c,h,m,p,t} *.gcov *.gcda \
-			*.gcno neo.1.gz
+	        *.gcno neo.1.gz
 
 distclean: clean
 	-@rm -rf autom4te.cache codecov.sh config.log config.status configure \
-		     Makefile
+	         Makefile
 
-check: $(TEST_TARGET)
+check: $(TEST_TARGET) $(TEST_NETWORKS)
 	./$(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
+$(TEST_NETWORKS): $(TEST_NETS)
+	@rm -rf $@
+	@mkdir $@
+	@cp $^ $@
+
 installcheck: install
 	# TODO
 
 .PHONY: all install-git-hooks install uninstall clean distclean check \
-		installcheck
+        $(TEST_NETWORKS) installcheck

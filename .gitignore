@@ -18,6 +18,7 @@ config.log
 config.status
 configure
 pan.[bchmpt]
+test-networks/
 
 # coverage files
 *.gcov

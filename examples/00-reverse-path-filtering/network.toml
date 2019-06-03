@@ -1,6 +1,6 @@
 [[nodes]]
     name = "h1"
-    type = "L3"
+    type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.1/24"
@@ -12,7 +12,7 @@
     next_hop = "192.168.0.2"
 [[nodes]]
     name = "h2"
-    type = "L3"
+    type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.1/24"
@@ -21,14 +21,14 @@
     next_hop = "10.0.0.2"
 [[nodes]]
     name = "s1"
-    type = "L2"
+    type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
     [[nodes.interfaces]]
     name = "eth1"
 [[nodes]]
     name = "s2"
-    type = "L2"
+    type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
     [[nodes.interfaces]]

@@ -10,7 +10,7 @@ Topology::Topology(): logger(Logger::get_instance())
 }
 
 void Topology::load_nodes(
-    const std::shared_ptr<cpptoml::table_array> nodes_config)
+    const std::shared_ptr<cpptoml::table_array>& nodes_config)
 {
     for (const std::shared_ptr<cpptoml::table>& node_config : *nodes_config) {
         std::shared_ptr<Node> node;
@@ -24,7 +24,7 @@ void Topology::load_nodes(
             logger.err("Key error: type");
         }
 
-        if (*type == "L2" || *type == "L3") {
+        if (*type == "generic") {
             node = std::make_shared<Node>(*name, *type);
         } else if (*type == "middlebox") {
             node = std::static_pointer_cast<Node>
@@ -53,7 +53,7 @@ void Topology::load_nodes(
 }
 
 void Topology::load_links(
-    const std::shared_ptr<cpptoml::table_array> links_config)
+    const std::shared_ptr<cpptoml::table_array>& links_config)
 {
     for (const std::shared_ptr<cpptoml::table>& link_config : *links_config) {
         std::shared_ptr<Link> link;
@@ -75,10 +75,12 @@ void Topology::load_links(
             logger.err("Key error: intf2");
         }
 
-        std::shared_ptr<Node> node1 = nodes[*node1_name];
-        std::shared_ptr<Node> node2 = nodes[*node2_name];
-        std::shared_ptr<Interface> intf1 = node1->get_interface(*intf1_name);
-        std::shared_ptr<Interface> intf2 = node2->get_interface(*intf2_name);
+        std::shared_ptr<Node>& node1 = nodes[*node1_name];
+        std::shared_ptr<Node>& node2 = nodes[*node2_name];
+        const std::shared_ptr<Interface>& intf1 =
+            node1->get_interface(*intf1_name);
+        const std::shared_ptr<Interface>& intf2 =
+            node2->get_interface(*intf2_name);
 
         link = std::make_shared<Link>(node1, intf1, node2, intf2);
 
@@ -97,8 +99,8 @@ void Topology::load_links(
 }
 
 void Topology::load_config(
-    const std::shared_ptr<cpptoml::table_array> nodes_config,
-    const std::shared_ptr<cpptoml::table_array> links_config)
+    const std::shared_ptr<cpptoml::table_array>& nodes_config,
+    const std::shared_ptr<cpptoml::table_array>& links_config)
 {
     if (nodes_config) {
         load_nodes(nodes_config);

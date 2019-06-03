@@ -1,0 +1,9 @@
+[[nodes]]
+    name = "RIB_entry_mismatch"
+    type = "generic"
+    [[nodes.installed_routes]]
+    network = "10.0.0.0/16"
+    next_hop = "192.168.1.1"
+    [[nodes.installed_routes]]
+    network = "10.0.0.0/16"
+    next_hop = "172.16.1.1"
