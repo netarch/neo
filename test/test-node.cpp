@@ -8,16 +8,12 @@
 TEST_CASE("node constructors")
 {
     std::shared_ptr<Node> node;
-    Node r1("router1", "generic");
+    Node r1("router1");
 
     REQUIRE_NOTHROW(node = std::make_shared<Node>(r1));
     CHECK(node->get_name() == "router1");
-    CHECK(node->get_type() == "generic");
-    REQUIRE_NOTHROW(node = std::make_shared<Node>("switch1", "generic"));
+    REQUIRE_NOTHROW(node = std::make_shared<Node>("switch1"));
     CHECK(node->get_name() == "switch1");
-    CHECK(node->get_type() == "generic");
-    CHECK_THROWS_WITH(node = std::make_shared<Node>("", "blah"),
-                      "Unsupported node type: blah");
 }
 
 TEST_CASE("node loading configurations")
@@ -133,7 +129,7 @@ TEST_CASE("node test bad peer/link and basic information access")
         REQUIRE(type);
         REQUIRE(*type == "generic");
 
-        std::shared_ptr<Node> node = std::make_shared<Node>(*name, *type);
+        std::shared_ptr<Node> node = std::make_shared<Node>(*name);
         node->load_interfaces(node_config->get_table_array("interfaces"));
         node->load_static_routes(node_config->get_table_array("static_routes"));
         node->load_installed_routes(node_config->get_table_array(
@@ -196,8 +192,6 @@ TEST_CASE("node test bad peer/link and basic information access")
         CHECK(L3node->to_string() == "L3node");
         CHECK(L2node->get_name() == "L2node");
         CHECK(L3node->get_name() == "L3node");
-        CHECK(L2node->get_type() == "generic");
-        CHECK(L3node->get_type() == "generic");
         CHECK(L2node->has_ip("192.168.1.1") == false);
         CHECK(L3node->has_ip("192.168.1.1") == true);
         CHECK(L2node->has_ip("10.0.0.1") == false);

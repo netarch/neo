@@ -24,12 +24,9 @@ void Node::rib_install(const Route& route)
     }
 }
 
-Node::Node(const std::string& name, const std::string& type)
-    : name(name), type(type)
+Node::Node(const std::string& name)
+    : name(name)
 {
-    if (type != "generic") {
-        Logger::get_instance().err("Unsupported node type: " + type);
-    }
 }
 
 std::string Node::to_string() const
@@ -40,11 +37,6 @@ std::string Node::to_string() const
 std::string Node::get_name() const
 {
     return name;
-}
-
-std::string Node::get_type() const
-{
-    return type;
 }
 
 bool Node::has_ip(const IPv4Address& addr) const

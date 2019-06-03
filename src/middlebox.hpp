@@ -10,5 +10,7 @@ private:
     ;
 
 public:
-    Middlebox(const std::string&, const std::string&);
+    Middlebox() = delete;
+    Middlebox(const Middlebox&) = default;
+    Middlebox(const std::string&);
 };

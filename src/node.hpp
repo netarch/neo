@@ -15,7 +15,6 @@ class Node
 {
 protected:
     std::string name;
-    std::string type;
 
     // interfaces indexed by name and ip address
     std::map<std::string, std::shared_ptr<Interface> > intfs;
@@ -37,11 +36,10 @@ protected:
 public:
     Node() = delete;
     Node(const Node&) = default;
-    Node(const std::string&, const std::string&);
+    Node(const std::string&);
 
     virtual std::string to_string() const;
     virtual std::string get_name() const;
-    virtual std::string get_type() const;
     virtual bool has_ip(const IPv4Address& addr) const;
     virtual bool has_ip(const std::string& addr) const;
 

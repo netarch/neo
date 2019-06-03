@@ -25,10 +25,10 @@ void Topology::load_nodes(
         }
 
         if (*type == "generic") {
-            node = std::make_shared<Node>(*name, *type);
+            node = std::make_shared<Node>(*name);
         } else if (*type == "middlebox") {
             node = std::static_pointer_cast<Node>
-                   (std::make_shared<Middlebox>(*name, *type));
+                   (std::make_shared<Middlebox>(*name));
             // TODO read "driver", "config", ...
         } else {
             logger.err("Unknown node type: " + *type);
