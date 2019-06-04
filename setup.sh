@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
     (echo '[!] Please run this script without root privilege' >&2; exit 1)
 
 # Dependencies needed for development
-depends=(spin astyle autoconf)
+depends=(autoconf make spin astyle)
 
 
 get_distro() {
