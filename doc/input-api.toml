@@ -1,0 +1,48 @@
+[[nodes]]
+    name = "string"
+    type = "generic" or "middlebox"
+    [[nodes.interfaces]]        # optional
+    name = "string"
+    ipv4 = "x.x.x.x/x"          # optional
+    vlans = [1, 3, 6, 100]      # optional
+    [[nodes.static_routes]]     # optional
+    network = "x.x.x.x/x"
+    next_hop = "x.x.x.x"
+    [[nodes.installed_routes]]  # optional
+    network = "x.x.x.x/x"
+    next_hop = "x.x.x.x"
+[[nodes]]
+    name = "string"
+    type = "middlebox"
+    driver = "netfilter-netns"
+    config = ".*"
+
+# undirected (only need to specify once for each bidirectional link)
+[[links]]
+    node1 = "name"
+    intf1 = "name"
+    node2 = "name"
+    intf2 = "name"
+
+[[policies]]
+    type = "reachability"
+    pkt_src = "x.x.x.x(/x)"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node_name"
+    final_node = "node_name"
+    reachable = true or false
+[[policies]]
+    type = "stateful-reachability"
+    pkt_src = "x.x.x.x(/x)"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node_name"
+    final_node = "node_name"
+    reachable = true or false   # reachable when the state doesn't hold
+    stateful_reachable = true or false  # reachable when the state holds
+    [policies.state]
+    type = "waypoint"
+    pkt_src = "x.x.x.x(/x)"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node_name"
+    waypoint = "node_name"
+    pass_through = true or false

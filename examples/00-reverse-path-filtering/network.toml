@@ -100,15 +100,21 @@
     type = "reachability"
     pkt_src = "192.168.1.1"
     pkt_dst = "10.0.0.1"
+    start_node = "h1"
+    final_node = "h2"
     reachable = true
 [[policies]]
     type = "stateful-reachability"
     pkt_src = "10.0.0.1"
-    pkt_dst = "192.168.1.1"
+    pkt_dst = "192.168.0.1"
+    start_node = "h2"
+    final_node = "h1"
     reachable = false
-    [[policies.states]]
-    type = "waypoint"
-    pkt_src = "192.168.1.1"
-    pkt_dst = "10.0.0.1"
-    pass_through = true
     stateful_reachable = true
+    [policies.state]
+    type = "waypoint"
+    pkt_src = "192.168.0.1"
+    pkt_dst = "10.0.0.1"
+    start_node = "h1"
+    waypoint = "fw"
+    pass_through = true
