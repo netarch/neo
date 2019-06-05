@@ -2,11 +2,14 @@
 
 #include "plankton.hpp"
 #include "lib/fs.hpp"
-
+#include "lib/logger.hpp"
+#include "policies/reachability.hpp"
+#include "policies/stateful-reachability.hpp"
+#include "policies/waypoint.hpp"
 
 Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
                    const std::string& input_file, const std::string& output_dir)
-    : logger(Logger::get_instance()), max_jobs(max_jobs)
+    : max_jobs(max_jobs)
 {
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
@@ -14,13 +17,13 @@ Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
     fs::mkdir(output_dir);
     in_file = fs::realpath(input_file);
     out_dir = fs::realpath(output_dir);
-    logger.set_file(fs::append(out_dir, "verify.log"));
-    logger.set_verbose(verbose);
+    Logger::get_instance().set_file(fs::append(out_dir, "verify.log"));
+    Logger::get_instance().set_verbose(verbose);
 }
 
 void Plankton::load_config()
 {
-    logger.info("Loading network configurations...");
+    Logger::get_instance().info("Loading network configurations...");
 
     auto config = cpptoml::parse_file(in_file);
     auto nodes_config = config->get_table_array("nodes");
@@ -28,7 +31,36 @@ void Plankton::load_config()
     auto policies_config = config->get_table_array("policies");
 
     topology.load_config(nodes_config, links_config);
-    //policies.load_config(policies_config);
+
+    // Load policies configurations
+    if (policies_config) {
+        for (auto policy_config : *policies_config) {
+            std::shared_ptr<Policy> policy;
+            auto type = policy_config->get_as<std::string>("type");
+
+            if (!type) {
+                Logger::get_instance().err("Key error: type");
+            }
+
+            if (*type == "reachability") {
+                policy = std::static_pointer_cast<Policy>
+                         (std::make_shared<ReachabilityPolicy>());
+            } else if (*type == "stateful-reachability") {
+                policy = std::static_pointer_cast<Policy>
+                         (std::make_shared<StatefulReachabilityPolicy>());
+            } else if (*type == "waypoint") {
+                policy = std::static_pointer_cast<Policy>
+                         (std::make_shared<WaypointPolicy>());
+            } else {
+                Logger::get_instance().err("Unknown policy type: " + *type);
+            }
+
+            policy->load_config(policy_config);
+            policies.push_back(policy);
+        }
+    }
+    Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +
+                                " policies");
 }
 
 void Plankton::run()

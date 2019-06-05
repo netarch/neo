@@ -4,14 +4,11 @@
 #include <memory>
 #include <cpptoml/cpptoml.hpp>
 
-#include "lib/logger.hpp"
 #include "node.hpp"
 
 class Topology  // undirected graph
 {
 private:
-    Logger& logger;
-
     std::map<std::string, std::shared_ptr<Node> > nodes;
     std::map<Link, std::shared_ptr<Link> > links;   // all links
     std::set<std::shared_ptr<Link> > failed_links;  // failed links
@@ -20,7 +17,7 @@ private:
     void load_links(const std::shared_ptr<cpptoml::table_array>&);
 
 public:
-    Topology();
+    Topology() = default;
 
     void load_config(const std::shared_ptr<cpptoml::table_array>&,
                      const std::shared_ptr<cpptoml::table_array>&);

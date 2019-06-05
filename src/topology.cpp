@@ -4,10 +4,7 @@
 #include "topology.hpp"
 #include "node.hpp"
 #include "middlebox.hpp"
-
-Topology::Topology(): logger(Logger::get_instance())
-{
-}
+#include "lib/logger.hpp"
 
 void Topology::load_nodes(
     const std::shared_ptr<cpptoml::table_array>& nodes_config)
@@ -18,10 +15,10 @@ void Topology::load_nodes(
         auto type = node_config->get_as<std::string>("type");
 
         if (!name) {
-            logger.err("Key error: name");
+            Logger::get_instance().err("Key error: name");
         }
         if (!type) {
-            logger.err("Key error: type");
+            Logger::get_instance().err("Key error: type");
         }
 
         if (*type == "generic") {
@@ -31,7 +28,7 @@ void Topology::load_nodes(
                    (std::make_shared<Middlebox>(*name));
             // TODO read "driver", "config", ...
         } else {
-            logger.err("Unknown node type: " + *type);
+            Logger::get_instance().err("Unknown node type: " + *type);
         }
 
         if (auto config = node_config->get_table_array("interfaces")) {
@@ -47,7 +44,7 @@ void Topology::load_nodes(
         // Add the new node to nodes
         auto res = nodes.insert(std::make_pair(node->get_name(), node));
         if (res.second == false) {
-            logger.err("Duplicate node: " + res.first->first);
+            Logger::get_instance().err("Duplicate node: " + res.first->first);
         }
     }
 }
@@ -63,16 +60,16 @@ void Topology::load_links(
         auto intf2_name = link_config->get_as<std::string>("intf2");
 
         if (!node1_name) {
-            logger.err("Key error: node1");
+            Logger::get_instance().err("Key error: node1");
         }
         if (!intf1_name) {
-            logger.err("Key error: intf1");
+            Logger::get_instance().err("Key error: intf1");
         }
         if (!node2_name) {
-            logger.err("Key error: node2");
+            Logger::get_instance().err("Key error: node2");
         }
         if (!intf2_name) {
-            logger.err("Key error: intf2");
+            Logger::get_instance().err("Key error: intf2");
         }
 
         std::shared_ptr<Node>& node1 = nodes[*node1_name];
@@ -87,7 +84,8 @@ void Topology::load_links(
         // Add the new link to links
         auto res = links.insert(std::make_pair(*link, link));
         if (res.second == false) {
-            logger.err("Duplicate link: " + res.first->second->to_string());
+            Logger::get_instance().err("Duplicate link: " +
+                                       res.first->second->to_string());
         }
 
         // Add the new link to the corresponding node structures
@@ -105,10 +103,12 @@ void Topology::load_config(
     if (nodes_config) {
         load_nodes(nodes_config);
     }
-    logger.info("Loaded " + std::to_string(nodes.size()) + " nodes");
+    Logger::get_instance().info("Loaded " + std::to_string(nodes.size()) +
+                                " nodes");
 
     if (links_config) {
         load_links(links_config);
     }
-    logger.info("Loaded " + std::to_string(links.size()) + " links");
+    Logger::get_instance().info("Loaded " + std::to_string(links.size()) +
+                                " links");
 }

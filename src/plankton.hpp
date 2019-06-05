@@ -1,24 +1,25 @@
 #pragma once
 
 #include <string>
+#include <list>
 
-#include "lib/logger.hpp"
 #include "topology.hpp"
+#include "policy.hpp"
 
 class Plankton
 {
 private:
-    Logger& logger;
     int max_jobs;
     std::string in_file, out_dir;
 
     Topology topology;
-    //policies;
+    std::list<std::shared_ptr<Policy> > policies;
 
     void load_config();
 
 public:
-    Plankton(bool, bool, int, const std::string&, const std::string&);
+    Plankton(bool verbose, bool rm_out_dir, int max_jobs,
+             const std::string& input_file, const std::string& output_dir);
 
     void run();
 };
