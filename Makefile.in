@@ -83,7 +83,7 @@ uninstall:
 	-rm -rf "$(licensedir)"
 
 clean:
-	-@rm -f $(TARGET) $(TEST_TARGET) $(TEST_NETWORKS) *.o pan.{b,c,h,m,p,t} \
+	-@rm -rf $(TARGET) $(TEST_TARGET) $(TEST_NETWORKS) *.o pan.{b,c,h,m,p,t} \
 	        *.gcov *.gcda *.gcno neo.1.gz
 
 distclean: clean
