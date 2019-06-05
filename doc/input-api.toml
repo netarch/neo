@@ -32,6 +32,13 @@
     final_node = "node_name"
     reachable = true or false
 [[policies]]
+    type = "waypoint"
+    pkt_src = "x.x.x.x(/x)"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node_name"
+    waypoint = "node_name"
+    pass_through = true or false
+[[policies]]
     type = "stateful-reachability"
     pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
