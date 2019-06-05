@@ -13,7 +13,7 @@ achieve high-coverage testing for softwarized networks.
 
 ## Getting Started
 
-The following dependencies are needed for the build process of Plankton-neo.
+The following dependencies are needed for building Plankton-neo.
 
 - autoconf
 - make
@@ -46,6 +46,8 @@ the [tarball releases](http://spinroot.com/spin/Src/index.html) or the [GitHub
 repository](https://github.com/nimble-code/Spin).
 
 ### Install Plankton-neo
+
+#### Build from source
 
 ```
 $ cd neo
