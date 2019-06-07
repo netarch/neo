@@ -138,7 +138,7 @@ bool Route::operator!=(const Route& rhs) const
     return !(*this == rhs);
 }
 
-bool Route::identical(const Route& other) const
+bool Route::has_same_path(const Route& other) const
 {
     if (network == other.network && next_hop == other.next_hop) {
         return true;

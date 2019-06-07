@@ -20,8 +20,9 @@ protected:
     std::map<std::string, std::shared_ptr<Interface> > intfs;
     std::map<IPv4Address, std::shared_ptr<Interface> > intfs_ipv4;
 
-    std::set<Route> static_routes;
+    std::set<Route> static_routes;  // TODO will static routes have same network (destination)?
     std::set<Route> rib;    // global RIB for this node
+    // TODO multiset, multimap
 
     // active connected peers indexed by interface name
     std::map<std::string,

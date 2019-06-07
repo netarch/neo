@@ -88,10 +88,10 @@ TEST_CASE("route")
         CHECK(route1 != Route("10.0.0.0/7", "0.0.0.1"));
         CHECK(route1 != Route("11.0.0.0/8", "0.0.0.1"));
         CHECK_FALSE(route1 != Route("10.0.0.0/8", "0.0.0.1"));
-        CHECK(route1.identical(route1));
-        CHECK(route1.identical(Route("10.0.0.0/8", "1.2.3.4")));
-        CHECK_FALSE(route1.identical(Route("10.0.0.0/8", "1.2.3.3")));
-        CHECK_FALSE(route1.identical(route2));
+        CHECK(route1.has_same_path(route1));
+        CHECK(route1.has_same_path(Route("10.0.0.0/8", "1.2.3.4")));
+        CHECK_FALSE(route1.has_same_path(Route("10.0.0.0/8", "1.2.3.3")));
+        CHECK_FALSE(route1.has_same_path(route2));
     }
 
     SECTION("assignment operations") {

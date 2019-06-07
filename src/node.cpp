@@ -16,7 +16,7 @@ void Node::rib_install(const Route& route)
             rib.insert(it, route);
         } else {
             // having the same administrative distance
-            if (!res.first->identical(route)) {
+            if (!res.first->has_same_path(route)) {
                 Logger::get_instance().err("RIB entry mismatch: " +
                                            res.first->to_string());
             }
