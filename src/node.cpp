@@ -122,6 +122,8 @@ Node::load_static_routes(const std::shared_ptr<cpptoml::table_array>& config)
     for (const std::shared_ptr<cpptoml::table>& sroute_config : *config) {
         auto net = sroute_config->get_as<std::string>("network");
         auto nhop = sroute_config->get_as<std::string>("next_hop");
+        auto dist = sroute_config->get_as<int>("adm_dist");
+        int adm_dist = 1;
 
         if (!net) {
             Logger::get_instance().err("Key error: network");
@@ -129,10 +131,12 @@ Node::load_static_routes(const std::shared_ptr<cpptoml::table_array>& config)
         if (!nhop) {
             Logger::get_instance().err("Key error: next_hop");
         }
+        if (dist) {
+            adm_dist = *dist;
+        }
 
-        Route sroute(*net, *nhop, 1);
-        static_routes.insert(sroute);
-        rib.insert(sroute);
+        static_routes.emplace(*net, *nhop, adm_dist);
+        rib.emplace(*net, *nhop, adm_dist);
     }
 }
 
@@ -142,6 +146,8 @@ Node::load_installed_routes(const std::shared_ptr<cpptoml::table_array>& config)
     for (const std::shared_ptr<cpptoml::table>& iroute_config : *config) {
         auto net = iroute_config->get_as<std::string>("network");
         auto nhop = iroute_config->get_as<std::string>("next_hop");
+        auto dist = iroute_config->get_as<int>("adm_dist");
+        int adm_dist = 255;
 
         if (!net) {
             Logger::get_instance().err("Key error: network");
@@ -149,7 +155,10 @@ Node::load_installed_routes(const std::shared_ptr<cpptoml::table_array>& config)
         if (!nhop) {
             Logger::get_instance().err("Key error: next_hop");
         }
+        if (dist) {
+            adm_dist = *dist;
+        }
 
-        rib.insert(Route(*net, *nhop));
+        rib.emplace(*net, *nhop, adm_dist);
     }
 }
