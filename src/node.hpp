@@ -7,7 +7,7 @@
 #include <cpptoml/cpptoml.hpp>
 
 #include "interface.hpp"
-#include "route.hpp"
+#include "routingtable.hpp"
 class Node;
 #include "link.hpp"
 
@@ -20,9 +20,8 @@ protected:
     std::map<std::string, std::shared_ptr<Interface> > intfs;
     std::map<IPv4Address, std::shared_ptr<Interface> > intfs_ipv4;
 
-    std::set<Route> static_routes;  // TODO will static routes have same network (destination)?
-    std::set<Route> rib;    // global RIB for this node
-    // TODO multiset, multimap
+    RoutingTable static_routes;
+    RoutingTable rib;   // global RIB for this node
 
     // active connected peers indexed by interface name
     std::map<std::string,
@@ -31,8 +30,6 @@ protected:
 
     // active links indexed by interface name
     std::map<std::string, std::weak_ptr<Link> > active_links;
-
-    void rib_install(const Route&);
 
 public:
     Node() = delete;

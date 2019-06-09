@@ -3,27 +3,6 @@
 #include "node.hpp"
 #include "lib/logger.hpp"
 
-void Node::rib_install(const Route& route)
-{
-    auto res = rib.insert(route);
-    if (res.second == false) {
-        if (res.first->get_adm_dist() < route.get_adm_dist()) {
-            // with lower priority
-            Logger::get_instance().warn("Route ignored: " + route.to_string());
-        } else if (res.first->get_adm_dist() > route.get_adm_dist()) {
-            // with higher priority
-            auto it = rib.erase(res.first);
-            rib.insert(it, route);
-        } else {
-            // having the same administrative distance
-            if (!res.first->has_same_path(route)) {
-                Logger::get_instance().err("RIB entry mismatch: " +
-                                           res.first->to_string());
-            }
-        }
-    }
-}
-
 Node::Node(const std::string& name)
     : name(name)
 {
@@ -131,8 +110,8 @@ Node::load_interfaces(const std::shared_ptr<cpptoml::table_array>& config)
             }
 
             // Add the directly connected route to rib
-            rib_install(Route(interface->network(), interface->addr(),
-                              interface->get_name(), 0));
+            rib.insert(Route(interface->network(), interface->addr(),
+                             interface->get_name(), 0));
         }
     }
 }
@@ -152,16 +131,8 @@ Node::load_static_routes(const std::shared_ptr<cpptoml::table_array>& config)
         }
 
         Route sroute(*net, *nhop, 1);
-
-        // Add the new static route to static_routes
-        auto res = static_routes.insert(sroute);
-        if (res.second == false) {
-            Logger::get_instance().err("Duplicate static route: " +
-                                       res.first->to_string());
-        }
-
-        // Add the static route to rib
-        rib_install(sroute);
+        static_routes.insert(sroute);
+        rib.insert(sroute);
     }
 }
 
@@ -179,6 +150,6 @@ Node::load_installed_routes(const std::shared_ptr<cpptoml::table_array>& config)
             Logger::get_instance().err("Key error: next_hop");
         }
 
-        rib_install(Route(*net, *nhop));
+        rib.insert(Route(*net, *nhop));
     }
 }

@@ -21,16 +21,18 @@ private:
 public:
     Route() = delete;
     Route(const Route&) = default;
-    Route(const IPNetwork<IPv4Address>&, const IPv4Address&);
-    Route(const IPNetwork<IPv4Address>&, const IPv4Address&, int adm_dist);
-    Route(const IPNetwork<IPv4Address>&, const IPv4Address&,
-          const std::string&);
-    Route(const IPNetwork<IPv4Address>&, const IPv4Address&,
-          const std::string&, int adm_dist);
-    Route(const std::string&, const std::string&);
-    Route(const std::string&, const std::string&, int adm_dist);
-    Route(const std::string&, const std::string&, const std::string&);
-    Route(const std::string&, const std::string&, const std::string&,
+    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh);
+    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
+          int adm_dist);
+    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
+          const std::string& ifn);
+    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
+          const std::string& ifn, int adm_dist);
+    Route(const std::string& net, const std::string& nh);
+    Route(const std::string& net, const std::string& nh, int adm_dist);
+    Route(const std::string& net, const std::string& nh,
+          const std::string& ifn);
+    Route(const std::string& net, const std::string& nh, const std::string& ifn,
           int adm_dist);
 
     std::string to_string() const;
@@ -41,6 +43,12 @@ public:
     void set_next_hop(const IPv4Address&);
     void set_next_hop(const std::string&);
     void set_ifname(const std::string&);
+
+    /*
+     * Precedence:
+     * network (longest prefix)
+     * network (network.addr())
+     */
     bool operator< (const Route&) const;    // this precede other
     bool operator<=(const Route&) const;
     bool operator> (const Route&) const;    // other precede this
