@@ -55,5 +55,5 @@ public:
 template <class... Args>
 RoutingTable::iterator RoutingTable::emplace(Args&& ... args)
 {
-    return (tbl.emplace(args), ...);
+    return tbl.emplace(&args...);
 }
