@@ -11,12 +11,11 @@ private:
     IPv4Address next_hop;
     std::string ifname;
     int adm_dist;
-    // TODO
-    // There's no metric for static routes, which can be implemented later if
-    // dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
+    // TODO int metric;
+    // There's no metric for static routes. The metric can be implemented later
+    // if dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
     // For now, all the installed routes will be regarded as having the same
     // metrics.
-    // int metric;
 
 public:
     Route() = delete;
