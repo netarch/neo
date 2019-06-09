@@ -1,5 +1,5 @@
 [[nodes]]
-    name = "key_error_installed_route_network"
+    name = "key_error_installed_route_next_hop"
     type = "generic"
     [[nodes.installed_routes]]
-    next_hop = "192.168.1.1"
+    network = "10.0.0.0/16"

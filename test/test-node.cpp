@@ -74,16 +74,8 @@ TEST_CASE("node loading configurations")
         CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: next_hop");
     }
-    SECTION("duplicate static route") {
-        auto config = cpptoml::parse_file("test-networks/007-test-node.toml");
-        REQUIRE(config);
-        auto nodes_config = config->get_table_array("nodes");
-        auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
-                          "Duplicate static route: 0.0.0.0/0 --> 1.2.3.4");
-    }
     SECTION("key error installed route network") {
-        auto config = cpptoml::parse_file("test-networks/008-test-node.toml");
+        auto config = cpptoml::parse_file("test-networks/007-test-node.toml");
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
@@ -91,20 +83,12 @@ TEST_CASE("node loading configurations")
                           "Key error: network");
     }
     SECTION("key error installed route next hop") {
-        auto config = cpptoml::parse_file("test-networks/009-test-node.toml");
+        auto config = cpptoml::parse_file("test-networks/008-test-node.toml");
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
         CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: next_hop");
-    }
-    SECTION("RIB entry mismatch") {
-        auto config = cpptoml::parse_file("test-networks/00a-test-node.toml");
-        REQUIRE(config);
-        auto nodes_config = config->get_table_array("nodes");
-        auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
-                          "RIB entry mismatch: 10.0.0.0/16 --> 192.168.1.1");
     }
 }
 
