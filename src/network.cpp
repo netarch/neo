@@ -1,12 +1,12 @@
 #include <memory>
 #include <string>
 
-#include "topology.hpp"
+#include "network.hpp"
 #include "node.hpp"
-#include "middlebox.hpp"
 #include "lib/logger.hpp"
+#include "middlebox/middlebox.hpp"
 
-void Topology::load_nodes(
+void Network::load_nodes(
     const std::shared_ptr<cpptoml::table_array>& nodes_config)
 {
     for (const std::shared_ptr<cpptoml::table>& node_config : *nodes_config) {
@@ -49,7 +49,7 @@ void Topology::load_nodes(
     }
 }
 
-void Topology::load_links(
+void Network::load_links(
     const std::shared_ptr<cpptoml::table_array>& links_config)
 {
     for (const std::shared_ptr<cpptoml::table>& link_config : *links_config) {
@@ -96,7 +96,7 @@ void Topology::load_links(
     }
 }
 
-void Topology::load_config(
+void Network::load_config(
     const std::shared_ptr<cpptoml::table_array>& nodes_config,
     const std::shared_ptr<cpptoml::table_array>& links_config)
 {

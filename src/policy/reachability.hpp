@@ -28,6 +28,6 @@ public:
     ReachabilityPolicy() = default;
     ReachabilityPolicy(const ReachabilityPolicy&) = default;
 
-    virtual void load_config(const std::shared_ptr<cpptoml::table>&) override;
+    //virtual void load_config(const std::shared_ptr<cpptoml::table>&) override;
     //virtual bool check_violation() override;
 };

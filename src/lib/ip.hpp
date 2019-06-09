@@ -116,7 +116,7 @@ public:
 template <class Addr>
 class IPRange
 {
-private:
+protected:
     Addr lb;
     Addr ub;
 

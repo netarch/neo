@@ -6,7 +6,7 @@
 
 #include "node.hpp"
 
-class Topology  // undirected graph
+class Network  // undirected graph
 {
 private:
     std::map<std::string, std::shared_ptr<Node> > nodes;
@@ -17,7 +17,7 @@ private:
     void load_links(const std::shared_ptr<cpptoml::table_array>&);
 
 public:
-    Topology() = default;
+    Network() = default;
 
     void load_config(const std::shared_ptr<cpptoml::table_array>&,
                      const std::shared_ptr<cpptoml::table_array>&);

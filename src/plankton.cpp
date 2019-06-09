@@ -3,9 +3,9 @@
 #include "plankton.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
-#include "policies/reachability.hpp"
-#include "policies/stateful-reachability.hpp"
-#include "policies/waypoint.hpp"
+#include "policy/reachability.hpp"
+#include "policy/stateful-reachability.hpp"
+#include "policy/waypoint.hpp"
 
 Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
                    const std::string& input_file, const std::string& output_dir)
@@ -30,7 +30,7 @@ void Plankton::load_config()
     auto links_config = config->get_table_array("links");
     auto policies_config = config->get_table_array("policies");
 
-    topology.load_config(nodes_config, links_config);
+    network.load_config(nodes_config, links_config);
 
     // Load policies configurations
     if (policies_config) {
@@ -63,12 +63,20 @@ void Plankton::load_config()
                                 " policies");
 }
 
+void Plankton::compute_ec()
+{
+}
+
 void Plankton::run()
 {
     load_config();
+    compute_ec();
 
-    //static char param0[] = "neo";  // argv[0]
-    //static char param1[] = "-m100000";
-    //static char *spin_args[] = {param0, param1};
-    //spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
+    // for each ec in ECs
+    //  fork && spin_main
+
+    //  static char param0[] = "neo";  // argv[0]
+    //  static char param1[] = "-m100000";
+    //  static char *spin_args[] = {param0, param1};
+    //  spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
 }

@@ -3,7 +3,7 @@
 #include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
-#include "topology.hpp"
+#include "network.hpp"
 
 TEST_CASE("node constructors")
 {
@@ -18,28 +18,28 @@ TEST_CASE("node constructors")
 
 TEST_CASE("node loading configurations")
 {
-    Topology topology;
+    Network network;
 
     SECTION("success") {
         auto config = cpptoml::parse_file("test-networks/000-test-node.toml");
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_NOTHROW(topology.load_config(nodes_config, links_config));
+        CHECK_NOTHROW(network.load_config(nodes_config, links_config));
     }
     SECTION("route ignored") {
         auto config = cpptoml::parse_file("test-networks/001-test-node.toml");
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_NOTHROW(topology.load_config(nodes_config, links_config));
+        CHECK_NOTHROW(network.load_config(nodes_config, links_config));
     }
     SECTION("key error interface name") {
         auto config = cpptoml::parse_file("test-networks/002-test-node.toml");
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: name");
     }
     SECTION("duplicate interface name") {
@@ -47,7 +47,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Duplicate interface name: eth0");
     }
     SECTION("duplicate interface ip") {
@@ -55,7 +55,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Duplicate interface IP: 192.168.1.1");
     }
     SECTION("key error static route network") {
@@ -63,7 +63,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: network");
     }
     SECTION("key error static route next hop") {
@@ -71,7 +71,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: next_hop");
     }
     SECTION("duplicate static route") {
@@ -79,7 +79,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Duplicate static route: 0.0.0.0/0 --> 1.2.3.4");
     }
     SECTION("key error installed route network") {
@@ -87,7 +87,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: network");
     }
     SECTION("key error installed route next hop") {
@@ -95,7 +95,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "Key error: next_hop");
     }
     SECTION("RIB entry mismatch") {
@@ -103,7 +103,7 @@ TEST_CASE("node loading configurations")
         REQUIRE(config);
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(topology.load_config(nodes_config, links_config),
+        CHECK_THROWS_WITH(network.load_config(nodes_config, links_config),
                           "RIB entry mismatch: 10.0.0.0/16 --> 192.168.1.1");
     }
 }
