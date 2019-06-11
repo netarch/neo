@@ -4,8 +4,9 @@
 #include <list>
 
 #include "network.hpp"
-#include "policy/policy.hpp"
 #include "eqclass.hpp"
+#include "policy/policy.hpp"
+#include "process/forwarding.hpp"
 
 class Plankton
 {
@@ -16,6 +17,8 @@ private:
     Network             network;    // network information (inc. dataplane)
     std::set<EqClass>   ECs;        // ECs to be verified
     std::list<std::shared_ptr<Policy> > policies;
+
+    ForwardingProcess   fwd;
 
     void load_config();
     void compute_ec();

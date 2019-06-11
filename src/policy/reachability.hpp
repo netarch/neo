@@ -1,10 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <cpptoml/cpptoml.hpp>
 
 #include "policy/policy.hpp"
 #include "lib/ip.hpp"
+#include "node.hpp"
 
 /*
  * For all possible packets starting from start_node, with source and
@@ -18,16 +20,14 @@ class ReachabilityPolicy : public Policy
 private:
     IPRange<IPv4Address> pkt_src;
     IPRange<IPv4Address> pkt_dst;
-    std::shared_ptr<Node> start_node;
-    std::shared_ptr<Node> final_node;
+    std::set<std::shared_ptr<Node> > start_nodes;
+    std::set<std::shared_ptr<Node> > final_nodes;
     bool reachable;
-
-    //std::shared_ptr<Node> pkt_location; --> forwarding process
 
 public:
     ReachabilityPolicy() = default;
-    ReachabilityPolicy(const ReachabilityPolicy&) = default;
 
-    //virtual void load_config(const std::shared_ptr<cpptoml::table>&) override;
-    //virtual bool check_violation() override;
+    void load_config(const std::shared_ptr<cpptoml::table>&,
+                     const Network&) override;
+    //bool check_violation(const Network&, const ForwardingProcess&) override;
 };

@@ -4,13 +4,14 @@
 #include <cpptoml/cpptoml.hpp>
 
 #include "network.hpp"
+#include "process/forwarding.hpp"
 
 class Policy
 {
 public:
     Policy() = default;
-    Policy(const Policy&) = default;
 
-    virtual void load_config(const std::shared_ptr<cpptoml::table>&);
-    //virtual bool check_violation();
+    virtual void load_config(const std::shared_ptr<cpptoml::table>&,
+                             const Network&);
+    virtual bool check_violation(const Network&, const ForwardingProcess&);
 };

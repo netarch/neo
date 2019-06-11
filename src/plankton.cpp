@@ -19,6 +19,8 @@ Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
     out_dir = fs::realpath(output_dir);
     Logger::get_instance().set_file(fs::append(out_dir, "verify.log"));
     Logger::get_instance().set_verbose(verbose);
+
+    load_config();
 }
 
 void Plankton::load_config()
@@ -55,12 +57,14 @@ void Plankton::load_config()
                 Logger::get_instance().err("Unknown policy type: " + *type);
             }
 
-            policy->load_config(policy_config);
+            policy->load_config(policy_config, network);
             policies.push_back(policy);
         }
     }
     Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +
                                 " policies");
+
+    Logger::get_instance().info("Finished loading network configurations");
 }
 
 void Plankton::compute_ec()
@@ -69,7 +73,6 @@ void Plankton::compute_ec()
 
 void Plankton::run()
 {
-    load_config();
     compute_ec();
 
     // for each ec in ECs

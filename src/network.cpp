@@ -112,3 +112,13 @@ void Network::load_config(
     Logger::get_instance().info("Loaded " + std::to_string(links.size()) +
                                 " links");
 }
+
+const std::map<std::string, std::shared_ptr<Node> >& Network::get_nodes() const
+{
+    return nodes;
+}
+
+const std::map<Link, std::shared_ptr<Link> >& Network::get_links() const
+{
+    return links;
+}

@@ -21,4 +21,7 @@ public:
 
     void load_config(const std::shared_ptr<cpptoml::table_array>&,
                      const std::shared_ptr<cpptoml::table_array>&);
+
+    const std::map<std::string, std::shared_ptr<Node> >& get_nodes() const;
+    const std::map<Link, std::shared_ptr<Link> >& get_links() const;
 };
