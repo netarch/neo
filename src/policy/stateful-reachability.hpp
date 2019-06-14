@@ -11,5 +11,6 @@ private:
     ;
 
 public:
-    ;
+    StatefulReachabilityPolicy(const std::shared_ptr<cpptoml::table>&,
+                               const Network&);
 };

@@ -1,7 +1,0 @@
-[[nodes]]
-    name = "duplicate_interface_name"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    [[nodes.interfaces]]
-    name = "eth0"

@@ -1,47 +1,37 @@
 #include "route.hpp"
+#include "lib/logger.hpp"
 
-Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh)
-    : network(net), next_hop(nh), adm_dist(255)
+Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)
 {
+    auto net = config->get_as<std::string>("network");
+    auto nhop = config->get_as<std::string>("next_hop");
+    auto dist = config->get_as<int>("adm_dist");
+
+    if (!net) {
+        Logger::get_instance().err("Missing network");
+    }
+    if (!nhop) {
+        Logger::get_instance().err("Missing next hop");
+    }
+    network = IPNetwork<IPv4Address>(*net);
+    next_hop = IPv4Address(*nhop);
+    if (dist) {
+        if (*dist < 0 || *dist > 255) {
+            Logger::get_instance().err("Invalid administrative distance: " +
+                                       std::to_string(*dist));
+        }
+        adm_dist = *dist;
+    }
 }
 
 Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-             int adm_dist)
-    : network(net), next_hop(nh), adm_dist(adm_dist)
+             int adm_dist, const std::string& ifn)
+    : network(net), next_hop(nh), adm_dist(adm_dist), ifname(ifn)
 {
 }
-
-Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-             const std::string& ifn)
-    : network(net), next_hop(nh), ifname(ifn), adm_dist(255)
-{
-}
-
-Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-             const std::string& ifn, int adm_dist)
-    : network(net), next_hop(nh), ifname(ifn), adm_dist(adm_dist)
-{
-}
-
-Route::Route(const std::string& net, const std::string& nh)
-    : network(net), next_hop(nh), adm_dist(255)
-{
-}
-
-Route::Route(const std::string& net, const std::string& nh, int adm_dist)
-    : network(net), next_hop(nh), adm_dist(adm_dist)
-{
-}
-
 Route::Route(const std::string& net, const std::string& nh,
-             const std::string& ifn)
-    : network(net), next_hop(nh), ifname(ifn), adm_dist(255)
-{
-}
-
-Route::Route(const std::string& net, const std::string& nh,
-             const std::string& ifn, int adm_dist)
-    : network(net), next_hop(nh), ifname(ifn), adm_dist(adm_dist)
+             int adm_dist, const std::string& ifn)
+    : network(net), next_hop(nh), adm_dist(adm_dist), ifname(ifn)
 {
 }
 
@@ -60,29 +50,19 @@ IPv4Address Route::get_next_hop() const
     return next_hop;
 }
 
-std::string Route::get_ifname() const
-{
-    return ifname;
-}
-
 int Route::get_adm_dist() const
 {
     return adm_dist;
 }
 
-void Route::set_next_hop(const IPv4Address& nhop)
+std::string Route::get_ifname() const
 {
-    next_hop = nhop;
+    return ifname;
 }
 
-void Route::set_next_hop(const std::string& nhop)
+void Route::set_adm_dist(int dist)
 {
-    next_hop = nhop;
-}
-
-void Route::set_ifname(const std::string& ifn)
-{
-    ifname = ifn;
+    adm_dist = dist;
 }
 
 bool Route::operator<(const Route& rhs) const
@@ -144,13 +124,4 @@ bool Route::has_same_path(const Route& other) const
         return true;
     }
     return false;
-}
-
-Route& Route::operator=(const Route& rhs)
-{
-    network = rhs.network;
-    next_hop = rhs.next_hop;
-    ifname = rhs.ifname;
-    adm_dist = rhs.adm_dist;
-    return *this;
 }

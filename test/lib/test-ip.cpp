@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 #include <memory>
+#include <utility>
 
 #include "lib/ip.hpp"
 
@@ -14,6 +15,8 @@ TEST_CASE("ipv4address")
         REQUIRE_NOTHROW(ip = std::make_shared<IPv4Address>());
         CHECK(*ip == "0.0.0.0");
         REQUIRE_NOTHROW(ip = std::make_shared<IPv4Address>(addr));
+        CHECK(*ip == "192.168.1.1");
+        REQUIRE_NOTHROW(ip = std::make_shared<IPv4Address>(std::move(addr)));
         CHECK(*ip == "192.168.1.1");
         REQUIRE_NOTHROW(ip = std::make_shared<IPv4Address>("192.168.1.1"));
         CHECK(*ip == "192.168.1.1");
@@ -103,6 +106,7 @@ TEST_CASE("ipv4address")
     SECTION("assignment operations") {
         IPv4Address ip;
         REQUIRE((ip = addr) == addr);
+        REQUIRE((ip = IPv4Address("192.168.1.1")) == addr);
         REQUIRE((ip = "192.168.1.1") == addr);
         REQUIRE((ip += ip1) == addr2);
         REQUIRE((ip -= ip1) == addr);
@@ -129,6 +133,10 @@ TEST_CASE("ipinterface")
         CHECK(it->addr().get_value() == 0);
         CHECK(it->prefix_length() == 0);
         REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >(intf));
+        CHECK(it->addr() == addr);
+        CHECK(it->prefix_length() == 24);
+        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >
+                             (std::move(intf)));
         CHECK(it->addr() == addr);
         CHECK(it->prefix_length() == 24);
         REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >
@@ -208,6 +216,7 @@ TEST_CASE("ipinterface")
     SECTION("assignment operations") {
         IPInterface<IPv4Address> it;
         CHECK((it = intf) == intf);
+        CHECK((it = IPInterface<IPv4Address>(addr, 24)) == intf);
         CHECK((it = "0.0.0.0/0") == "0.0.0.0/0");
     }
 }
@@ -224,6 +233,10 @@ TEST_CASE("ipnetwork")
         CHECK(n->addr().get_value() == 0);
         CHECK(n->prefix_length() == 0);
         REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >(net));
+        CHECK(n->addr() == "192.168.10.0");
+        CHECK(n->prefix_length() == 24);
+        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >
+                            (std::move(net)));
         CHECK(n->addr() == "192.168.10.0");
         CHECK(n->prefix_length() == 24);
         REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >
@@ -309,6 +322,10 @@ TEST_CASE("iprange")
         CHECK(r->get_lb().get_value() == 0);
         CHECK(r->get_ub().get_value() == 0);
         REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >(range));
+        CHECK(r->get_lb() == "10.1.4.0");
+        CHECK(r->get_ub() == "10.1.7.255");
+        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
+                            (std::move(range)));
         CHECK(r->get_lb() == "10.1.4.0");
         CHECK(r->get_ub() == "10.1.7.255");
         REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >

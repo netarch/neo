@@ -13,12 +13,33 @@ void Link::normalize()
     }
 }
 
-Link::Link(const std::shared_ptr<Node>& node1,
-           const std::shared_ptr<Interface>& intf1,
-           const std::shared_ptr<Node>& node2,
-           const std::shared_ptr<Interface>& intf2)
-    : node1(node1), intf1(intf1), node2(node2), intf2(intf2), failed(false)
+Link::Link(const std::shared_ptr<cpptoml::table>& config,
+           const std::map<std::string, std::shared_ptr<Node> >& nodes)
+    : failed(false)
 {
+    auto node1_name = config->get_as<std::string>("node1");
+    auto intf1_name = config->get_as<std::string>("intf1");
+    auto node2_name = config->get_as<std::string>("node2");
+    auto intf2_name = config->get_as<std::string>("intf2");
+
+    if (!node1_name) {
+        Logger::get_instance().err("Missing node1");
+    }
+    if (!intf1_name) {
+        Logger::get_instance().err("Missing intf1");
+    }
+    if (!node2_name) {
+        Logger::get_instance().err("Missing node2");
+    }
+    if (!intf2_name) {
+        Logger::get_instance().err("Missing intf2");
+    }
+
+    node1 = nodes.at(*node1_name);
+    node2 = nodes.at(*node2_name);
+    intf1 = node1.lock()->get_interface(*intf1_name);
+    intf2 = node2.lock()->get_interface(*intf2_name);
+
     normalize();
 }
 
@@ -141,14 +162,4 @@ bool Link::operator==(const Link& rhs) const
 bool Link::operator!=(const Link& rhs) const
 {
     return !(*this == rhs);
-}
-
-Link& Link::operator=(const Link& rhs)
-{
-    node1 = rhs.node1;
-    node2 = rhs.node2;
-    intf1 = rhs.intf1;
-    intf2 = rhs.intf2;
-    failed = rhs.failed;
-    return *this;
 }

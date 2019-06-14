@@ -3,7 +3,6 @@
 #include <unistd.h>
 
 #include "lib/fs.hpp"
-#include "lib/logger.hpp"
 
 TEST_CASE("fs")
 {

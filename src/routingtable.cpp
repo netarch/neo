@@ -1,15 +1,27 @@
 #include <iterator>
 
 #include "routingtable.hpp"
-#include "lib/logger.hpp"
-
-RoutingTable& RoutingTable::operator=(const RoutingTable& rhs)
-{
-    tbl = rhs.tbl;
-    return *this;
-}
 
 RoutingTable::iterator RoutingTable::insert(const Route& route)
+{
+    std::pair<iterator, iterator> range = tbl.equal_range(route);
+    if (std::distance(range.first, range.second) > 0) {
+        if (range.first->get_adm_dist() < route.get_adm_dist()) {
+            return tbl.end();   // ignore the new route
+        } else if (range.first->get_adm_dist() > route.get_adm_dist()) {
+            tbl.erase(range.first, range.second);
+        } else {    // having the same administrative distance
+            for (iterator it = range.first; it != range.second; ++it) {
+                if (it->has_same_path(route)) {
+                    return it;
+                }
+            }
+        }
+    }
+    return tbl.insert(route);
+}
+
+RoutingTable::iterator RoutingTable::insert(Route&& route)
 {
     std::pair<iterator, iterator> range = tbl.equal_range(route);
     if (std::distance(range.first, range.second) > 0) {

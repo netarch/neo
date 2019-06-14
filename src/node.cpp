@@ -3,9 +3,57 @@
 #include "node.hpp"
 #include "lib/logger.hpp"
 
-Node::Node(const std::string& name)
-    : name(name)
+Node::Node(const std::shared_ptr<cpptoml::table>& config)
 {
+    auto node_name = config->get_as<std::string>("name");
+    auto intfs_cfg = config->get_table_array("interfaces");
+    auto srs_cfg = config->get_table_array("static_routes");
+    auto irs_cfg = config->get_table_array("installed_routes");
+
+    if (!node_name) {
+        Logger::get_instance().err("Missing node name");
+    }
+    name = std::move(*node_name);
+
+    if (intfs_cfg) {
+        for (const std::shared_ptr<cpptoml::table>& intf_cfg : *intfs_cfg) {
+            std::shared_ptr<Interface> interface
+                    = std::make_shared<Interface>(intf_cfg);
+            // Add the new interface to intfs
+            auto res = intfs.insert
+                       (std::make_pair(interface->get_name(), interface));
+            if (res.second == false) {
+                Logger::get_instance().err("Duplicate interface name: " +
+                                           res.first->first);
+            }
+            if (!interface->switching()) {
+                // Add the new interface to intfs_ipv4
+                auto res = intfs_ipv4.insert
+                           (std::make_pair(interface->addr(), interface));
+                if (res.second == false) {
+                    Logger::get_instance().err("Duplicate interface IP: " +
+                                               res.first->first.to_string());
+                }
+
+                // Add the directly connected route to rib
+                rib.emplace(interface->network(), interface->addr(), 0,
+                            interface->get_name());
+            }
+        }
+    }
+    if (srs_cfg) {
+        for (const std::shared_ptr<cpptoml::table>& sr_cfg : *srs_cfg) {
+            Route route(sr_cfg);
+            route.set_adm_dist(1);
+            static_routes.insert(route);
+            rib.insert(route);
+        }
+    }
+    if (irs_cfg) {
+        for (const std::shared_ptr<cpptoml::table>& ir_cfg : *irs_cfg) {
+            rib.emplace(ir_cfg);
+        }
+    }
 }
 
 std::string Node::to_string() const
@@ -73,92 +121,5 @@ void Node::add_link(const std::string& intf_name,
                (std::make_pair(intf_name, std::weak_ptr<Link>(link)));
     if (res.second == false) {
         Logger::get_instance().err("Two links on interface: " + intf_name);
-    }
-}
-
-void
-Node::load_interfaces(const std::shared_ptr<cpptoml::table_array>& config)
-{
-    for (const std::shared_ptr<cpptoml::table>& intf_config : *config) {
-        std::shared_ptr<Interface> interface;
-        auto name = intf_config->get_as<std::string>("name");
-        auto ipv4 = intf_config->get_as<std::string>("ipv4");
-
-        if (!name) {
-            Logger::get_instance().err("Key error: name");
-        }
-        if (ipv4) {
-            interface = std::make_shared<Interface>(*name, *ipv4);
-        } else {
-            interface = std::make_shared<Interface>(*name);
-        }
-
-        // Add the new interface to intfs
-        auto res = intfs.insert
-                   (std::make_pair(interface->get_name(), interface));
-        if (res.second == false) {
-            Logger::get_instance().err("Duplicate interface name: " +
-                                       res.first->first);
-        }
-        // Add the new interface to intfs_ipv4
-        if (!interface->switching()) {
-            auto res = intfs_ipv4.insert
-                       (std::make_pair(interface->addr(), interface));
-            if (res.second == false) {
-                Logger::get_instance().err("Duplicate interface IP: " +
-                                           res.first->first.to_string());
-            }
-
-            // Add the directly connected route to rib
-            rib.insert(Route(interface->network(), interface->addr(),
-                             interface->get_name(), 0));
-        }
-    }
-}
-
-void
-Node::load_static_routes(const std::shared_ptr<cpptoml::table_array>& config)
-{
-    for (const std::shared_ptr<cpptoml::table>& sroute_config : *config) {
-        auto net = sroute_config->get_as<std::string>("network");
-        auto nhop = sroute_config->get_as<std::string>("next_hop");
-        auto dist = sroute_config->get_as<int>("adm_dist");
-        int adm_dist = 1;
-
-        if (!net) {
-            Logger::get_instance().err("Key error: network");
-        }
-        if (!nhop) {
-            Logger::get_instance().err("Key error: next_hop");
-        }
-        if (dist) {
-            adm_dist = *dist;
-        }
-
-        static_routes.emplace(*net, *nhop, adm_dist);
-        rib.emplace(*net, *nhop, adm_dist);
-    }
-}
-
-void
-Node::load_installed_routes(const std::shared_ptr<cpptoml::table_array>& config)
-{
-    for (const std::shared_ptr<cpptoml::table>& iroute_config : *config) {
-        auto net = iroute_config->get_as<std::string>("network");
-        auto nhop = iroute_config->get_as<std::string>("next_hop");
-        auto dist = iroute_config->get_as<int>("adm_dist");
-        int adm_dist = 255;
-
-        if (!net) {
-            Logger::get_instance().err("Key error: network");
-        }
-        if (!nhop) {
-            Logger::get_instance().err("Key error: next_hop");
-        }
-        if (dist) {
-            adm_dist = *dist;
-        }
-
-        rib.emplace(*net, *nhop, adm_dist);
     }
 }

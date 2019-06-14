@@ -20,7 +20,6 @@ private:
 
     ForwardingProcess   fwd;
 
-    void load_config();
     void compute_ec();
 
 public:

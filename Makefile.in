@@ -11,7 +11,6 @@ PACKAGE_TARNAME    = @PACKAGE_TARNAME@
 PACKAGE_URL        = @PACKAGE_URL@
 TARGET             = $(PACKAGE_TARNAME)
 TEST_TARGET        = test-$(TARGET)
-TEST_NETWORKS      = test-networks
 
 # Source files and directories
 srcdir      = @srcdir@
@@ -83,26 +82,21 @@ uninstall:
 	-rm -rf "$(licensedir)"
 
 clean:
-	-@rm -rf $(TARGET) $(TEST_TARGET) $(TEST_NETWORKS) *.o pan.{b,c,h,m,p,t} \
+	-@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.{b,c,h,m,p,t} \
 	        *.gcov *.gcda *.gcno neo.1.gz
 
 distclean: clean
 	-@rm -rf autom4te.cache codecov.sh config.log config.status configure \
 	         Makefile
 
-check: $(TEST_TARGET) $(TEST_NETWORKS)
+check: $(TEST_TARGET)
 	./$(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(TEST_NETWORKS): $(TEST_NETS)
-	@rm -rf $@
-	@mkdir $@
-	@cp $^ $@
-
 installcheck: install
 	# TODO
 
 .PHONY: all install-git-hooks install uninstall clean distclean check \
-        $(TEST_NETWORKS) installcheck
+        installcheck

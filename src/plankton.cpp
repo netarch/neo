@@ -1,3 +1,4 @@
+#include <utility>
 #include <cpptoml/cpptoml.hpp>
 
 #include "plankton.hpp"
@@ -20,11 +21,6 @@ Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
     Logger::get_instance().set_file(fs::append(out_dir, "verify.log"));
     Logger::get_instance().set_verbose(verbose);
 
-    load_config();
-}
-
-void Plankton::load_config()
-{
     Logger::get_instance().info("Loading network configurations...");
 
     auto config = cpptoml::parse_file(in_file);
@@ -32,7 +28,7 @@ void Plankton::load_config()
     auto links_config = config->get_table_array("links");
     auto policies_config = config->get_table_array("policies");
 
-    network.load_config(nodes_config, links_config);
+    network = Network(nodes_config, links_config);
 
     // Load policies configurations
     if (policies_config) {
@@ -41,24 +37,26 @@ void Plankton::load_config()
             auto type = policy_config->get_as<std::string>("type");
 
             if (!type) {
-                Logger::get_instance().err("Key error: type");
+                Logger::get_instance().err("Missing policy type");
             }
 
             if (*type == "reachability") {
                 policy = std::static_pointer_cast<Policy>
-                         (std::make_shared<ReachabilityPolicy>());
+                         (std::make_shared<ReachabilityPolicy>
+                          (policy_config, network));
             } else if (*type == "stateful-reachability") {
                 policy = std::static_pointer_cast<Policy>
-                         (std::make_shared<StatefulReachabilityPolicy>());
+                         (std::make_shared<StatefulReachabilityPolicy>
+                          (policy_config, network));
             } else if (*type == "waypoint") {
                 policy = std::static_pointer_cast<Policy>
-                         (std::make_shared<WaypointPolicy>());
+                         (std::make_shared<WaypointPolicy>
+                          (policy_config, network));
             } else {
                 Logger::get_instance().err("Unknown policy type: " + *type);
             }
 
-            policy->load_config(policy_config, network);
-            policies.push_back(policy);
+            policies.push_back(std::move(policy));
         }
     }
     Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +

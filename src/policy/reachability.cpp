@@ -2,7 +2,7 @@
 
 #include "policy/reachability.hpp"
 
-void ReachabilityPolicy::load_config(
+ReachabilityPolicy::ReachabilityPolicy(
     const std::shared_ptr<cpptoml::table>& policy_config,
     const Network& net)
 {
@@ -13,19 +13,19 @@ void ReachabilityPolicy::load_config(
     auto reachability = policy_config->get_as<bool>("reachable");
 
     if (!pkt_src_str) {
-        Logger::get_instance().err("Key error: pkt_src");
+        Logger::get_instance().err("Missing packet source");
     }
     if (!pkt_dst_str) {
-        Logger::get_instance().err("Key error: pkt_dst");
+        Logger::get_instance().err("Missing packet destination");
     }
     if (!start_regex) {
-        Logger::get_instance().err("Key error: start_node");
+        Logger::get_instance().err("Missing start node");
     }
     if (!final_regex) {
-        Logger::get_instance().err("Key error: final_node");
+        Logger::get_instance().err("Missing final node");
     }
     if (!reachability) {
-        Logger::get_instance().err("Key error: reachable");
+        Logger::get_instance().err("Missing reachability");
     }
 
     std::string src_str = *pkt_src_str;

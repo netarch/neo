@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <memory>
+#include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
 
@@ -13,10 +15,7 @@ private:
     // TODO std::vector<int> vlans;
 
 public:
-    Interface() = delete;
-    Interface(const Interface&) = default;
-    Interface(const std::string& name);
-    Interface(const std::string& name, const std::string& ip);
+    Interface(const std::shared_ptr<cpptoml::table>&);
 
     std::string to_string() const;
     std::string get_name() const;

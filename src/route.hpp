@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <memory>
+#include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
 
@@ -9,8 +11,8 @@ class Route
 private:
     IPNetwork<IPv4Address> network;
     IPv4Address next_hop;
-    std::string ifname;
     int adm_dist;
+    std::string ifname;
     // TODO int metric;
     // There's no metric for static routes. The metric can be implemented later
     // if dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
@@ -20,28 +22,23 @@ private:
 public:
     Route() = delete;
     Route(const Route&) = default;
-    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh);
-    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-          int adm_dist);
-    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-          const std::string& ifn);
-    Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-          const std::string& ifn, int adm_dist);
-    Route(const std::string& net, const std::string& nh);
-    Route(const std::string& net, const std::string& nh, int adm_dist);
-    Route(const std::string& net, const std::string& nh,
-          const std::string& ifn);
-    Route(const std::string& net, const std::string& nh, const std::string& ifn,
-          int adm_dist);
+    Route(Route&&) = default;
+    Route(const std::shared_ptr<cpptoml::table>&);
+    Route(const IPNetwork<IPv4Address>& net,
+          const IPv4Address& nh,
+          int adm_dist = 255,
+          const std::string& ifn = "");
+    Route(const std::string& net,
+          const std::string& nh,
+          int adm_dist = 255,
+          const std::string& ifn = "");
 
     std::string to_string() const;
     IPNetwork<IPv4Address> get_network() const;
     IPv4Address get_next_hop() const;
-    std::string get_ifname() const;
     int get_adm_dist() const;
-    void set_next_hop(const IPv4Address&);
-    void set_next_hop(const std::string&);
-    void set_ifname(const std::string&);
+    std::string get_ifname() const;
+    void set_adm_dist(int dist);
 
     /*
      * Precedence:
@@ -55,5 +52,6 @@ public:
     bool operator==(const Route&) const;    // same network (destination)
     bool operator!=(const Route&) const;
     bool has_same_path(const Route&) const;
-    Route& operator=(const Route&);
+    Route& operator=(const Route&) = default;
+    Route& operator=(Route&&) = default;
 };

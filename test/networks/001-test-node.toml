@@ -1,9 +1,0 @@
-[[nodes]]
-    name = "route_ignored"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.1.1/30"
-    [[nodes.static_routes]]
-    network = "192.168.1.0/30"
-    next_hop = "1.2.3.4"

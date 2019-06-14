@@ -103,12 +103,6 @@ bool IPv4Address::operator!=(const std::string& rhs) const
     return *this != IPv4Address(rhs);
 }
 
-IPv4Address& IPv4Address::operator=(const IPv4Address& rhs)
-{
-    value = rhs.value;
-    return *this;
-}
-
 IPv4Address& IPv4Address::operator=(const std::string& rhs)
 {
     return (*this = IPv4Address(rhs));

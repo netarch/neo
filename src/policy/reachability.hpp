@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <set>
+#include <list>
 #include <cpptoml/cpptoml.hpp>
 
 #include "policy/policy.hpp"
@@ -20,14 +20,12 @@ class ReachabilityPolicy : public Policy
 private:
     IPRange<IPv4Address> pkt_src;
     IPRange<IPv4Address> pkt_dst;
-    std::set<std::shared_ptr<Node> > start_nodes;
-    std::set<std::shared_ptr<Node> > final_nodes;
+    std::list<std::shared_ptr<Node> > start_nodes;
+    std::list<std::shared_ptr<Node> > final_nodes;
     bool reachable;
 
 public:
-    ReachabilityPolicy() = default;
+    ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
 
-    void load_config(const std::shared_ptr<cpptoml::table>&,
-                     const Network&) override;
     //bool check_violation(const Network&, const ForwardingProcess&) override;
 };

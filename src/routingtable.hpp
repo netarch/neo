@@ -19,12 +19,16 @@ public:
 
     RoutingTable() = default;
     RoutingTable(const RoutingTable&) = default;
-    RoutingTable& operator=(const RoutingTable&);
+    RoutingTable(RoutingTable&&) = default;
+    RoutingTable& operator=(const RoutingTable&) = default;
+    RoutingTable& operator=(RoutingTable&&) = default;
 
     iterator insert(const Route&);
+    iterator insert(Route&&);
     size_type erase(const Route&);
     iterator erase(const_iterator);
     void clear();
+    template <class... Args> iterator emplace(const Args& ... args);
     template <class... Args> iterator emplace(Args&& ... args);
 
     /*
@@ -53,7 +57,13 @@ public:
 };
 
 template <class... Args>
+RoutingTable::iterator RoutingTable::emplace(const Args& ... args)
+{
+    return insert(Route(args...));
+}
+
+template <class... Args>
 RoutingTable::iterator RoutingTable::emplace(Args&& ... args)
 {
-    return tbl.emplace(args...);
+    return insert(Route(args...));
 }

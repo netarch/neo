@@ -9,9 +9,5 @@
 class Policy
 {
 public:
-    Policy() = default;
-
-    virtual void load_config(const std::shared_ptr<cpptoml::table>&,
-                             const Network&);
     virtual bool check_violation(const Network&, const ForwardingProcess&);
 };

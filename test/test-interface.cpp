@@ -1,42 +1,59 @@
 #include <catch2/catch.hpp>
-#include <memory>
+#include <string>
 
 #include "interface.hpp"
+#include "lib/fs.hpp"
 
 TEST_CASE("interface")
 {
-    Interface intf1("eth0", "10.0.0.1/24");
-    Interface intf2("virbr0");
+    std::shared_ptr<Interface> intf;
 
-    SECTION("constructors") {
-        std::shared_ptr<Interface> intf;
+    SECTION("missing interface name") {
+        std::string content =
+            "[interface]\n"
+            ;
+        auto config = fs::get_toml_config(content);
+        REQUIRE(config);
+        auto intf_config = config->get_table("interface");
+        REQUIRE(intf_config);
+        CHECK_THROWS_WITH(intf = std::make_shared<Interface>(intf_config),
+                          "Missing interface name");
+    }
 
-        REQUIRE_NOTHROW(intf = std::make_shared<Interface>(intf1));
+    SECTION("L3 interface") {
+        std::string content =
+            "[interface]\n"
+            "name = \"eth0\"\n"
+            "ipv4 = \"1.2.3.4/8\"\n"
+            ;
+        auto config = fs::get_toml_config(content);
+        REQUIRE(config);
+        auto intf_config = config->get_table("interface");
+        REQUIRE(intf_config);
+        REQUIRE_NOTHROW(intf = std::make_shared<Interface>(intf_config));
+        CHECK(intf->to_string() == "eth0");
         CHECK(intf->get_name() == "eth0");
-        CHECK(intf->addr() == "10.0.0.1");
-        CHECK(intf->prefix_length() == 24);
-        CHECK(intf->switching() == false);
-        REQUIRE_NOTHROW(intf = std::make_shared<Interface>("br0"));
-        CHECK(intf->get_name() == "br0");
-        CHECK(intf->switching() == true);
-        REQUIRE_NOTHROW(intf = std::make_shared<Interface>("tun0",
-                               "1.1.1.1/32"));
-        CHECK(intf->get_name() == "tun0");
-        CHECK(intf->addr() == "1.1.1.1");
-        CHECK(intf->prefix_length() == 32);
+        CHECK(intf->addr() == "1.2.3.4");
+        CHECK(intf->prefix_length() == 8);
+        CHECK(intf->network() == "1.0.0.0/8");
         CHECK(intf->switching() == false);
     }
 
-    SECTION("basic information access") {
-        CHECK(intf1.to_string() == "eth0");
-        CHECK(intf1.get_name() == "eth0");
-        CHECK(intf1.addr() == "10.0.0.1");
-        CHECK_THROWS_WITH(intf2.addr(), "Switchport: virbr0");
-        CHECK(intf1.prefix_length() == 24);
-        CHECK_THROWS_WITH(intf2.prefix_length(), "Switchport: virbr0");
-        CHECK(intf1.network() == "10.0.0.0/24");
-        CHECK_THROWS_WITH(intf2.network(), "Switchport: virbr0");
-        CHECK(intf1.switching() == false);
-        CHECK(intf2.switching() == true);
+    SECTION("L2 interface") {
+        std::string content =
+            "[interface]\n"
+            "name = \"br0\"\n"
+            ;
+        auto config = fs::get_toml_config(content);
+        REQUIRE(config);
+        auto intf_config = config->get_table("interface");
+        REQUIRE(intf_config);
+        REQUIRE_NOTHROW(intf = std::make_shared<Interface>(intf_config));
+        CHECK(intf->to_string() == "br0");
+        CHECK(intf->get_name() == "br0");
+        CHECK_THROWS_WITH(intf->addr(), "Switchport: br0");
+        CHECK_THROWS_WITH(intf->prefix_length(), "Switchport: br0");
+        CHECK_THROWS_WITH(intf->network(), "Switchport: br0");
+        CHECK(intf->switching() == true);
     }
 }

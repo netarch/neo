@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
 
@@ -10,7 +10,5 @@ private:
     ;
 
 public:
-    Middlebox() = delete;
-    Middlebox(const Middlebox&) = default;
-    Middlebox(const std::string&);
+    Middlebox(const std::shared_ptr<cpptoml::table>&);
 };

@@ -1,5 +1,0 @@
-[[nodes]]
-    name = "key_error_static_route_network"
-    type = "generic"
-    [[nodes.static_routes]]
-    next_hop = "1.2.3.4"

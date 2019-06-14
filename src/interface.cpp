@@ -1,13 +1,22 @@
 #include "interface.hpp"
 #include "lib/logger.hpp"
 
-Interface::Interface(const std::string& name): name(name), switchport(true)
+Interface::Interface(const std::shared_ptr<cpptoml::table>& intf_config)
 {
-}
+    auto intf_name = intf_config->get_as<std::string>("name");
+    auto ipv4_addr = intf_config->get_as<std::string>("ipv4");
+    // TODO vlans (ignored for now)
 
-Interface::Interface(const std::string& name, const std::string& ip)
-    : name(name), ipv4(ip), switchport(false)
-{
+    if (!intf_name) {
+        Logger::get_instance().err("Missing interface name");
+    }
+    name = *intf_name;
+    if (ipv4_addr) {
+        ipv4 = IPInterface<IPv4Address>(*ipv4_addr);
+        switchport = false;
+    } else {
+        switchport = true;
+    }
 }
 
 std::string Interface::to_string() const

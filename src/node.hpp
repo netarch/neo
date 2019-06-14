@@ -2,7 +2,6 @@
 
 #include <string>
 #include <map>
-#include <set>
 #include <memory>
 #include <cpptoml/cpptoml.hpp>
 
@@ -32,9 +31,7 @@ protected:
     std::map<std::string, std::weak_ptr<Link> > active_links;
 
 public:
-    Node() = delete;
-    Node(const Node&) = default;
-    Node(const std::string&);
+    Node(const std::shared_ptr<cpptoml::table>&);
 
     virtual std::string to_string() const;
     virtual std::string get_name() const;
@@ -55,11 +52,4 @@ public:
              const std::shared_ptr<Interface>&);
     virtual void
     add_link(const std::string&, const std::shared_ptr<Link>&);
-
-    virtual void
-    load_interfaces(const std::shared_ptr<cpptoml::table_array>&);
-    virtual void
-    load_static_routes(const std::shared_ptr<cpptoml::table_array>&);
-    virtual void
-    load_installed_routes(const std::shared_ptr<cpptoml::table_array>&);
 };

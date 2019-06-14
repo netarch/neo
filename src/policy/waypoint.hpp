@@ -11,5 +11,5 @@ private:
     ;
 
 public:
-    ;
+    WaypointPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
 };

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <cpptoml/cpptoml.hpp>
 
 class Link;
 #include "node.hpp"
@@ -15,16 +16,12 @@ private:
     std::weak_ptr<Interface> intf2;
     bool failed;
 
-    // called by every constructor except for copy constructor
-    void normalize();
+    void normalize();   // called by every user-defined constructor
 
 public:
-    Link() = delete;
     Link(const Link&) = default;
-    Link(const std::shared_ptr<Node>& node1,
-         const std::shared_ptr<Interface>& intf1,
-         const std::shared_ptr<Node>& node2,
-         const std::shared_ptr<Interface>& intf2);
+    Link(const std::shared_ptr<cpptoml::table>& config,
+         const std::map<std::string, std::shared_ptr<Node> >& nodes);
 
     std::string to_string() const;
     std::shared_ptr<Node> get_node1() const;
@@ -41,5 +38,6 @@ public:
     bool operator==(const Link&) const;
     bool operator!=(const Link&) const;
 
-    Link& operator=(const Link&);
+    Link& operator=(const Link&) = default;
+    Link& operator=(Link&&) = default;
 };
