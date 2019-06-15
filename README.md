@@ -7,9 +7,9 @@ Plankton-neo
 [![License](https://img.shields.io/github/license/netarch/neo.svg)](https://github.com/netarch/neo/blob/master/LICENSE)
 
 Plankton-neo is a network testing tool based on the Plankton verification
-framework. It combines both explicit-state model checking and emulation
-techniques to achieve high-coverage testing for softwarized networks with
-middlebox components.
+framework. It combines explicit-state model checking and emulation techniques to
+achieve high-coverage testing for softwarized networks with middlebox
+components.
 
 #### Table of Contents
 
@@ -30,8 +30,10 @@ The following dependencies are needed for building Plankton-neo.
 - autoconf
 - make
 - spin
+- modern C and C++ compilers
 
-It doesn't need anything, except for standard libraries, to run.
+It doesn't need anything in particular to run Plankton-neo, except for the C and
+C++ standard libraries.
 
 ### Install SPIN
 
@@ -55,9 +57,11 @@ $ sudo apt install spin
 
 #### Other
 
-If your distribution doesn't have the package for SPIN, you may install it from
-the [tarball releases](http://spinroot.com/spin/Src/index.html) or the [official
-GitHub repository](https://github.com/nimble-code/Spin).
+If your distribution doesn't have package for SPIN, you may install it from the
+[tarball releases](http://spinroot.com/spin/Src/index.html) or the [official
+GitHub repository](https://github.com/nimble-code/Spin). To make things easier,
+you might want to run `setup.sh` for building and installing SPIN, though it
+will also install other dependencies which may not be necessary for you.
 
 ### Install Plankton-neo
 
