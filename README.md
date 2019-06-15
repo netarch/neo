@@ -7,11 +7,23 @@ Plankton-neo
 [![License](https://img.shields.io/github/license/netarch/neo.svg)](https://github.com/netarch/neo/blob/master/LICENSE)
 
 Plankton-neo is a network testing tool based on the Plankton verification
-framework, using both explicit-state model checking and emulation techniques to
-achieve high-coverage testing for softwarized networks.
+framework. It combines both explicit-state model checking and emulation
+techniques to achieve high-coverage testing for softwarized networks with
+middlebox components.
+
+#### Table of Contents
+
+- [User's Guide](#users-guide)
+    - [Dependencies](#dependencies)
+    - [Install SPIN](#install-spin)
+    - [Install Plankton-neo](#install-plankton-neo)
+    - [Usage](#usage)
+- [Developer's Guide](#developers-guide)
 
 
-## Getting Started
+## User's Guide
+
+### Dependencies
 
 The following dependencies are needed for building Plankton-neo.
 
@@ -19,15 +31,9 @@ The following dependencies are needed for building Plankton-neo.
 - make
 - spin
 
+It doesn't need anything, except for standard libraries, to run.
+
 ### Install SPIN
-
-#### Ubuntu bionic and above
-
-Since Ubuntu bionic (18.04), SPIN can be installed as a distribution package.
-
-```
-$ sudo apt install spin
-```
 
 #### Arch Linux
 
@@ -39,11 +45,19 @@ $ cd spin
 $ makepkg -srci
 ```
 
+#### Ubuntu bionic and above
+
+Since Ubuntu bionic (18.04), SPIN can be installed as a distribution package.
+
+```
+$ sudo apt install spin
+```
+
 #### Other
 
 If your distribution doesn't have the package for SPIN, you may install it from
-the [tarball releases](http://spinroot.com/spin/Src/index.html) or the [GitHub
-repository](https://github.com/nimble-code/Spin).
+the [tarball releases](http://spinroot.com/spin/Src/index.html) or the [official
+GitHub repository](https://github.com/nimble-code/Spin).
 
 ### Install Plankton-neo
 
@@ -75,4 +89,9 @@ Examples:
 $ cd neo
 $ neo -vfj8 -i examples/00-reverse-path-filtering/network.toml -o output
 ```
+
+## Developer's Guide
+
+`setup.sh` can be used to set up the development environment. Pull requests and
+issues are appreciated.
 
