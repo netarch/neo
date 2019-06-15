@@ -16,28 +16,26 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
     name = std::move(*node_name);
 
     if (intfs_cfg) {
-        for (const std::shared_ptr<cpptoml::table>& intf_cfg : *intfs_cfg) {
-            std::shared_ptr<Interface> interface
-                    = std::make_shared<Interface>(intf_cfg);
+        for (const std::shared_ptr<cpptoml::table>& cfg : *intfs_cfg) {
+            std::shared_ptr<Interface> intf = std::make_shared<Interface>(cfg);
             // Add the new interface to intfs
             auto res = intfs.insert
-                       (std::make_pair(interface->get_name(), interface));
+                       (std::make_pair(intf->get_name(), intf));
             if (res.second == false) {
                 Logger::get_instance().err("Duplicate interface name: " +
                                            res.first->first);
             }
-            if (!interface->switching()) {
+            if (!intf->switching()) {
                 // Add the new interface to intfs_ipv4
                 auto res = intfs_ipv4.insert
-                           (std::make_pair(interface->addr(), interface));
+                           (std::make_pair(intf->addr(), intf));
                 if (res.second == false) {
                     Logger::get_instance().err("Duplicate interface IP: " +
                                                res.first->first.to_string());
                 }
 
                 // Add the directly connected route to rib
-                rib.emplace(interface->network(), interface->addr(), 0,
-                            interface->get_name());
+                rib.emplace(intf->network(), intf->addr(), 0, intf->get_name());
             }
         }
     }
