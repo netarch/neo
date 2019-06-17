@@ -19,7 +19,6 @@ protected:
     std::map<std::string, std::shared_ptr<Interface> > intfs;
     std::map<IPv4Address, std::shared_ptr<Interface> > intfs_ipv4;
 
-    RoutingTable static_routes;
     RoutingTable rib;   // global RIB for this node
 
     // active connected peers indexed by interface name

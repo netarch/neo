@@ -42,9 +42,10 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
     if (srs_cfg) {
         for (const std::shared_ptr<cpptoml::table>& sr_cfg : *srs_cfg) {
             Route route(sr_cfg);
-            route.set_adm_dist(1);
-            static_routes.insert(route);
-            rib.insert(route);
+            if (route.get_adm_dist() == 255) {  // user did not specify adm dist
+                route.set_adm_dist(1);
+            }
+            rib.insert(std::move(route));
         }
     }
     if (irs_cfg) {
