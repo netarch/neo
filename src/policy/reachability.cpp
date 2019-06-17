@@ -1,4 +1,5 @@
 #include <string>
+#include <regex>
 
 #include "policy/reachability.hpp"
 
@@ -42,8 +43,15 @@ ReachabilityPolicy::ReachabilityPolicy(
     const std::map<std::string, std::shared_ptr<Node> >& nodes
         = net.get_nodes();
     for (auto node : nodes) {
-        // TODO
+        if (std::regex_match(node.first, std::regex(*start_regex))) {
+            start_nodes.push_back(node.second);
+        }
+        if (std::regex_match(node.first, std::regex(*final_regex))) {
+            final_nodes.push_back(node.second);
+        }
     }
+
+    reachable = *reachability;
 }
 
 //bool Reachability::check_violation(const Network& net,
