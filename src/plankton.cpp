@@ -67,6 +67,11 @@ Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
 
 void Plankton::compute_ec()
 {
+    for (const auto& node : network.get_nodes()) {
+        for (const Route& route : node.second->get_rib()) {
+            ECs.add_ec(route.get_network());
+        }
+    }
 }
 
 void Plankton::run()
@@ -76,7 +81,7 @@ void Plankton::run()
     // for each ec in ECs
     //  fork && spin_main
 
-    //  static char param0[] = "neo";  // argv[0]
+    //  static char param0[] = "neo";
     //  static char param1[] = "-m100000";
     //  static char *spin_args[] = {param0, param1};
     //  spin_main(sizeof(spin_args) / sizeof(char *), spin_args);

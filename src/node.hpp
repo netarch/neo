@@ -41,6 +41,7 @@ public:
     get_interface(const std::string&) const;
     virtual const std::shared_ptr<Interface>&
     get_interface(const IPv4Address&) const;
+    virtual const RoutingTable& get_rib() const;
     virtual std::pair<std::shared_ptr<Node>, std::shared_ptr<Interface> >
     get_peer(const std::string& intf_name) const;
     virtual std::shared_ptr<Link>

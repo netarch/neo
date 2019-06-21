@@ -56,15 +56,21 @@ void RoutingTable::clear()
 }
 
 std::pair<RoutingTable::iterator, RoutingTable::iterator>
-RoutingTable::lookup(const Route& route)
+RoutingTable::lookup(const IPNetwork<IPv4Address>& dst_net)
 {
-    return tbl.equal_range(route);
+    return tbl.equal_range(Route(dst_net));
 }
 
 std::pair<RoutingTable::const_iterator, RoutingTable::const_iterator>
-RoutingTable::lookup(const Route& route) const
+RoutingTable::lookup(const IPNetwork<IPv4Address>& dst_net) const
 {
-    return tbl.equal_range(route);
+    return tbl.equal_range(Route(dst_net));
+}
+
+RoutingTable::size_type
+RoutingTable::count(const IPNetwork<IPv4Address>& dst_net) const
+{
+    return tbl.count(Route(dst_net));
 }
 
 RoutingTable::size_type RoutingTable::count(const Route& route) const

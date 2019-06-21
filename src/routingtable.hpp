@@ -39,8 +39,11 @@ public:
      * returned has a length of zero, with both iterators pointing to the first
      * element that goes after the given route.
      */
-    std::pair<iterator, iterator> lookup(const Route&);
-    std::pair<const_iterator, const_iterator> lookup(const Route&) const;
+    std::pair<iterator, iterator>
+    lookup(const IPNetwork<IPv4Address>&);
+    std::pair<const_iterator, const_iterator>
+    lookup(const IPNetwork<IPv4Address>&) const;
+    size_type count(const IPNetwork<IPv4Address>&) const;
     size_type count(const Route&) const;
 
     bool empty() const;

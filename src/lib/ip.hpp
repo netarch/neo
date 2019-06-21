@@ -108,7 +108,6 @@ public:
     Addr network_addr() const;
     Addr broadcast_addr() const;
     bool contains(const Addr&) const;
-    bool contains(const std::string&) const;
     IPRange<Addr> range() const;
     bool operator==(const IPNetwork<Addr>&) const;
     bool operator!=(const IPNetwork<Addr>&) const;
@@ -145,7 +144,8 @@ public:
     Addr get_lb() const;
     Addr get_ub() const;
     bool contains(const Addr&) const;
-    bool contains(const std::string&) const;
+    bool contains(const IPNetwork<Addr>&) const;
+    bool contains(const IPRange<Addr>&) const;
     bool is_network() const;
     IPNetwork<Addr> network() const;
     bool operator==(const IPRange<Addr>&) const;
@@ -245,21 +245,13 @@ IPNetwork<Addr> IPInterface<Addr>::network() const
 template <class Addr>
 bool IPInterface<Addr>::operator==(const IPInterface<Addr>& rhs) const
 {
-    if (Addr::value == rhs.value && prefix == rhs.prefix) {
-        return true;
-    } else {
-        return false;
-    }
+    return (Addr::value == rhs.value && prefix == rhs.prefix);
 }
 
 template <class Addr>
 bool IPInterface<Addr>::operator!=(const IPInterface<Addr>& rhs) const
 {
-    if (Addr::value == rhs.value && prefix == rhs.prefix) {
-        return false;
-    } else {
-        return true;
-    }
+    return (Addr::value != rhs.value || prefix != rhs.prefix);
 }
 
 template <class Addr>
@@ -287,11 +279,7 @@ bool IPNetwork<Addr>::is_network() const
 {
     uint32_t mask = (1ULL << (IPInterface<Addr>::length()
                               - IPInterface<Addr>::prefix)) - 1;
-    if ((IPInterface<Addr>::value & mask) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return ((IPInterface<Addr>::value & mask) == 0);
 }
 
 template <class Addr>
@@ -356,25 +344,15 @@ Addr IPNetwork<Addr>::network_addr() const
 template <class Addr>
 Addr IPNetwork<Addr>::broadcast_addr() const
 {
-    uint32_t mask = (1 << (IPInterface<Addr>::length()
-                           - IPInterface<Addr>::prefix)) - 1;
+    uint32_t mask = (1ULL << (IPInterface<Addr>::length()
+                              - IPInterface<Addr>::prefix)) - 1;
     return Addr(IPInterface<Addr>::value | mask);
 }
 
 template <class Addr>
 bool IPNetwork<Addr>::contains(const Addr& addr) const
 {
-    if (addr >= network_addr() && addr <= broadcast_addr()) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-template <class Addr>
-bool IPNetwork<Addr>::contains(const std::string& addr) const
-{
-    return contains(Addr(addr));
+    return (addr >= network_addr() && addr <= broadcast_addr());
 }
 
 template <class Addr>
@@ -502,29 +480,26 @@ Addr IPRange<Addr>::get_ub() const
 template <class Addr>
 bool IPRange<Addr>::contains(const Addr& addr) const
 {
-    if (addr >= lb && addr <= ub) {
-        return true;
-    } else {
-        return false;
-    }
+    return (addr >= lb && addr <= ub);
 }
 
 template <class Addr>
-bool IPRange<Addr>::contains(const std::string& addr) const
+bool IPRange<Addr>::contains(const IPNetwork<Addr>& net) const
 {
-    return contains(Addr(addr));
+    return (net.network_addr() >= lb && net.broadcast_addr() <= ub);
+}
+
+template <class Addr>
+bool IPRange<Addr>::contains(const IPRange<Addr>& range) const
+{
+    return (range.lb >= lb && range.ub <= ub);
 }
 
 template <class Addr>
 bool IPRange<Addr>::is_network() const
 {
     uint32_t n = size();
-
-    if ((n & (n - 1)) != 0 || (lb & (n - 1)) != 0) {
-        return false;
-    } else {
-        return true;
-    }
+    return ((n & (n - 1)) == 0 && (lb & (n - 1)) == 0);
 }
 
 template <class Addr>
@@ -536,41 +511,25 @@ IPNetwork<Addr> IPRange<Addr>::network() const
 template <class Addr>
 bool IPRange<Addr>::operator==(const IPRange<Addr>& rhs) const
 {
-    if (lb == rhs.lb && ub == rhs.ub) {
-        return true;
-    } else {
-        return false;
-    }
+    return (lb == rhs.lb && ub == rhs.ub);
 }
 
 template <class Addr>
 bool IPRange<Addr>::operator!=(const IPRange<Addr>& rhs) const
 {
-    if (lb == rhs.lb && ub == rhs.ub) {
-        return false;
-    } else {
-        return true;
-    }
+    return (lb != rhs.lb || ub != rhs.ub);
 }
 
 template <class Addr>
 bool IPRange<Addr>::operator==(const IPNetwork<Addr>& rhs) const
 {
-    if (lb == rhs.network_addr() && ub == rhs.broadcast_addr()) {
-        return true;
-    } else {
-        return false;
-    }
+    return (lb == rhs.network_addr() && ub == rhs.broadcast_addr());
 }
 
 template <class Addr>
 bool IPRange<Addr>::operator!=(const IPNetwork<Addr>& rhs) const
 {
-    if (lb == rhs.network_addr() && ub == rhs.broadcast_addr()) {
-        return false;
-    } else {
-        return true;
-    }
+    return (lb != rhs.network_addr() || ub != rhs.broadcast_addr());
 }
 
 template <class Addr>

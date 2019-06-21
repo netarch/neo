@@ -16,7 +16,7 @@ Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)
     network = IPNetwork<IPv4Address>(*net);
     next_hop = IPv4Address(*nhop);
     if (dist) {
-        if (*dist < 0 || *dist > 255) {
+        if (*dist < 1 || *dist > 254) {
             Logger::get_instance().err("Invalid administrative distance: " +
                                        std::to_string(*dist));
         }

@@ -25,11 +25,11 @@ public:
     Route(Route&&) = default;
     Route(const std::shared_ptr<cpptoml::table>&);
     Route(const IPNetwork<IPv4Address>& net,
-          const IPv4Address& nh,
+          const IPv4Address& nh = IPv4Address(),
           int adm_dist = 255,
           const std::string& ifn = "");
     Route(const std::string& net,
-          const std::string& nh,
+          const std::string& nh = std::string(),
           int adm_dist = 255,
           const std::string& ifn = "");
 

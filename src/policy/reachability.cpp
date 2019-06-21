@@ -42,7 +42,7 @@ ReachabilityPolicy::ReachabilityPolicy(
 
     const std::map<std::string, std::shared_ptr<Node> >& nodes
         = net.get_nodes();
-    for (auto node : nodes) {
+    for (const auto& node : nodes) {
         if (std::regex_match(node.first, std::regex(*start_regex))) {
             start_nodes.push_back(node.second);
         }
@@ -54,7 +54,9 @@ ReachabilityPolicy::ReachabilityPolicy(
     reachable = *reachability;
 }
 
-//bool Reachability::check_violation(const Network& net,
-//                                   const ForwardingProcess& fwd)
+//bool ReachabilityPolicy::check_violation(
+//    const Network& net __attribute__((unused)),
+//    const ForwardingProcess& fwd)
 //{
+//    fwd.
 //}

@@ -288,13 +288,14 @@ TEST_CASE("ipnetwork")
 
         CHECK(net.network_addr() == "192.168.10.0");
         CHECK(net.broadcast_addr() == "192.168.10.255");
-        CHECK(net.contains("192.168.10.0"));
-        CHECK(net.contains("192.168.10.100"));
-        CHECK(net.contains("192.168.10.255"));
-        CHECK_FALSE(net.contains("192.168.9.255"));
-        CHECK_FALSE(net.contains("192.168.11.0"));
+        CHECK(net.contains(IPv4Address("192.168.10.0")));
+        CHECK(net.contains(IPv4Address("192.168.10.255")));
+        CHECK_FALSE(net.contains(IPv4Address("192.168.9.255")));
+        CHECK_FALSE(net.contains(IPv4Address("192.168.11.0")));
         CHECK(net.range() ==
               IPRange<IPv4Address>("192.168.10.0", "192.168.10.255"));
+        CHECK(IPNetwork<IPv4Address>("0.0.0.0/0").range() ==
+              IPRange<IPv4Address>("0.0.0.0", "255.255.255.255"));
     }
 
     SECTION("relational and assignment operators") {
@@ -318,9 +319,6 @@ TEST_CASE("iprange")
     SECTION("constructors") {
         std::shared_ptr<IPRange<IPv4Address> > r;
 
-        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >());
-        CHECK(r->get_lb().get_value() == 0);
-        CHECK(r->get_ub().get_value() == 0);
         REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >(range));
         CHECK(r->get_lb() == "10.1.4.0");
         CHECK(r->get_ub() == "10.1.7.255");
@@ -343,9 +341,9 @@ TEST_CASE("iprange")
                           ("10.0.0.1", "10.0.0.0"),
                           "Invalid IP range: [10.0.0.1, 10.0.0.0]");
         REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
-                            (IPNetwork<IPv4Address>("10.0.113.0/25")));
-        CHECK(r->get_lb() == "10.0.113.0");
-        CHECK(r->get_ub() == "10.0.113.127");
+                            (IPNetwork<IPv4Address>("0.0.0.0/0")));
+        CHECK(r->get_lb() == "0.0.0.0");
+        CHECK(r->get_ub() == "255.255.255.255");
         REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
                             ("10.0.113.0/25"));
         CHECK(r->get_lb() == "10.0.113.0");
@@ -363,10 +361,16 @@ TEST_CASE("iprange")
         range.set_lb(IPv4Address("10.1.4.0"));
         range.set_ub(IPv4Address("10.1.7.255"));
         REQUIRE(range.to_string() == "[10.1.4.0, 10.1.7.255]");
-        CHECK_FALSE(range.contains("10.1.3.255"));
-        CHECK(range.contains("10.1.4.0"));
-        CHECK(range.contains("10.1.7.255"));
-        CHECK_FALSE(range.contains("10.1.8.0"));
+        CHECK_FALSE(range.contains(IPv4Address("10.1.3.255")));
+        CHECK(range.contains(IPv4Address("10.1.4.0")));
+        CHECK(range.contains(IPv4Address("10.1.7.255")));
+        CHECK_FALSE(range.contains(IPv4Address("10.1.8.0")));
+        CHECK(range.contains(IPNetwork<IPv4Address>("10.1.5.0/24")));
+        CHECK(range.contains(IPNetwork<IPv4Address>("10.1.4.0/22")));
+        CHECK_FALSE(range.contains(IPNetwork<IPv4Address>("10.0.0.0/8")));
+        CHECK(range.contains(IPRange<IPv4Address>("10.1.4.0", "10.1.7.254")));
+        CHECK_FALSE(range.contains(IPRange<IPv4Address>
+                                   ("10.1.4.1", "10.1.8.0")));
         REQUIRE(range.to_string() == "[10.1.4.0, 10.1.7.255]");
         CHECK(range.is_network());
         CHECK_NOTHROW(range.network());

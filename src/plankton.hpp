@@ -4,7 +4,7 @@
 #include <list>
 
 #include "network.hpp"
-#include "eqclass.hpp"
+#include "eqclasses.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
 
@@ -15,7 +15,7 @@ private:
     std::string         in_file;    // input TOML file
     std::string         out_dir;    // output directory
     Network             network;    // network information (inc. dataplane)
-    std::set<EqClass>   ECs;        // ECs to be verified
+    EqClasses           ECs;        // ECs to be verified
     std::list<std::shared_ptr<Policy> > policies;
 
     ForwardingProcess   fwd;
