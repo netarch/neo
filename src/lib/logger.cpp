@@ -12,14 +12,6 @@ Logger::Logger(): verbose(false)
 
 void Logger::log(const std::string& type, const std::string& msg)
 {
-    // open file if needed
-    if (!logfile.is_open() && !filename.empty()) {
-        logfile.open(filename);
-        if (logfile.fail()) {
-            throw std::runtime_error("Failed to open log file: " + filename);
-        }
-    }
-
     // write log if the file is open
     if (logfile.is_open()) {
         logfile << "-- [" + type + "] " + msg << std::endl;
@@ -34,7 +26,16 @@ Logger& Logger::get_instance()
 
 void Logger::set_file(const std::string& fn)
 {
+    if (logfile.is_open()) {
+        logfile.close();
+    }
     filename = fn;
+    if (!filename.empty()) {
+        logfile.open(filename);
+        if (logfile.fail()) {
+            throw std::runtime_error("Failed to open log file: " + filename);
+        }
+    }
 }
 
 void Logger::set_verbose(bool v)

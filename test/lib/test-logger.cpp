@@ -36,8 +36,7 @@ TEST_CASE("logger")
     }
 
     SECTION("non-existent log file") {
-        logger.set_file("non/existent/log/file");
-        CHECK_THROWS_WITH(logger.info(""),
+        CHECK_THROWS_WITH(logger.set_file("non/existent/log/file"),
                           "Failed to open log file: non/existent/log/file");
     }
 
