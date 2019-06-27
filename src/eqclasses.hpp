@@ -12,9 +12,9 @@ private:
     std::set<ECRange> allranges;
     std::set<std::shared_ptr<EqClass> > ECs;
 
-    std::shared_ptr<EqClass> add_non_overlapping_ec(const ECRange&);
-    std::shared_ptr<EqClass> split_intersected_ec(
-        std::shared_ptr<EqClass> ec, const ECRange& range);
+    std::shared_ptr<EqClass> split_intersected_ec(std::shared_ptr<EqClass> ec,
+            const ECRange& range);
+    std::shared_ptr<EqClass> add_non_overlapped_ec(const ECRange&);
 
 public:
     typedef std::set<std::shared_ptr<EqClass> >::size_type size_type;
@@ -32,6 +32,7 @@ public:
 
     std::string to_string() const;
     size_type size() const;
+    void clear();
 
     iterator               begin();
     const_iterator         begin() const;

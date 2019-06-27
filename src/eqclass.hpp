@@ -16,7 +16,6 @@ class EqClass
 {
 private:
     std::set<ECRange> ranges;
-    std::set<std::shared_ptr<EqClass> > depECs;
 
 public:
     EqClass() = default;
@@ -24,7 +23,6 @@ public:
     std::string to_string() const;
     bool empty() const;
     const std::set<ECRange>& get_ranges() const;
-
-    std::set<ECRange>::iterator add_range(const ECRange&);
+    void add_range(const ECRange&);
     void rm_range(const ECRange&);
 };

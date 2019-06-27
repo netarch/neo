@@ -20,9 +20,9 @@ const std::set<ECRange>& EqClass::get_ranges() const
     return ranges;
 }
 
-std::set<ECRange>::iterator EqClass::add_range(const ECRange& range)
+void EqClass::add_range(const ECRange& range)
 {
-    return ranges.insert(range).first;
+    ranges.insert(range);
 }
 
 void EqClass::rm_range(const ECRange& range)
