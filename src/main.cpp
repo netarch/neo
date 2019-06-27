@@ -21,7 +21,7 @@ static void usage(const std::string& progname)
 }
 
 static void parse_args(int argc, char **argv, bool& verbose, bool& rm_out_dir,
-                       int& max_jobs, std::string& input_file,
+                       size_t& max_jobs, std::string& input_file,
                        std::string& output_dir)
 {
     int opt;
@@ -41,7 +41,7 @@ static void parse_args(int argc, char **argv, bool& verbose, bool& rm_out_dir,
         switch (opt) {
             case 'h':
                 usage(argv[0]);
-                exit(EXIT_SUCCESS);
+                exit(0);
             case 'v':
                 verbose = true;
                 break;
@@ -61,7 +61,7 @@ static void parse_args(int argc, char **argv, bool& verbose, bool& rm_out_dir,
                 break;
             default:
                 usage(argv[0]);
-                exit(EXIT_FAILURE);
+                exit(1);
         }
     }
 
@@ -69,20 +69,20 @@ static void parse_args(int argc, char **argv, bool& verbose, bool& rm_out_dir,
         std::cerr << "Error: missing input file" << std::endl
                   << "Try '" << argv[0] << " --help' for more information"
                   << std::endl;
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     if (output_dir.empty()) {
         std::cerr << "Error: missing output directory" << std::endl
                   << "Try '" << argv[0] << " --help' for more information"
                   << std::endl;
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 }
 
 int main(int argc, char **argv)
 {
     bool verbose = false, rm_out_dir = false;
-    int max_jobs = 1;
+    size_t max_jobs = 1;
     std::string input_file, output_dir;
     parse_args(argc, argv, verbose, rm_out_dir, max_jobs, input_file,
                output_dir);
@@ -90,5 +90,5 @@ int main(int argc, char **argv)
     Plankton plankton(verbose, rm_out_dir, max_jobs, input_file, output_dir);
     plankton.run();
 
-    return EXIT_SUCCESS;
+    return 0;
 }

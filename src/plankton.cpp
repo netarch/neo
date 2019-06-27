@@ -1,3 +1,9 @@
+#include <cstdlib>
+#include <csignal>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <utility>
 #include <cpptoml/cpptoml.hpp>
 
@@ -8,7 +14,7 @@
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
 
-Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
+Plankton::Plankton(bool verbose, bool rm_out_dir, size_t max_jobs,
                    const std::string& input_file, const std::string& output_dir)
     : max_jobs(max_jobs)
 {
@@ -65,24 +71,123 @@ Plankton::Plankton(bool verbose, bool rm_out_dir, int max_jobs,
     Logger::get_instance().info("Finished loading network configurations");
 }
 
-void Plankton::compute_ec()
+namespace
 {
+std::unordered_set<int> tasks;  // active child processes (set of PIDs)
+const int sigs[] = {SIGCHLD, SIGUSR1, SIGINT, SIGQUIT, SIGTERM, SIGKILL};
+
+inline void kill_all(int sig)
+{
+    for (int childpid : tasks) {
+        kill(childpid, sig);
+    }
+}
+
+void signal_handler(int sig)
+{
+    switch (sig) {
+        case SIGCHLD:
+            int pid, status;
+            while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+                tasks.erase(pid);
+                Logger::get_instance().info("Joined process " +
+                                            std::to_string(pid));
+                if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+                    Logger::get_instance().warn("Process " + std::to_string(pid)
+                                                + " failed");
+                }
+            }
+            break;
+        case SIGUSR1:   // policy violated
+            kill_all(SIGTERM);
+            exit(0);
+        case SIGINT:
+        case SIGQUIT:
+        case SIGTERM:
+        case SIGKILL:
+            kill_all(sig);
+            exit(0);
+    }
+
+    //signal(sig, signal_handler);
+}
+} // namespace
+
+void Plankton::compute_ecs()
+{
+    ECs.clear();
     for (const auto& node : network.get_nodes()) {
         for (const Route& route : node.second->get_rib()) {
             ECs.add_ec(route.get_network());
         }
     }
+    Logger::get_instance().info("Packet ECs: " + std::to_string(ECs.size()));
+}
+
+extern "C" {
+    int spin_main(int argc, const char *argv[]);
+}
+
+int Plankton::verify_ec(const std::shared_ptr<EqClass>& ec)
+{
+    static const char spin_param0[] = "neo";
+    static const char spin_param1[] = "-m100000";
+    static const char *spin_args[] = {spin_param0, spin_param1};
+    const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
+                                           ".log");
+
+    // reset signal handlers
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        signal(sigs[i], SIG_DFL);
+    }
+
+    // reset logger
+    Logger::get_instance().set_file(logfile);
+    Logger::get_instance().set_verbose(false);
+    Logger::get_instance().info("Start verification of EC " + ec->to_string());
+
+    // duplicate file descriptors
+    int fd = open(logfile.c_str(), O_WRONLY | O_APPEND);
+    if (fd < 0) {
+        Logger::get_instance().err("Failed to open " + logfile, errno);
+    }
+    dup2(fd, STDOUT_FILENO);
+    dup2(fd, STDERR_FILENO);
+    close(fd);
+
+    // run SPIN verifier
+    return spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
 }
 
 void Plankton::run()
 {
-    compute_ec();
+    compute_ecs();
 
-    // for each ec in ECs
-    //  fork && spin_main
+    // register signal handlers
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        signal(sigs[i], signal_handler);
+    }
 
-    //  static char param0[] = "neo";
-    //  static char param1[] = "-m100000";
-    //  static char *spin_args[] = {param0, param1};
-    //  spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
+    // run the verifier for each EC
+    for (const std::shared_ptr<EqClass>& ec : ECs) {
+        int childpid;
+
+        if ((childpid = fork()) < 0) {
+            Logger::get_instance().err("Failed to fork new processes", errno);
+        } else if (childpid == 0) {
+            exit(verify_ec(ec));
+        }
+
+        Logger::get_instance().info("Spawned process " +
+                                    std::to_string(childpid));
+        tasks.insert(childpid);
+        while (tasks.size() >= max_jobs) {
+            pause();
+        }
+    }
+
+    // wait until all tasks are done
+    while (!tasks.empty()) {
+        pause();
+    }
 }
