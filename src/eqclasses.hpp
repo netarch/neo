@@ -11,6 +11,7 @@ class EqClasses
 private:
     std::set<ECRange> allranges;
     std::set<std::shared_ptr<EqClass> > ECs;
+    IPRange<IPv4Address> mask_range;
 
     std::shared_ptr<EqClass> split_intersected_ec(std::shared_ptr<EqClass> ec,
             const ECRange& range);
@@ -29,9 +30,13 @@ public:
 
     std::set<std::shared_ptr<EqClass> > add_ec(const ECRange&);
     std::set<std::shared_ptr<EqClass> > add_ec(const IPNetwork<IPv4Address>&);
+    std::set<std::shared_ptr<EqClass> > add_ec(const IPv4Address&);
+    void set_mask_range(const IPRange<IPv4Address>&);
+    void set_mask_range(IPRange<IPv4Address>&&);
 
     std::string to_string() const;
     size_type size() const;
+    iterator erase(const_iterator);
     void clear();
 
     iterator               begin();

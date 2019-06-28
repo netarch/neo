@@ -24,7 +24,7 @@ Plankton::Plankton(bool verbose, bool rm_out_dir, size_t max_jobs,
     fs::mkdir(output_dir);
     in_file = fs::realpath(input_file);
     out_dir = fs::realpath(output_dir);
-    Logger::get_instance().set_file(fs::append(out_dir, "verify.log"));
+    Logger::get_instance().set_file(fs::append(out_dir, "plankton.log"));
     Logger::get_instance().set_verbose(verbose);
 
     Logger::get_instance().info("Loading network configurations...");
@@ -108,27 +108,13 @@ void signal_handler(int sig)
             kill_all(sig);
             exit(0);
     }
-
-    //signal(sig, signal_handler);
 }
 } // namespace
 
-void Plankton::compute_ecs()
-{
-    ECs.clear();
-    for (const auto& node : network.get_nodes()) {
-        for (const Route& route : node.second->get_rib()) {
-            ECs.add_ec(route.get_network());
-        }
-    }
-    Logger::get_instance().info("Packet ECs: " + std::to_string(ECs.size()));
-}
+extern "C" int spin_main(int argc, const char *argv[]);
 
-extern "C" {
-    int spin_main(int argc, const char *argv[]);
-}
-
-int Plankton::verify_ec(const std::shared_ptr<EqClass>& ec)
+int Plankton::verify(const std::shared_ptr<EqClass>& ec,
+                     const std::shared_ptr<Policy>& policy)
 {
     static const char spin_param0[] = "neo";
     static const char spin_param1[] = "-m100000";
@@ -144,7 +130,9 @@ int Plankton::verify_ec(const std::shared_ptr<EqClass>& ec)
     // reset logger
     Logger::get_instance().set_file(logfile);
     Logger::get_instance().set_verbose(false);
-    Logger::get_instance().info("Start verification of EC " + ec->to_string());
+    Logger::get_instance().info("Start verification");
+    Logger::get_instance().info("EC: " + ec->to_string());
+    Logger::get_instance().info("Policy: " + policy->to_string());
 
     // duplicate file descriptors
     int fd = open(logfile.c_str(), O_WRONLY | O_APPEND);
@@ -155,34 +143,43 @@ int Plankton::verify_ec(const std::shared_ptr<EqClass>& ec)
     dup2(fd, STDERR_FILENO);
     close(fd);
 
+    // construct network view for the current EC and policy
+    //network.xxx(ec, policy);
+
     // run SPIN verifier
     return spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
 }
 
 void Plankton::run()
 {
-    compute_ecs();
-
     // register signal handlers
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
         signal(sigs[i], signal_handler);
     }
 
-    // run the verifier for each EC
-    for (const std::shared_ptr<EqClass>& ec : ECs) {
-        int childpid;
+    // compute ECs of each policy
+    for (const std::shared_ptr<Policy>& policy : policies) {
+        policy->compute_ecs(network);
+    }
 
-        if ((childpid = fork()) < 0) {
-            Logger::get_instance().err("Failed to fork new processes", errno);
-        } else if (childpid == 0) {
-            exit(verify_ec(ec));
-        }
+    // run verifier for each EC of each policy
+    for (const std::shared_ptr<Policy>& policy : policies) {
+        for (const std::shared_ptr<EqClass>& ec : policy->get_ecs()) {
+            int childpid;
 
-        Logger::get_instance().info("Spawned process " +
-                                    std::to_string(childpid));
-        tasks.insert(childpid);
-        while (tasks.size() >= max_jobs) {
-            pause();
+            if ((childpid = fork()) < 0) {
+                Logger::get_instance().err("Failed to fork new processes",
+                                           errno);
+            } else if (childpid == 0) {
+                exit(verify(ec, policy));
+            }
+
+            Logger::get_instance().info("Spawned process " +
+                                        std::to_string(childpid));
+            tasks.insert(childpid);
+            while (tasks.size() >= max_jobs) {
+                pause();
+            }
         }
     }
 

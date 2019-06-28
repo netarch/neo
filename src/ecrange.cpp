@@ -67,6 +67,5 @@ bool ECRange::contains(const ECRange& rhs) const
 
 bool ECRange::contains(const EqClass& rhs) const
 {
-    return (lb <= rhs.get_ranges().cbegin()->lb &&
-            rhs.get_ranges().crbegin()->ub <= ub);
+    return (lb <= rhs.begin()->lb && rhs.rbegin()->ub <= ub);
 }

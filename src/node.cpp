@@ -87,6 +87,12 @@ Node::get_interface(const IPv4Address& addr) const
     return intfs_ipv4.at(addr);
 }
 
+const std::map<IPv4Address, std::shared_ptr<Interface> >&
+Node::get_intfs_ipv4() const
+{
+    return intfs_ipv4;
+}
+
 const RoutingTable& Node::get_rib() const
 {
     return rib;

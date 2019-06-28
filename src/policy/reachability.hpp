@@ -18,8 +18,6 @@
 class ReachabilityPolicy : public Policy
 {
 private:
-    IPRange<IPv4Address> pkt_src;
-    IPRange<IPv4Address> pkt_dst;
     std::list<std::shared_ptr<Node> > start_nodes;
     std::list<std::shared_ptr<Node> > final_nodes;
     bool reachable;

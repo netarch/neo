@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "network.hpp"
-#include "eqclasses.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
 
@@ -17,13 +16,11 @@ private:
     std::string         in_file;    // input TOML file
     std::string         out_dir;    // output directory
     Network             network;    // network information (inc. dataplane)
-    EqClasses           ECs;        // ECs to be verified
     std::list<std::shared_ptr<Policy> > policies;
 
     ForwardingProcess   fwd;
 
-    void compute_ecs();
-    int verify_ec(const std::shared_ptr<EqClass>&);
+    int verify(const std::shared_ptr<EqClass>&, const std::shared_ptr<Policy>&);
 
 public:
     Plankton(bool verbose, bool rm_out_dir, size_t max_jobs,

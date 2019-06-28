@@ -18,11 +18,24 @@ private:
     std::set<ECRange> ranges;
 
 public:
+    typedef std::set<ECRange>::iterator iterator;
+    typedef std::set<ECRange>::const_iterator const_iterator;
+    typedef std::set<ECRange>::reverse_iterator reverse_iterator;
+    typedef std::set<ECRange>::const_reverse_iterator const_reverse_iterator;
+
     EqClass() = default;
 
     std::string to_string() const;
     bool empty() const;
-    const std::set<ECRange>& get_ranges() const;
     void add_range(const ECRange&);
     void rm_range(const ECRange&);
+
+    iterator               begin();
+    const_iterator         begin() const;
+    iterator               end();
+    const_iterator         end() const;
+    reverse_iterator       rbegin();
+    const_reverse_iterator rbegin() const;
+    reverse_iterator       rend();
+    const_reverse_iterator rend() const;
 };

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "eqclasses.hpp"
 #include "lib/logger.hpp"
 
@@ -6,7 +8,7 @@ std::shared_ptr<EqClass> EqClasses::split_intersected_ec(
 {
     std::shared_ptr<EqClass> new_ec = std::make_shared<EqClass>();
 
-    for (ECRange ecrange : ec->get_ranges()) {
+    for (ECRange ecrange : *ec) {
         if (ecrange == range) {
             // overlapped range, split at the intersections (if any)
             allranges.erase(ecrange);
@@ -38,7 +40,7 @@ std::shared_ptr<EqClass> EqClasses::split_intersected_ec(
 
 std::shared_ptr<EqClass> EqClasses::add_non_overlapped_ec(const ECRange& range)
 {
-    std::shared_ptr<EqClass> new_ec = nullptr;
+    std::shared_ptr<EqClass> new_ec = std::make_shared<EqClass>();
     IPv4Address lb = range.get_lb();
     std::set<ECRange>::const_iterator it;
 
@@ -46,9 +48,6 @@ std::shared_ptr<EqClass> EqClasses::add_non_overlapped_ec(const ECRange& range)
     for (; it != allranges.end() && *it == range; ++it) {
         if (lb < it->get_lb()) {
             ECRange new_range(lb, IPv4Address(it->get_lb() - 1));
-            if (!new_ec) {
-                new_ec = std::make_shared<EqClass>();
-            }
             new_range.set_ec(new_ec);
             new_ec->add_range(new_range);
             allranges.insert(new_range);
@@ -57,28 +56,34 @@ std::shared_ptr<EqClass> EqClasses::add_non_overlapped_ec(const ECRange& range)
     }
     if (lb <= range.get_ub()) {
         ECRange new_range(lb, range.get_ub());
-        if (!new_ec) {
-            new_ec = std::make_shared<EqClass>();
-        }
         new_range.set_ec(new_ec);
         new_ec->add_range(new_range);
         allranges.insert(new_range);
     }
-    if (new_ec) {
+    if (!new_ec->empty()) {
         ECs.insert(new_ec);
+        return new_ec;
     }
-    return new_ec;
+    return nullptr;
 }
 
 std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
 {
     std::set<std::shared_ptr<EqClass> > new_ecs;
 
+    // apply mask range
+    IPv4Address lb = std::max(range.get_lb(), mask_range.get_lb());
+    IPv4Address ub = std::min(range.get_ub(), mask_range.get_ub());
+    if (lb > ub) {
+        return new_ecs;
+    }
+    ECRange new_range(lb, ub);
+
     // get overlapped ECs
     std::set<std::shared_ptr<EqClass> > overlapped_ecs;
-    if (allranges.find(range) != allranges.end()) {
+    if (allranges.find(new_range) != allranges.end()) {
         for (const ECRange& ecrange : allranges) {
-            if (ecrange == range) {
+            if (ecrange == new_range) {
                 overlapped_ecs.insert(ecrange.get_ec());
             }
         }
@@ -87,14 +92,14 @@ std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
     // add overlapped ECs
     for (const std::shared_ptr<EqClass>& ec : overlapped_ecs) {
         new_ecs.insert(ec);
-        if (!range.contains(*ec)) {
+        if (!new_range.contains(*ec)) {
             // EC is partially inside the new range
-            new_ecs.insert(split_intersected_ec(ec, range));
+            new_ecs.insert(split_intersected_ec(ec, new_range));
         }
     }
 
     // add non-overlapped subranges of the new range, if any, to a new EC
-    std::shared_ptr<EqClass> new_ec = add_non_overlapped_ec(range);
+    std::shared_ptr<EqClass> new_ec = add_non_overlapped_ec(new_range);
     if (new_ec) {
         new_ecs.insert(new_ec);
     }
@@ -106,6 +111,21 @@ std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(
     const IPNetwork<IPv4Address>& net)
 {
     return add_ec(ECRange(net));
+}
+
+std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const IPv4Address& addr)
+{
+    return add_ec(ECRange(addr, addr));
+}
+
+void EqClasses::set_mask_range(const IPRange<IPv4Address>& range)
+{
+    mask_range = range;
+}
+
+void EqClasses::set_mask_range(IPRange<IPv4Address>&& range)
+{
+    mask_range = range;
 }
 
 std::string EqClasses::to_string() const
@@ -120,6 +140,11 @@ std::string EqClasses::to_string() const
 EqClasses::size_type EqClasses::size() const
 {
     return ECs.size();
+}
+
+EqClasses::iterator EqClasses::erase(const_iterator pos)
+{
+    return ECs.erase(pos);
 }
 
 void EqClasses::clear()
