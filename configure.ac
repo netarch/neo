@@ -182,7 +182,7 @@ ADD_SPINFLAG([-DSIZEOF_INT="$ac_cv_sizeof_int"])
 AS_IF([test "$enable_coverage" = "yes"], [
     CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-O0/g')"
     CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O[[0-9]]/-O0/g')"
-    ADD_CFLAG_CXXFLAG([-g --coverage])
+    ADD_CFLAG_CXXFLAG([--coverage])
     ADD_LIB(--coverage)
     AS_IF([test -z "$GCOV"], [      # if GCOV is not defined or null
            AS_IF([test -z "${CXX##*g++*}"], [GCOV="$(which gcov)"],
@@ -204,14 +204,12 @@ AS_IF([test "$enable_coverage" = "yes"], [
     AC_SUBST([GCOV], [$GCOV])
 ])
 AS_IF([test "$enable_asan" = "yes"], [
-    ADD_CFLAG_CXXFLAG(-g)
     ADD_CFLAG_CXXFLAG(-fsanitize=address)
     ADD_CFLAG_CXXFLAG(-fno-omit-frame-pointer)
     ADD_CFLAG_CXXFLAG(-fno-common)
     ADD_LDFLAG(-fsanitize=address)
 ])
 AS_IF([test "$enable_tsan" = "yes"], [
-    ADD_CFLAG_CXXFLAG(-g)
     ADD_CFLAG_CXXFLAG(-fsanitize=thread)
     ADD_LDFLAG(-fsanitize=thread)
 ])
