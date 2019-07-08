@@ -41,3 +41,10 @@ public:
     Link& operator=(const Link&) = default;
     Link& operator=(Link&&) = default;
 };
+
+class LinkCompare
+{
+public:
+    bool operator()(const std::shared_ptr<Link>&,
+                    const std::shared_ptr<Link>&) const;
+};

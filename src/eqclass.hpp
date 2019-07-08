@@ -1,7 +1,6 @@
 #pragma once
 
 #include <set>
-#include <memory>
 #include <string>
 
 class EqClass;

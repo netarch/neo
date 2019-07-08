@@ -12,8 +12,8 @@ class Network  // undirected graph
 {
 private:
     std::map<std::string, std::shared_ptr<Node> > nodes;
-    std::map<Link, std::shared_ptr<Link> > links;   // all links
-    std::set<std::shared_ptr<Link> > failed_links;  // failed links
+    std::set<std::shared_ptr<Link>, LinkCompare> links; // all links
+    std::set<std::shared_ptr<Link> > failed_links;      // failed links
 
 public:
     Network() = default;
@@ -21,5 +21,5 @@ public:
             const std::shared_ptr<cpptoml::table_array>& links_config);
 
     const std::map<std::string, std::shared_ptr<Node> >& get_nodes() const;
-    const std::map<Link, std::shared_ptr<Link> >& get_links() const;
+    const std::set<std::shared_ptr<Link>, LinkCompare>& get_links() const;
 };

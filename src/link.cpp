@@ -163,3 +163,9 @@ bool Link::operator!=(const Link& rhs) const
 {
     return !(*this == rhs);
 }
+
+bool LinkCompare::operator()(const std::shared_ptr<Link>& link1,
+                             const std::shared_ptr<Link>& link2) const
+{
+    return *link1 < *link2;
+}

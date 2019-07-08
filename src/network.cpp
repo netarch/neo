@@ -41,10 +41,10 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             std::shared_ptr<Link> link = std::make_shared<Link>(cfg, nodes);
 
             // Add the new link to links
-            auto res = links.insert(std::make_pair(*link, link));
+            auto res = links.insert(link);
             if (res.second == false) {
                 Logger::get_instance().err("Duplicate link: " +
-                                           res.first->second->to_string());
+                                           (*res.first)->to_string());
             }
 
             // Add the new link to the corresponding node structures
@@ -67,7 +67,7 @@ const std::map<std::string, std::shared_ptr<Node> >& Network::get_nodes() const
     return nodes;
 }
 
-const std::map<Link, std::shared_ptr<Link> >& Network::get_links() const
+const std::set<std::shared_ptr<Link>, LinkCompare>& Network::get_links() const
 {
     return links;
 }
