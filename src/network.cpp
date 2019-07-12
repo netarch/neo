@@ -71,3 +71,17 @@ const std::set<std::shared_ptr<Link>, LinkCompare>& Network::get_links() const
 {
     return links;
 }
+
+void Network::compute_fib(const std::shared_ptr<EqClass>& ec)
+{
+    IPv4Address addr = ec->begin()->get_lb();   // the representative address
+
+    fib = std::make_shared<FIB>();
+    for (const auto& node : nodes) {
+        fib->set_next_hops(node.second,
+                           node.second->get_next_hops(node.second, addr));
+    }
+    fib = *(fibs.insert(fib).first);
+
+    Logger::get_instance().info(fib->to_string());
+}

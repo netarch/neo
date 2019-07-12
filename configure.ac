@@ -175,7 +175,8 @@ define([CHECK_LIB], [
 ##
 ADD_CFLAG([-std=c11])
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
-ADD_CFLAG_CXXFLAG([-iquote ${srcdir}/src -isystem ${srcdir}/third_party])
+ADD_CFLAG_CXXFLAG([-iquote ${srcdir}/src -iquote .])
+ADD_CFLAG_CXXFLAG([-isystem ${srcdir}/third_party])
 ADD_SPINFLAG([-a])
 ADD_SPINFLAG([-DSIZEOF_VOID_P="$ac_cv_sizeof_void_p"])
 ADD_SPINFLAG([-DSIZEOF_INT="$ac_cv_sizeof_int"])

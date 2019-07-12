@@ -14,17 +14,24 @@
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
 
-Plankton::Plankton(bool verbose, bool rm_out_dir, size_t max_jobs,
-                   const std::string& input_file, const std::string& output_dir)
-    : max_jobs(max_jobs)
+Plankton& Plankton::get_instance()
 {
+    static Plankton instance;
+    return instance;
+}
+
+void Plankton::init(bool verbose, bool rm_out_dir, size_t dop,
+                    const std::string& input_file,
+                    const std::string& output_dir)
+{
+    max_jobs = dop;
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
     fs::mkdir(output_dir);
     in_file = fs::realpath(input_file);
     out_dir = fs::realpath(output_dir);
-    Logger::get_instance().set_file(fs::append(out_dir, "plankton.log"));
+    Logger::get_instance().set_file(fs::append(out_dir, "main.log"));
     Logger::get_instance().set_verbose(verbose);
 
     Logger::get_instance().info("Loading network configurations...");
@@ -143,8 +150,9 @@ int Plankton::verify(const std::shared_ptr<EqClass>& ec,
     dup2(fd, STDERR_FILENO);
     close(fd);
 
-    // construct network view for the current EC and policy
-    //network.xxx(ec, policy);
+    // configure per process variables
+    this->ec = ec;
+    this->policy = policy;
 
     // run SPIN verifier
     return spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
@@ -187,4 +195,14 @@ void Plankton::run()
     while (!tasks.empty()) {
         pause();
     }
+}
+
+void Plankton::update_fib()
+{
+    network.compute_fib(ec);
+}
+
+void Plankton::config_procs()
+{
+    //policy->config_procs(fwd);
 }

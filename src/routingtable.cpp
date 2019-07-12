@@ -1,4 +1,5 @@
 #include <iterator>
+#include <utility>
 
 #include "routingtable.hpp"
 
@@ -65,6 +66,28 @@ std::pair<RoutingTable::const_iterator, RoutingTable::const_iterator>
 RoutingTable::lookup(const IPNetwork<IPv4Address>& dst_net) const
 {
     return tbl.equal_range(Route(dst_net));
+}
+
+std::pair<RoutingTable::iterator, RoutingTable::iterator>
+RoutingTable::lookup(const IPv4Address& dst)
+{
+    for (const Route& route : tbl) {
+        if (route.get_network().contains(dst)) {
+            return tbl.equal_range(route);
+        }
+    }
+    return std::make_pair(tbl.end(), tbl.end());
+}
+
+std::pair<RoutingTable::const_iterator, RoutingTable::const_iterator>
+RoutingTable::lookup(const IPv4Address& dst) const
+{
+    for (const Route& route : tbl) {
+        if (route.get_network().contains(dst)) {
+            return tbl.equal_range(route);
+        }
+    }
+    return std::make_pair(tbl.cend(), tbl.cend());
 }
 
 RoutingTable::size_type

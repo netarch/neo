@@ -98,6 +98,34 @@ const RoutingTable& Node::get_rib() const
     return rib;
 }
 
+std::set<std::shared_ptr<Node> >
+Node::get_next_hops(const std::shared_ptr<Node>& self,
+                    const IPv4Address& dst) const
+{
+    std::set<std::shared_ptr<Node> > next_hops;
+
+    auto r = rib.lookup(dst);
+    for (RoutingTable::const_iterator it = r.first; it != r.second; ++it) {
+        if (it->get_ifname().empty()) {
+            // non-connected routes; look it up recursively
+            auto nhs = get_next_hops(self, it->get_next_hop());
+            next_hops.insert(nhs.begin(), nhs.end());
+        } else {
+            // connected routes; accept it or forward it
+            if (intfs_ipv4.find(dst) != intfs_ipv4.end()) {
+                next_hops.insert(self);
+            } else {
+                auto peer = active_peers.find(it->get_ifname());
+                if (peer != active_peers.end()) {
+                    next_hops.insert(peer->second.first.lock());
+                }
+            }
+        }
+    }
+
+    return next_hops;
+}
+
 std::pair<std::shared_ptr<Node>, std::shared_ptr<Interface> >
 Node::get_peer(const std::string& intf_name) const
 {

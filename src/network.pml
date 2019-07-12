@@ -13,13 +13,12 @@
  */
 int state[SIZEOF_VOID_P / SIZEOF_INT];
 
-//c_code {
-//    \#include <>
-//};
+c_code {
+    \#include "api.hpp"
+};
 
 init {
     c_code {
-        //initialize(&now);
-        printf("Network Promela Model...\n");
+        update_fib(&now);
     }
 }

@@ -14,7 +14,7 @@ private:
     void log(const std::string&, const std::string&);
 
 public:
-    // Disable the copy constructor and assignment operator
+    // Disable the copy constructor and the copy assignment operator
     Logger(const Logger&) = delete;
     void operator=(const Logger&) = delete;
 

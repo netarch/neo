@@ -87,7 +87,8 @@ int main(int argc, char **argv)
     parse_args(argc, argv, verbose, rm_out_dir, max_jobs, input_file,
                output_dir);
 
-    Plankton plankton(verbose, rm_out_dir, max_jobs, input_file, output_dir);
+    Plankton& plankton = Plankton::get_instance();
+    plankton.init(verbose, rm_out_dir, max_jobs, input_file, output_dir);
     plankton.run();
 
     return 0;

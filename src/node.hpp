@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include <memory>
 #include <cpptoml/cpptoml.hpp>
 
@@ -44,6 +45,14 @@ public:
     virtual const std::map<IPv4Address, std::shared_ptr<Interface> >&
     get_intfs_ipv4() const;
     virtual const RoutingTable& get_rib() const;
+
+    /*
+     * Compute the next hops from this node for the given destination address by
+     * recursively looking up in the RIB.
+     */
+    virtual std::set<std::shared_ptr<Node> >
+    get_next_hops(const std::shared_ptr<Node>&, const IPv4Address&) const;
+
     virtual std::pair<std::shared_ptr<Node>, std::shared_ptr<Interface> >
     get_peer(const std::string& intf_name) const;
     virtual std::shared_ptr<Link>
