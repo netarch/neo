@@ -4,6 +4,8 @@
 #include <set>
 #include <utility>
 #include <string>
+#include <functional>
+
 class FIB_L2DM;
 class FIB_IPNH;
 class FIB;
@@ -21,6 +23,7 @@ private:
 
 public:
     void insert(Node *, const std::pair<Node *, Interface *>&);
+    std::string to_string() const;
 };
 
 bool operator==(const FIB_L2DM&, const FIB_L2DM&);

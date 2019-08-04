@@ -113,6 +113,4 @@ void Network::fib_init(const EqClass *ec)
     }
 
     fibs.insert(fib);
-
-    Logger::get_instance().info(fib->to_string());
 }

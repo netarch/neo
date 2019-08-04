@@ -1,4 +1,4 @@
-#include <functional>
+#include <unordered_set>
 
 #include "fib.hpp"
 #include "lib/logger.hpp"
@@ -6,6 +6,20 @@
 void FIB_L2DM::insert(Node *node, const std::pair<Node *, Interface *>& peer)
 {
     tbl[node].insert(peer);
+}
+
+std::string FIB_L2DM::to_string() const
+{
+    std::string ret;
+    for (const auto& entry : tbl) {
+        ret += entry.first->to_string() + " -> [";
+        for (const auto& peer : entry.second) {
+            ret += " (" + peer.first->to_string() + ", "
+                   + peer.second->to_string() + ")";
+        }
+        ret += " ]\n";
+    }
+    return ret;
 }
 
 bool operator==(const FIB_L2DM& a, const FIB_L2DM& b)
@@ -89,7 +103,13 @@ std::string FIB::to_string() const
         ret += " ]\n";
     }
     ret += "L2 domains:\n";
-    // TODO
+    std::unordered_set<FIB_L2DM *> printed_l2dms;
+    for (const auto& entry : l2tbl) {
+        if (printed_l2dms.count(entry.second) == 0) {
+            ret += entry.second->to_string();
+            printed_l2dms.insert(entry.second);
+        }
+    }
     return ret;
 }
 
