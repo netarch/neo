@@ -1,120 +1,124 @@
 #include <functional>
 
 #include "fib.hpp"
+#include "lib/logger.hpp"
 
-void FIB::set_next_hops(const std::shared_ptr<Node>& node,
-                        std::set<std::shared_ptr<Node> >&& next_hops)
+void FIB_L2DM::insert(Node *node, const std::pair<Node *, Interface *>& peer)
 {
-    tbl[node] = next_hops;
+    tbl[node].insert(peer);
 }
 
-void FIB::set_next_hops(std::shared_ptr<Node>&& node,
-                        std::set<std::shared_ptr<Node> >&& next_hops)
+bool operator==(const FIB_L2DM& a, const FIB_L2DM& b)
 {
-    tbl[node] = next_hops;
+    return a.tbl == b.tbl;
 }
 
-const std::set<std::shared_ptr<Node> >& FIB::get_next_hops(
-    const std::shared_ptr<Node>& node) const
+FIB_IPNH::FIB_IPNH(Node *l3nh, Node *l2nh, Interface *l2nh_intf)
+    : l3_node(l3nh), l2_node(l2nh), l2_intf(l2nh_intf)
 {
-    return tbl.at(node);
+    if (!l3_node || !l2_node) {
+        Logger::get_instance().err("Invalid IP next hop");
+    }
 }
 
-const std::set<std::shared_ptr<Node> >& FIB::get_next_hops(
-    std::shared_ptr<Node>&& node) const
+std::string FIB_IPNH::to_string() const
 {
-    return tbl.at(node);
+    std::string ret;
+    ret = "(" + l2_node->to_string() + "[" + l3_node->to_string() + "]";
+    if (l2_intf) {
+        ret += ", " + l2_intf->to_string();
+    }
+    ret += ")";
+    return ret;
 }
+
+bool operator<(const FIB_IPNH& a, const FIB_IPNH& b)
+{
+    if (a.l3_node < b.l3_node) {
+        return true;
+    } else if (a.l3_node > b.l3_node) {
+        return false;
+    }
+    if (a.l2_node < b.l2_node) {
+        return true;
+    } else if (a.l2_node > b.l2_node) {
+        return false;
+    }
+    if (a.l2_intf < b.l2_intf) {
+        return true;
+    }
+    return false;
+}
+
+bool operator>(const FIB_IPNH& a, const FIB_IPNH& b)
+{
+    return b < a;
+}
+
+bool operator==(const FIB_IPNH& a, const FIB_IPNH& b)
+{
+    return (a.l3_node == b.l3_node)
+           && (a.l2_node == b.l2_node)
+           && (a.l2_intf == b.l2_intf);
+}
+
+//Node *FIB_IPNH::get_l3nh() const
+//{
+//    return l3_node;
+//}
+//
+//Node *FIB_IPNH::get_l2nh() const
+//{
+//    return l2_node;
+//}
+//
+//Interface *FIB_IPNH::get_l2nh_intf() const
+//{
+//    return l2_intf;
+//}
 
 std::string FIB::to_string() const
 {
     std::string ret = "FIB:\n";
-    for (const auto& entry : tbl) {
+    ret += "IP next hops:\n";
+    for (const auto& entry : iptbl) {
         ret += entry.first->to_string() + " -> [";
-        std::set<std::shared_ptr<Node> >::const_iterator it
-            = entry.second.begin();
-        if (it != entry.second.end()) {
-            ret += (*it)->to_string();
-            ++it;
+        for (auto it = entry.second.begin(); it != entry.second.end(); ++it) {
+            ret += " " + it->to_string();
         }
-        while (it != entry.second.end()) {
-            ret += ", " + (*it)->to_string();
-            ++it;
-        }
-        ret += "]\n";
+        ret += " ]\n";
     }
+    ret += "L2 domains:\n";
+    // TODO
     return ret;
 }
 
-bool FIB::empty() const
+void FIB::set_ipnhs(Node *node, std::set<FIB_IPNH>&& next_hops)
 {
-    return tbl.empty();
+    iptbl[node] = next_hops;
 }
 
-FIB::size_type FIB::size() const
+void FIB::set_l2dm(Interface *intf, FIB_L2DM *l2dm)
 {
-    return tbl.size();
+    l2tbl[intf] = l2dm;
 }
 
-bool FIB::operator==(const FIB& rhs) const
+//const std::set<FIB_IPNH>& FIB::get_ipnhs(const Node *node) const
+//{
+//    return iptbl.at(node);
+//}
+//
+//const FIB_L2DM *FIB::get_l2dm(const Interface *intf) const
+//{
+//    return l2tbl.at(intf);
+//}
+
+bool FIB::in_l2dm(Interface *intf) const
 {
-    return tbl == rhs.tbl;
+    return l2tbl.count(intf) > 0;
 }
 
-FIB::iterator FIB::begin()
+bool operator==(const FIB& a, const FIB& b)
 {
-    return tbl.begin();
-}
-
-FIB::const_iterator FIB::begin() const
-{
-    return tbl.begin();
-}
-
-FIB::iterator FIB::end()
-{
-    return tbl.end();
-}
-
-FIB::const_iterator FIB::end() const
-{
-    return tbl.end();
-}
-
-FIB::reverse_iterator FIB::rbegin()
-{
-    return tbl.rbegin();
-}
-
-FIB::const_reverse_iterator FIB::rbegin() const
-{
-    return tbl.rbegin();
-}
-
-FIB::reverse_iterator FIB::rend()
-{
-    return tbl.rend();
-}
-
-FIB::const_reverse_iterator FIB::rend() const
-{
-    return tbl.rend();
-}
-
-size_t FIBHash::operator()(const std::shared_ptr<FIB>& fib) const
-{
-    size_t hash = 0;
-    for (const auto& entry : fib->tbl) {
-        hash <<= 1;
-        for (const auto& nh : entry.second) {
-            hash ^= std::hash<std::shared_ptr<Node> >()(nh);
-        }
-    }
-    return hash;
-}
-
-bool FIBEqual::operator()(const std::shared_ptr<FIB>& fib1,
-                          const std::shared_ptr<FIB>& fib2) const
-{
-    return *fib1 == *fib2;
+    return (a.iptbl == b.iptbl) && (a.l2tbl == b.l2tbl);
 }

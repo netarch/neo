@@ -555,3 +555,18 @@ IPRange<Addr>& IPRange<Addr>::operator=(const std::string& rhs)
 {
     return (*this = IPRange<Addr>(rhs));
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+namespace std
+{
+
+template <>
+struct hash<IPv4Address> {
+    size_t operator()(const IPv4Address& addr) const
+    {
+        return hash<uint32_t>()(addr.get_value());
+    }
+};
+
+} // namespace std

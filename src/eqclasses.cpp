@@ -3,10 +3,16 @@
 #include "eqclasses.hpp"
 #include "lib/logger.hpp"
 
-std::shared_ptr<EqClass> EqClasses::split_intersected_ec(
-    std::shared_ptr<EqClass> ec, const ECRange& range)
+EqClasses::~EqClasses()
 {
-    std::shared_ptr<EqClass> new_ec = std::make_shared<EqClass>();
+    for (const EqClass *ec : ECs) {
+        delete ec;
+    }
+}
+
+EqClass *EqClasses::split_intersected_ec( EqClass *ec, const ECRange& range)
+{
+    EqClass *new_ec = new EqClass();
 
     for (ECRange ecrange : *ec) {
         if (ecrange == range) {
@@ -38,9 +44,9 @@ std::shared_ptr<EqClass> EqClasses::split_intersected_ec(
     return new_ec;
 }
 
-std::shared_ptr<EqClass> EqClasses::add_non_overlapped_ec(const ECRange& range)
+EqClass *EqClasses::add_non_overlapped_ec(const ECRange& range)
 {
-    std::shared_ptr<EqClass> new_ec = std::make_shared<EqClass>();
+    EqClass *new_ec = new EqClass();
     IPv4Address lb = range.get_lb();
     std::set<ECRange>::const_iterator it;
 
@@ -60,16 +66,19 @@ std::shared_ptr<EqClass> EqClasses::add_non_overlapped_ec(const ECRange& range)
         new_ec->add_range(new_range);
         allranges.insert(new_range);
     }
-    if (!new_ec->empty()) {
+
+    if (new_ec->empty()) {
+        delete new_ec;
+        return nullptr;
+    } else {
         ECs.insert(new_ec);
         return new_ec;
     }
-    return nullptr;
 }
 
-std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
+std::set<EqClass *> EqClasses::add_ec(const ECRange& range)
 {
-    std::set<std::shared_ptr<EqClass> > new_ecs;
+    std::set<EqClass *> new_ecs;
 
     // apply mask range
     IPv4Address lb = std::max(range.get_lb(), mask_range.get_lb());
@@ -80,7 +89,7 @@ std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
     ECRange new_range(lb, ub);
 
     // get overlapped ECs
-    std::set<std::shared_ptr<EqClass> > overlapped_ecs;
+    std::set<EqClass *> overlapped_ecs;
     if (allranges.find(new_range) != allranges.end()) {
         for (const ECRange& ecrange : allranges) {
             if (ecrange == new_range) {
@@ -90,7 +99,7 @@ std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
     }
 
     // add overlapped ECs
-    for (const std::shared_ptr<EqClass>& ec : overlapped_ecs) {
+    for (EqClass *ec : overlapped_ecs) {
         new_ecs.insert(ec);
         if (!new_range.contains(*ec)) {
             // EC is partially inside the new range
@@ -99,7 +108,7 @@ std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
     }
 
     // add non-overlapped subranges of the new range, if any, to a new EC
-    std::shared_ptr<EqClass> new_ec = add_non_overlapped_ec(new_range);
+    EqClass *new_ec = add_non_overlapped_ec(new_range);
     if (new_ec) {
         new_ecs.insert(new_ec);
     }
@@ -107,13 +116,12 @@ std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const ECRange& range)
     return new_ecs;
 }
 
-std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(
-    const IPNetwork<IPv4Address>& net)
+std::set<EqClass *> EqClasses::add_ec(const IPNetwork<IPv4Address>& net)
 {
     return add_ec(ECRange(net));
 }
 
-std::set<std::shared_ptr<EqClass> > EqClasses::add_ec(const IPv4Address& addr)
+std::set<EqClass *> EqClasses::add_ec(const IPv4Address& addr)
 {
     return add_ec(ECRange(addr, addr));
 }
@@ -131,7 +139,7 @@ void EqClasses::set_mask_range(IPRange<IPv4Address>&& range)
 std::string EqClasses::to_string() const
 {
     std::string ret;
-    for (const std::shared_ptr<EqClass>& ec : ECs) {
+    for (const EqClass *ec : ECs) {
         ret += ec->to_string() + "\n";
     }
     return ret;

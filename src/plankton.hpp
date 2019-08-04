@@ -1,9 +1,7 @@
 #pragma once
 
 #include <string>
-#include <unordered_set>
 #include <list>
-#include <memory>
 
 #include "network.hpp"
 #include "policy/policy.hpp"
@@ -20,21 +18,23 @@ private:
     std::string         in_file;    // input TOML file
     std::string         out_dir;    // output directory
     Network             network;    // network information (inc. dataplane)
-    std::list<std::shared_ptr<Policy> > policies;
+    std::list<Policy *> policies;
 
-    std::shared_ptr<EqClass> ec;      // the EC being verified
-    std::shared_ptr<Policy> policy;   // the policy being verified
+    /* per process variables */
+    const EqClass   *ec;        // the EC being verified
+    const Policy    *policy;    // the policy being verified
 
-    // processes
+    /* processes */
     ForwardingProcess   fwd;
 
-    Plankton() = default;
-    int verify(const std::shared_ptr<EqClass>&, const std::shared_ptr<Policy>&);
+    Plankton();
+    ~Plankton();
+    int verify(const EqClass *, const Policy *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
     Plankton(const Plankton&) = delete;
-    void operator=(const Plankton&) = delete;
+    Plankton& operator=(const Plankton&) = delete;
 
     static Plankton& get_instance();
 
@@ -47,6 +47,5 @@ public:
     /******* functions called by the Promela network model *******/
     /*************************************************************/
 
-    void update_fib();
-    void config_procs();
+    void initialize();
 };

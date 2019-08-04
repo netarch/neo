@@ -5,16 +5,23 @@ Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)
 {
     auto net = config->get_as<std::string>("network");
     auto nhop = config->get_as<std::string>("next_hop");
+    auto intf = config->get_as<std::string>("interface");
     auto dist = config->get_as<int>("adm_dist");
 
     if (!net) {
         Logger::get_instance().err("Missing network");
     }
-    if (!nhop) {
-        Logger::get_instance().err("Missing next hop");
+    if (!nhop && !intf) {
+        Logger::get_instance().err("Missing next hop IP address or interface");
     }
+
     network = IPNetwork<IPv4Address>(*net);
-    next_hop = IPv4Address(*nhop);
+    if (nhop) {
+        next_hop = IPv4Address(*nhop);
+    }
+    if (intf) {
+        egress_intf = *intf;
+    }
     if (dist) {
         if (*dist < 1 || *dist > 254) {
             Logger::get_instance().err("Invalid administrative distance: " +
@@ -25,13 +32,13 @@ Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)
 }
 
 Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
-             int adm_dist, const std::string& ifn)
-    : network(net), next_hop(nh), adm_dist(adm_dist), ifname(ifn)
+             const std::string& ifn, int adm_dist)
+    : network(net), next_hop(nh), egress_intf(ifn), adm_dist(adm_dist)
 {
 }
 Route::Route(const std::string& net, const std::string& nh,
-             int adm_dist, const std::string& ifn)
-    : network(net), next_hop(nh), adm_dist(adm_dist), ifname(ifn)
+             const std::string& ifn, int adm_dist)
+    : network(net), next_hop(nh), egress_intf(ifn), adm_dist(adm_dist)
 {
 }
 
@@ -50,14 +57,14 @@ IPv4Address Route::get_next_hop() const
     return next_hop;
 }
 
+std::string Route::get_intf() const
+{
+    return egress_intf;
+}
+
 int Route::get_adm_dist() const
 {
     return adm_dist;
-}
-
-std::string Route::get_ifname() const
-{
-    return ifname;
 }
 
 void Route::set_adm_dist(int dist)

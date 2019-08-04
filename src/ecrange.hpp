@@ -15,7 +15,7 @@ class ECRange;
 class ECRange : public IPRange<IPv4Address>
 {
 private:
-    std::weak_ptr<EqClass> EC;
+    EqClass *EC;
 
 public:
     ECRange() = delete;
@@ -25,8 +25,8 @@ public:
     ECRange(const IPNetwork<IPv4Address>&);
     ECRange(const IPRange<IPv4Address>&);
 
-    void set_ec(const std::shared_ptr<EqClass>&);
-    std::shared_ptr<EqClass> get_ec() const;
+    void set_ec(EqClass *);
+    EqClass *get_ec() const;
 
     bool operator< (const ECRange&) const;
     bool operator<=(const ECRange&) const;

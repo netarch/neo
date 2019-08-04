@@ -6,28 +6,31 @@
 #include "lib/logger.hpp"
 #include "middlebox/middlebox.hpp"
 
+Network::Network(): fib(nullptr)
+{
+}
+
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config)
+    : fib(nullptr)
 {
     if (nodes_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
-            std::shared_ptr<Node> node;
+            Node *node = nullptr;
             auto type = cfg->get_as<std::string>("type");
             if (!type) {
                 Logger::get_instance().err("Missing node type");
             }
             if (*type == "generic") {
-                node = std::make_shared<Node>(cfg);
+                node = new Node(cfg);
             } else if (*type == "middlebox") {
-                node = std::static_pointer_cast<Node>
-                       (std::make_shared<Middlebox>(cfg));
+                node = new Middlebox(cfg);
             } else {
                 Logger::get_instance().err("Unknown node type: " + *type);
             }
 
             // Add the new node to nodes
-            auto res = nodes.insert(std::make_pair(node->get_name(),
-                                                   std::move(node)));
+            auto res = nodes.insert(std::make_pair(node->get_name(), node));
             if (res.second == false) {
                 Logger::get_instance().err("Duplicate node: " +
                                            res.first->first);
@@ -38,7 +41,7 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                                 " nodes");
     if (links_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *links_config) {
-            std::shared_ptr<Link> link = std::make_shared<Link>(cfg, nodes);
+            Link *link = new Link(cfg, nodes);
 
             // Add the new link to links
             auto res = links.insert(link);
@@ -62,26 +65,54 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                                 " links");
 }
 
-const std::map<std::string, std::shared_ptr<Node> >& Network::get_nodes() const
+Network::~Network()
+{
+    for (const auto& node : nodes) {
+        delete node.second;
+    }
+    for (const auto& link : links) {
+        delete link;
+    }
+    for (FIB *const& fib : fibs) {
+        delete fib;
+    }
+    for (FIB_L2DM *const& l2dm : l2dms) {
+        delete l2dm;
+    }
+}
+
+const std::map<std::string, Node *>& Network::get_nodes() const
 {
     return nodes;
 }
 
-const std::set<std::shared_ptr<Link>, LinkCompare>& Network::get_links() const
+const std::set<Link *, LinkCompare>& Network::get_links() const
 {
     return links;
 }
 
-void Network::compute_fib(const std::shared_ptr<EqClass>& ec)
+void Network::fib_init(const EqClass *ec)
 {
+    fib = new FIB();
     IPv4Address addr = ec->begin()->get_lb();   // the representative address
 
-    fib = std::make_shared<FIB>();
-    for (const auto& node : nodes) {
-        fib->set_next_hops(node.second,
-                           node.second->get_next_hops(node.second, addr));
+    for (const auto& pair : nodes) {
+        Node *node = pair.second;
+
+        // collect IP next hops
+        fib->set_ipnhs(node, node->get_ipnhs(addr));
+
+        // collect L2 domain
+        for (Interface *intf : node->get_intfs_l2()) {
+            if (!fib->in_l2dm(intf)) {
+                FIB_L2DM *l2_domain = new FIB_L2DM();
+                node->collect_l2dm(fib, intf, l2_domain);
+                l2dms.insert(l2_domain);
+            }
+        }
     }
-    fib = *(fibs.insert(fib).first);
+
+    fibs.insert(fib);
 
     Logger::get_instance().info(fib->to_string());
 }

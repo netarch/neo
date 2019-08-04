@@ -18,8 +18,8 @@
 class ReachabilityPolicy : public Policy
 {
 private:
-    std::list<std::shared_ptr<Node> > start_nodes;
-    std::list<std::shared_ptr<Node> > final_nodes;
+    std::list<Node *> start_nodes;
+    std::list<Node *> final_nodes;
     bool reachable;
 
 public:

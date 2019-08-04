@@ -14,6 +14,17 @@
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
 
+Plankton::Plankton(): ec(nullptr), policy(nullptr)
+{
+}
+
+Plankton::~Plankton()
+{
+    for (const Policy *policy : policies) {
+        delete policy;
+    }
+}
+
 Plankton& Plankton::get_instance()
 {
     static Plankton instance;
@@ -46,7 +57,7 @@ void Plankton::init(bool verbose, bool rm_out_dir, size_t dop,
     // Load policies configurations
     if (policies_config) {
         for (auto policy_config : *policies_config) {
-            std::shared_ptr<Policy> policy;
+            Policy *policy = nullptr;
             auto type = policy_config->get_as<std::string>("type");
 
             if (!type) {
@@ -54,22 +65,16 @@ void Plankton::init(bool verbose, bool rm_out_dir, size_t dop,
             }
 
             if (*type == "reachability") {
-                policy = std::static_pointer_cast<Policy>
-                         (std::make_shared<ReachabilityPolicy>
-                          (policy_config, network));
+                policy = new ReachabilityPolicy(policy_config, network);
             } else if (*type == "stateful-reachability") {
-                policy = std::static_pointer_cast<Policy>
-                         (std::make_shared<StatefulReachabilityPolicy>
-                          (policy_config, network));
+                policy = new StatefulReachabilityPolicy(policy_config, network);
             } else if (*type == "waypoint") {
-                policy = std::static_pointer_cast<Policy>
-                         (std::make_shared<WaypointPolicy>
-                          (policy_config, network));
+                policy = new WaypointPolicy(policy_config, network);
             } else {
                 Logger::get_instance().err("Unknown policy type: " + *type);
             }
 
-            policies.push_back(std::move(policy));
+            policies.push_back(policy);
         }
     }
     Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +
@@ -120,8 +125,7 @@ void signal_handler(int sig)
 
 extern "C" int spin_main(int argc, const char *argv[]);
 
-int Plankton::verify(const std::shared_ptr<EqClass>& ec,
-                     const std::shared_ptr<Policy>& policy)
+int Plankton::verify(const EqClass *ec, const Policy *policy)
 {
     static const char spin_param0[] = "neo";
     static const char spin_param1[] = "-m100000";
@@ -166,13 +170,13 @@ void Plankton::run()
     }
 
     // compute ECs of each policy
-    for (const std::shared_ptr<Policy>& policy : policies) {
+    for (Policy *policy : policies) {
         policy->compute_ecs(network);
     }
 
     // run verifier for each EC of each policy
-    for (const std::shared_ptr<Policy>& policy : policies) {
-        for (const std::shared_ptr<EqClass>& ec : policy->get_ecs()) {
+    for (const Policy *policy : policies) {
+        for (const EqClass *ec : policy->get_ecs()) {
             int childpid;
 
             if ((childpid = fork()) < 0) {
@@ -197,12 +201,8 @@ void Plankton::run()
     }
 }
 
-void Plankton::update_fib()
+void Plankton::initialize()
 {
-    network.compute_fib(ec);
-}
-
-void Plankton::config_procs()
-{
+    network.fib_init(ec);
     //policy->config_procs(fwd);
 }

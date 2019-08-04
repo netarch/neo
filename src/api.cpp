@@ -6,9 +6,9 @@
 
 static Plankton& plankton = Plankton::get_instance();
 
-void update_fib(struct State *state)
+void initialize(struct State *state)
 {
-    plankton.update_fib();
+    plankton.initialize();
     void *p;
     memcpy(&p, state->state, sizeof(void *));
     Logger::get_instance().info("state: " + std::to_string((uint64_t)p));

@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void update_fib(struct State *);
+void initialize(struct State *);
 
 #ifdef __cplusplus
 }

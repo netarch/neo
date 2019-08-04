@@ -10,9 +10,17 @@ class Route
 {
 private:
     IPNetwork<IPv4Address> network;
+
+    /*
+     * If egress_intf is not empty, it means this route is a connected route,
+     * and the packet should be routed toward the interface, in which case, the
+     * next_hop variable does not affect the routing decision.
+     */
     IPv4Address next_hop;
+    std::string egress_intf;
+
     int adm_dist;
-    std::string ifname;
+
     // TODO int metric;
     // There's no metric for static routes. The metric can be implemented later
     // if dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
@@ -26,18 +34,18 @@ public:
     Route(const std::shared_ptr<cpptoml::table>&);
     Route(const IPNetwork<IPv4Address>& net,
           const IPv4Address& nh = IPv4Address(),
-          int adm_dist = 255,
-          const std::string& ifn = "");
+          const std::string& ifn = "",
+          int adm_dist = 255);
     Route(const std::string& net,
           const std::string& nh = std::string(),
-          int adm_dist = 255,
-          const std::string& ifn = "");
+          const std::string& ifn = "",
+          int adm_dist = 255);
 
     std::string to_string() const;
     IPNetwork<IPv4Address> get_network() const;
     IPv4Address get_next_hop() const;
+    std::string get_intf() const;
     int get_adm_dist() const;
-    std::string get_ifname() const;
     void set_adm_dist(int dist);
 
     /*

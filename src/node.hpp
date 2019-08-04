@@ -10,6 +10,8 @@
 #include "routingtable.hpp"
 class Node;
 #include "link.hpp"
+class Node;
+#include "fib.hpp"
 
 class Node
 {
@@ -17,50 +19,52 @@ protected:
     std::string name;
 
     // interfaces indexed by name and ip address
-    std::map<std::string, std::shared_ptr<Interface> > intfs;
-    std::map<IPv4Address, std::shared_ptr<Interface> > intfs_ipv4;
+    std::map<std::string, Interface *> intfs;       // all interfaces
+    std::map<IPv4Address, Interface *> intfs_l3;    // L3 interfaces
+    std::set<Interface *> intfs_l2;                 // L2 interfaces/switchport
 
     RoutingTable rib;   // global RIB for this node
 
     // active connected peers indexed by interface name
-    std::map<std::string,
-        std::pair<std::weak_ptr<Node>, std::weak_ptr<Interface> >
-        > active_peers;
+    std::map<std::string, std::pair<Node *, Interface *> > active_peers;
 
     // active links indexed by interface name
-    std::map<std::string, std::weak_ptr<Link> > active_links;
+    std::map<std::string, Link *> active_links;
 
 public:
     Node(const std::shared_ptr<cpptoml::table>&);
+    Node(const Node&) = delete;
+    Node(Node&&) = default;
+    virtual ~Node();
+
+    Node& operator=(const Node&) = delete;
+    Node& operator=(Node&&) = default;
 
     virtual std::string to_string() const;
     virtual std::string get_name() const;
     virtual bool has_ip(const IPv4Address& addr) const;
-    virtual bool has_ip(const std::string& addr) const;
 
-    virtual const std::shared_ptr<Interface>&
-    get_interface(const std::string&) const;
-    virtual const std::shared_ptr<Interface>&
-    get_interface(const IPv4Address&) const;
-    virtual const std::map<IPv4Address, std::shared_ptr<Interface> >&
-    get_intfs_ipv4() const;
+    virtual Interface *get_interface(const std::string&) const;
+    virtual Interface *get_interface(const IPv4Address&) const;
+    virtual const std::map<IPv4Address, Interface *>& get_intfs_l3() const;
+    virtual const std::set<Interface *>& get_intfs_l2() const;
     virtual const RoutingTable& get_rib() const;
 
     /*
-     * Compute the next hops from this node for the given destination address by
-     * recursively looking up in the RIB.
+     * Compute the IP next hops from this node for a given destination address
+     * by recursively looking up in the RIB.
      */
-    virtual std::set<std::shared_ptr<Node> >
-    get_next_hops(const std::shared_ptr<Node>&, const IPv4Address&) const;
+    virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&);
 
-    virtual std::pair<std::shared_ptr<Node>, std::shared_ptr<Interface> >
+    /*
+     * Collect and set up the L2 domain
+     */
+    virtual void collect_l2dm(FIB *, Interface *, FIB_L2DM *);
+
+    virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;
-    virtual std::shared_ptr<Link>
-    get_link(const std::string& intf_name) const;
+    virtual Link *get_link(const std::string& intf_name) const;
 
-    virtual void
-    add_peer(const std::string&, const std::shared_ptr<Node>&,
-             const std::shared_ptr<Interface>&);
-    virtual void
-    add_link(const std::string&, const std::shared_ptr<Link>&);
+    virtual void add_peer(const std::string&, Node *, Interface *);
+    virtual void add_link(const std::string&, Link *);
 };

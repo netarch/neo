@@ -22,8 +22,7 @@ ReachabilityPolicy::ReachabilityPolicy(
         Logger::get_instance().err("Missing reachability");
     }
 
-    const std::map<std::string, std::shared_ptr<Node> >& nodes
-        = net.get_nodes();
+    const std::map<std::string, Node *>& nodes = net.get_nodes();
     for (const auto& node : nodes) {
         if (std::regex_match(node.first, std::regex(*start_regex))) {
             start_nodes.push_back(node.second);

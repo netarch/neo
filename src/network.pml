@@ -19,6 +19,6 @@ c_code {
 
 init {
     c_code {
-        update_fib(&now);
+        initialize(&now);
     }
 }

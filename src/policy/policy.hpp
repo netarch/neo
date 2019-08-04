@@ -18,11 +18,13 @@ protected:
 
 public:
     Policy(const std::shared_ptr<cpptoml::table>&);
+    virtual ~Policy() = default;
 
     const IPRange<IPv4Address>& get_pkt_src() const;
     const IPRange<IPv4Address>& get_pkt_dst() const;
     EqClasses& get_ecs();
     const EqClasses& get_ecs() const;
+
     void compute_ecs(const Network&);
 
     virtual std::string to_string() const;

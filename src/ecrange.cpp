@@ -15,14 +15,14 @@ ECRange::ECRange(const IPRange<IPv4Address>& range)
 {
 }
 
-void ECRange::set_ec(const std::shared_ptr<EqClass>& ec)
+void ECRange::set_ec(EqClass *ec)
 {
     EC = ec;
 }
 
-std::shared_ptr<EqClass> ECRange::get_ec() const
+EqClass *ECRange::get_ec() const
 {
-    return EC.lock();
+    return EC;
 }
 
 bool ECRange::operator<(const ECRange& rhs) const

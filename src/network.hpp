@@ -24,23 +24,33 @@
 class Network
 {
 private:
-    std::map<std::string, std::shared_ptr<Node> > nodes;
-    std::set<std::shared_ptr<Link>, LinkCompare> links; // all links
-    std::set<std::shared_ptr<Link> > failed_links;      // failed links
+    std::map<std::string, Node *>   nodes;
+    std::set<Link *, LinkCompare>   links;          // all links
+    std::set<Link *>                failed_links;   // failed links
 
-    std::shared_ptr<FIB> fib;   // the current FIB for this EC
-    std::unordered_set<std::shared_ptr<FIB>, FIBHash, FIBEqual> fibs; // history
+    FIB *fib;   // the current FIB for this EC
+    std::unordered_set<FIB *> fibs;         // history FIBs
+    std::unordered_set<FIB_L2DM *> l2dms;   // history L2 domains
 
 public:
-    Network() = default;
+    Network();
     Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             const std::shared_ptr<cpptoml::table_array>& links_config);
+    Network(const Network&) = delete;
+    Network(Network&&) = default;
+    ~Network();
 
-    const std::map<std::string, std::shared_ptr<Node> >& get_nodes() const;
-    const std::set<std::shared_ptr<Link>, LinkCompare>& get_links() const;
+    Network& operator=(const Network&) = delete;
+    Network& operator=(Network&&) = default;
+
+    const std::map<std::string, Node *>& get_nodes() const;
+    const std::set<Link *, LinkCompare>& get_links() const;
+
+    // Compute the initial FIB
+    void fib_init(const EqClass *ec);
 
     // The failure agent/process is not implemented yet, but if a link fails,
-    // the FIB needs to be recomputed. (A link failure will change the
-    // "active_peers" of the related nodes.)
-    void compute_fib(const std::shared_ptr<EqClass>& ec);
+    // the FIB would need to be updated. (A link failure will change the
+    // "active_peers" of the related nodes, and hence potentially change the
+    // FIB.)
 };

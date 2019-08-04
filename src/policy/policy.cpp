@@ -50,7 +50,7 @@ void Policy::compute_ecs(const Network& network)
     ECs.set_mask_range(pkt_dst);
 
     for (const auto& node : network.get_nodes()) {
-        for (const auto& intf : node.second->get_intfs_ipv4()) {
+        for (const auto& intf : node.second->get_intfs_l3()) {
             ECs.add_ec(intf.first);
         }
         for (const Route& route : node.second->get_rib()) {

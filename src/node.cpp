@@ -3,6 +3,13 @@
 #include "node.hpp"
 #include "lib/logger.hpp"
 
+namespace
+{
+
+std::unordered_map<IPv4Address, Node *> ip2node;
+
+} // namespace
+
 Node::Node(const std::shared_ptr<cpptoml::table>& config)
 {
     auto node_name = config->get_as<std::string>("name");
@@ -17,25 +24,29 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
 
     if (intfs_cfg) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *intfs_cfg) {
-            std::shared_ptr<Interface> intf = std::make_shared<Interface>(cfg);
+            Interface *intf = new Interface(cfg);
             // Add the new interface to intfs
-            auto res = intfs.insert
-                       (std::make_pair(intf->get_name(), intf));
+            auto res = intfs.insert(std::make_pair(intf->get_name(), intf));
             if (res.second == false) {
                 Logger::get_instance().err("Duplicate interface name: " +
                                            res.first->first);
             }
-            if (!intf->switching()) {
-                // Add the new interface to intfs_ipv4
-                auto res = intfs_ipv4.insert
-                           (std::make_pair(intf->addr(), intf));
+            if (intf->switching()) {
+                // Add the new interface to intfs_l2
+                intfs_l2.insert(intf);
+            } else {
+                // Add the new interface to intfs_l3
+                auto res = intfs_l3.insert(std::make_pair(intf->addr(), intf));
                 if (res.second == false) {
                     Logger::get_instance().err("Duplicate interface IP: " +
                                                res.first->first.to_string());
                 }
 
                 // Add the directly connected route to rib
-                rib.emplace(intf->network(), intf->addr(), 0, intf->get_name());
+                rib.emplace(intf->network(), intf->addr(), intf->get_name(), 0);
+
+                // Cache the mapping for later
+                ip2node[intf->addr()] = this;
             }
         }
     }
@@ -55,6 +66,13 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
     }
 }
 
+Node::~Node()
+{
+    for (const auto& intf : intfs) {
+        delete intf.second;
+    }
+}
+
 std::string Node::to_string() const
 {
     return name;
@@ -67,30 +85,27 @@ std::string Node::get_name() const
 
 bool Node::has_ip(const IPv4Address& addr) const
 {
-    return intfs_ipv4.count(addr) > 0;
+    return intfs_l3.count(addr) > 0;
 }
 
-bool Node::has_ip(const std::string& addr) const
-{
-    return has_ip(IPv4Address(addr));
-}
-
-const std::shared_ptr<Interface>&
-Node::get_interface(const std::string& intf_name) const
+Interface *Node::get_interface(const std::string& intf_name) const
 {
     return intfs.at(intf_name);
 }
 
-const std::shared_ptr<Interface>&
-Node::get_interface(const IPv4Address& addr) const
+Interface *Node::get_interface(const IPv4Address& addr) const
 {
-    return intfs_ipv4.at(addr);
+    return intfs_l3.at(addr);
 }
 
-const std::map<IPv4Address, std::shared_ptr<Interface> >&
-Node::get_intfs_ipv4() const
+const std::map<IPv4Address, Interface *>& Node::get_intfs_l3() const
 {
-    return intfs_ipv4;
+    return intfs_l3;
+}
+
+const std::set<Interface *>& Node::get_intfs_l2() const
+{
+    return intfs_l2;
 }
 
 const RoutingTable& Node::get_rib() const
@@ -98,27 +113,26 @@ const RoutingTable& Node::get_rib() const
     return rib;
 }
 
-std::set<std::shared_ptr<Node> >
-Node::get_next_hops(const std::shared_ptr<Node>& self,
-                    const IPv4Address& dst) const
+std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
 {
-    std::set<std::shared_ptr<Node> > next_hops;
+    std::set<FIB_IPNH> next_hops;
 
     auto r = rib.lookup(dst);
     for (RoutingTable::const_iterator it = r.first; it != r.second; ++it) {
-        if (it->get_ifname().empty()) {
-            // non-connected routes; look it up recursively
-            auto nhs = get_next_hops(self, it->get_next_hop());
+        if (it->get_intf().empty()) {
+            // non-connected route; look it up recursively
+            auto nhs = get_ipnhs(it->get_next_hop());
             next_hops.insert(nhs.begin(), nhs.end());
+        } else if (has_ip(dst)) {
+            // connected route; accept
+            next_hops.insert(FIB_IPNH(this, this, nullptr));
         } else {
-            // connected routes; accept it or forward it
-            if (intfs_ipv4.find(dst) != intfs_ipv4.end()) {
-                next_hops.insert(self);
-            } else {
-                auto peer = active_peers.find(it->get_ifname());
-                if (peer != active_peers.end()) {
-                    next_hops.insert(peer->second.first.lock());
-                }
+            // connected route; forward
+            auto peer = active_peers.find(it->get_intf());
+            if (peer != active_peers.end()) {
+                next_hops.insert(FIB_IPNH(ip2node.at(dst),
+                                          peer->second.first,
+                                          peer->second.second));
             }
         }
     }
@@ -126,37 +140,46 @@ Node::get_next_hops(const std::shared_ptr<Node>& self,
     return next_hops;
 }
 
-std::pair<std::shared_ptr<Node>, std::shared_ptr<Interface> >
+void Node::collect_l2dm(FIB *fib, Interface *intf __attribute__((unused)),
+                        FIB_L2DM *l2dm)
+{
+    for (Interface *interface : intfs_l2) {
+        if (!fib->in_l2dm(interface)) {
+            fib->set_l2dm(interface, l2dm);
+            auto peer = active_peers.find(interface->get_name());
+            if (peer != active_peers.end()) {
+                l2dm->insert(this, peer->second);
+                peer->second.first->collect_l2dm(fib, peer->second.second,
+                                                 l2dm);
+            }
+        }
+    }
+}
+
+std::pair<Node *, Interface *>
 Node::get_peer(const std::string& intf_name) const
 {
-    auto weakpair = active_peers.at(intf_name);
-    return std::make_pair(weakpair.first.lock(), weakpair.second.lock());
+    auto peer = active_peers.at(intf_name);
+    return std::make_pair(peer.first, peer.second);
 }
 
-std::shared_ptr<Link>
-Node::get_link(const std::string& intf_name) const
+Link *Node::get_link(const std::string& intf_name) const
 {
-    return active_links.at(intf_name).lock();
+    return active_links.at(intf_name);
 }
 
-void Node::add_peer(const std::string& intf_name,
-                    const std::shared_ptr<Node>& node,
-                    const std::shared_ptr<Interface>& intf)
+void Node::add_peer(const std::string& intf_name, Node *node, Interface *intf)
 {
     auto res = active_peers.insert
-               (std::make_pair
-                (intf_name, std::make_pair
-                 (std::weak_ptr<Node>(node), std::weak_ptr<Interface>(intf))));
+               (std::make_pair(intf_name, std::make_pair(node, intf)));
     if (res.second == false) {
         Logger::get_instance().err("Two peers on interface: " + intf_name);
     }
 }
 
-void Node::add_link(const std::string& intf_name,
-                    const std::shared_ptr<Link>& link)
+void Node::add_link(const std::string& intf_name, Link *link)
 {
-    auto res = active_links.insert
-               (std::make_pair(intf_name, std::weak_ptr<Link>(link)));
+    auto res = active_links.insert(std::make_pair(intf_name, link));
     if (res.second == false) {
         Logger::get_instance().err("Two links on interface: " + intf_name);
     }
