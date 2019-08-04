@@ -28,9 +28,6 @@ protected:
     // active connected peers indexed by interface name
     std::map<std::string, std::pair<Node *, Interface *> > active_peers;
 
-    // active links indexed by interface name
-    std::map<std::string, Link *> active_links;
-
 public:
     Node(const std::shared_ptr<cpptoml::table>&);
     Node(const Node&) = delete;
@@ -63,8 +60,5 @@ public:
 
     virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;
-    virtual Link *get_link(const std::string& intf_name) const;
-
     virtual void add_peer(const std::string&, Node *, Interface *);
-    virtual void add_link(const std::string&, Link *);
 };

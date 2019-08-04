@@ -162,7 +162,7 @@ int Plankton::verify(const EqClass *ec, const Policy *policy)
     return spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
 }
 
-void Plankton::run()
+int Plankton::run()
 {
     // register signal handlers
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
@@ -183,7 +183,7 @@ void Plankton::run()
                 Logger::get_instance().err("Failed to fork new processes",
                                            errno);
             } else if (childpid == 0) {
-                exit(verify(ec, policy));
+                return verify(ec, policy);
             }
 
             Logger::get_instance().info("Spawned process " +
@@ -199,10 +199,12 @@ void Plankton::run()
     while (!tasks.empty()) {
         pause();
     }
+
+    return 0;
 }
 
 void Plankton::initialize()
 {
     network.fib_init(ec);
-    //policy->config_procs(fwd);
+    //policy->config_procs(fwd);  // Add new processes in the parameter list
 }

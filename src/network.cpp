@@ -50,15 +50,13 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                                            (*res.first)->to_string());
             }
 
-            // Add the new link to the corresponding node structures
+            // Add the new peer to the respective node structures
             auto node1 = link->get_node1();
             auto node2 = link->get_node2();
             auto intf1 = link->get_intf1();
             auto intf2 = link->get_intf2();
             node1->add_peer(intf1->get_name(), node2, intf2);
             node2->add_peer(intf2->get_name(), node1, intf1);
-            node1->add_link(intf1->get_name(), link);
-            node2->add_link(intf2->get_name(), link);
         }
     }
     Logger::get_instance().info("Loaded " + std::to_string(links.size()) +

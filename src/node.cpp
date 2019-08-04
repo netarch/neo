@@ -163,24 +163,11 @@ Node::get_peer(const std::string& intf_name) const
     return std::make_pair(peer.first, peer.second);
 }
 
-Link *Node::get_link(const std::string& intf_name) const
-{
-    return active_links.at(intf_name);
-}
-
 void Node::add_peer(const std::string& intf_name, Node *node, Interface *intf)
 {
     auto res = active_peers.insert
                (std::make_pair(intf_name, std::make_pair(node, intf)));
     if (res.second == false) {
         Logger::get_instance().err("Two peers on interface: " + intf_name);
-    }
-}
-
-void Node::add_link(const std::string& intf_name, Link *link)
-{
-    auto res = active_links.insert(std::make_pair(intf_name, link));
-    if (res.second == false) {
-        Logger::get_instance().err("Two links on interface: " + intf_name);
     }
 }

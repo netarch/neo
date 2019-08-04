@@ -89,7 +89,5 @@ int main(int argc, char **argv)
 
     Plankton& plankton = Plankton::get_instance();
     plankton.init(verbose, rm_out_dir, max_jobs, input_file, output_dir);
-    plankton.run();
-
-    return 0;
+    return plankton.run();
 }

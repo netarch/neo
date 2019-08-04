@@ -6,7 +6,7 @@
 
 TEST_CASE("interface")
 {
-    std::shared_ptr<Interface> intf;
+    Interface *intf = nullptr;
 
     SECTION("missing interface name") {
         std::string content =
@@ -16,7 +16,7 @@ TEST_CASE("interface")
         REQUIRE(config);
         auto intf_config = config->get_table("interface");
         REQUIRE(intf_config);
-        CHECK_THROWS_WITH(intf = std::make_shared<Interface>(intf_config),
+        CHECK_THROWS_WITH(intf = new Interface(intf_config),
                           "Missing interface name");
     }
 
@@ -30,7 +30,7 @@ TEST_CASE("interface")
         REQUIRE(config);
         auto intf_config = config->get_table("interface");
         REQUIRE(intf_config);
-        REQUIRE_NOTHROW(intf = std::make_shared<Interface>(intf_config));
+        REQUIRE_NOTHROW(intf = new Interface(intf_config));
         CHECK(intf->to_string() == "eth0");
         CHECK(intf->get_name() == "eth0");
         CHECK(intf->addr() == "1.2.3.4");
@@ -48,7 +48,7 @@ TEST_CASE("interface")
         REQUIRE(config);
         auto intf_config = config->get_table("interface");
         REQUIRE(intf_config);
-        REQUIRE_NOTHROW(intf = std::make_shared<Interface>(intf_config));
+        REQUIRE_NOTHROW(intf = new Interface(intf_config));
         CHECK(intf->to_string() == "br0");
         CHECK(intf->get_name() == "br0");
         CHECK_THROWS_WITH(intf->addr(), "Switchport: br0");
@@ -56,4 +56,6 @@ TEST_CASE("interface")
         CHECK_THROWS_WITH(intf->network(), "Switchport: br0");
         CHECK(intf->switching() == true);
     }
+
+    delete intf;
 }

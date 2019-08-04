@@ -3,11 +3,6 @@
 #include "fib.hpp"
 #include "lib/logger.hpp"
 
-void FIB_L2DM::insert(Node *node, const std::pair<Node *, Interface *>& peer)
-{
-    tbl[node].insert(peer);
-}
-
 std::string FIB_L2DM::to_string() const
 {
     std::string ret;
@@ -20,6 +15,11 @@ std::string FIB_L2DM::to_string() const
         ret += " ]\n";
     }
     return ret;
+}
+
+void FIB_L2DM::insert(Node *node, const std::pair<Node *, Interface *>& peer)
+{
+    tbl[node].insert(peer);
 }
 
 bool operator==(const FIB_L2DM& a, const FIB_L2DM& b)
@@ -76,21 +76,6 @@ bool operator==(const FIB_IPNH& a, const FIB_IPNH& b)
            && (a.l2_intf == b.l2_intf);
 }
 
-//Node *FIB_IPNH::get_l3nh() const
-//{
-//    return l3_node;
-//}
-//
-//Node *FIB_IPNH::get_l2nh() const
-//{
-//    return l2_node;
-//}
-//
-//Interface *FIB_IPNH::get_l2nh_intf() const
-//{
-//    return l2_intf;
-//}
-
 std::string FIB::to_string() const
 {
     std::string ret = "FIB:\n";
@@ -122,16 +107,6 @@ void FIB::set_l2dm(Interface *intf, FIB_L2DM *l2dm)
 {
     l2tbl[intf] = l2dm;
 }
-
-//const std::set<FIB_IPNH>& FIB::get_ipnhs(const Node *node) const
-//{
-//    return iptbl.at(node);
-//}
-//
-//const FIB_L2DM *FIB::get_l2dm(const Interface *intf) const
-//{
-//    return l2tbl.at(intf);
-//}
 
 bool FIB::in_l2dm(Interface *intf) const
 {

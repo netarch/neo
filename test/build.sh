@@ -8,6 +8,7 @@ usage()
     echo '        -c    enable coverage testing' >&2
     echo '        -a    enable AddressSanitizer' >&2
     echo '        -t    enable ThreadSanitizer' >&2
+    echo '        -d    enable debugging options' >&2
     echo '        -h    show this message and exit' >&2
     echo '    Note:' >&2
     echo '        -a and -t cannot be used at the same time' >&2
@@ -27,7 +28,7 @@ COVERAGE=0
 ASAN=0
 TSAN=0
 CONFIG_FLAGS=''
-while getopts 'Tcath' op; do
+while getopts 'Tcatdh' op; do
     case $op in
         T)
             TEST=1 ;;
@@ -42,6 +43,8 @@ while getopts 'Tcath' op; do
             [ $ASAN -ne 0 ] && { usage; exit 1; }
             TSAN=1
             add_config_flag '--enable-tsan' ;;
+        d)
+            add_config_flag '--enable-debug' ;;
         h|*)
             usage
             exit 1 ;;

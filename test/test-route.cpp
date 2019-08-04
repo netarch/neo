@@ -31,7 +31,7 @@ TEST_CASE("route")
         auto route_config = config->get_table("route");
         REQUIRE(route_config);
         CHECK_THROWS_WITH(route = std::make_shared<Route>(route_config),
-                          "Missing next hop");
+                          "Missing next hop IP address or interface");
     }
 
     SECTION("invalid administrative distance") {
@@ -65,7 +65,7 @@ TEST_CASE("route")
         CHECK(route->get_network() == "10.0.0.0/8");
         CHECK(route->get_next_hop() == "1.2.3.4");
         CHECK(route->get_adm_dist() == 1);
-        CHECK(route->get_ifname().empty());
+        CHECK(route->get_intf().empty());
     }
 
     SECTION("relational operations") {

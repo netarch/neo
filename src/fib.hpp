@@ -22,8 +22,8 @@ private:
     friend bool operator==(const FIB_L2DM&, const FIB_L2DM&);
 
 public:
-    void insert(Node *, const std::pair<Node *, Interface *>&);
     std::string to_string() const;
+    void insert(Node *, const std::pair<Node *, Interface *>&);
 };
 
 bool operator==(const FIB_L2DM&, const FIB_L2DM&);
@@ -44,10 +44,6 @@ public:
     FIB_IPNH(Node *, Node *, Interface *);
 
     std::string to_string() const;
-
-    //Node *get_l3nh() const;
-    //Node *get_l2nh() const;
-    //Interface *get_l2nh_intf() const;
 };
 
 bool operator<(const FIB_IPNH&, const FIB_IPNH&);
@@ -70,11 +66,8 @@ private:
 
 public:
     std::string to_string() const;
-
     void set_ipnhs(Node *, std::set<FIB_IPNH>&&);
     void set_l2dm(Interface *, FIB_L2DM *);
-    //const std::set<FIB_IPNH>& get_ipnhs(const Node *) const;
-    //const FIB_L2DM *get_l2dm(const Interface *) const;
     bool in_l2dm(Interface *) const;
 };
 

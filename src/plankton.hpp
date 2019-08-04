@@ -40,7 +40,7 @@ public:
 
     void init(bool verbose, bool rm_out_dir, size_t dop,
               const std::string& input_file, const std::string& output_dir);
-    void run();
+    int run();
 
 
     /*************************************************************/
