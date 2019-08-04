@@ -73,10 +73,10 @@ Network::~Network()
     for (const auto& link : links) {
         delete link;
     }
-    for (FIB *const& fib : fibs) {
+    for (FIB * const& fib : fibs) {
         delete fib;
     }
-    for (FIB_L2DM *const& l2dm : l2dms) {
+    for (FIB_L2DM * const& l2dm : l2dms) {
         delete l2dm;
     }
 }
