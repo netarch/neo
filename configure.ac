@@ -79,6 +79,8 @@ AC_ARG_ENABLE([tsan],
 AS_IF([test "$enable_asan" = "yes" -a "$enable_tsan" = "yes"], [
     AC_ERROR([ASan and TSan cannot be used at the same time])
 ])
+AC_ARG_ENABLE([debug],
+    AS_HELP_STRING([--enable-debug], [Enable debugging options]))
 
 
 ###
@@ -213,6 +215,10 @@ AS_IF([test "$enable_asan" = "yes"], [
 AS_IF([test "$enable_tsan" = "yes"], [
     ADD_CFLAG_CXXFLAG(-fsanitize=thread)
     ADD_LDFLAG(-fsanitize=thread)
+])
+AS_IF([test "$enable_debug" = "yes"], [
+    CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-Og -g3/g')"
+    CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O[[0-9]]/-Og -g3/g')"
 ])
 
 
