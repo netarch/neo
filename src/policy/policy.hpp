@@ -29,5 +29,6 @@ public:
 
     virtual std::string to_string() const;
     virtual std::string get_type() const;
-    virtual bool check_violation(const Network&, const ForwardingProcess&);
+    virtual void config_procs(ForwardingProcess&) const;
+    //virtual bool check_violation(const Network&, const ForwardingProcess&);
 };

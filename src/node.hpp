@@ -30,6 +30,7 @@ protected:
 
 public:
     Node(const std::shared_ptr<cpptoml::table>&);
+    Node() = delete;
     Node(const Node&) = delete;
     Node(Node&&) = default;
     virtual ~Node();

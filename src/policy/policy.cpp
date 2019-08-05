@@ -71,9 +71,13 @@ std::string Policy::get_type() const
     return "(policy base class)";
 }
 
-bool Policy::check_violation(
-    const Network& net __attribute__((unused)),
-    const ForwardingProcess& fwd __attribute__((unused)))
+void Policy::config_procs(ForwardingProcess& fwd __attribute__((unused))) const
 {
-    return false;
 }
+
+//bool Policy::check_violation(
+//    const Network& net __attribute__((unused)),
+//    const ForwardingProcess& fwd __attribute__((unused)))
+//{
+//    return false;
+//}

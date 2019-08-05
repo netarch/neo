@@ -18,12 +18,15 @@
 class ReachabilityPolicy : public Policy
 {
 private:
-    std::list<Node *> start_nodes;
-    std::list<Node *> final_nodes;
+    Node *start_node;
+    Node *final_node;
     bool reachable;
 
 public:
     ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
 
+    std::string to_string() const override;
+    std::string get_type() const override;
+    void config_procs(ForwardingProcess&) const override;
     //bool check_violation(const Network&, const ForwardingProcess&) override;
 };

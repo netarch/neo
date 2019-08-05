@@ -206,5 +206,5 @@ int Plankton::run()
 void Plankton::initialize()
 {
     network.fib_init(ec);
-    //policy->config_procs(fwd);  // Add new processes in the parameter list
+    policy->config_procs(fwd);  // Add new processes in the parameter list
 }

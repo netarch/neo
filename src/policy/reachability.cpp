@@ -1,5 +1,4 @@
 #include <string>
-#include <regex>
 
 #include "policy/reachability.hpp"
 
@@ -8,14 +7,14 @@ ReachabilityPolicy::ReachabilityPolicy(
     const Network& net)
     : Policy(config)
 {
-    auto start_regex = config->get_as<std::string>("start_node");
-    auto final_regex = config->get_as<std::string>("final_node");
+    auto start_name = config->get_as<std::string>("start_node");
+    auto final_name = config->get_as<std::string>("final_node");
     auto reachability = config->get_as<bool>("reachable");
 
-    if (!start_regex) {
+    if (!start_name) {
         Logger::get_instance().err("Missing start node");
     }
-    if (!final_regex) {
+    if (!final_name) {
         Logger::get_instance().err("Missing final node");
     }
     if (!reachability) {
@@ -23,16 +22,32 @@ ReachabilityPolicy::ReachabilityPolicy(
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
-    for (const auto& node : nodes) {
-        if (std::regex_match(node.first, std::regex(*start_regex))) {
-            start_nodes.push_back(node.second);
-        }
-        if (std::regex_match(node.first, std::regex(*final_regex))) {
-            final_nodes.push_back(node.second);
-        }
-    }
-
+    start_node = nodes.at(*start_name);
+    final_node = nodes.at(*final_name);
     reachable = *reachability;
+}
+
+std::string ReachabilityPolicy::to_string() const
+{
+    std::string ret = "reachability: " + start_node->to_string() + " -";
+    if (reachable) {
+        ret += "-";
+    } else {
+        ret += "X";
+    }
+    ret += "-> " + final_node->to_string();
+    return ret;
+}
+
+std::string ReachabilityPolicy::get_type() const
+{
+    return "reachability";
+}
+
+void ReachabilityPolicy::config_procs(ForwardingProcess& fwd) const
+{
+    fwd.init(start_node);
+    fwd.enable();
 }
 
 //bool ReachabilityPolicy::check_violation(
