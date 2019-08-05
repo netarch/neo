@@ -46,8 +46,7 @@ public:
     const std::map<std::string, Node *>& get_nodes() const;
     const std::set<Link *, LinkCompare>& get_links() const;
 
-    // Compute the initial FIB
-    void fib_init(const EqClass *ec);
+    void fib_init(const EqClass *ec);   // compute the initial FIB
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

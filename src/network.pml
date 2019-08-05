@@ -1,9 +1,4 @@
 /*
- *
- *
- */
-
-/*
  * State of the network.
  * sizeof(void *) / sizeof(int) == 2 on 64-bit systems
  *

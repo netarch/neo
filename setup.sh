@@ -151,6 +151,18 @@ aur_install_ubuntu() {
     unset TARGET
 }
 
+raw_install_spin() {
+    git clone https://github.com/nimble-code/Spin spin
+    cd spin/src
+    make -j
+    cd ..
+    sudo install -Dm755 src/spin '/usr/bin/spin'
+    sudo install -d '/usr/share/man/man1/'
+    gzip -9c Man/spin.1 | sudo tee '/usr/share/man/man1/spin.1.gz' >/dev/null
+    cd ..
+    rm -rf spin
+}
+
 main() {
     get_distro
 
@@ -168,7 +180,8 @@ main() {
             fi
         done
         sudo apt install -y -qq ${deps[@]}
-        aur_install_ubuntu spin
+        #aur_install_ubuntu spin
+        raw_install_spin    # temporary fix
 
     else
         echo "[!] Unsupported distribution: $DISTRO" >&2
