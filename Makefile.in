@@ -58,18 +58,18 @@ all: $(TARGET) install-git-hooks #neo.1.gz
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-api.o: pan.h
+api.o: modified_pan_sources
 
-pan.o: pan.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+pan.o: modified_pan_sources
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ pan.c
 
-pan.c pan.h: $(srcdir)/src/network.pml
+modified_pan_sources: $(srcdir)/src/network.pml
 	spin $(SPINFLAGS) $<
-	sed -i pan.c \
-	    -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/'
 	sed -i pan.h \
 	    -e '1s/^/#ifdef __cplusplus\nextern "C" {\n#endif\n/' \
 	    -e '$$s/$$/\n#ifdef __cplusplus\n}\n#endif/'
+	sed -i pan.c \
+	    -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/'
 
 neo.1.gz:
 	# TODO
@@ -105,4 +105,4 @@ installcheck: install
 	# TODO
 
 .PHONY: all install-git-hooks install uninstall clean distclean check \
-        installcheck
+        installcheck modified_pan_sources
