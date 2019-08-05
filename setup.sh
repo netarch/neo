@@ -153,7 +153,7 @@ aur_install_ubuntu() {
 
 raw_install_spin() {
     git clone https://github.com/nimble-code/Spin spin
-    cd spin/src
+    cd spin/Src
     make -j
     cd ..
     sudo install -Dm755 src/spin '/usr/bin/spin'
