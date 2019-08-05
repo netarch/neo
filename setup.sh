@@ -156,7 +156,7 @@ raw_install_spin() {
     cd spin/Src
     make -j
     cd ..
-    sudo install -Dm755 src/spin '/usr/bin/spin'
+    sudo install -Dm755 Src/spin '/usr/bin/spin'
     sudo install -d '/usr/share/man/man1/'
     gzip -9c Man/spin.1 | sudo tee '/usr/share/man/man1/spin.1.gz' >/dev/null
     cd ..
