@@ -55,13 +55,12 @@ Since Ubuntu bionic (18.04), SPIN can be installed as a distribution package.
 $ sudo apt install spin
 ```
 
-#### Other
+#### Others
 
 If your distribution doesn't have package for SPIN, you may install it from the
-[tarball releases](http://spinroot.com/spin/Src/index.html) or the [official
-GitHub repository](https://github.com/nimble-code/Spin). To make things easier,
-you might want to run `setup.sh` for building and installing SPIN, though it
-will also install other dependencies which may not be necessary for you.
+[official GitHub repository](https://github.com/nimble-code/Spin). To make
+things easier, you might want to run `setup.sh` for building and installing
+SPIN, though it will also install other dependencies.
 
 ### Install Plankton-neo
 

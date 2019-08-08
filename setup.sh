@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
     (echo '[!] Please run this script without root privilege' >&2; exit 1)
 
 # Dependencies needed for development
-depends=(autoconf make spin astyle)
+depends=(autoconf make spin-git astyle)
 
 
 get_distro() {
@@ -128,15 +128,27 @@ aur_install_ubuntu() {
     mkdir -p "$srcdir"
     i=0
     for s in ${source[@]}; do
-        # only support common tarball sources
-        curl -LO "$s" &>/dev/null
-        if [ "${checksums[$i]}" != "SKIP" ]; then
-            echo "${checksums[$i]} $(basename $s)" | $checksum -c
+        # only support common tarball and git sources
+        target=$(echo ${s%%::*})
+        url=$(echo ${s#*::})
+        if [[ $url == git+http* ]]; then
+            if [[ $target == $url ]]; then
+                target=$(basename $url | sed 's/\.git$//')
+            fi
+            git clone ${url#git+} $target
+            pushd "$srcdir"
+            ln -s "../$target" "$target"
+            popd
+        elif [[ $url == *.tar.gz ]]; then
+            curl -LO "$s" &>/dev/null
+            if [ "${checksums[$i]}" != "SKIP" ]; then
+                echo "${checksums[$i]} $(basename $s)" | $checksum -c
+            fi
+            pushd "$srcdir"
+            ln -s "../$(basename $s)" "$(basename $s)"
+            tar xf $(basename $s)
+            popd
         fi
-        pushd "$srcdir"
-        ln -s "../$(basename $s)" "$(basename $s)"
-        tar xf $(basename $s)
-        popd
         i=$((i + 1))
     done
     pushd "$srcdir"
@@ -151,18 +163,6 @@ aur_install_ubuntu() {
     unset TARGET
 }
 
-raw_install_spin() {
-    git clone https://github.com/nimble-code/Spin spin
-    cd spin/Src
-    make -j
-    cd ..
-    sudo install -Dm755 Src/spin '/usr/bin/spin'
-    sudo install -d '/usr/share/man/man1/'
-    gzip -9c Man/spin.1 | sudo tee '/usr/share/man/man1/spin.1.gz' >/dev/null
-    cd ..
-    rm -rf spin
-}
-
 main() {
     get_distro
 
@@ -175,13 +175,12 @@ main() {
         sudo apt update -y -qq
         deps=(build-essential)
         for dep in ${depends[@]}; do
-            if [ "$dep" != "spin" ]; then
+            if [ "$dep" != "spin-git" ]; then
                 deps+=("$dep")
             fi
         done
         sudo apt install -y -qq ${deps[@]}
-        #aur_install_ubuntu spin
-        raw_install_spin    # temporary fix
+        aur_install_ubuntu spin-git
 
     else
         echo "[!] Unsupported distribution: $DISTRO" >&2

@@ -113,6 +113,16 @@ bool FIB::in_l2dm(Interface *intf) const
     return l2tbl.count(intf) > 0;
 }
 
+const std::set<FIB_IPNH>& FIB::lookup(Node *const node) const
+{
+    return iptbl.at(node);
+}
+
+FIB_L2DM *const& FIB::lookup(Interface *const intf) const
+{
+    return l2tbl.at(intf);
+}
+
 bool operator==(const FIB& a, const FIB& b)
 {
     return (a.iptbl == b.iptbl) && (a.l2tbl == b.l2tbl);

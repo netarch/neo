@@ -8,7 +8,7 @@ static Plankton& plankton = Plankton::get_instance();
 
 void initialize(struct State *state)
 {
-    plankton.initialize();
+    plankton.initialize(state);
     Logger::get_instance().info("Initialization done");
     assert(state);
 }
