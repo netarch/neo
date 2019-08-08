@@ -57,7 +57,7 @@ void Policy::compute_ecs(const Network& network)
             ECs.add_ec(route.get_network());
         }
     }
-    Logger::get_instance().info("Packet ECs for " + to_string() + ": " +
+    Logger::get_instance().info("Packet ECs for " + get_type() + ": " +
                                 std::to_string(ECs.size()));
 }
 

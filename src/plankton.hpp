@@ -6,6 +6,7 @@
 #include "network.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
+#include "pan.h"
 
 /*
  * The state of the whole system consists of the network state and the states of
@@ -47,5 +48,5 @@ public:
     /******* functions called by the Promela network model *******/
     /*************************************************************/
 
-    void initialize();
+    void initialize(struct State *);
 };

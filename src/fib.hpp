@@ -58,6 +58,7 @@ class FIB
 private:
     // resolved forwarding table for IP next hops
     std::map<Node *, std::set<FIB_IPNH> > iptbl;
+    //std::map<Node *, std::pair<std::set<FIB_IPNH>, size_t> > iptbl;
     // L2 domain mappings
     std::map<Interface *, FIB_L2DM *> l2tbl;
 
@@ -69,6 +70,8 @@ public:
     void set_ipnhs(Node *, std::set<FIB_IPNH>&&);
     void set_l2dm(Interface *, FIB_L2DM *);
     bool in_l2dm(Interface *) const;
+    const std::set<FIB_IPNH>& lookup(Node *const) const;
+    FIB_L2DM *const& lookup(Interface *const) const;
 };
 
 bool operator==(const FIB&, const FIB&);

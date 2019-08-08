@@ -26,7 +26,6 @@ class Network
 private:
     std::map<std::string, Node *>   nodes;
     std::set<Link *, LinkCompare>   links;          // all links
-    std::set<Link *>                failed_links;   // failed links
 
     FIB *fib;   // the current FIB for this EC
     std::unordered_set<FIB *> fibs;         // history FIBs

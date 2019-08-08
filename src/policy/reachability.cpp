@@ -41,7 +41,7 @@ std::string ReachabilityPolicy::to_string() const
 
 std::string ReachabilityPolicy::get_type() const
 {
-    return "reachability";
+    return "reachability policy";
 }
 
 void ReachabilityPolicy::config_procs(ForwardingProcess& fwd) const
