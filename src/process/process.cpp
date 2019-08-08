@@ -18,8 +18,3 @@ bool Process::is_enabled() const
 {
     return enabled;
 }
-
-void Process::exec_step(Network& network __attribute__((unused)),
-                        const EqClass& ec __attribute__((unused)))
-{
-}

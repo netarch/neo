@@ -9,7 +9,11 @@ static Plankton& plankton = Plankton::get_instance();
 void initialize(struct State *state)
 {
     plankton.initialize();
-    void *p;
-    memcpy(&p, state->state, sizeof(void *));
-    Logger::get_instance().info("state: " + std::to_string((uint64_t)p));
+    Logger::get_instance().info("Initialization done");
+    assert(state);
+}
+
+void execute(struct State *state)
+{
+    plankton.get_forwarding_process().exec_step(state);
 }

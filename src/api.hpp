@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 void initialize(struct State *);
+void execute(struct State *);
 
 #ifdef __cplusplus
 }

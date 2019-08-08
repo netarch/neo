@@ -1,4 +1,7 @@
 #include "policy/policy.hpp"
+#include "plankton.hpp"
+
+static Plankton& plankton = Plankton::get_instance();
 
 Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
 {
@@ -73,6 +76,20 @@ std::string Policy::get_type() const
 
 void Policy::config_procs(ForwardingProcess& fwd __attribute__((unused))) const
 {
+}
+
+std::vector<Node *> Policy::get_packet_entry_points(State *state) const
+{
+    assert(state);
+    std::vector<Node *> res;
+    const Network& network = plankton.get_network();
+    for (auto& node_entry : network.get_nodes()) {
+        if (node_entry.second->is_l3_only()) {
+            res.push_back(node_entry.second);
+        }
+    }
+
+    return res;
 }
 
 //bool Policy::check_violation(

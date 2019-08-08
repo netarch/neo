@@ -62,4 +62,8 @@ public:
     virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;
     virtual void add_peer(const std::string&, Node *, Interface *);
+    bool is_l3_only()
+    {
+        return this->intfs_l2.empty();
+    }
 };

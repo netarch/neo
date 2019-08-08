@@ -15,5 +15,5 @@ public:
     ForwardingProcess();
 
     void init(Node *);
-    void exec_step(Network&, const EqClass&) override;
+    void exec_step(State *state) const override;
 };

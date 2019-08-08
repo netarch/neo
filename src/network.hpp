@@ -52,4 +52,9 @@ public:
     // the FIB would need to be updated. (A link failure will change the
     // "active_peers" of the related nodes, and hence potentially change the
     // FIB.)
+
+    const decltype(nodes)& get_nodes()
+    {
+        return this->nodes;
+    }
 };
