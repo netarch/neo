@@ -58,7 +58,7 @@ all: $(TARGET) install-git-hooks #neo.1.gz
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-api.o: modified_pan_sources
+$(OBJS): modified_pan_sources
 
 pan.o: modified_pan_sources
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ pan.c
