@@ -18,14 +18,18 @@ void ForwardingProcess::exec_step(State *state) const
 {
     auto& next_step = state->network_state[state->itr_ec].next_step;
     int& choice_count = state->choice_count;
-    state->choice_count = 0; /* No non-determinsitic choices to be made as of now */
+    state->choice_count = -1; /* No non-determinsitic choices to be made as of now */
 
     switch (next_step) {
         case step_type::INIT       :
             selected_nodes = plankton.get_policy()->get_packet_entry_points(state);
             assert(!selected_nodes.empty());
             choice_count = selected_nodes.size() - 1;
+            Logger::get_instance().info("Choice count is: " + std::to_string(choice_count));
             next_step = int(step_type::INJECT_PACKET);
+            break;
+        case step_type::INJECT_PACKET      :
+            Logger::get_instance().info("Chosen injection point is: " + std::to_string(state->choice));
             break;
         default                    :
             throw std::logic_error("Unknown step");
