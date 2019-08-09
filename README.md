@@ -39,7 +39,9 @@ C++ standard libraries.
 
 #### Arch Linux
 
-SPIN is available from [AUR](https://aur.archlinux.org/packages/spin/).
+SPIN is available as AUR packages. You can install it from
+[spin](https://aur.archlinux.org/packages/spin/) (latest release) or
+[spin-git](https://aur.archlinux.org/packages/spin-git/) (latest git commit).
 
 ```
 $ git clone https://aur.archlinux.org/spin.git
