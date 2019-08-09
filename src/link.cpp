@@ -162,7 +162,7 @@ bool Link::operator!=(const Link& rhs) const
     return !(*this == rhs);
 }
 
-bool LinkCompare::operator()(const Link *link1, const Link *link2) const
+bool LinkCompare::operator()(Link *const link1, Link *const link2) const
 {
     return *link1 < *link2;
 }

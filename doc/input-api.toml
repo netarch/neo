@@ -30,28 +30,28 @@
     type = "reachability"
     pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name"
-    final_node = "node name"
+    start_node = "node name regex"
+    final_node = "node name regex"
     reachable = true or false
 [[policies]]
     type = "waypoint"
     pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name"
-    waypoint = "node name"
+    start_node = "node name regex"
+    waypoint = "node name regex"
     pass_through = true or false
 [[policies]]
     type = "stateful-reachability"
     pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name"
-    final_node = "node name"
+    start_node = "node name regex"
+    final_node = "node name regex"
     reachable = true or false   # reachable when the state doesn't hold
     stateful_reachable = true or false  # reachable when the state holds
     [policies.state]
     type = "waypoint"
     pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name"
-    waypoint = "node name"
+    start_node = "node name regex"
+    waypoint = "node name regex"
     pass_through = true or false

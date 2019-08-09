@@ -1,4 +1,5 @@
 #include <string>
+#include <regex>
 
 #include "policy/reachability.hpp"
 
@@ -7,14 +8,14 @@ ReachabilityPolicy::ReachabilityPolicy(
     const Network& net)
     : Policy(config)
 {
-    auto start_name = config->get_as<std::string>("start_node");
-    auto final_name = config->get_as<std::string>("final_node");
+    auto start_regex = config->get_as<std::string>("start_node");
+    auto final_regex = config->get_as<std::string>("final_node");
     auto reachability = config->get_as<bool>("reachable");
 
-    if (!start_name) {
+    if (!start_regex) {
         Logger::get_instance().err("Missing start node");
     }
-    if (!final_name) {
+    if (!final_regex) {
         Logger::get_instance().err("Missing final node");
     }
     if (!reachability) {
@@ -22,20 +23,35 @@ ReachabilityPolicy::ReachabilityPolicy(
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
-    start_node = nodes.at(*start_name);
-    final_node = nodes.at(*final_name);
+    for (const auto& node : nodes) {
+        if (std::regex_match(node.first, std::regex(*start_regex))) {
+            start_nodes.push_back(node.second);
+        }
+        if (std::regex_match(node.first, std::regex(*final_regex))) {
+            final_nodes.push_back(node.second);
+        }
+    }
+
     reachable = *reachability;
 }
 
 std::string ReachabilityPolicy::to_string() const
 {
-    std::string ret = "reachability: " + start_node->to_string() + " -";
+    std::string ret = "reachability [";
+    for (Node *node : start_nodes) {
+        ret += " " + node->to_string();
+    }
+    ret += " ] -";
     if (reachable) {
         ret += "-";
     } else {
         ret += "X";
     }
-    ret += "-> " + final_node->to_string();
+    ret += "-> [";
+    for (Node *node : final_nodes) {
+        ret += " " + node->to_string();
+    }
+    ret += " ]";
     return ret;
 }
 
@@ -44,9 +60,10 @@ std::string ReachabilityPolicy::get_type() const
     return "reachability policy";
 }
 
-void ReachabilityPolicy::config_procs(ForwardingProcess& fwd) const
+void ReachabilityPolicy::config_procs(State *state,
+                                      ForwardingProcess& fwd) const
 {
-    fwd.init(start_node);
+    fwd.init(state, start_nodes);
     fwd.enable();
 }
 

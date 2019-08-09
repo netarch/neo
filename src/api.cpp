@@ -9,11 +9,9 @@ static Plankton& plankton = Plankton::get_instance();
 void initialize(struct State *state)
 {
     plankton.initialize(state);
-    Logger::get_instance().info("Initialization done");
-    assert(state);
 }
 
 void execute(struct State *state)
 {
-    plankton.get_forwarding_process().exec_step(state);
+    plankton.execute(state);
 }

@@ -1,8 +1,9 @@
 #pragma once
 
+#include <vector>
+
 #include "process/process.hpp"
 #include "node.hpp"
-#include "lib/ip.hpp"
 
 class ForwardingProcess : public Process
 {
@@ -16,9 +17,11 @@ private:
     Interface *ingress_intf;
     Node *l3_nhop;
 
+    std::vector<Node *> start_nodes;
+
 public:
     ForwardingProcess();
 
-    void init(Node *);
-    void exec_step(State *state) const override;
+    void init(State *, const std::vector<Node *>&);
+    void exec_step(State *) const override;
 };

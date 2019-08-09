@@ -1,40 +1,30 @@
-/* We store some parts of the system state in hash tables, and put pointers to the hashtable entries
- * in the actual state object. If the size of a pointer isn't enough for storing possible states, the
- * addressing ability of the OS isn't enough for accessing all state-related
- * data.
+/*
+ * Some parts of the system state is stored in hash tables. Pointers to the
+ * hash table entries are put in the actual state object. If the size of a
+ * pointer isn't enough for storing possible states, the addressing ability of
+ * the OS isn't enough for accessing all state-related data.
  */
-#define MAX_EC_COUNT 2 /* Model 2 simultaneous ECs by default. */
 
-typedef network_state_type {
-    /* Network state for one EC in Neo consists of the dataplane (fib),
-    location of the packet, the history of updates made, and the next step to execute */
+/* maximum number of ECs modelled simultaneously */
+#define MAX_EC_COUNT 2
 
-    /*
-     * Pointer to a duplicate-eliminated FIB.
-     * sizeof(void *) / sizeof(int) == 2 on 64-bit systems
-     */
-    int fib_ptr[SIZEOF_VOID_P / SIZEOF_INT];
-
-    /* Where is the packet currently */
-    int packet_location;
-
-    /* Update history for the network. The history is duplicate eliminated. */
-    int update_ptr[SIZEOF_VOID_P / SIZEOF_INT];
-
-    /* What is the next step to be carried out in the execution of this equivalence class (enum) */
-    byte next_step;
+/*
+ * Network state for one EC in Neo consists of the dataplane (fib), location
+ * of the packet, the history of updates made, and the execution mode
+ */
+typedef network_state_t {
+    int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* FIB/dataplane */
+    int packet_location;                            /* current pkt location */
+    int update_hist[SIZEOF_VOID_P / SIZEOF_INT];    /* update history */
+    byte exec_mode;                                 /* execution mode
+                                                       (process/process.hpp) */
 };
 
-network_state_type network_state[MAX_EC_COUNT]; /* Need to store separate state for each EC that is modeled */
+network_state_t network_state[MAX_EC_COUNT];
+byte itr_ec;        /* index of the executing EC */
+int choice_count;   /* non-determinisic selection range [0, choice_count) */
+int choice;         /* non-determinisic selection result */
 
-/* Range to choose non deterministically from. A number n in [0,n] is chosen. When choice_count is -1, the program quits*/
-int choice_count;
-
-/* Non-deterministically chosen value */
-int choice;
-
-/* Which of the MAX_EC_COUNT simultaneous ECs is executing right now */
-byte itr_ec;
 
 c_code {
     \#include "api.hpp"
@@ -43,15 +33,14 @@ c_code {
 init {
     c_code {
         initialize(&now);
-        execute(&now);
     }
 
     do
-        ::choice_count >= 0 ->
-        select(choice: 0 .. choice_count);
-    c_code {
-        execute(&now);
-    }
+    :: choice_count > 0 ->
+        select(choice: 0 .. choice_count - 1);
+        c_code {
+            execute(&now);
+        }
     :: else -> break
-        od
-    }
+    od
+}

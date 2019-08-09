@@ -14,7 +14,6 @@ private:
     Node *node2;
     Interface *intf1;
     Interface *intf2;
-    //bool failed;
 
     void normalize();   // called by every user-defined constructor
 
@@ -27,8 +26,6 @@ public:
     Node *get_node2() const;
     Interface *get_intf1() const;
     Interface *get_intf2() const;
-    //bool fail() const;
-    //void set_fail(bool);
 
     bool operator< (const Link&) const;
     bool operator<=(const Link&) const;
@@ -41,5 +38,5 @@ public:
 class LinkCompare
 {
 public:
-    bool operator()(const Link *, const Link *) const;
+    bool operator()(Link *const, Link *const) const;
 };

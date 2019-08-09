@@ -88,6 +88,11 @@ bool Node::has_ip(const IPv4Address& addr) const
     return intfs_l3.count(addr) > 0;
 }
 
+bool Node::is_l3_only() const
+{
+    return intfs_l2.empty();
+}
+
 Interface *Node::get_interface(const std::string& intf_name) const
 {
     return intfs.at(intf_name);

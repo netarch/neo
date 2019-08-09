@@ -2,13 +2,11 @@
 
 #include "network.hpp"
 #include "eqclass.hpp"
-
 #include "pan.h"
 
-enum step_type {
-    INIT = 0,
-    INJECT_PACKET = 1,
-    FOWARD_PACKET = 2
+enum exec_type {
+    INJECT_PACKET = 0,
+    FOWARD_PACKET = 1
 };
 
 class Process
@@ -22,5 +20,5 @@ public:
     void enable();
     void disable();
     bool is_enabled() const;
-    virtual void exec_step(State *state) const = 0;
+    virtual void exec_step(State *) const = 0;
 };

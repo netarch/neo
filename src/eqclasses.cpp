@@ -5,12 +5,12 @@
 
 EqClasses::~EqClasses()
 {
-    for (const EqClass *ec : ECs) {
+    for (EqClass *const ec : ECs) {
         delete ec;
     }
 }
 
-EqClass *EqClasses::split_intersected_ec( EqClass *ec, const ECRange& range)
+EqClass *EqClasses::split_intersected_ec(EqClass *ec, const ECRange& range)
 {
     EqClass *new_ec = new EqClass();
 
@@ -139,7 +139,7 @@ void EqClasses::set_mask_range(IPRange<IPv4Address>&& range)
 std::string EqClasses::to_string() const
 {
     std::string ret;
-    for (const EqClass *ec : ECs) {
+    for (EqClass *const ec : ECs) {
         ret += ec->to_string() + "\n";
     }
     return ret;

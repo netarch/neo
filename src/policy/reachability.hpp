@@ -1,7 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <list>
+#include <vector>
 #include <cpptoml/cpptoml.hpp>
 
 #include "policy/policy.hpp"
@@ -18,8 +17,8 @@
 class ReachabilityPolicy : public Policy
 {
 private:
-    Node *start_node;
-    Node *final_node;
+    std::vector<Node *> start_nodes;
+    std::vector<Node *> final_nodes;
     bool reachable;
 
 public:
@@ -27,6 +26,6 @@ public:
 
     std::string to_string() const override;
     std::string get_type() const override;
-    void config_procs(ForwardingProcess&) const override;
+    void config_procs(State *, ForwardingProcess&) const override;
     //bool check_violation(const Network&, const ForwardingProcess&) override;
 };

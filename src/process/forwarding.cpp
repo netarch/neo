@@ -1,39 +1,34 @@
 #include "process/forwarding.hpp"
-#include "plankton.hpp"
-
-static Plankton& plankton = Plankton::get_instance();
-static std::vector<Node *> selected_nodes;
 
 ForwardingProcess::ForwardingProcess(): current_node(nullptr),
     ingress_intf(nullptr), l3_nhop(nullptr)
 {
 }
 
-void ForwardingProcess::init(Node *start_node)
+void ForwardingProcess::init(State *state,
+                             const std::vector<Node *>& start_nodes)
 {
-    current_node = start_node;
+    this->start_nodes = start_nodes;
+    // non-deterministically choose a node from start_nodes
+    state->choice_count = start_nodes.size();
+    Logger::get_instance().info("Choice count: "
+                                + std::to_string(state->choice_count));
+
+    auto& exec_mode = state->network_state[state->itr_ec].exec_mode;
+    exec_mode = int(exec_type::INJECT_PACKET);
 }
 
 void ForwardingProcess::exec_step(State *state) const
 {
-    auto& next_step = state->network_state[state->itr_ec].next_step;
-    int& choice_count = state->choice_count;
-    state->choice_count = -1; /* No non-determinsitic choices to be made as of now */
+    auto& exec_mode = state->network_state[state->itr_ec].exec_mode;
+    state->choice_count = 0;    // no non-determinsitic choices to be made
 
-    switch (next_step) {
-        case step_type::INIT       :
-            selected_nodes = plankton.get_policy()->get_packet_entry_points(state);
-            assert(!selected_nodes.empty());
-            choice_count = selected_nodes.size() - 1;
-            Logger::get_instance().info("Choice count is: " + std::to_string(choice_count));
-            next_step = int(step_type::INJECT_PACKET);
+    switch (exec_mode) {
+        case exec_type::INJECT_PACKET:
+            Logger::get_instance().info("Chosen injection point is: "
+                                        + std::to_string(state->choice));
             break;
-        case step_type::INJECT_PACKET      :
-            Logger::get_instance().info("Chosen injection point is: " + std::to_string(state->choice));
-            break;
-        default                    :
-            throw std::logic_error("Unknown step");
+        default:
+            Logger::get_instance().err("Unknown step");
     }
-
-    return;
 }

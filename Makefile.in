@@ -58,18 +58,28 @@ all: $(TARGET) install-git-hooks #neo.1.gz
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(OBJS): modified_pan_sources
+$(OBJS): pan.h
 
-pan.o: modified_pan_sources
+pan.o: pan.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ pan.c
 
-modified_pan_sources: $(srcdir)/src/network.pml
-	spin $(SPINFLAGS) $<
-	sed -i pan.h \
+pan.h: pan.orig.h
+	sed $< \
 	    -e '1s/^/#ifdef __cplusplus\nextern "C" {\n#endif\n/' \
-	    -e '$$s/$$/\n#ifdef __cplusplus\n}\n#endif/'
-	sed -i pan.c \
-	    -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/'
+	    -e '$$s/$$/\n#ifdef __cplusplus\n}\n#endif/' \
+		> $@
+
+pan.c: pan.orig.c
+	sed $< \
+	    -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/' \
+		> $@
+
+pan.orig.h: pan.orig.c
+
+pan.orig.c: $(srcdir)/src/network.pml
+	spin $(SPINFLAGS) $<
+	mv pan.h pan.orig.h
+	mv pan.c pan.orig.c
 
 neo.1.gz:
 	# TODO
@@ -88,8 +98,7 @@ uninstall:
 	-rm -rf "$(licensedir)"
 
 clean:
-	-@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.{b,c,h,m,p,t} \
-	        *.gcov *.gcda *.gcno neo.1.gz
+	-@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.* *.gcov *.gcda *.gcno neo.1.gz
 
 distclean: clean
 	-@rm -rf autom4te.cache codecov.sh config.log config.status configure \
@@ -105,4 +114,4 @@ installcheck: install
 	# TODO
 
 .PHONY: all install-git-hooks install uninstall clean distclean check \
-        installcheck modified_pan_sources
+        installcheck

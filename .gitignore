@@ -18,6 +18,7 @@ config.log
 config.status
 configure
 pan.[bchmpt]
+pan.*.[ch]
 
 # coverage files
 *.gcov

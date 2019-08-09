@@ -25,7 +25,7 @@ class Network
 {
 private:
     std::map<std::string, Node *>   nodes;
-    std::set<Link *, LinkCompare>   links;          // all links
+    std::set<Link *, LinkCompare>   links;
 
     FIB *fib;   // the current FIB for this EC
     std::unordered_set<FIB *> fibs;         // history FIBs
@@ -51,9 +51,4 @@ public:
     // the FIB would need to be updated. (A link failure will change the
     // "active_peers" of the related nodes, and hence potentially change the
     // FIB.)
-
-    const decltype(nodes)& get_nodes()
-    {
-        return this->nodes;
-    }
 };

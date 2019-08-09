@@ -41,6 +41,7 @@ public:
     virtual std::string to_string() const;
     virtual std::string get_name() const;
     virtual bool has_ip(const IPv4Address& addr) const;
+    virtual bool is_l3_only() const;
 
     virtual Interface *get_interface(const std::string&) const;
     virtual Interface *get_interface(const IPv4Address&) const;
@@ -62,8 +63,4 @@ public:
     virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;
     virtual void add_peer(const std::string&, Node *, Interface *);
-    bool is_l3_only()
-    {
-        return this->intfs_l2.empty();
-    }
 };

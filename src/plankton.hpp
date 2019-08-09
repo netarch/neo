@@ -49,19 +49,5 @@ public:
     /*************************************************************/
 
     void initialize(State *state);
-
-    const Network& get_network()
-    {
-        return this->network;
-    }
-
-    const ForwardingProcess& get_forwarding_process()
-    {
-        return this->fwd;
-    }
-
-    const Policy *get_policy()
-    {
-        return this->policy;
-    }
+    void execute(State *state);
 };

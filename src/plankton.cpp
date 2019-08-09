@@ -203,9 +203,15 @@ int Plankton::run()
     return 0;
 }
 
-void Plankton::initialize(struct State *state __attribute__((unused)))
+void Plankton::initialize(State *state)
 {
     network.fib_init(ec);
-    policy->config_procs(fwd);  // Add new processes in the parameter list
+    policy->config_procs(state, fwd);
     // TODO update state
+    Logger::get_instance().info("Initialization done");
+}
+
+void Plankton::execute(State *state)
+{
+    fwd.exec_step(state);
 }
