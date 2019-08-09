@@ -17,6 +17,13 @@ class ECRange : public IPRange<IPv4Address>
 private:
     EqClass *EC;
 
+    friend bool operator< (const ECRange&, const ECRange&);
+    friend bool operator<=(const ECRange&, const ECRange&);
+    friend bool operator> (const ECRange&, const ECRange&);
+    friend bool operator>=(const ECRange&, const ECRange&);
+    friend bool operator==(const ECRange&, const ECRange&);
+    friend bool operator!=(const ECRange&, const ECRange&);
+
 public:
     ECRange() = delete;
     ECRange(const ECRange&) = default;
@@ -27,13 +34,6 @@ public:
 
     void set_ec(EqClass *);
     EqClass *get_ec() const;
-
-    bool operator< (const ECRange&) const;
-    bool operator<=(const ECRange&) const;
-    bool operator> (const ECRange&) const;
-    bool operator>=(const ECRange&) const;
-    bool operator==(const ECRange&) const;  // there is an overlap
-    bool operator!=(const ECRange&) const;  // there is no overlap
     bool identical_to(const ECRange&) const;    // having the same range
     bool contains(const ECRange&) const;
     bool contains(const EqClass&) const;
@@ -41,3 +41,10 @@ public:
     ECRange& operator=(const ECRange&) = default;
     ECRange& operator=(ECRange&&) = default;
 };
+
+bool operator< (const ECRange&, const ECRange&);
+bool operator<=(const ECRange&, const ECRange&);
+bool operator> (const ECRange&, const ECRange&);
+bool operator>=(const ECRange&, const ECRange&);
+bool operator==(const ECRange&, const ECRange&);  // there is an overlap
+bool operator!=(const ECRange&, const ECRange&);  // there is no overlap

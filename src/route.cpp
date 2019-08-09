@@ -72,63 +72,63 @@ void Route::set_adm_dist(int dist)
     adm_dist = dist;
 }
 
-bool Route::operator<(const Route& rhs) const
-{
-    if (network.prefix_length() > rhs.network.prefix_length()) {
-        return true;
-    } else if (network.prefix_length() < rhs.network.prefix_length()) {
-        return false;
-    }
-    return network.addr() < rhs.network.addr();
-}
-
-bool Route::operator<=(const Route& rhs) const
-{
-    if (network.prefix_length() > rhs.network.prefix_length()) {
-        return true;
-    } else if (network.prefix_length() < rhs.network.prefix_length()) {
-        return false;
-    }
-    return network.addr() <= rhs.network.addr();
-}
-
-bool Route::operator>(const Route& rhs) const
-{
-    if (network.prefix_length() > rhs.network.prefix_length()) {
-        return false;
-    } else if (network.prefix_length() < rhs.network.prefix_length()) {
-        return true;
-    }
-    return network.addr() > rhs.network.addr();
-}
-
-bool Route::operator>=(const Route& rhs) const
-{
-    if (network.prefix_length() > rhs.network.prefix_length()) {
-        return false;
-    } else if (network.prefix_length() < rhs.network.prefix_length()) {
-        return true;
-    }
-    return network.addr() >= rhs.network.addr();
-}
-
-bool Route::operator==(const Route& rhs) const
-{
-    if (network == rhs.network) {
-        return true;
-    }
-    return false;
-}
-
-bool Route::operator!=(const Route& rhs) const
-{
-    return !(*this == rhs);
-}
-
 bool Route::has_same_path(const Route& other) const
 {
     if (network == other.network && next_hop == other.next_hop) {
         return true;
     }
     return false;
+}
+
+bool operator<(const Route& a, const Route& b)
+{
+    if (a.network.prefix_length() > b.network.prefix_length()) {
+        return true;
+    } else if (a.network.prefix_length() < b.network.prefix_length()) {
+        return false;
+    }
+    return a.network.addr() < b.network.addr();
+}
+
+bool operator<=(const Route& a, const Route& b)
+{
+    if (a.network.prefix_length() > b.network.prefix_length()) {
+        return true;
+    } else if (a.network.prefix_length() < b.network.prefix_length()) {
+        return false;
+    }
+    return a.network.addr() <= b.network.addr();
+}
+
+bool operator>(const Route& a, const Route& b)
+{
+    if (a.network.prefix_length() > b.network.prefix_length()) {
+        return false;
+    } else if (a.network.prefix_length() < b.network.prefix_length()) {
+        return true;
+    }
+    return a.network.addr() > b.network.addr();
+}
+
+bool operator>=(const Route& a, const Route& b)
+{
+    if (a.network.prefix_length() > b.network.prefix_length()) {
+        return false;
+    } else if (a.network.prefix_length() < b.network.prefix_length()) {
+        return true;
+    }
+    return a.network.addr() >= b.network.addr();
+}
+
+bool operator==(const Route& a, const Route& b)
+{
+    if (a.network == b.network) {
+        return true;
+    }
+    return false;
+}
+
+bool operator!=(const Route& a, const Route& b)
+{
+    return !(a == b);
 }

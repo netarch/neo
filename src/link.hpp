@@ -17,6 +17,13 @@ private:
 
     void normalize();   // called by every user-defined constructor
 
+    friend bool operator< (const Link&, const Link&);
+    friend bool operator<=(const Link&, const Link&);
+    friend bool operator> (const Link&, const Link&);
+    friend bool operator>=(const Link&, const Link&);
+    friend bool operator==(const Link&, const Link&);
+    friend bool operator!=(const Link&, const Link&);
+
 public:
     Link(const std::shared_ptr<cpptoml::table>& config,
          const std::map<std::string, Node *>& nodes);
@@ -26,14 +33,14 @@ public:
     Node *get_node2() const;
     Interface *get_intf1() const;
     Interface *get_intf2() const;
-
-    bool operator< (const Link&) const;
-    bool operator<=(const Link&) const;
-    bool operator> (const Link&) const;
-    bool operator>=(const Link&) const;
-    bool operator==(const Link&) const;
-    bool operator!=(const Link&) const;
 };
+
+bool operator< (const Link&, const Link&);
+bool operator<=(const Link&, const Link&);
+bool operator> (const Link&, const Link&);
+bool operator>=(const Link&, const Link&);
+bool operator==(const Link&, const Link&);
+bool operator!=(const Link&, const Link&);
 
 class LinkCompare
 {

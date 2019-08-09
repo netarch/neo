@@ -25,36 +25,6 @@ EqClass *ECRange::get_ec() const
     return EC;
 }
 
-bool ECRange::operator<(const ECRange& rhs) const
-{
-    return ub < rhs.lb;
-}
-
-bool ECRange::operator<=(const ECRange& rhs) const
-{
-    return !(*this > rhs);
-}
-
-bool ECRange::operator>(const ECRange& rhs) const
-{
-    return lb > rhs.ub;
-}
-
-bool ECRange::operator>=(const ECRange& rhs) const
-{
-    return !(*this < rhs);
-}
-
-bool ECRange::operator==(const ECRange& rhs) const
-{
-    return (*this <= rhs && *this >= rhs);
-}
-
-bool ECRange::operator!=(const ECRange& rhs) const
-{
-    return (*this < rhs || *this > rhs);
-}
-
 bool ECRange::identical_to(const ECRange& rhs) const
 {
     return (lb == rhs.lb && ub == rhs.ub);
@@ -68,4 +38,34 @@ bool ECRange::contains(const ECRange& rhs) const
 bool ECRange::contains(const EqClass& rhs) const
 {
     return (lb <= rhs.begin()->lb && rhs.rbegin()->ub <= ub);
+}
+
+bool operator<(const ECRange& a, const ECRange& b)
+{
+    return a.ub < b.lb;
+}
+
+bool operator<=(const ECRange& a, const ECRange& b)
+{
+    return !(a > b);
+}
+
+bool operator>(const ECRange& a, const ECRange& b)
+{
+    return a.lb > b.ub;
+}
+
+bool operator>=(const ECRange& a, const ECRange& b)
+{
+    return !(a < b);
+}
+
+bool operator==(const ECRange& a, const ECRange& b)
+{
+    return (a <= b && a >= b);
+}
+
+bool operator!=(const ECRange& a, const ECRange& b)
+{
+    return (a < b || a > b);
 }

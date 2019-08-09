@@ -10,7 +10,6 @@ class Route
 {
 private:
     IPNetwork<IPv4Address> network;
-
     /*
      * If egress_intf is not empty, it means this route is a connected route,
      * and the packet should be routed toward the interface, in which case, the
@@ -18,7 +17,6 @@ private:
      */
     IPv4Address next_hop;
     std::string egress_intf;
-
     int adm_dist;
 
     // TODO int metric;
@@ -26,6 +24,13 @@ private:
     // if dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
     // For now, all the installed routes will be regarded as having the same
     // metrics.
+
+    friend bool operator< (const Route&, const Route&);
+    friend bool operator<=(const Route&, const Route&);
+    friend bool operator> (const Route&, const Route&);
+    friend bool operator>=(const Route&, const Route&);
+    friend bool operator==(const Route&, const Route&);
+    friend bool operator!=(const Route&, const Route&);
 
 public:
     Route() = delete;
@@ -47,19 +52,20 @@ public:
     std::string get_intf() const;
     int get_adm_dist() const;
     void set_adm_dist(int dist);
-
-    /*
-     * Precedence:
-     * network (longest prefix)
-     * network (network.addr())
-     */
-    bool operator< (const Route&) const;    // this precede other
-    bool operator<=(const Route&) const;
-    bool operator> (const Route&) const;    // other precede this
-    bool operator>=(const Route&) const;
-    bool operator==(const Route&) const;    // same network (destination)
-    bool operator!=(const Route&) const;
     bool has_same_path(const Route&) const;
+
     Route& operator=(const Route&) = default;
     Route& operator=(Route&&) = default;
 };
+
+/*
+ * Precedence:
+ * network (longest prefix)
+ * network (network.addr())
+ */
+bool operator< (const Route&, const Route&);    // this precede other
+bool operator<=(const Route&, const Route&);
+bool operator> (const Route&, const Route&);    // other precede this
+bool operator>=(const Route&, const Route&);
+bool operator==(const Route&, const Route&);    // same network (destination)
+bool operator!=(const Route&, const Route&);

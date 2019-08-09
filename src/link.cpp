@@ -15,7 +15,6 @@ void Link::normalize()
 
 Link::Link(const std::shared_ptr<cpptoml::table>& config,
            const std::map<std::string, Node *>& nodes)
-//: failed(false)
 {
     auto node1_name = config->get_as<std::string>("node1");
     auto intf1_name = config->get_as<std::string>("intf1");
@@ -70,96 +69,86 @@ Interface *Link::get_intf2() const
     return intf2;
 }
 
-//bool Link::fail() const
-//{
-//    return failed;
-//}
-//
-//void Link::set_fail(bool f)
-//{
-//    failed = f;
-//}
-
-bool Link::operator<(const Link& rhs) const
+bool operator<(const Link& a, const Link& b)
 {
-    if (node1 < rhs.node1) {
+    if (a.node1 < b.node1) {
         return true;
-    } else if (node1 > rhs.node1) {
+    } else if (a.node1 > b.node1) {
         return false;
     }
 
-    if (intf1 < rhs.intf1) {
+    if (a.intf1 < b.intf1) {
         return true;
-    } else if (intf1 > rhs.intf1) {
+    } else if (a.intf1 > b.intf1) {
         return false;
     }
 
-    if (node2 < rhs.node2) {
+    if (a.node2 < b.node2) {
         return true;
-    } else if (node2 > rhs.node2) {
+    } else if (a.node2 > b.node2) {
         return false;
     }
 
-    if (intf2 < rhs.intf2) {
+    if (a.intf2 < b.intf2) {
         return true;
-    } else if (intf2 > rhs.intf2) {
+    } else if (a.intf2 > b.intf2) {
         return false;
     }
 
     return false;
 }
 
-bool Link::operator<=(const Link& rhs) const
+bool operator<=(const Link& a, const Link& b)
 {
-    return !(*this > rhs);
+    return !(a > b);
 }
 
-bool Link::operator>(const Link& rhs) const
+bool operator>(const Link& a, const Link& b)
 {
-    if (node1 > rhs.node1) {
+    if (a.node1 > b.node1) {
         return true;
-    } else if (node1 < rhs.node1) {
+    } else if (a.node1 < b.node1) {
         return false;
     }
 
-    if (intf1 > rhs.intf1) {
+    if (a.intf1 > b.intf1) {
         return true;
-    } else if (intf1 < rhs.intf1) {
+    } else if (a.intf1 < b.intf1) {
         return false;
     }
 
-    if (node2 > rhs.node2) {
+    if (a.node2 > b.node2) {
         return true;
-    } else if (node2 < rhs.node2) {
+    } else if (a.node2 < b.node2) {
         return false;
     }
 
-    if (intf2 > rhs.intf2) {
+    if (a.intf2 > b.intf2) {
         return true;
-    } else if (intf2 < rhs.intf2) {
+    } else if (a.intf2 < b.intf2) {
         return false;
     }
 
     return false;
 }
 
-bool Link::operator>=(const Link& rhs) const
+bool operator>=(const Link& a, const Link& b)
 {
-    return !(*this < rhs);
+    return !(a < b);
 }
 
-bool Link::operator==(const Link& rhs) const
+bool operator==(const Link& a, const Link& b)
 {
-    if (node1 == rhs.node1 && intf1 == rhs.intf1 &&
-            node2 == rhs.node2 && intf2 == rhs.intf2) {
+    if (a.node1 == b.node1 && a.intf1 == b.intf1 &&
+            a.node2 == b.node2 && a.intf2 == b.intf2) {
         return true;
     }
     return false;
 }
 
-bool Link::operator!=(const Link& rhs) const
+bool operator!=(const Link& a, const Link& b)
 {
-    return !(*this == rhs);
+    return !(a == b);
 }
 
 bool LinkCompare::operator()(Link *const link1, Link *const link2) const
