@@ -127,3 +127,17 @@ bool operator==(const FIB& a, const FIB& b)
 {
     return (a.iptbl == b.iptbl) && (a.l2tbl == b.l2tbl);
 }
+
+std::vector<Node *> FIB::find_ip_nexthops(Node *node) const
+{
+    std::vector<Node *> res;
+    auto itr = this->iptbl.find(node);
+    if (itr != this->iptbl.end()) {
+        auto& next_hops = itr->second;
+        for (auto& next_hop : next_hops) {
+            res.push_back(next_hop.get_l3_node());
+        }
+    }
+
+    return res;
+}

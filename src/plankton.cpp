@@ -213,5 +213,6 @@ void Plankton::initialize(State *state)
 
 void Plankton::execute(State *state)
 {
+    Logger::get_instance().info("execute step");
     fwd.exec_step(state);
 }

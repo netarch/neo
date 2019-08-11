@@ -46,6 +46,10 @@ public:
     const std::set<Link *, LinkCompare>& get_links() const;
 
     void fib_init(const EqClass *ec);   // compute the initial FIB
+    FIB *get_fib() const
+    {
+        return this->fib;
+    }
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

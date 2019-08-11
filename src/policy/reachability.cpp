@@ -60,10 +60,10 @@ std::string ReachabilityPolicy::get_type() const
     return "reachability policy";
 }
 
-void ReachabilityPolicy::config_procs(State *state,
+void ReachabilityPolicy::config_procs(State *state __attribute__((unused)),
                                       ForwardingProcess& fwd) const
 {
-    fwd.init(state, start_nodes);
+    fwd.init();
     fwd.enable();
 }
 

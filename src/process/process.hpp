@@ -5,8 +5,10 @@
 #include "pan.h"
 
 enum exec_type {
-    INJECT_PACKET = 0,
-    FOWARD_PACKET = 1
+    INIT = 0,
+    INJECT_PACKET = 1,
+    PICK_NEIGHBOR = 2,
+    FORWARD_PACKET = 3
 };
 
 class Process

@@ -13,15 +13,16 @@
  * of the packet, the history of updates made, and the execution mode
  */
 typedef network_state_t {
-    int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* FIB/dataplane */
-    int packet_location;                            /* current pkt location */
-    int update_hist[SIZEOF_VOID_P / SIZEOF_INT];    /* update history */
-    byte exec_mode;                                 /* execution mode
+    int fib[SIZEOF_VOID_P / SIZEOF_INT];               /* FIB/dataplane */
+    int packet_location[SIZEOF_VOID_P / SIZEOF_INT];   /* current pkt location */
+    int update_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* update history */
+    byte exec_mode;                                    /* execution mode
                                                        (process/process.hpp) */
 };
 
 network_state_t network_state[MAX_EC_COUNT];
 byte itr_ec;        /* index of the executing EC */
+int selected_nodes[SIZEOF_VOID_P / SIZEOF_INT]; /* Points to a vector holds the nodes are being chosen from */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
 int choice;         /* non-determinisic selection result */
 
@@ -33,6 +34,7 @@ c_code {
 init {
     c_code {
         initialize(&now);
+        execute(&now);
     }
 
     do

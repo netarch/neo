@@ -217,8 +217,8 @@ AS_IF([test "$enable_tsan" = "yes"], [
     ADD_LDFLAG(-fsanitize=thread)
 ])
 AS_IF([test "$enable_debug" = "yes"], [
-    CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-Og -g3/g')"
-    CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O[[0-9]]/-Og -g3/g')"
+    CFLAGS="$(echo $CFLAGS | sed 's/-O[[0-9]]/-Og -g/g')"
+    CXXFLAGS="$(echo $CXXFLAGS | sed 's/-O[[0-9]]/-Og -g/g')"
 ])
 
 

@@ -2,12 +2,14 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
 #include "eqclasses.hpp"
 #include "network.hpp"
 #include "process/forwarding.hpp"
+
 #include "pan.h"
 
 class Policy
@@ -31,5 +33,6 @@ public:
     virtual std::string to_string() const;
     virtual std::string get_type() const;
     virtual void config_procs(State *, ForwardingProcess&) const;
+    virtual std::vector<Node *> get_packet_entry_points(State *state) const;
     //virtual bool check_violation(const Network&, const ForwardingProcess&);
 };
