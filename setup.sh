@@ -173,7 +173,7 @@ main() {
 
     elif [ "$DISTRO" = "Ubuntu" ]; then
         sudo apt update -y -qq
-        deps=(build-essential libboost-dev)
+        deps=(build-essential)
         for dep in ${depends[@]}; do
             if [ "$dep" != "spin-git" ]; then
                 deps+=("$dep")

@@ -4,13 +4,13 @@
 #include <set>
 #include <unordered_set>
 #include <string>
-#include <memory>
 #include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
 #include "link.hpp"
 #include "fib.hpp"
 #include "eqclass.hpp"
+#include "pan.h"
 
 /*
  * A network is an undirected graph. Nodes and links will remain constant once
@@ -45,11 +45,9 @@ public:
     const std::map<std::string, Node *>& get_nodes() const;
     const std::set<Link *, LinkCompare>& get_links() const;
 
-    void fib_init(const EqClass *ec);   // compute the initial FIB
-    FIB *get_fib() const
-    {
-        return this->fib;
-    }
+    void fib_init(State *, const EqClass *);   // compute the initial FIB
+    const std::set<FIB_IPNH>& fib_lookup(Node *const) const;
+    FIB_L2DM *const& fib_lookup(Interface *const) const;
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

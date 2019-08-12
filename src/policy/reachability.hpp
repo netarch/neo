@@ -4,15 +4,14 @@
 #include <cpptoml/cpptoml.hpp>
 
 #include "policy/policy.hpp"
-#include "lib/ip.hpp"
 #include "node.hpp"
 
 /*
- * For all possible packets starting from start_node, with source and
+ * For all possible packets starting from any of start_nodes, with source and
  * destination addresses within pkt_src and pkt_dst, respectively, the packet
- * will eventually be accepted by final_node when reachable is true. Otherwise,
- * if reachable is false, the packet will either be dropped by final_node, or
- * never reach final_node.
+ * will eventually be accepted by one of final_nodes when reachable is true.
+ * Otherwise, if reachable is false, the packet will either be dropped by one of
+ * final_nodes, or never reach any of final_nodes.
  */
 class ReachabilityPolicy : public Policy
 {
@@ -26,6 +25,5 @@ public:
 
     std::string to_string() const override;
     std::string get_type() const override;
-    void config_procs(State *, ForwardingProcess&) const override;
-    //bool check_violation(const Network&, const ForwardingProcess&) override;
+    void procs_init(State *, ForwardingProcess&) const override;
 };

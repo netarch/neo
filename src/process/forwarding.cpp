@@ -1,97 +1,121 @@
+#include <cstring>
+
 #include "process/forwarding.hpp"
-#include "plankton.hpp"
-#include "util.hpp"
 
-std::unordered_set<std::vector<Node *>> ForwardingProcess::selected_nodes_set;
-static Plankton& plankton = Plankton::get_instance();
+enum exec_type {
+    INIT = 0,
+    FORWARD_PACKET = 1,
+    COLLECT_NHOPS = 2
+};
 
-ForwardingProcess::ForwardingProcess(): current_node(nullptr),
-    ingress_intf(nullptr), l3_nhop(nullptr)
+ForwardingProcess::~ForwardingProcess()
 {
+    for (auto& candidates : candidates_hist) {
+        delete candidates;
+    }
 }
 
-void ForwardingProcess::init()
+void ForwardingProcess::init(State *state,
+                             const std::vector<Node *>& start_nodes)
 {
+    this->start_nodes = start_nodes;
+    update_candidates(state, start_nodes);
+    state->network_state[state->itr_ec].fwd_mode
+        = int(exec_type::FORWARD_PACKET);
+    memset(state->network_state[state->itr_ec].pkt_location, 0, sizeof(Node *));
 }
 
-const std::vector<Node *> *ForwardingProcess::get_or_create_selection_list(std::vector<Node *>&& input)
+void ForwardingProcess::exec_step(State *state, const Network& net)
 {
-    decltype(ForwardingProcess::selected_nodes_set)::iterator itr;
-    std::tie(itr, std::ignore) = ForwardingProcess::selected_nodes_set.insert(std::move(input));
-    return (&(*itr));
-}
-
-static void update_node_selection_vector_and_size(State *state, std::vector<Node *>&& selection_vector)
-{
-    int& choice_count = state->choice_count;
-    choice_count = selection_vector.size();
-    auto selected_nodes_ptr = ForwardingProcess::get_or_create_selection_list(std::move(selection_vector));
-    plankton_util::copy_ptr_to_int_arr(state->selected_nodes, selected_nodes_ptr);
-}
-
-static void populate_neighbors_in_selection_vector(State *state)
-{
-    auto& packet_location = state->network_state[state->itr_ec].packet_location;
-    auto fib = plankton.get_network().get_fib();
-    Node *packet_location_node;
-    plankton_util::copy_int_arr_to_ptr(packet_location_node, packet_location);
-    Logger::get_instance().info("Current packet location: " + packet_location_node->get_name());
-    auto selected_nodes_tmp = fib->find_ip_nexthops(packet_location_node);
-    if (selected_nodes_tmp.empty()) {
-        //Packet dropped
-        Logger::get_instance().info("Nowhere to go from: " + packet_location_node->get_name());
+    if (!enabled) {
         return;
     }
-    if (selected_nodes_tmp.size() == 1 && selected_nodes_tmp[0] == packet_location_node) {
-        Logger::get_instance().info("Delivered: " + packet_location_node->get_name());
-        return;
-    }
-    update_node_selection_vector_and_size(state, std::move(selected_nodes_tmp));
-}
 
-void ForwardingProcess::exec_step(State *state) const
-{
-    auto& exec_mode = state->network_state[state->itr_ec].exec_mode;
-    auto& packet_location = state->network_state[state->itr_ec].packet_location;
-    int& choice_count = state->choice_count;
-    state->choice_count = 0; /* No non-determinsitic choices to be made as of now */
-
+    auto& exec_mode = state->network_state[state->itr_ec].fwd_mode;
     switch (exec_mode) {
-        case exec_type::INIT       : {
-            auto selected_nodes_tmp = plankton.get_policy()->get_packet_entry_points(state);
-            assert(!selected_nodes_tmp.empty());
-            update_node_selection_vector_and_size(state, std::move(selected_nodes_tmp));
-            exec_mode = int(exec_type::INJECT_PACKET);
+        case exec_type::INIT:
+            init(state, start_nodes);
             break;
-        }
-        case exec_type::INJECT_PACKET      : {
-            std::vector<Node *> *selected_nodes_ptr;
-            plankton_util::copy_int_arr_to_ptr(selected_nodes_ptr, state->selected_nodes);
-            Node *injection_point = (*selected_nodes_ptr)[state->choice];
-            Logger::get_instance().info("Chosen injection point is: " + injection_point->get_name());
-            plankton_util::copy_ptr_to_int_arr(packet_location, injection_point);
-            exec_mode = int(exec_type::PICK_NEIGHBOR);
-            choice_count = 1; // No non-determinisic choice to be made, but don't quit.
+        case exec_type::FORWARD_PACKET:
+            forward_packet(state);
             break;
-        }
-        case exec_type::PICK_NEIGHBOR      : {
-            populate_neighbors_in_selection_vector(state);
-            exec_mode = int(exec_type::FORWARD_PACKET);
+        case exec_type::COLLECT_NHOPS:
+            collect_next_hops(state, net);
             break;
-        }
-        case exec_type::FORWARD_PACKET      : {
-            std::vector<Node *> *selected_nodes_ptr;
-            plankton_util::copy_int_arr_to_ptr(selected_nodes_ptr, state->selected_nodes);
-            Node *chosen_neighbor = (*selected_nodes_ptr)[state->choice];
-            Logger::get_instance().info("Chosen neighbor is: " + chosen_neighbor->get_name());
-            plankton_util::copy_ptr_to_int_arr(packet_location, chosen_neighbor);
-            exec_mode = int(exec_type::PICK_NEIGHBOR);
-            choice_count = 1; // No non-determinisic choice to be made, but don't quit.
-            break;
-        }
-        default                    :
-            throw std::logic_error("Unknown step");
+        default:
+            Logger::get_instance().err("forwarding process: unknown step");
     }
+}
 
-    return;
+void ForwardingProcess::update_candidates(
+    State *state,
+    const std::vector<Node *>& new_candidates)
+{
+    std::vector<Node *> *candidates = new std::vector<Node *>(new_candidates);
+    auto res = candidates_hist.insert(candidates);
+    if (!res.second) {
+        delete candidates;
+        candidates = *(res.first);
+    }
+    state->choice_count = candidates->size();
+    memcpy(state->candidates, &candidates, sizeof(std::vector<Node *> *));
+}
+
+void ForwardingProcess::forward_packet(State *state) const
+{
+    Node *current_node;
+    memcpy(&current_node, state->network_state[state->itr_ec].pkt_location,
+           sizeof(Node *));
+    std::vector<Node *> *candidates;
+    memcpy(&candidates, state->candidates, sizeof(std::vector<Node *> *));
+    Node *next_hop = (*candidates)[state->choice];
+    if (next_hop == current_node) {
+        Logger::get_instance().info("Packet delivered at "
+                                    + next_hop->to_string());
+        state->choice_count = 0;
+        return;
+    }
+    memcpy(state->network_state[state->itr_ec].pkt_location,
+           &next_hop, sizeof(Node *));
+    Logger::get_instance().info("Packet forwarded to " + next_hop->to_string());
+    state->network_state[state->itr_ec].fwd_mode
+        = int(exec_type::COLLECT_NHOPS);
+    state->choice_count = 1;    // deterministic choice
+}
+
+void ForwardingProcess::collect_next_hops(State *state, const Network& net)
+{
+    Node *current_node;
+    memcpy(&current_node, state->network_state[state->itr_ec].pkt_location,
+           sizeof(Node *));
+    const std::set<FIB_IPNH>& next_hops = net.fib_lookup(current_node);
+    if (next_hops.empty()) {
+        Logger::get_instance().info("Packet dropped by "
+                                    + current_node->to_string());
+        state->choice_count = 0;
+        return;
+    }
+    std::vector<Node *> l3_next_hops;
+    for (const FIB_IPNH& next_hop : next_hops) {
+        l3_next_hops.push_back(next_hop.get_l3_node());
+    }
+    update_candidates(state, l3_next_hops);
+    state->network_state[state->itr_ec].fwd_mode
+        = int(exec_type::FORWARD_PACKET);
+}
+
+size_t CandHash::operator()(const std::vector<Node *> *const& candidates __attribute__((unused))) const
+{
+    return 0;
+    //size_t value = 0;
+    //for (Node *node : *candidates) {
+    //    // TODO boost::hash_combine(value, node);
+    //}
+    //return value;
+}
+
+bool CandEq::operator()(const std::vector<Node *> *const& a,
+                        const std::vector<Node *> *const& b) const
+{
+    return *a == *b;
 }

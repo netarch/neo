@@ -205,14 +205,14 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    network.fib_init(ec);
-    policy->config_procs(state, fwd);
-    // TODO update state
-    Logger::get_instance().info("Initialization done");
+    state->itr_ec = 0;
+    network.fib_init(state, ec);
+    // TODO: initialize update history
+    policy->procs_init(state, fwd);
+    Logger::get_instance().info("Initialization finished");
 }
 
 void Plankton::execute(State *state)
 {
-    Logger::get_instance().info("execute step");
-    fwd.exec_step(state);
+    fwd.exec_step(state, network);
 }

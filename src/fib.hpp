@@ -4,7 +4,6 @@
 #include <set>
 #include <utility>
 #include <string>
-#include <vector>
 #include <functional>
 
 class FIB_L2DM;
@@ -45,10 +44,9 @@ public:
     FIB_IPNH(Node *, Node *, Interface *);
 
     std::string to_string() const;
-    Node *get_l3_node() const
-    {
-        return this->l3_node;
-    }
+    Node *const& get_l3_node() const;
+    Node *const& get_l2_node() const;
+    Interface *const& get_l2_intf() const;
 };
 
 bool operator<(const FIB_IPNH&, const FIB_IPNH&);
@@ -77,7 +75,6 @@ public:
     bool in_l2dm(Interface *) const;
     const std::set<FIB_IPNH>& lookup(Node *const) const;
     FIB_L2DM *const& lookup(Interface *const) const;
-    std::vector<Node *> find_ip_nexthops(Node *) const;
 };
 
 bool operator==(const FIB&, const FIB&);

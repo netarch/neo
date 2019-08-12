@@ -1,43 +1,39 @@
 #pragma once
 
-#include <boost/functional/hash.hpp>
+#include <vector>
+#include <unordered_set>
+
 #include "process/process.hpp"
-#include "node.hpp"
-#include "lib/ip.hpp"
+#include "network.hpp"
+
+struct CandHash {
+    size_t operator()(const std::vector<Node *> *const&) const;
+};
+
+struct CandEq {
+    bool operator()(const std::vector<Node *> *const&,
+                    const std::vector<Node *> *const&) const;
+};
 
 class ForwardingProcess : public Process
 {
 private:
-    Node *current_node;
+    std::vector<Node *> start_nodes;
+    std::unordered_set<std::vector<Node *> *, CandHash, CandEq> candidates_hist;
 
-    /*
-     * If ingress_intf is not a L2 switchport, then ingress_intf and l3_nhop
-     * should be nullptr. They should not affect the state.
-     */
-    Interface *ingress_intf;
-    Node *l3_nhop;
+    void update_candidates(State *, const std::vector<Node *>&);
+    void forward_packet(State *) const;
+    void collect_next_hops(State *, const Network&);
 
 public:
-    static std::unordered_set<std::vector<Node *>> selected_nodes_set;
-    ForwardingProcess();
+    ForwardingProcess() = default;
+    ForwardingProcess(const ForwardingProcess&) = delete;
+    ForwardingProcess(ForwardingProcess&&) = delete;
+    ~ForwardingProcess();
 
-    void init();
-    void exec_step(State *state) const override;
-    static const std::vector<Node *> *get_or_create_selection_list(std::vector<Node *>&&);
+    ForwardingProcess& operator=(const ForwardingProcess&) = delete;
+    ForwardingProcess& operator=(ForwardingProcess&&) = delete;
+
+    void init(State *, const std::vector<Node *>&);
+    void exec_step(State *, const Network&) override;
 };
-
-namespace std
-{
-template <>
-struct hash<std::vector<Node *>> {
-    size_t operator()(const vector<Node *>& v) const
-    {
-        size_t seed = 0;
-        for (const Node *node : v) {
-            boost::hash_combine(seed, node);
-        }
-
-        return seed;
-    }
-};
-}

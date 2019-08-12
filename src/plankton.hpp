@@ -8,10 +8,6 @@
 #include "process/forwarding.hpp"
 #include "pan.h"
 
-/*
- * The state of the whole system consists of the network state and the states of
- * the (active) processes.
- */
 class Plankton
 {
 private:
@@ -27,6 +23,10 @@ private:
 
     /* processes */
     ForwardingProcess   fwd;
+    /*
+     * NOTE: if there are more than one process, they need to be chosen
+     * non-deterministically.
+     */
 
     Plankton();
     ~Plankton();
@@ -48,21 +48,6 @@ public:
     /******* functions called by the Promela network model *******/
     /*************************************************************/
 
-    void initialize(State *state);
-    void execute(State *state);
-
-    const Network& get_network()
-    {
-        return this->network;
-    }
-
-    const ForwardingProcess& get_forwarding_process()
-    {
-        return this->fwd;
-    }
-
-    const Policy *get_policy()
-    {
-        return this->policy;
-    }
+    void initialize(State *);
+    void execute(State *);
 };

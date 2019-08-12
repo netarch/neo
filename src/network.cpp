@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <cstring>
 
 #include "network.hpp"
 #include "lib/logger.hpp"
@@ -89,7 +90,7 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-void Network::fib_init(const EqClass *ec)
+void Network::fib_init(State *state, const EqClass *ec)
 {
     fib = new FIB();
     IPv4Address addr = ec->begin()->get_lb();   // the representative address
@@ -111,4 +112,15 @@ void Network::fib_init(const EqClass *ec)
     }
 
     fibs.insert(fib);
+    memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
+}
+
+const std::set<FIB_IPNH>& Network::fib_lookup(Node *const node) const
+{
+    return fib->lookup(node);
+}
+
+FIB_L2DM *const& Network::fib_lookup(Interface *const intf) const
+{
+    return fib->lookup(intf);
 }

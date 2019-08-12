@@ -1,7 +1,4 @@
 #include "policy/policy.hpp"
-#include "plankton.hpp"
-
-static Plankton& plankton = Plankton::get_instance();
 
 Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
 {
@@ -27,26 +24,6 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
     pkt_dst = IPRange<IPv4Address>(dst_str);
 }
 
-const IPRange<IPv4Address>& Policy::get_pkt_src() const
-{
-    return pkt_src;
-}
-
-const IPRange<IPv4Address>& Policy::get_pkt_dst() const
-{
-    return pkt_dst;
-}
-
-EqClasses& Policy::get_ecs()
-{
-    return ECs;
-}
-
-const EqClasses& Policy::get_ecs() const
-{
-    return ECs;
-}
-
 void Policy::compute_ecs(const Network& network)
 {
     ECs.clear();
@@ -64,6 +41,21 @@ void Policy::compute_ecs(const Network& network)
                                 std::to_string(ECs.size()));
 }
 
+const IPRange<IPv4Address>& Policy::get_pkt_src() const
+{
+    return pkt_src;
+}
+
+const IPRange<IPv4Address>& Policy::get_pkt_dst() const
+{
+    return pkt_dst;
+}
+
+const EqClasses& Policy::get_ecs() const
+{
+    return ECs;
+}
+
 std::string Policy::to_string() const
 {
     return "(policy base class)";
@@ -74,23 +66,10 @@ std::string Policy::get_type() const
     return "(policy base class)";
 }
 
-void Policy::config_procs(State *state __attribute__((unused)),
-                          ForwardingProcess& fwd __attribute__((unused))) const
+void Policy::procs_init(
+    State *state __attribute__((unused)),
+    ForwardingProcess& fwd __attribute__((unused))) const
 {
-}
-
-std::vector<Node *> Policy::get_packet_entry_points(State *state) const
-{
-    assert(state);
-    std::vector<Node *> res;
-    const Network& network = plankton.get_network();
-    for (auto& node_entry : network.get_nodes()) {
-        if (node_entry.second->is_l3_only()) {
-            res.push_back(node_entry.second);
-        }
-    }
-
-    return res;
 }
 
 //bool Policy::check_violation(

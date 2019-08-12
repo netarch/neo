@@ -46,6 +46,21 @@ std::string FIB_IPNH::to_string() const
     return ret;
 }
 
+Node *const& FIB_IPNH::get_l3_node() const
+{
+    return l3_node;
+}
+
+Node *const& FIB_IPNH::get_l2_node() const
+{
+    return l2_node;
+}
+
+Interface *const& FIB_IPNH::get_l2_intf() const
+{
+    return l2_intf;
+}
+
 bool operator<(const FIB_IPNH& a, const FIB_IPNH& b)
 {
     if (a.l3_node < b.l3_node) {
@@ -126,18 +141,4 @@ FIB_L2DM *const& FIB::lookup(Interface *const intf) const
 bool operator==(const FIB& a, const FIB& b)
 {
     return (a.iptbl == b.iptbl) && (a.l2tbl == b.l2tbl);
-}
-
-std::vector<Node *> FIB::find_ip_nexthops(Node *node) const
-{
-    std::vector<Node *> res;
-    auto itr = this->iptbl.find(node);
-    if (itr != this->iptbl.end()) {
-        auto& next_hops = itr->second;
-        for (auto& next_hop : next_hops) {
-            res.push_back(next_hop.get_l3_node());
-        }
-    }
-
-    return res;
 }
