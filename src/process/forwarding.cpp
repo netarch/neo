@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "process/forwarding.hpp"
+#include "lib/hash.hpp"
 
 enum exec_type {
     INIT = 0,
@@ -104,14 +105,9 @@ void ForwardingProcess::collect_next_hops(State *state, const Network& net)
         = int(exec_type::FORWARD_PACKET);
 }
 
-size_t CandHash::operator()(const std::vector<Node *> *const& candidates __attribute__((unused))) const
+size_t CandHash::operator()(const std::vector<Node *> *const& candidates) const
 {
-    return 0;
-    //size_t value = 0;
-    //for (Node *node : *candidates) {
-    //    // TODO boost::hash_combine(value, node);
-    //}
-    //return value;
+    return hash::hash(candidates->data(), candidates->size() * sizeof(Node *));
 }
 
 bool CandEq::operator()(const std::vector<Node *> *const& a,

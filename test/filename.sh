@@ -3,8 +3,9 @@
 EXITCODE=0
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 SRC_DIR="$(realpath ${SCRIPT_DIR}/../src)"
+THIRD_PARTY_DIR="$(realpath ${SCRIPT_DIR}/../third_party)"
 TEST_DIR="$(realpath ${SCRIPT_DIR}/../test)"
-FILES=$(basename -a $(find ${SRC_DIR} ${TEST_DIR} -type f) \
+FILES=$(basename -a $(find ${SRC_DIR} ${THIRD_PARTY_DIR} ${TEST_DIR} -type f) \
         | grep -E '\.(c|h|cpp|hpp|pml)$' | sort | uniq -d)
 
 for FILE in $FILES; do

@@ -1,5 +1,4 @@
-#ifndef FS_HPP
-#define FS_HPP
+#pragma once
 
 #include <string>
 #include <cpptoml/cpptoml.hpp>
@@ -15,5 +14,3 @@ std::string append(const std::string&, const std::string&);
 std::shared_ptr<cpptoml::table> get_toml_config(const std::string&);
 
 } // namespace fs
-
-#endif

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <string>
 #include <cmath>
+#include <cstdio>
+#include <string>
+#include <functional>
 
 #include "lib/logger.hpp"
 
