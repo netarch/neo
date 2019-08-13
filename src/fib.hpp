@@ -11,6 +11,7 @@ class FIB_IPNH;
 class FIB;
 #include "node.hpp"
 #include "lib/ip.hpp"
+#include "lib/hash.hpp"
 
 
 class FIB_L2DM  // FIB entry for an L2 domain
@@ -90,14 +91,13 @@ struct hash<FIB_L2DM> {
         size_t value = 0;
         hash<Node *> node_hf;
         hash<Interface *> intf_hf;
-
         for (const auto& entry : l2dm.tbl) {
             value <<= node_hf(entry.first) & 1;
             for (const auto& nh : entry.second) {
-                value ^= node_hf(nh.first) + intf_hf(nh.second);
+                ::hash::hash_combine(value, node_hf(nh.first));
+                ::hash::hash_combine(value, intf_hf(nh.second));
             }
         }
-
         return value;
     };
 };
@@ -125,13 +125,9 @@ struct hash<FIB_IPNH> {
         size_t value = 0;
         hash<Node *> node_hf;
         hash<Interface *> intf_hf;
-
-        value ^= node_hf(next_hop.l3_node);
-        value <<= 1;
-        value ^= node_hf(next_hop.l2_node);
-        value <<= 1;
-        value ^= intf_hf(next_hop.l2_intf);
-
+        ::hash::hash_combine(value, node_hf(next_hop.l3_node));
+        ::hash::hash_combine(value, node_hf(next_hop.l2_node));
+        ::hash::hash_combine(value, intf_hf(next_hop.l2_intf));
         return value;
     }
 };
@@ -140,7 +136,6 @@ template <>
 struct hash<FIB> {
     size_t operator()(const FIB& fib) const
     {
-        size_t value = 0;
         hash<Node *> node_hf;
         hash<Interface *> intf_hf;
         hash<FIB_IPNH> ipnh_hf;
@@ -150,18 +145,19 @@ struct hash<FIB> {
         for (const auto& entry : fib.iptbl) {
             iptbl_value <<= node_hf(entry.first) & 1;
             for (const auto& nh : entry.second) {
-                iptbl_value ^= ipnh_hf(nh);
+                ::hash::hash_combine(iptbl_value, ipnh_hf(nh));
             }
         }
 
         size_t l2tbl_value = 0;
         for (const auto& entry : fib.l2tbl) {
             l2tbl_value <<= intf_hf(entry.first) & 1;
-            l2tbl_value ^= l2dm_hf(entry.second);
+            ::hash::hash_combine(l2tbl_value, l2dm_hf(entry.second));
         }
 
-        value = (iptbl_value + 1) ^ l2tbl_value;
-
+        size_t value = 0;
+        ::hash::hash_combine(value, iptbl_value);
+        ::hash::hash_combine(value, l2tbl_value);
         return value;
     };
 };
