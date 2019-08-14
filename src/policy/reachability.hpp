@@ -11,7 +11,7 @@
  * destination addresses within pkt_src and pkt_dst, respectively, the packet
  * will eventually be accepted by one of final_nodes when reachable is true.
  * Otherwise, if reachable is false, the packet will either be dropped by one of
- * final_nodes, or never reach any of final_nodes.
+ * final_nodes, or never be seen by any of final_nodes.
  */
 class ReachabilityPolicy : public Policy
 {

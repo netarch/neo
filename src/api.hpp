@@ -6,6 +6,7 @@ extern "C" {
 
 void initialize(struct State *);
 void execute(struct State *);
+void report(struct State *);
 
 #ifdef __cplusplus
 }

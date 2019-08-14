@@ -125,7 +125,7 @@ void signal_handler(int sig)
 
 extern "C" int spin_main(int argc, const char *argv[]);
 
-int Plankton::verify(const EqClass *ec, const Policy *policy)
+int Plankton::verify(EqClass *ec, Policy *policy)
 {
     static const char spin_param0[] = "neo";
     static const char spin_param1[] = "-m100000";
@@ -174,8 +174,8 @@ int Plankton::run()
     }
 
     // run verifier for each EC of each policy
-    for (const Policy *policy : policies) {
-        for (const EqClass *ec : policy->get_ecs()) {
+    for (Policy *policy : policies) {
+        for (EqClass *ec : policy->get_ecs()) {
             int childpid;
 
             if ((childpid = fork()) < 0) {
@@ -214,4 +214,10 @@ void Plankton::initialize(State *state)
 void Plankton::execute(State *state)
 {
     fwd.exec_step(state);
+    policy->check_violation(state);
+}
+
+void Plankton::report(State *state)
+{
+    policy->report(state);
 }

@@ -18,8 +18,8 @@ private:
     std::list<Policy *> policies;
 
     /* per process variables */
-    const EqClass   *ec;        // the EC being verified
-    const Policy    *policy;    // the policy being verified
+    EqClass   *ec;        // the EC being verified
+    Policy    *policy;    // the policy being verified
 
     /* processes */
     ForwardingProcess   fwd;
@@ -30,7 +30,7 @@ private:
 
     Plankton();
     ~Plankton();
-    int verify(const EqClass *, const Policy *);
+    int verify(EqClass *, Policy *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -44,10 +44,9 @@ public:
     int run();
 
 
-    /*************************************************************/
-    /******* functions called by the Promela network model *******/
-    /*************************************************************/
+    /***** functions called by the Promela network model *****/
 
     void initialize(State *);
     void execute(State *);
+    void report(State *);
 };

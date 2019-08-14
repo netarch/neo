@@ -6,12 +6,17 @@
 
 static Plankton& plankton = Plankton::get_instance();
 
-void initialize(struct State *state)
+void initialize(State *state)
 {
     plankton.initialize(state);
 }
 
-void execute(struct State *state)
+void execute(State *state)
 {
     plankton.execute(state);
+}
+
+void report(State *state)
+{
+    plankton.report(state);
 }

@@ -52,4 +52,8 @@ init {
         }
     :: else -> break
     od
+
+    c_code {
+        report(&now);
+    }
 }

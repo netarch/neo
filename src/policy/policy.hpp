@@ -13,9 +13,10 @@
 class Policy
 {
 protected:
-    IPRange<IPv4Address> pkt_src;
-    IPRange<IPv4Address> pkt_dst;
-    EqClasses            ECs;       // ECs to be verified
+    IPRange<IPv4Address>    pkt_src;
+    IPRange<IPv4Address>    pkt_dst;
+    EqClasses               ECs;        // ECs to be verified
+    bool                    violated;
 
 public:
     Policy(const std::shared_ptr<cpptoml::table>&);
@@ -29,5 +30,6 @@ public:
     virtual std::string to_string() const;
     virtual std::string get_type() const;
     virtual void procs_init(State *, ForwardingProcess&) const;
-    //virtual bool check_violation(const Network&, const ForwardingProcess&);
+    virtual void check_violation(State *);
+    virtual void report(State *) const;
 };

@@ -1,6 +1,6 @@
 #include "policy/policy.hpp"
 
-Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
+Policy::Policy(const std::shared_ptr<cpptoml::table>& config): violated(false)
 {
     auto pkt_src_str = config->get_as<std::string>("pkt_src");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
@@ -72,9 +72,10 @@ void Policy::procs_init(
 {
 }
 
-//bool Policy::check_violation(
-//    const Network& net __attribute__((unused)),
-//    const ForwardingProcess& fwd __attribute__((unused)))
-//{
-//    return false;
-//}
+void Policy::check_violation(State *state __attribute__((unused)))
+{
+}
+
+void Policy::report(State *state __attribute__((unused))) const
+{
+}
