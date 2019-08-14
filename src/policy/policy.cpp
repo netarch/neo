@@ -1,6 +1,7 @@
 #include "policy/policy.hpp"
 
-Policy::Policy(const std::shared_ptr<cpptoml::table>& config): violated(false)
+Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
+    : check(false), violated(false)
 {
     auto pkt_src_str = config->get_as<std::string>("pkt_src");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
@@ -54,6 +55,16 @@ const IPRange<IPv4Address>& Policy::get_pkt_dst() const
 const EqClasses& Policy::get_ecs() const
 {
     return ECs;
+}
+
+void Policy::enable_check()
+{
+    check = true;
+}
+
+void Policy::disable_check()
+{
+    check = false;
 }
 
 std::string Policy::to_string() const

@@ -15,7 +15,8 @@ class Policy
 protected:
     IPRange<IPv4Address>    pkt_src;
     IPRange<IPv4Address>    pkt_dst;
-    EqClasses               ECs;        // ECs to be verified
+    EqClasses               ECs;    // ECs to be verified
+    bool                    check;  // whether the policy should be checked
     bool                    violated;
 
 public:
@@ -26,6 +27,8 @@ public:
     const IPRange<IPv4Address>& get_pkt_src() const;
     const IPRange<IPv4Address>& get_pkt_dst() const;
     const EqClasses& get_ecs() const;
+    void enable_check();
+    void disable_check();
 
     virtual std::string to_string() const;
     virtual std::string get_type() const;
