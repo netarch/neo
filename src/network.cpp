@@ -7,13 +7,8 @@
 #include "lib/logger.hpp"
 #include "middlebox/middlebox.hpp"
 
-Network::Network(): fib(nullptr)
-{
-}
-
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config)
-    : fib(nullptr)
 {
     if (nodes_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
@@ -92,7 +87,7 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
 
 void Network::fib_init(State *state, const EqClass *ec)
 {
-    fib = new FIB();
+    FIB *fib = new FIB();
     IPv4Address addr = ec->begin()->get_lb();   // the representative address
 
     for (const auto& pair : nodes) {
@@ -113,14 +108,4 @@ void Network::fib_init(State *state, const EqClass *ec)
 
     fibs.insert(fib);
     memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
-}
-
-const std::set<FIB_IPNH>& Network::fib_lookup(Node *const node) const
-{
-    return fib->lookup(node);
-}
-
-FIB_L2DM *const& Network::fib_lookup(Interface *const intf) const
-{
-    return fib->lookup(intf);
 }

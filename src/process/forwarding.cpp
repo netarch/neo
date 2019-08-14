@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "process/forwarding.hpp"
+#include "fib.hpp"
 #include "lib/hash.hpp"
 
 enum exec_type {
@@ -26,7 +27,7 @@ void ForwardingProcess::init(State *state,
     memset(state->network_state[state->itr_ec].pkt_location, 0, sizeof(Node *));
 }
 
-void ForwardingProcess::exec_step(State *state, const Network& net)
+void ForwardingProcess::exec_step(State *state)
 {
     if (!enabled) {
         return;
@@ -41,7 +42,7 @@ void ForwardingProcess::exec_step(State *state, const Network& net)
             forward_packet(state);
             break;
         case exec_type::COLLECT_NHOPS:
-            collect_next_hops(state, net);
+            collect_next_hops(state);
             break;
         default:
             Logger::get_instance().err("forwarding process: unknown step");
@@ -84,12 +85,14 @@ void ForwardingProcess::forward_packet(State *state) const
     state->choice_count = 1;    // deterministic choice
 }
 
-void ForwardingProcess::collect_next_hops(State *state, const Network& net)
+void ForwardingProcess::collect_next_hops(State *state)
 {
     Node *current_node;
     memcpy(&current_node, state->network_state[state->itr_ec].pkt_location,
            sizeof(Node *));
-    const std::set<FIB_IPNH>& next_hops = net.fib_lookup(current_node);
+    FIB *fib;
+    memcpy(&fib, state->network_state[state->itr_ec].fib, sizeof(FIB *));
+    const std::set<FIB_IPNH>& next_hops = fib->lookup(current_node);
     if (next_hops.empty()) {
         Logger::get_instance().info("Packet dropped by "
                                     + current_node->to_string());

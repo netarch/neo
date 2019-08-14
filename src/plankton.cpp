@@ -141,7 +141,6 @@ int Plankton::verify(const EqClass *ec, const Policy *policy)
     // reset logger
     Logger::get_instance().set_file(logfile);
     Logger::get_instance().set_verbose(false);
-    Logger::get_instance().info("Start verification");
     Logger::get_instance().info("EC: " + ec->to_string());
     Logger::get_instance().info("Policy: " + policy->to_string());
 
@@ -214,5 +213,5 @@ void Plankton::initialize(State *state)
 
 void Plankton::execute(State *state)
 {
-    fwd.exec_step(state, network);
+    fwd.exec_step(state);
 }

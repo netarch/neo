@@ -15,5 +15,5 @@ public:
     void disable();
     bool is_enabled() const;
 
-    virtual void exec_step(State *, const Network&) = 0;
+    virtual void exec_step(State *) = 0;
 };

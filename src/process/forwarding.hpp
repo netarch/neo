@@ -4,7 +4,7 @@
 #include <unordered_set>
 
 #include "process/process.hpp"
-#include "network.hpp"
+#include "node.hpp"
 
 struct CandHash {
     size_t operator()(const std::vector<Node *> *const&) const;
@@ -23,7 +23,7 @@ private:
 
     void update_candidates(State *, const std::vector<Node *>&);
     void forward_packet(State *) const;
-    void collect_next_hops(State *, const Network&);
+    void collect_next_hops(State *);
 
 public:
     ForwardingProcess() = default;
@@ -35,5 +35,5 @@ public:
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
     void init(State *, const std::vector<Node *>&);
-    void exec_step(State *, const Network&) override;
+    void exec_step(State *) override;
 };
