@@ -10,8 +10,8 @@
  * For all possible packets starting from any of start_nodes, with source and
  * destination addresses within pkt_src and pkt_dst, respectively, the packet
  * will eventually be accepted by one of final_nodes when reachable is true.
- * Otherwise, if reachable is false, the packet will either be dropped by one of
- * final_nodes, or never be seen by any of final_nodes.
+ * Otherwise, if reachable is false, the packet will either be dropped, or be
+ * accepted by none of the final_nodes.
  */
 class ReachabilityPolicy : public Policy
 {
@@ -26,4 +26,6 @@ public:
     std::string to_string() const override;
     std::string get_type() const override;
     void procs_init(State *, ForwardingProcess&) const override;
+    void check_violation(State *) override;
+    void report(State *) const override;
 };

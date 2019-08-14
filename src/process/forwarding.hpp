@@ -6,6 +6,14 @@
 #include "process/process.hpp"
 #include "node.hpp"
 
+enum fwd_mode {
+    INIT = 0,
+    FORWARD_PACKET = 1,
+    COLLECT_NHOPS = 2,
+    ACCEPTED = 3,
+    DROPPED = 4
+};
+
 struct CandHash {
     size_t operator()(const std::vector<Node *> *const&) const;
 };

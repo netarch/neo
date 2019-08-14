@@ -66,3 +66,46 @@ void ReachabilityPolicy::procs_init(State *state,
     fwd.init(state, start_nodes);
     fwd.enable();
 }
+
+void ReachabilityPolicy::check_violation(State *state)
+{
+    bool reached;
+    auto& current_fwd_mode = state->network_state[state->itr_ec].fwd_mode;
+
+    if (current_fwd_mode == fwd_mode::ACCEPTED) {
+        Node *final_node;
+        memcpy(&final_node,
+               state->network_state[state->itr_ec].pkt_location,
+               sizeof(Node *));
+
+        reached = false;
+        for (Node *node : final_nodes) {
+            if (node == final_node) {
+                reached = true;
+            }
+        }
+    } else if (current_fwd_mode == fwd_mode::DROPPED) {
+        reached = false;
+    } else {
+        /*
+         * If the packet hasn't been accepted or dropped, there is nothing to
+         * check.
+         */
+        return;
+    }
+
+    if (reachable != reached) {
+        violated = true;
+    }
+}
+
+void ReachabilityPolicy::report(State *state __attribute__((unused))) const
+{
+    if (violated) {
+        Logger::get_instance().info("Policy violated!");
+        // TODO: we may print out the state to show how it's violated
+    } else {
+        Logger::get_instance().info("Policy holds!");
+    }
+    // TODO: how do we collect the results from all ECs
+}

@@ -4,12 +4,6 @@
 #include "fib.hpp"
 #include "lib/hash.hpp"
 
-enum exec_type {
-    INIT = 0,
-    FORWARD_PACKET = 1,
-    COLLECT_NHOPS = 2
-};
-
 ForwardingProcess::~ForwardingProcess()
 {
     for (auto& candidates : candidates_hist) {
@@ -23,7 +17,7 @@ void ForwardingProcess::init(State *state,
     this->start_nodes = start_nodes;
     update_candidates(state, start_nodes);
     state->network_state[state->itr_ec].fwd_mode
-        = int(exec_type::FORWARD_PACKET);
+        = int(fwd_mode::FORWARD_PACKET);
     memset(state->network_state[state->itr_ec].pkt_location, 0, sizeof(Node *));
 }
 
@@ -35,14 +29,20 @@ void ForwardingProcess::exec_step(State *state)
 
     auto& exec_mode = state->network_state[state->itr_ec].fwd_mode;
     switch (exec_mode) {
-        case exec_type::INIT:
+        case fwd_mode::INIT:
             init(state, start_nodes);
             break;
-        case exec_type::FORWARD_PACKET:
+        case fwd_mode::FORWARD_PACKET:
             forward_packet(state);
             break;
-        case exec_type::COLLECT_NHOPS:
+        case fwd_mode::COLLECT_NHOPS:
             collect_next_hops(state);
+            break;
+        case fwd_mode::ACCEPTED:
+            state->choice_count = 0;
+            break;
+        case fwd_mode::DROPPED:
+            state->choice_count = 0;
             break;
         default:
             Logger::get_instance().err("forwarding process: unknown step");
@@ -74,6 +74,8 @@ void ForwardingProcess::forward_packet(State *state) const
     if (next_hop == current_node) {
         Logger::get_instance().info("Packet delivered at "
                                     + next_hop->to_string());
+        state->network_state[state->itr_ec].fwd_mode
+            = int(fwd_mode::ACCEPTED);
         state->choice_count = 0;
         return;
     }
@@ -81,7 +83,7 @@ void ForwardingProcess::forward_packet(State *state) const
            &next_hop, sizeof(Node *));
     Logger::get_instance().info("Packet forwarded to " + next_hop->to_string());
     state->network_state[state->itr_ec].fwd_mode
-        = int(exec_type::COLLECT_NHOPS);
+        = int(fwd_mode::COLLECT_NHOPS);
     state->choice_count = 1;    // deterministic choice
 }
 
@@ -96,6 +98,8 @@ void ForwardingProcess::collect_next_hops(State *state)
     if (next_hops.empty()) {
         Logger::get_instance().info("Packet dropped by "
                                     + current_node->to_string());
+        state->network_state[state->itr_ec].fwd_mode
+            = int(fwd_mode::DROPPED);
         state->choice_count = 0;
         return;
     }
@@ -105,7 +109,7 @@ void ForwardingProcess::collect_next_hops(State *state)
     }
     update_candidates(state, l3_next_hops);
     state->network_state[state->itr_ec].fwd_mode
-        = int(exec_type::FORWARD_PACKET);
+        = int(fwd_mode::FORWARD_PACKET);
 }
 
 size_t CandHash::operator()(const std::vector<Node *> *const& candidates) const
