@@ -116,5 +116,8 @@ size_t CandHash::operator()(const std::vector<Node *> *const& candidates) const
 bool CandEq::operator()(const std::vector<Node *> *const& a,
                         const std::vector<Node *> *const& b) const
 {
-    return *a == *b;
+    if (a->size() != b->size()) {
+        return false;
+    }
+    return memcmp(a->data(), b->data(), a->size() * sizeof(Node *)) == 0;
 }
