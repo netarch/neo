@@ -17,7 +17,7 @@ srcdir      = @srcdir@
 SRCS        = $(shell find $(srcdir)/src $(srcdir)/third_party -type f | \
 	        grep -E '\.(c|cpp)$$')
 OBJS        = $(notdir $(patsubst %.c,%.o,$(SRCS:%.cpp=%.o))) pan.o
-VPATH       = $(shell find $(srcdir)/src $(srcdir)/third_party -type d)
+VPATH       = $(shell find $(srcdir)/src $(srcdir)/third_party -type d) .
 
 # Install directories
 prefix      = @prefix@
@@ -60,9 +60,6 @@ $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(OBJS): pan.h
-
-pan.o: pan.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ pan.c
 
 pan.h: pan.orig.h
 	sed $< \
