@@ -96,6 +96,7 @@ void ReachabilityPolicy::check_violation(State *state)
 
     if (reachable != reached) {
         violated = true;
+        state->choice_count = 0;
     }
 }
 
@@ -104,8 +105,12 @@ void ReachabilityPolicy::report(State *state __attribute__((unused))) const
     if (violated) {
         Logger::get_instance().info("Policy violated!");
         // TODO: we may print out the state to show how it's violated
+        // TODO: notify the parent process and end all processes for this policy
+        // We need to separate policy process groups first; assume one policy
+        // for now.
     } else {
         Logger::get_instance().info("Policy holds!");
     }
     // TODO: how do we collect the results from all ECs
+    // Just send back signal to the parent and do it there.
 }

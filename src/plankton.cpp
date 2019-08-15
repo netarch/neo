@@ -159,6 +159,7 @@ int Plankton::verify(EqClass *ec, Policy *policy)
 
     // run SPIN verifier
     return spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
+    /* NOTE: spin_main will not return. */
 }
 
 int Plankton::run()

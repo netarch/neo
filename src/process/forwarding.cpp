@@ -39,8 +39,6 @@ void ForwardingProcess::exec_step(State *state)
             collect_next_hops(state);
             break;
         case fwd_mode::ACCEPTED:
-            state->choice_count = 0;
-            break;
         case fwd_mode::DROPPED:
             state->choice_count = 0;
             break;
