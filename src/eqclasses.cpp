@@ -10,7 +10,25 @@ EqClasses::~EqClasses()
     }
 }
 
-EqClass *EqClasses::split_intersected_ec(EqClass *ec, const ECRange& range)
+std::set<EqClass *> EqClasses::get_overlapped_ecs(const ECRange& range) const
+{
+    std::set<EqClass *> overlapped_ecs;
+    auto ecrange = allranges.find(range);
+    if (ecrange != allranges.end()) {
+        for (std::set<ECRange>::const_reverse_iterator r
+                = std::make_reverse_iterator(ecrange);
+                r != allranges.rend() && *r == range; ++r) {
+            overlapped_ecs.insert(r->get_ec());
+        }
+        for (std::set<ECRange>::const_iterator r = ecrange;
+                r != allranges.end() && *r == range; ++r) {
+            overlapped_ecs.insert(r->get_ec());
+        }
+    }
+    return overlapped_ecs;
+}
+
+void EqClasses::split_intersected_ec(EqClass *ec, const ECRange& range)
 {
     EqClass *new_ec = new EqClass();
 
@@ -41,10 +59,9 @@ EqClass *EqClasses::split_intersected_ec(EqClass *ec, const ECRange& range)
     }
 
     ECs.insert(new_ec);
-    return new_ec;
 }
 
-EqClass *EqClasses::add_non_overlapped_ec(const ECRange& range)
+void EqClasses::add_non_overlapped_ec(const ECRange& range)
 {
     EqClass *new_ec = new EqClass();
     IPv4Address lb = range.get_lb();
@@ -69,71 +86,65 @@ EqClass *EqClasses::add_non_overlapped_ec(const ECRange& range)
 
     if (new_ec->empty()) {
         delete new_ec;
-        return nullptr;
     } else {
         ECs.insert(new_ec);
-        return new_ec;
     }
 }
 
-std::set<EqClass *> EqClasses::add_ec(const ECRange& range)
+void EqClasses::add_ec(const ECRange& new_range)
 {
-    std::set<EqClass *> new_ecs;
-
-    // apply mask range
-    IPv4Address lb = std::max(range.get_lb(), mask_range.get_lb());
-    IPv4Address ub = std::min(range.get_ub(), mask_range.get_ub());
-    if (lb > ub) {
-        return new_ecs;
-    }
-    ECRange new_range(lb, ub);
-
-    // get overlapped ECs
-    std::set<EqClass *> overlapped_ecs;
-    if (allranges.find(new_range) != allranges.end()) {
-        for (const ECRange& ecrange : allranges) {
-            if (ecrange == new_range) {
-                overlapped_ecs.insert(ecrange.get_ec());
-            }
-        }
-    }
+    std::set<EqClass *> overlapped_ecs = get_overlapped_ecs(new_range);
 
     // add overlapped ECs
     for (EqClass *ec : overlapped_ecs) {
-        new_ecs.insert(ec);
         if (!new_range.contains(*ec)) {
-            // EC is partially inside the new range
-            new_ecs.insert(split_intersected_ec(ec, new_range));
+            // ec is partially inside the new range
+            split_intersected_ec(ec, new_range);
         }
     }
 
     // add non-overlapped subranges of the new range, if any, to a new EC
-    EqClass *new_ec = add_non_overlapped_ec(new_range);
-    if (new_ec) {
-        new_ecs.insert(new_ec);
+    add_non_overlapped_ec(new_range);
+}
+
+void EqClasses::add_ec(const IPNetwork<IPv4Address>& net)
+{
+    add_ec(ECRange(net));
+}
+
+void EqClasses::add_ec(const IPv4Address& addr)
+{
+    add_ec(ECRange(addr, addr));
+}
+
+void EqClasses::add_mask_range(const ECRange& mask_range,
+                               const EqClasses& all_ECs)
+{
+    clear();
+    std::set<EqClass *> overlapped_ecs = all_ECs.get_overlapped_ecs(mask_range);
+
+    for (const EqClass *ec : overlapped_ecs) {
+        EqClass *new_ec = new EqClass();
+        for (ECRange ecrange : *ec) {
+            if (ecrange == mask_range) {
+                // overlapped range, trim at the intersections (if any)
+                if (ecrange.get_lb() < mask_range.get_lb()) {
+                    ecrange.set_lb(mask_range.get_lb());
+                }
+                if (mask_range.get_ub() < ecrange.get_ub()) {
+                    ecrange.set_ub(mask_range.get_ub());
+                }
+                // add the contained range to the new EC
+                ecrange.set_ec(new_ec);
+                new_ec->add_range(ecrange);
+                allranges.insert(ecrange);
+            } // else: non-overlapped range, do nothing
+        }
+        ECs.insert(new_ec);
     }
 
-    return new_ecs;
-}
-
-std::set<EqClass *> EqClasses::add_ec(const IPNetwork<IPv4Address>& net)
-{
-    return add_ec(ECRange(net));
-}
-
-std::set<EqClass *> EqClasses::add_ec(const IPv4Address& addr)
-{
-    return add_ec(ECRange(addr, addr));
-}
-
-void EqClasses::set_mask_range(const IPRange<IPv4Address>& range)
-{
-    mask_range = range;
-}
-
-void EqClasses::set_mask_range(IPRange<IPv4Address>&& range)
-{
-    mask_range = range;
+    // add non-overlapped subranges of the mask range, if any, to a new EC
+    add_non_overlapped_ec(mask_range);
 }
 
 std::string EqClasses::to_string() const
@@ -143,6 +154,11 @@ std::string EqClasses::to_string() const
         ret += ec->to_string() + "\n";
     }
     return ret;
+}
+
+bool EqClasses::empty() const
+{
+    return ECs.empty();
 }
 
 EqClasses::size_type EqClasses::size() const

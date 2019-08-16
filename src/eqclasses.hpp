@@ -11,10 +11,10 @@ class EqClasses
 private:
     std::set<ECRange> allranges;
     std::set<EqClass *> ECs;
-    IPRange<IPv4Address> mask_range;
 
-    EqClass *split_intersected_ec(EqClass *ec, const ECRange& range);
-    EqClass *add_non_overlapped_ec(const ECRange&);
+    std::set<EqClass *> get_overlapped_ecs(const ECRange&) const;
+    void split_intersected_ec(EqClass *ec, const ECRange& range);
+    void add_non_overlapped_ec(const ECRange&);
 
 public:
     typedef std::set<EqClass *>::size_type size_type;
@@ -26,13 +26,13 @@ public:
     EqClasses() = default;
     ~EqClasses();
 
-    std::set<EqClass *> add_ec(const ECRange&);
-    std::set<EqClass *> add_ec(const IPNetwork<IPv4Address>&);
-    std::set<EqClass *> add_ec(const IPv4Address&);
-    void set_mask_range(const IPRange<IPv4Address>&);
-    void set_mask_range(IPRange<IPv4Address>&&);
+    void add_ec(const ECRange&);
+    void add_ec(const IPNetwork<IPv4Address>&);
+    void add_ec(const IPv4Address&);
+    void add_mask_range(const ECRange&, const EqClasses&);
 
     std::string to_string() const;
+    bool empty() const;
     size_type size() const;
     iterator erase(const_iterator);
     void clear();

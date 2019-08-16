@@ -22,8 +22,6 @@ public:
     typedef std::set<ECRange>::reverse_iterator reverse_iterator;
     typedef std::set<ECRange>::const_reverse_iterator const_reverse_iterator;
 
-    EqClass() = default;
-
     std::string to_string() const;
     bool empty() const;
     void add_range(const ECRange&);

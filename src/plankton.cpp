@@ -10,19 +10,9 @@
 #include "plankton.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
-#include "policy/reachability.hpp"
-#include "policy/stateful-reachability.hpp"
-#include "policy/waypoint.hpp"
 
-Plankton::Plankton(): ec(nullptr), policy(nullptr)
+Plankton::Plankton(): policy(nullptr), pre_ec(nullptr), ec(nullptr)
 {
-}
-
-Plankton::~Plankton()
-{
-    for (const Policy *policy : policies) {
-        delete policy;
-    }
 }
 
 Plankton& Plankton::get_instance()
@@ -45,47 +35,19 @@ void Plankton::init(bool verbose, bool rm_out_dir, size_t dop,
     Logger::get_instance().set_file(fs::append(out_dir, "main.log"));
     Logger::get_instance().set_verbose(verbose);
 
-    Logger::get_instance().info("Loading network configurations...");
-
     auto config = cpptoml::parse_file(in_file);
     auto nodes_config = config->get_table_array("nodes");
     auto links_config = config->get_table_array("links");
     auto policies_config = config->get_table_array("policies");
 
     network = Network(nodes_config, links_config);
-
-    // Load policies configurations
-    if (policies_config) {
-        for (auto policy_config : *policies_config) {
-            Policy *policy = nullptr;
-            auto type = policy_config->get_as<std::string>("type");
-
-            if (!type) {
-                Logger::get_instance().err("Missing policy type");
-            }
-
-            if (*type == "reachability") {
-                policy = new ReachabilityPolicy(policy_config, network);
-            } else if (*type == "stateful-reachability") {
-                policy = new StatefulReachabilityPolicy(policy_config, network);
-            } else if (*type == "waypoint") {
-                policy = new WaypointPolicy(policy_config, network);
-            } else {
-                Logger::get_instance().err("Unknown policy type: " + *type);
-            }
-
-            policies.push_back(policy);
-        }
-    }
-    Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +
-                                " policies");
-
-    Logger::get_instance().info("Finished loading network configurations");
+    policies = Policies(policies_config, network);
 }
 
 namespace
 {
-std::unordered_set<int> tasks;  // active child processes (set of PIDs)
+bool violated;  // whether the current verifying policy is violated
+std::unordered_set<int> tasks;
 const int sigs[] = {SIGCHLD, SIGUSR1, SIGINT, SIGQUIT, SIGTERM, SIGKILL};
 
 inline void kill_all(int sig)
@@ -102,8 +64,6 @@ void signal_handler(int sig)
             int pid, status;
             while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
                 tasks.erase(pid);
-                Logger::get_instance().info("Joined process " +
-                                            std::to_string(pid));
                 if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
                     Logger::get_instance().warn("Process " + std::to_string(pid)
                                                 + " failed");
@@ -111,8 +71,9 @@ void signal_handler(int sig)
             }
             break;
         case SIGUSR1:   // policy violated
+            violated = true;
             kill_all(SIGTERM);
-            exit(0);
+            break;
         case SIGINT:
         case SIGQUIT:
         case SIGTERM:
@@ -125,7 +86,7 @@ void signal_handler(int sig)
 
 extern "C" int spin_main(int argc, const char *argv[]);
 
-int Plankton::verify(EqClass *ec, Policy *policy)
+void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
     static const char spin_param0[] = "neo";
     static const char spin_param1[] = "-m100000";
@@ -154,12 +115,27 @@ int Plankton::verify(EqClass *ec, Policy *policy)
     close(fd);
 
     // configure per process variables
-    this->ec = ec;
     this->policy = policy;
+    this->pre_ec = pre_ec;
+    this->ec = ec;
 
     // run SPIN verifier
-    return spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
-    /* NOTE: spin_main will not return. */
+    exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
+}
+
+void Plankton::dispatch(Policy *policy, EqClass *pre_ec, EqClass *ec)
+{
+    int childpid;
+    if ((childpid = fork()) < 0) {
+        Logger::get_instance().err("Failed to spawn new process", errno);
+    } else if (childpid == 0) {
+        verify(policy, pre_ec, ec);
+    }
+
+    tasks.insert(childpid);
+    while (tasks.size() >= max_jobs) {
+        pause();
+    }
 }
 
 int Plankton::run()
@@ -169,35 +145,31 @@ int Plankton::run()
         signal(sigs[i], signal_handler);
     }
 
-    // compute ECs of each policy
     for (Policy *policy : policies) {
+        Logger::get_instance().info("Verifying " + policy->to_string());
         policy->compute_ecs(network);
-    }
+        Logger::get_instance().info("Packet ECs: "
+                                    + std::to_string(policy->num_ecs()));
+        violated = false;
 
-    // run verifier for each EC of each policy
-    for (Policy *policy : policies) {
         for (EqClass *ec : policy->get_ecs()) {
-            int childpid;
-
-            if ((childpid = fork()) < 0) {
-                Logger::get_instance().err("Failed to fork new processes",
-                                           errno);
-            } else if (childpid == 0) {
-                return verify(ec, policy);
+            for (EqClass *pre_ec : policy->get_pre_ecs()) {
+                dispatch(policy, pre_ec, ec);
             }
-
-            Logger::get_instance().info("Spawned process " +
-                                        std::to_string(childpid));
-            tasks.insert(childpid);
-            while (tasks.size() >= max_jobs) {
-                pause();
+            if (policy->get_pre_ecs().empty()) {
+                dispatch(policy, nullptr, ec);
             }
         }
-    }
+        // wait until all tasks are done
+        while (!tasks.empty()) {
+            pause();
+        }
 
-    // wait until all tasks are done
-    while (!tasks.empty()) {
-        pause();
+        if (violated) {
+            Logger::get_instance().info("Policy violated");
+        } else {
+            Logger::get_instance().info("Policy holds");
+        }
     }
 
     return 0;
@@ -205,17 +177,31 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    state->itr_ec = 0;
-    network.fib_init(state, ec);
+    if (state->itr_ec == 0) {
+        if (pre_ec) {
+            network.fib_init(state, pre_ec);
+        } else {
+            network.fib_init(state, ec);
+        }
+    } else {
+        network.fib_init(state, ec);
+    }
+
     // TODO: initialize update history
+
     policy->procs_init(state, fwd);
-    Logger::get_instance().info("Initialization finished");
+    //Logger::get_instance().info("Initialization finished");
 }
 
 void Plankton::execute(State *state)
 {
     fwd.exec_step(state);
     policy->check_violation(state);
+
+    if (state->choice_count == 0 && state->itr_ec == 0 && pre_ec) {
+        state->itr_ec = 1;
+        initialize(state);
+    }
 }
 
 void Plankton::report(State *state)

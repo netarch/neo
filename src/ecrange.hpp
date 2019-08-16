@@ -15,7 +15,7 @@ class ECRange;
 class ECRange : public IPRange<IPv4Address>
 {
 private:
-    EqClass *EC;
+    EqClass *ec;
 
     friend bool operator< (const ECRange&, const ECRange&);
     friend bool operator<=(const ECRange&, const ECRange&);

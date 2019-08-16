@@ -1,4 +1,8 @@
 #include "policy/policy.hpp"
+#include "lib/logger.hpp"
+#include "policy/reachability.hpp"
+#include "policy/stateful-reachability.hpp"
+#include "policy/waypoint.hpp"
 
 Policy::Policy(const std::shared_ptr<cpptoml::table>& config): violated(false)
 {
@@ -24,23 +28,6 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config): violated(false)
     pkt_dst = IPRange<IPv4Address>(dst_str);
 }
 
-void Policy::compute_ecs(const Network& network)
-{
-    ECs.clear();
-    ECs.set_mask_range(pkt_dst);
-
-    for (const auto& node : network.get_nodes()) {
-        for (const auto& intf : node.second->get_intfs_l3()) {
-            ECs.add_ec(intf.first);
-        }
-        for (const Route& route : node.second->get_rib()) {
-            ECs.add_ec(route.get_network());
-        }
-    }
-    Logger::get_instance().info("Packet ECs for " + get_type() + ": " +
-                                std::to_string(ECs.size()));
-}
-
 const IPRange<IPv4Address>& Policy::get_pkt_src() const
 {
     return pkt_src;
@@ -56,6 +43,16 @@ const EqClasses& Policy::get_ecs() const
     return ECs;
 }
 
+const EqClasses& Policy::get_pre_ecs() const
+{
+    return pre_ECs;
+}
+
+size_t Policy::num_ecs() const
+{
+    return ECs.size() * (pre_ECs.size() == 0 ? 1 : pre_ECs.size());
+}
+
 std::string Policy::to_string() const
 {
     return "(policy base class)";
@@ -64,6 +61,24 @@ std::string Policy::to_string() const
 std::string Policy::get_type() const
 {
     return "(policy base class)";
+}
+
+void Policy::compute_ecs(const Network& network)
+{
+    static EqClasses all_ECs;
+
+    if (all_ECs.empty()) {
+        for (const auto& node : network.get_nodes()) {
+            for (const auto& intf : node.second->get_intfs_l3()) {
+                all_ECs.add_ec(intf.first);
+            }
+            for (const Route& route : node.second->get_rib()) {
+                all_ECs.add_ec(route.get_network());
+            }
+        }
+    }
+
+    ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
 void Policy::procs_init(
@@ -78,4 +93,80 @@ void Policy::check_violation(State *state __attribute__((unused)))
 
 void Policy::report(State *state __attribute__((unused))) const
 {
+}
+
+Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
+                   const Network& network)
+{
+    if (configs) {
+        for (auto config : *configs) {
+            Policy *policy = nullptr;
+            auto type = config->get_as<std::string>("type");
+
+            if (!type) {
+                Logger::get_instance().err("Missing policy type");
+            }
+
+            if (*type == "reachability") {
+                policy = new ReachabilityPolicy(config, network);
+            } else if (*type == "stateful-reachability") {
+                policy = new StatefulReachabilityPolicy(config, network);
+            } else if (*type == "waypoint") {
+                policy = new WaypointPolicy(config, network);
+            } else {
+                Logger::get_instance().err("Unknown policy type: " + *type);
+            }
+
+            policies.push_back(policy);
+        }
+    }
+    Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +
+                                " policies");
+}
+
+Policies::~Policies()
+{
+    for (Policy *policy : policies) {
+        delete policy;
+    }
+}
+
+Policies::iterator Policies::begin()
+{
+    return policies.begin();
+}
+
+Policies::const_iterator Policies::begin() const
+{
+    return policies.begin();
+}
+
+Policies::iterator Policies::end()
+{
+    return policies.end();
+}
+
+Policies::const_iterator Policies::end() const
+{
+    return policies.end();
+}
+
+Policies::reverse_iterator Policies::rbegin()
+{
+    return policies.rbegin();
+}
+
+Policies::const_reverse_iterator Policies::rbegin() const
+{
+    return policies.rbegin();
+}
+
+Policies::reverse_iterator Policies::rend()
+{
+    return policies.rend();
+}
+
+Policies::const_reverse_iterator Policies::rend() const
+{
+    return policies.rend();
 }

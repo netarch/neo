@@ -11,15 +11,16 @@
 class Plankton
 {
 private:
-    size_t              max_jobs;   // degree of parallelism
-    std::string         in_file;    // input TOML file
-    std::string         out_dir;    // output directory
-    Network             network;    // network information (inc. dataplane)
-    std::list<Policy *> policies;
+    size_t          max_jobs;   // degree of parallelism
+    std::string     in_file;    // input TOML file
+    std::string     out_dir;    // output directory
+    Network         network;    // network information (inc. dataplane)
+    Policies        policies;
 
     /* per process variables */
-    EqClass   *ec;        // the EC being verified
     Policy    *policy;    // the policy being verified
+    EqClass   *pre_ec;    // EC of the prerequisite policy
+    EqClass   *ec;        // EC to be verified
 
     /* processes */
     ForwardingProcess   fwd;
@@ -29,8 +30,8 @@ private:
      */
 
     Plankton();
-    ~Plankton();
-    int verify(EqClass *, Policy *);
+    void verify(Policy *, EqClass *, EqClass *);
+    void dispatch(Policy *, EqClass *, EqClass *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
