@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <utility>
+#include <set>
 #include <cpptoml/cpptoml.hpp>
 
 #include "plankton.hpp"
@@ -21,7 +21,7 @@ Plankton& Plankton::get_instance()
     return instance;
 }
 
-void Plankton::init(bool verbose, bool rm_out_dir, size_t dop,
+void Plankton::init(bool rm_out_dir, size_t dop, bool verbose,
                     const std::string& input_file,
                     const std::string& output_dir)
 {
@@ -46,39 +46,48 @@ void Plankton::init(bool verbose, bool rm_out_dir, size_t dop,
 
 namespace
 {
-bool violated;  // whether the current verifying policy is violated
-std::unordered_set<int> tasks;
-const int sigs[] = {SIGCHLD, SIGUSR1, SIGINT, SIGQUIT, SIGTERM, SIGKILL};
+std::set<int> tasks;
+const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
-inline void kill_all(int sig)
+void signal_handler(int sig, siginfo_t *siginfo,
+                    void *ctx __attribute__((unused)))
 {
-    for (int childpid : tasks) {
-        kill(childpid, sig);
-    }
-}
+    int pid, code, status;
 
-void signal_handler(int sig)
-{
     switch (sig) {
         case SIGCHLD:
-            int pid, status;
-            while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-                tasks.erase(pid);
-                if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-                    Logger::get_instance().warn("Process " + std::to_string(pid)
-                                                + " failed");
-                }
+            pid = siginfo->si_pid;
+            code = siginfo->si_code;
+            status = siginfo->si_status;
+            waitpid(pid, nullptr, 0);
+            tasks.erase(pid);
+            if (code == CLD_EXITED && status != 0) {
+                Logger::get_instance().warn("Process " + std::to_string(pid)
+                                            + " failed");
             }
             break;
-        case SIGUSR1:   // policy violated
-            violated = true;
-            kill_all(SIGTERM);
+        case SIGUSR1:   // policy violated; kill all the other siblings
+            pid = siginfo->si_pid;
+            for (int childpid : tasks) {
+                if (childpid != pid) {
+                    kill(childpid, sig);
+                }
+            }
+            Logger::get_instance().warn("Policy violated in process "
+                                        + std::to_string(pid));
             break;
+        case SIGHUP:
         case SIGINT:
         case SIGQUIT:
         case SIGTERM:
-        case SIGKILL:
-            kill_all(sig);
+            for (int childpid : tasks) {
+                kill(childpid, sig);
+            }
+            while (1) {
+                if (wait(nullptr) == -1 && errno == ECHILD) {
+                    break;
+                };
+            };
             exit(0);
     }
 }
@@ -88,15 +97,22 @@ extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
-    static const char spin_param0[] = "neo";
-    static const char spin_param1[] = "-m100000";
-    static const char *spin_args[] = {spin_param0, spin_param1};
+    static const char *spin_args[] = {
+        "neo",
+        //"-m 100000",  // max search depth
+        "-E",   // suppress invalid end state errors
+        "-n",   // suppress unreached states
+    };
     const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
                                            ".log");
 
     // reset signal handlers
+    struct sigaction default_action;
+    default_action.sa_handler = SIG_DFL;
+    sigemptyset(&default_action.sa_mask);
+    default_action.sa_flags = 0;
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        signal(sigs[i], SIG_DFL);
+        sigaction(sigs[i], &default_action, nullptr);
     }
 
     // reset logger
@@ -141,17 +157,20 @@ void Plankton::dispatch(Policy *policy, EqClass *pre_ec, EqClass *ec)
 int Plankton::run()
 {
     // register signal handlers
+    struct sigaction new_action;
+    new_action.sa_sigaction = signal_handler;
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        signal(sigs[i], signal_handler);
+        sigaction(sigs[i], &new_action, nullptr);
     }
 
     for (Policy *policy : policies) {
+        Logger::get_instance().info("====================");
         Logger::get_instance().info("Verifying " + policy->to_string());
         policy->compute_ecs(network);
         Logger::get_instance().info("Packet ECs: "
                                     + std::to_string(policy->num_ecs()));
-        violated = false;
-
         for (EqClass *ec : policy->get_ecs()) {
             for (EqClass *pre_ec : policy->get_pre_ecs()) {
                 dispatch(policy, pre_ec, ec);
@@ -163,12 +182,6 @@ int Plankton::run()
         // wait until all tasks are done
         while (!tasks.empty()) {
             pause();
-        }
-
-        if (violated) {
-            Logger::get_instance().info("Policy violated");
-        } else {
-            Logger::get_instance().info("Policy holds");
         }
     }
 
@@ -189,8 +202,7 @@ void Plankton::initialize(State *state)
 
     // TODO: initialize update history
 
-    policy->procs_init(state, fwd);
-    //Logger::get_instance().info("Initialization finished");
+    policy->config_procs(state, fwd);
 }
 
 void Plankton::execute(State *state)

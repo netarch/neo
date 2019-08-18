@@ -14,7 +14,7 @@ void Logger::log(const std::string& type, const std::string& msg)
 {
     // write log if the file is open
     if (logfile.is_open()) {
-        logfile << "-- [" + type + "] " + msg << std::endl;
+        logfile << "[" + type + "] " + msg << std::endl;
     }
 }
 
@@ -52,16 +52,14 @@ void Logger::info(const std::string& msg)
 {
     log("INFO", msg);
     if (verbose) {
-        std::cout << "Info: " << msg << std::endl;
+        std::cout << "[INFO] " << msg << std::endl;
     }
 }
 
 void Logger::warn(const std::string& msg)
 {
     log("WARN", msg);
-    if (verbose) {
-        std::cout << "Warning: " << msg << std::endl;
-    }
+    std::cerr << "[WARN] " << msg << std::endl;
 }
 
 void Logger::err(const std::string& msg)

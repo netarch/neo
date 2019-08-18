@@ -11,8 +11,8 @@ ForwardingProcess::~ForwardingProcess()
     }
 }
 
-void ForwardingProcess::init(State *state,
-                             const std::vector<Node *>& start_nodes)
+void ForwardingProcess::config(State *state,
+                               const std::vector<Node *>& start_nodes)
 {
     this->start_nodes = start_nodes;
     update_candidates(state, start_nodes);
@@ -29,9 +29,6 @@ void ForwardingProcess::exec_step(State *state)
 
     auto& exec_mode = state->network_state[state->itr_ec].fwd_mode;
     switch (exec_mode) {
-        case fwd_mode::INIT:
-            init(state, start_nodes);
-            break;
         case fwd_mode::FORWARD_PACKET:
             forward_packet(state);
             break;

@@ -32,7 +32,7 @@ public:
     virtual std::string to_string() const;
     virtual std::string get_type() const;
     virtual void compute_ecs(const Network&);
-    virtual void procs_init(State *, ForwardingProcess&) const;
+    virtual void config_procs(State *, ForwardingProcess&) const;
     virtual void check_violation(State *);
     virtual void report(State *) const;
 };

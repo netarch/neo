@@ -25,7 +25,7 @@ public:
 
     void out(const std::string&);       // print to stdout
     void info(const std::string&);      // log info
-    void warn(const std::string&);      // log warning
-    void err(const std::string&);       // log error and print to stderr
-    void err(const std::string&, int);  // log error and print to stderr
+    void warn(const std::string&);      // log warning and print to stderr
+    void err(const std::string&);       // log error and throw exception
+    void err(const std::string&, int);  // log error and throw exception
 };

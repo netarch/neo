@@ -1,5 +1,7 @@
 #include <string>
 #include <regex>
+#include <csignal>
+#include <unistd.h>
 
 #include "policy/reachability.hpp"
 
@@ -60,10 +62,10 @@ std::string ReachabilityPolicy::get_type() const
     return "reachability policy";
 }
 
-void ReachabilityPolicy::procs_init(State *state,
-                                    ForwardingProcess& fwd) const
+void ReachabilityPolicy::config_procs(State *state,
+                                      ForwardingProcess& fwd) const
 {
-    fwd.init(state, start_nodes);
+    fwd.config(state, start_nodes);
     fwd.enable();
 }
 
@@ -104,13 +106,8 @@ void ReachabilityPolicy::report(State *state __attribute__((unused))) const
 {
     if (violated) {
         Logger::get_instance().info("Policy violated!");
-        // TODO: we may print out the state to show how it's violated
-        // TODO: notify the parent process and end all processes for this policy
-        // We need to separate policy process groups first; assume one policy
-        // for now.
+        kill(getppid(), SIGUSR1);
     } else {
         Logger::get_instance().info("Policy holds!");
     }
-    // TODO: how do we collect the results from all ECs
-    // Just send back signal to the parent and do it there.
 }

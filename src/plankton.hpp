@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <list>
 
 #include "network.hpp"
 #include "policy/policy.hpp"
@@ -40,7 +39,7 @@ public:
 
     static Plankton& get_instance();
 
-    void init(bool verbose, bool rm_out_dir, size_t dop,
+    void init(bool rm_out_dir, size_t dop, bool verbose,
               const std::string& input_file, const std::string& output_dir);
     int run();
 

@@ -7,7 +7,7 @@
 #include "node.hpp"
 
 enum fwd_mode {
-    INIT = 0,
+    // start from 1 to avoid execution before configuration
     FORWARD_PACKET = 1,
     COLLECT_NHOPS = 2,
     ACCEPTED = 3,
@@ -42,6 +42,6 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
-    void init(State *, const std::vector<Node *>&);
+    void config(State *, const std::vector<Node *>&);
     void exec_step(State *) override;
 };

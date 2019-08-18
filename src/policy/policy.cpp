@@ -81,7 +81,7 @@ void Policy::compute_ecs(const Network& network)
     ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
-void Policy::procs_init(
+void Policy::config_procs(
     State *state __attribute__((unused)),
     ForwardingProcess& fwd __attribute__((unused))) const
 {
