@@ -29,12 +29,13 @@ public:
     const EqClasses& get_pre_ecs() const;
     size_t num_ecs() const;
 
-    virtual std::string to_string() const;
-    virtual std::string get_type() const;
     virtual void compute_ecs(const Network&);
-    virtual void config_procs(State *, ForwardingProcess&) const;
-    virtual void check_violation(State *);
-    virtual void report(State *) const;
+    virtual std::string to_string() const = 0;
+    virtual std::string get_type() const = 0;
+    virtual void init() = 0;
+    virtual void config_procs(State *, ForwardingProcess&) const = 0;
+    virtual void check_violation(State *) = 0;
+    virtual void report(State *) const = 0;
 };
 
 class Policies

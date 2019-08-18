@@ -62,6 +62,11 @@ std::string ReachabilityPolicy::get_type() const
     return "reachability policy";
 }
 
+void ReachabilityPolicy::init()
+{
+    violated = false;
+}
+
 void ReachabilityPolicy::config_procs(State *state,
                                       ForwardingProcess& fwd) const
 {
@@ -107,6 +112,7 @@ void ReachabilityPolicy::report(State *state __attribute__((unused))) const
     if (violated) {
         Logger::get_instance().info("Policy violated!");
         kill(getppid(), SIGUSR1);
+        // TODO: show how it's violated
     } else {
         Logger::get_instance().info("Policy holds!");
     }

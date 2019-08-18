@@ -4,7 +4,7 @@
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
 
-Policy::Policy(const std::shared_ptr<cpptoml::table>& config): violated(false)
+Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
 {
     auto pkt_src_str = config->get_as<std::string>("pkt_src");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
@@ -53,16 +53,6 @@ size_t Policy::num_ecs() const
     return ECs.size() * (pre_ECs.size() == 0 ? 1 : pre_ECs.size());
 }
 
-std::string Policy::to_string() const
-{
-    return "(policy base class)";
-}
-
-std::string Policy::get_type() const
-{
-    return "(policy base class)";
-}
-
 void Policy::compute_ecs(const Network& network)
 {
     static EqClasses all_ECs;
@@ -81,20 +71,6 @@ void Policy::compute_ecs(const Network& network)
     ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
-void Policy::config_procs(
-    State *state __attribute__((unused)),
-    ForwardingProcess& fwd __attribute__((unused))) const
-{
-}
-
-void Policy::check_violation(State *state __attribute__((unused)))
-{
-}
-
-void Policy::report(State *state __attribute__((unused))) const
-{
-}
-
 Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
                    const Network& network)
 {
@@ -109,15 +85,16 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
 
             if (*type == "reachability") {
                 policy = new ReachabilityPolicy(config, network);
+                policies.push_back(policy);
             } else if (*type == "stateful-reachability") {
-                policy = new StatefulReachabilityPolicy(config, network);
+                //policy = new StatefulReachabilityPolicy(config, network);
             } else if (*type == "waypoint") {
-                policy = new WaypointPolicy(config, network);
+                //policy = new WaypointPolicy(config, network);
             } else {
                 Logger::get_instance().err("Unknown policy type: " + *type);
             }
 
-            policies.push_back(policy);
+            //policies.push_back(policy);
         }
     }
     Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +

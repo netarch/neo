@@ -190,14 +190,8 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    if (state->itr_ec == 0 && pre_ec) {
-        network.fib_init(state, pre_ec);
-    } else {
-        network.fib_init(state, ec);
-    }
-
-    // TODO: initialize update history (when update agent is implemented)
-
+    network.init(state, pre_ec, ec);
+    policy->init();
     policy->config_procs(state, fwd);
 }
 
@@ -206,10 +200,10 @@ void Plankton::execute(State *state)
     fwd.exec_step(state);
     policy->check_violation(state);
 
-    if (state->choice_count == 0 && state->itr_ec == 0 && pre_ec) {
-        state->itr_ec = 1;
-        initialize(state);
-    }
+    //if (state->choice_count == 0 && !policy->is_violated() && state->itr_ec == 0 && pre_ec) {
+    //    state->itr_ec = 1;
+    //    initialize(state);
+    //}
 }
 
 void Plankton::report(State *state)

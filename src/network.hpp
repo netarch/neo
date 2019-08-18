@@ -30,6 +30,8 @@ private:
     std::unordered_set<FIB *> fibs;         // history FIBs
     std::unordered_set<FIB_L2DM *> l2dms;   // history L2 domains
 
+    void fib_init(State *, const EqClass *);
+
 public:
     Network() = default;
     Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
@@ -44,7 +46,8 @@ public:
     const std::map<std::string, Node *>& get_nodes() const;
     const std::set<Link *, LinkCompare>& get_links() const;
 
-    void fib_init(State *, const EqClass *);   // compute the initial FIB
+    /* initialize network state variables */
+    void init(State *, const EqClass *, const EqClass *);
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

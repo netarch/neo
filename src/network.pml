@@ -29,7 +29,7 @@ typedef network_state_t {
 };
 
 network_state_t network_state[MAX_EC_COUNT];
-byte itr_ec;        /* index of the executing EC */
+byte itr_ec = 0;    /* index of the executing EC */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
 int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<Node *> *) */

@@ -85,6 +85,16 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
+void Network::init(State *state, const EqClass *pre_ec, const EqClass *ec)
+{
+    if (state->itr_ec == 0 && pre_ec) {
+        fib_init(state, pre_ec);
+    } else {
+        fib_init(state, ec);
+    }
+    // TODO: initialize update history if update agent is implemented
+}
+
 void Network::fib_init(State *state, const EqClass *ec)
 {
     FIB *fib = new FIB();
