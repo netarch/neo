@@ -59,7 +59,11 @@ void Logger::info(const std::string& msg)
 void Logger::warn(const std::string& msg)
 {
     log("WARN", msg);
-    std::cerr << "[WARN] " << msg << std::endl;
+    if (verbose) {
+        std::cout << "[WARN] " << msg << std::endl;
+    } else {
+        std::cerr << "[WARN] " << msg << std::endl;
+    }
 }
 
 void Logger::err(const std::string& msg)
