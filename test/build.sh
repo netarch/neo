@@ -9,6 +9,7 @@ usage()
     echo '        -a    enable AddressSanitizer' >&2
     echo '        -t    enable ThreadSanitizer' >&2
     echo '        -d    enable debugging options' >&2
+    echo '        -j    parallel build' >&2
     echo '        -h    show this message and exit' >&2
     echo '    Note:' >&2
     echo '        -a and -t cannot be used at the same time' >&2
@@ -23,12 +24,21 @@ add_config_flag()
     fi
 }
 
+add_makeflag()
+{
+    if [ -z "$MAKEFLAGS" ]; then
+        MAKEFLAGS="$*"
+    else
+        MAKEFLAGS="$MAKEFLAGS $*"
+    fi
+}
+
 TEST=0
 COVERAGE=0
 ASAN=0
 TSAN=0
 CONFIG_FLAGS=''
-while getopts 'Tcatdh' op; do
+while getopts 'Tcatdjh' op; do
     case $op in
         T)
             TEST=1 ;;
@@ -45,6 +55,8 @@ while getopts 'Tcatdh' op; do
             add_config_flag '--enable-tsan' ;;
         d)
             add_config_flag '--enable-debug' ;;
+        j)
+            add_makeflag '-j' ;;
         h|*)
             usage
             exit 1 ;;
@@ -75,7 +87,7 @@ for i in 0; do
         break
     }
     if [ $TEST -ne 0 ]; then
-        make -j check || {
+        make $MAKEFLAGS check || {
             echo '[-] make check failed.' >&2
             EXITCODE=1
             break
@@ -88,7 +100,7 @@ for i in 0; do
             }
         }
     else
-        make -j || {
+        make $MAKEFLAGS || {
             echo '[-] make failed.' >&2
             EXITCODE=1
             break
