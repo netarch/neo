@@ -16,7 +16,6 @@ protected:
     IPRange<IPv4Address>    pkt_src;
     IPRange<IPv4Address>    pkt_dst;
     EqClasses               ECs;        // ECs to be verified
-    EqClasses               pre_ECs;    // ECs of the prerequisite policy
     bool                    violated;
 
 public:
@@ -26,13 +25,14 @@ public:
     const IPRange<IPv4Address>& get_pkt_src() const;
     const IPRange<IPv4Address>& get_pkt_dst() const;
     const EqClasses& get_ecs() const;
-    const EqClasses& get_pre_ecs() const;
-    size_t num_ecs() const;
+    bool is_violated() const;   // be careful of non-final status
 
-    virtual void compute_ecs(const Network&);
+    virtual const EqClasses& get_pre_ecs() const;
+    virtual size_t num_ecs() const;
+    virtual void compute_ecs(const EqClasses&);
     virtual std::string to_string() const = 0;
     virtual std::string get_type() const = 0;
-    virtual void init() = 0;
+    virtual void init(State *) = 0;
     virtual void config_procs(State *, ForwardingProcess&) const = 0;
     virtual void check_violation(State *) = 0;
     virtual void report(State *) const;
@@ -58,6 +58,8 @@ public:
 
     Policies(const std::shared_ptr<cpptoml::table_array>&, const Network&);
     ~Policies();
+
+    void compute_ecs(const Network&) const;
 
     iterator               begin();
     const_iterator         begin() const;

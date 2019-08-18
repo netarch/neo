@@ -24,7 +24,7 @@ public:
 
     std::string to_string() const override;
     std::string get_type() const override;
-    void init() override;
+    void init(State *) override;
     void config_procs(State *, ForwardingProcess&) const override;
     void check_violation(State *) override;
 };

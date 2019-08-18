@@ -26,7 +26,6 @@ struct CandEq {
 class ForwardingProcess : public Process
 {
 private:
-    std::vector<Node *> start_nodes;
     std::unordered_set<std::vector<Node *> *, CandHash, CandEq> candidates_hist;
 
     void update_candidates(State *, const std::vector<Node *>&);

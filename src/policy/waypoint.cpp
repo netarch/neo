@@ -60,7 +60,7 @@ std::string WaypointPolicy::get_type() const
     return "waypoint policy";
 }
 
-void WaypointPolicy::init()
+void WaypointPolicy::init(State *state __attribute__((unused)))
 {
     violated = pass_through;
 }

@@ -48,7 +48,7 @@ init {
     :: choice_count > 0 ->
         select(choice: 0 .. choice_count - 1);
         c_code {
-            execute(&now);
+            exec_step(&now);
         }
     :: else -> break
     od

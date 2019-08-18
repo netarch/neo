@@ -60,7 +60,7 @@ std::string ReachabilityPolicy::get_type() const
     return "reachability policy";
 }
 
-void ReachabilityPolicy::init()
+void ReachabilityPolicy::init(State *state __attribute__((unused)))
 {
     violated = false;
 }

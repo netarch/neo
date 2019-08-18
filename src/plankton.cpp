@@ -99,9 +99,9 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
     static const char *spin_args[] = {
         "neo",
+        "-A",   // suppress assertion violations
         "-E",   // suppress invalid end state errors
         "-n",   // suppress report for unreached states
-        "-x",   // do not overwrite an existing trail file
     };
     const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
                                            ".log");
@@ -118,7 +118,6 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
     // reset logger
     Logger::get_instance().set_file(logfile);
     Logger::get_instance().set_verbose(false);
-    Logger::get_instance().info("EC: " + ec->to_string());
     Logger::get_instance().info("Policy: " + policy->to_string());
 
     // duplicate file descriptors
@@ -165,10 +164,11 @@ int Plankton::run()
         sigaction(sigs[i], &new_action, nullptr);
     }
 
+    policies.compute_ecs(network);
+
     for (Policy *policy : policies) {
         Logger::get_instance().info("====================");
         Logger::get_instance().info("Verifying " + policy->to_string());
-        policy->compute_ecs(network);
         Logger::get_instance().info("Packet ECs: "
                                     + std::to_string(policy->num_ecs()));
         for (EqClass *ec : policy->get_ecs()) {
@@ -190,20 +190,27 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
+    if (state->itr_ec == 0 && pre_ec) {
+        Logger::get_instance().info("EC: " + pre_ec->to_string());
+    } else {
+        Logger::get_instance().info("EC: " + ec->to_string());
+    }
+
     network.init(state, pre_ec, ec);
-    policy->init();
+    policy->init(state);
     policy->config_procs(state, fwd);
 }
 
-void Plankton::execute(State *state)
+void Plankton::exec_step(State *state)
 {
+    int old_itr_ec = state->itr_ec;
+
     fwd.exec_step(state);
     policy->check_violation(state);
 
-    //if (state->choice_count == 0 && !policy->is_violated() && state->itr_ec == 0 && pre_ec) {
-    //    state->itr_ec = 1;
-    //    initialize(state);
-    //}
+    if (state->itr_ec != old_itr_ec && state->choice_count > 0) {
+        initialize(state);
+    }
 }
 
 void Plankton::report(State *state)

@@ -46,31 +46,24 @@ const EqClasses& Policy::get_ecs() const
     return ECs;
 }
 
+bool Policy::is_violated() const
+{
+    return violated;
+}
+
 const EqClasses& Policy::get_pre_ecs() const
 {
+    static const EqClasses pre_ECs = EqClasses();
     return pre_ECs;
 }
 
 size_t Policy::num_ecs() const
 {
-    return ECs.size() * (pre_ECs.size() == 0 ? 1 : pre_ECs.size());
+    return ECs.size();
 }
 
-void Policy::compute_ecs(const Network& network)
+void Policy::compute_ecs(const EqClasses& all_ECs)
 {
-    static EqClasses all_ECs;
-
-    if (all_ECs.empty()) {
-        for (const auto& node : network.get_nodes()) {
-            for (const auto& intf : node.second->get_intfs_l3()) {
-                all_ECs.add_ec(intf.first);
-            }
-            for (const Route& route : node.second->get_rib()) {
-                all_ECs.add_ec(route.get_network());
-            }
-        }
-    }
-
     ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
@@ -98,8 +91,8 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
 
             if (*type == "reachability") {
                 policy = new ReachabilityPolicy(config, network);
-                //} else if (*type == "stateful-reachability") {
-                //    policy = new StatefulReachabilityPolicy(config, network);
+            } else if (*type == "stateful-reachability") {
+                policy = new StatefulReachabilityPolicy(config, network);
             } else if (*type == "waypoint") {
                 policy = new WaypointPolicy(config, network);
             } else {
@@ -117,6 +110,24 @@ Policies::~Policies()
 {
     for (Policy *policy : policies) {
         delete policy;
+    }
+}
+
+void Policies::compute_ecs(const Network& network) const
+{
+    EqClasses all_ECs;
+
+    for (const auto& node : network.get_nodes()) {
+        for (const auto& intf : node.second->get_intfs_l3()) {
+            all_ECs.add_ec(intf.first);
+        }
+        for (const Route& route : node.second->get_rib()) {
+            all_ECs.add_ec(route.get_network());
+        }
+    }
+
+    for (Policy *policy : policies) {
+        policy->compute_ecs(all_ECs);
     }
 }
 

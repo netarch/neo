@@ -47,6 +47,6 @@ public:
     /***** functions called by the Promela network model *****/
 
     void initialize(State *);
-    void execute(State *);
+    void exec_step(State *);
     void report(State *);
 };

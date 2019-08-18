@@ -46,8 +46,21 @@
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     final_node = "node name regex"
-    reachable = true or false   # reachable when the prerequisite doesn't hold
-    stateful_reachable = true or false  # reachable when the prerequisite holds
+    reachable = true or false
+    [policies.prerequisite]
+    type = "reachability"
+    pkt_src = "x.x.x.x(/x)"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node name regex"
+    final_node = "node name regex"
+    reachable = true or false
+[[policies]]
+    type = "stateful-reachability"
+    pkt_src = "x.x.x.x(/x)"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node name regex"
+    final_node = "node name regex"
+    reachable = true or false
     [policies.prerequisite]
     type = "waypoint"
     pkt_src = "x.x.x.x(/x)"

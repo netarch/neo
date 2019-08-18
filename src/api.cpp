@@ -11,9 +11,9 @@ void initialize(State *state)
     plankton.initialize(state);
 }
 
-void execute(State *state)
+void exec_step(State *state)
 {
-    plankton.execute(state);
+    plankton.exec_step(state);
 }
 
 void report(State *state)

@@ -14,7 +14,6 @@ ForwardingProcess::~ForwardingProcess()
 void ForwardingProcess::config(State *state,
                                const std::vector<Node *>& start_nodes)
 {
-    this->start_nodes = start_nodes;
     update_candidates(state, start_nodes);
     state->network_state[state->itr_ec].fwd_mode
         = int(fwd_mode::FORWARD_PACKET);
