@@ -35,7 +35,7 @@ public:
     virtual void init() = 0;
     virtual void config_procs(State *, ForwardingProcess&) const = 0;
     virtual void check_violation(State *) = 0;
-    virtual void report(State *) const = 0;
+    virtual void report(State *) const;
 };
 
 class Policies

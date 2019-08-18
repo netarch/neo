@@ -28,5 +28,4 @@ public:
     void init() override;
     void config_procs(State *, ForwardingProcess&) const override;
     void check_violation(State *) override;
-    void report(State *) const override;
 };

@@ -1,3 +1,6 @@
+#include <csignal>
+#include <unistd.h>
+
 #include "policy/policy.hpp"
 #include "lib/logger.hpp"
 #include "policy/reachability.hpp"
@@ -71,6 +74,16 @@ void Policy::compute_ecs(const Network& network)
     ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
+void Policy::report(State *state __attribute__((unused))) const
+{
+    if (violated) {
+        Logger::get_instance().info("Policy violated!");
+        kill(getppid(), SIGUSR1);
+    } else {
+        Logger::get_instance().info("Policy holds!");
+    }
+}
+
 Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
                    const Network& network)
 {
@@ -85,16 +98,15 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
 
             if (*type == "reachability") {
                 policy = new ReachabilityPolicy(config, network);
-                policies.push_back(policy);
-            } else if (*type == "stateful-reachability") {
-                //policy = new StatefulReachabilityPolicy(config, network);
+                //} else if (*type == "stateful-reachability") {
+                //    policy = new StatefulReachabilityPolicy(config, network);
             } else if (*type == "waypoint") {
-                //policy = new WaypointPolicy(config, network);
+                policy = new WaypointPolicy(config, network);
             } else {
                 Logger::get_instance().err("Unknown policy type: " + *type);
             }
 
-            //policies.push_back(policy);
+            policies.push_back(policy);
         }
     }
     Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +

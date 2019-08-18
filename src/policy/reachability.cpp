@@ -1,7 +1,5 @@
-#include <string>
 #include <regex>
-#include <csignal>
-#include <unistd.h>
+#include <algorithm>
 
 #include "policy/reachability.hpp"
 
@@ -81,16 +79,10 @@ void ReachabilityPolicy::check_violation(State *state)
 
     if (current_fwd_mode == fwd_mode::ACCEPTED) {
         Node *final_node;
-        memcpy(&final_node,
-               state->network_state[state->itr_ec].pkt_location,
+        memcpy(&final_node, state->network_state[state->itr_ec].pkt_location,
                sizeof(Node *));
-
-        reached = false;
-        for (Node *node : final_nodes) {
-            if (node == final_node) {
-                reached = true;
-            }
-        }
+        reached = (std::find(final_nodes.begin(), final_nodes.end(), final_node)
+                   != final_nodes.end());
     } else if (current_fwd_mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
@@ -101,19 +93,6 @@ void ReachabilityPolicy::check_violation(State *state)
         return;
     }
 
-    if (reachable != reached) {
-        violated = true;
-        state->choice_count = 0;
-    }
-}
-
-void ReachabilityPolicy::report(State *state __attribute__((unused))) const
-{
-    if (violated) {
-        Logger::get_instance().info("Policy violated!");
-        kill(getppid(), SIGUSR1);
-        // TODO: show how it's violated
-    } else {
-        Logger::get_instance().info("Policy holds!");
-    }
+    violated = (reachable != reached);
+    state->choice_count = 0;
 }
