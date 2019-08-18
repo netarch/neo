@@ -1,7 +1,28 @@
-#include <unordered_set>
-
 #include "fib.hpp"
 #include "lib/logger.hpp"
+
+void FIB_L2DM::collect_intfs(Node *node,
+                             Interface *interface __attribute__((unused)))
+{
+    for (Interface *intf : node->get_intfs_l2()) {
+        if (intfs.count(intf) == 0) {
+            intfs.insert(intf);
+            auto peer = node->get_peer(intf->get_name());
+            if (peer.first) {
+                // if the interface is truly connected (has peer)
+                tbl[node].insert(peer);
+                if (intfs.count(peer.second) == 0) {
+                    collect_intfs(peer.first, peer.second);
+                }
+            }
+        }
+    }
+}
+
+FIB_L2DM::FIB_L2DM(Node *node, Interface *interface)
+{
+    collect_intfs(node, interface);
+}
 
 std::string FIB_L2DM::to_string() const
 {
@@ -15,11 +36,6 @@ std::string FIB_L2DM::to_string() const
         ret += " ]\n";
     }
     return ret;
-}
-
-void FIB_L2DM::insert(Node *node, const std::pair<Node *, Interface *>& peer)
-{
-    tbl[node].insert(peer);
 }
 
 bool operator==(const FIB_L2DM& a, const FIB_L2DM& b)
@@ -125,9 +141,13 @@ void FIB::set_ipnhs(Node *node, std::set<FIB_IPNH>&& next_hops)
     iptbl[node] = next_hops;
 }
 
-void FIB::set_l2dm(Interface *intf, FIB_L2DM *l2dm)
+void FIB::set_l2dm(FIB_L2DM *l2dm)
 {
-    l2tbl[intf] = l2dm;
+    for (const auto& entry : l2dm->tbl) {
+        for (const auto& peer : entry.second) {
+            l2tbl[peer.second] = l2dm;
+        }
+    }
 }
 
 bool FIB::in_l2dm(Interface *intf) const

@@ -3,6 +3,7 @@
 #include <map>
 #include <set>
 #include <utility>
+#include <unordered_set>
 #include <string>
 #include <functional>
 
@@ -18,13 +19,18 @@ class FIB_L2DM  // FIB entry for an L2 domain
 {
 private:
     std::map<Node *, std::set<std::pair<Node *, Interface *> > > tbl;
+    std::unordered_set<Interface *> intfs;
 
+    friend class FIB;
     friend class std::hash<FIB_L2DM>;
     friend bool operator==(const FIB_L2DM&, const FIB_L2DM&);
 
+    void collect_intfs(Node *, Interface *);
+
 public:
+    FIB_L2DM(Node *, Interface *);
+
     std::string to_string() const;
-    void insert(Node *, const std::pair<Node *, Interface *>&);
 };
 
 bool operator==(const FIB_L2DM&, const FIB_L2DM&);
@@ -62,7 +68,9 @@ class FIB
 private:
     // resolved forwarding table for IP next hops
     std::map<Node *, std::set<FIB_IPNH> > iptbl;
-    //std::map<Node *, std::pair<std::set<FIB_IPNH>, size_t> > iptbl;
+    // TODO: find a way to increase hashing speed for FIB when update agent is
+    // implemented. (incremental hashing?)
+
     // L2 domain mappings
     std::map<Interface *, FIB_L2DM *> l2tbl;
 
@@ -72,7 +80,7 @@ private:
 public:
     std::string to_string() const;
     void set_ipnhs(Node *, std::set<FIB_IPNH>&&);
-    void set_l2dm(Interface *, FIB_L2DM *);
+    void set_l2dm(FIB_L2DM *);
     bool in_l2dm(Interface *) const;
     const std::set<FIB_IPNH>& lookup(Node *const) const;
     FIB_L2DM *const& lookup(Interface *const) const;

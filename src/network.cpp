@@ -99,13 +99,21 @@ void Network::fib_init(State *state, const EqClass *ec)
         // collect L2 domain
         for (Interface *intf : node->get_intfs_l2()) {
             if (!fib->in_l2dm(intf)) {
-                FIB_L2DM *l2_domain = new FIB_L2DM();
-                node->collect_l2dm(fib, intf, l2_domain);
-                l2dms.insert(l2_domain);
+                FIB_L2DM *l2_domain = new FIB_L2DM(node, intf);
+                auto res = l2dms.insert(l2_domain);
+                if (!res.second) {
+                    delete l2_domain;
+                    l2_domain = *(res.first);
+                }
+                fib->set_l2dm(l2_domain);
             }
         }
     }
 
-    fibs.insert(fib);
+    auto res = fibs.insert(fib);
+    if (!res.second) {
+        delete fib;
+        fib = *(res.first);
+    }
     memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
 }

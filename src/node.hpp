@@ -55,11 +55,6 @@ public:
      */
     virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&);
 
-    /*
-     * Collect and set up the L2 domain
-     */
-    virtual void collect_l2dm(FIB *, Interface *, FIB_L2DM *);
-
     virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;
     virtual void add_peer(const std::string&, Node *, Interface *);

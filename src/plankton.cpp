@@ -99,9 +99,9 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
     static const char *spin_args[] = {
         "neo",
-        //"-m 100000",  // max search depth
         "-E",   // suppress invalid end state errors
-        "-n",   // suppress unreached states
+        "-n",   // suppress report for unreached states
+        "-x",   // do not overwrite an existing trail file
     };
     const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
                                            ".log");
@@ -190,17 +190,13 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    if (state->itr_ec == 0) {
-        if (pre_ec) {
-            network.fib_init(state, pre_ec);
-        } else {
-            network.fib_init(state, ec);
-        }
+    if (state->itr_ec == 0 && pre_ec) {
+        network.fib_init(state, pre_ec);
     } else {
         network.fib_init(state, ec);
     }
 
-    // TODO: initialize update history
+    // TODO: initialize update history (when update agent is implemented)
 
     policy->config_procs(state, fwd);
 }

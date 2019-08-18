@@ -1,4 +1,5 @@
 #include <utility>
+#include <stdexcept>
 
 #include "node.hpp"
 #include "lib/logger.hpp"
@@ -145,27 +146,15 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
     return next_hops;
 }
 
-void Node::collect_l2dm(FIB *fib, Interface *intf __attribute__((unused)),
-                        FIB_L2DM *l2dm)
-{
-    for (Interface *interface : intfs_l2) {
-        if (!fib->in_l2dm(interface)) {
-            fib->set_l2dm(interface, l2dm);
-            auto peer = active_peers.find(interface->get_name());
-            if (peer != active_peers.end()) {
-                l2dm->insert(this, peer->second);
-                peer->second.first->collect_l2dm(fib, peer->second.second,
-                                                 l2dm);
-            }
-        }
-    }
-}
-
 std::pair<Node *, Interface *>
 Node::get_peer(const std::string& intf_name) const
 {
-    auto peer = active_peers.at(intf_name);
-    return std::make_pair(peer.first, peer.second);
+    try {
+        auto peer = active_peers.at(intf_name);
+        return std::make_pair(peer.first, peer.second);
+    } catch (const std::out_of_range&) {
+        return std::make_pair(nullptr, nullptr);
+    }
 }
 
 void Node::add_peer(const std::string& intf_name, Node *node, Interface *intf)
