@@ -59,7 +59,7 @@ all: $(TARGET) install-git-hooks #neo.1.gz
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(OBJS): pan.h
+$(OBJS) $(TEST_OBJS): pan.h
 
 pan.h: pan.orig.h
 	sed $< \
