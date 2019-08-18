@@ -111,7 +111,7 @@
     final_node = "h1"
     reachable = false
     stateful_reachable = true
-    [policies.state]
+    [policies.prerequisite]
     type = "waypoint"
     pkt_src = "192.168.0.1"
     pkt_dst = "10.0.0.1"
