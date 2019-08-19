@@ -12,6 +12,13 @@
 namespace fs
 {
 
+void chdir(const std::string& wd)
+{
+    if (::chdir(wd.c_str()) < 0) {
+        Logger::get_instance().err(wd, errno);
+    }
+}
+
 void mkdir(const std::string& p)
 {
     if (::mkdir(p.c_str(), 0777) < 0) {

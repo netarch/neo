@@ -9,6 +9,9 @@
 
 Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
 {
+    static int next_id = 1;
+    id = next_id++;
+
     auto pkt_src_str = config->get_as<std::string>("pkt_src");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
 
@@ -31,6 +34,11 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
     pkt_dst = IPRange<IPv4Address>(dst_str);
 }
 
+int Policy::get_id() const
+{
+    return id;
+}
+
 const IPRange<IPv4Address>& Policy::get_pkt_src() const
 {
     return pkt_src;
@@ -48,8 +56,8 @@ const EqClasses& Policy::get_ecs() const
 
 const EqClasses& Policy::get_pre_ecs() const
 {
-    static const EqClasses pre_ECs = EqClasses();
-    return pre_ECs;
+    static const EqClasses null_pre_ECs = EqClasses();
+    return null_pre_ECs;
 }
 
 size_t Policy::num_ecs() const

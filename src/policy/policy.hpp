@@ -13,6 +13,7 @@
 class Policy
 {
 protected:
+    int                     id;
     IPRange<IPv4Address>    pkt_src;
     IPRange<IPv4Address>    pkt_dst;
     EqClasses               ECs;        // ECs to be verified
@@ -21,6 +22,7 @@ public:
     Policy(const std::shared_ptr<cpptoml::table>&);
     virtual ~Policy() = default;
 
+    int get_id() const;
     const IPRange<IPv4Address>& get_pkt_src() const;
     const IPRange<IPv4Address>& get_pkt_dst() const;
     const EqClasses& get_ecs() const;

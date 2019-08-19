@@ -6,6 +6,7 @@
 namespace fs
 {
 
+void chdir(const std::string&);
 void mkdir(const std::string&);
 bool exists(const std::string&);
 void remove(const std::string&);

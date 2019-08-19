@@ -105,8 +105,10 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
         "-n",   // suppress report for unreached states
         "-T",   // create trail files in read-only mode
     };
-    const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
-                                           ".log");
+    const std::string working_dir
+        = fs::append(out_dir, std::to_string(policy->get_id()));
+    const std::string logfile
+        = fs::append(working_dir, std::to_string(getpid()) + ".log");
 
     // reset signal handlers
     struct sigaction default_action;
@@ -116,6 +118,12 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
         sigaction(sigs[i], &default_action, nullptr);
     }
+
+    // change working directory
+    if (!fs::exists(working_dir)) {
+        fs::mkdir(working_dir);
+    }
+    fs::chdir(working_dir);
 
     // reset logger
     Logger::get_instance().set_file(logfile);
@@ -173,7 +181,8 @@ int Plankton::run()
 
     for (Policy *policy : policies) {
         Logger::get_instance().info("====================");
-        Logger::get_instance().info("Verifying " + policy->to_string());
+        Logger::get_instance().info(std::to_string(policy->get_id())
+                                    + ". Verifying " + policy->to_string());
         Logger::get_instance().info("Packet ECs: "
                                     + std::to_string(policy->num_ecs()));
         for (EqClass *ec : policy->get_ecs()) {
