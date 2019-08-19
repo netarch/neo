@@ -20,7 +20,10 @@ configure
 pan.[bchmpt]
 pan.*.[ch]
 
-# coverage files
+# Coverage files
 *.gcov
 *.gcda
 *.gcno
+
+# Spin violation trail files
+*.trail

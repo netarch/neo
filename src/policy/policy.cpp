@@ -46,11 +46,6 @@ const EqClasses& Policy::get_ecs() const
     return ECs;
 }
 
-bool Policy::is_violated() const
-{
-    return violated;
-}
-
 const EqClasses& Policy::get_pre_ecs() const
 {
     static const EqClasses pre_ECs = EqClasses();
@@ -67,9 +62,9 @@ void Policy::compute_ecs(const EqClasses& all_ECs)
     ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
-void Policy::report(State *state __attribute__((unused))) const
+void Policy::report(State *state) const
 {
-    if (violated) {
+    if (state->network_state[state->itr_ec].violated) {
         Logger::get_instance().info("Policy violated!");
         kill(getppid(), SIGUSR1);
     } else {

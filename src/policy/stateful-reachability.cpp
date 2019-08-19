@@ -108,7 +108,7 @@ void StatefulReachabilityPolicy::init(State *state)
         return;
     }
 
-    violated = false;
+    state->network_state[state->itr_ec].violated = false;
 }
 
 void StatefulReachabilityPolicy::config_procs(State *state,
@@ -128,15 +128,16 @@ void StatefulReachabilityPolicy::check_violation(State *state)
     if (state->itr_ec == 0) {
         prerequisite->check_violation(state);
         if (state->choice_count == 0) {
-            if (prerequisite->is_violated()) {
+            if (state->network_state[state->itr_ec].violated) {
                 // prerequisite policy violated
-                violated = false;
+                ++state->itr_ec;
+                state->network_state[state->itr_ec].violated = false;
                 state->choice_count = 0;
             } else {
                 // prerequisite policy holds
+                ++state->itr_ec;
                 state->choice_count = 1;
             }
-            ++state->itr_ec;
         }
         return;
     }
@@ -160,6 +161,6 @@ void StatefulReachabilityPolicy::check_violation(State *state)
         return;
     }
 
-    violated = (reachable != reached);
+    state->network_state[state->itr_ec].violated = (reachable != reached);
     state->choice_count = 0;
 }

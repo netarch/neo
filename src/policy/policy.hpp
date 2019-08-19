@@ -16,7 +16,6 @@ protected:
     IPRange<IPv4Address>    pkt_src;
     IPRange<IPv4Address>    pkt_dst;
     EqClasses               ECs;        // ECs to be verified
-    bool                    violated;
 
 public:
     Policy(const std::shared_ptr<cpptoml::table>&);
@@ -25,7 +24,6 @@ public:
     const IPRange<IPv4Address>& get_pkt_src() const;
     const IPRange<IPv4Address>& get_pkt_dst() const;
     const EqClasses& get_ecs() const;
-    bool is_violated() const;   // be careful of non-final status
 
     virtual const EqClasses& get_pre_ecs() const;
     virtual size_t num_ecs() const;

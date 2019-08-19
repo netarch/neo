@@ -26,6 +26,9 @@ typedef network_state_t {
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     /*int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
     /*int l3_nhop[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
+
+    /* policy */
+    bool violated;
 };
 
 network_state_t network_state[MAX_EC_COUNT];
@@ -56,4 +59,5 @@ init {
     c_code {
         report(&now);
     }
+    assert(!network_state[itr_ec].violated);
 }

@@ -60,9 +60,9 @@ std::string ReachabilityPolicy::get_type() const
     return "reachability policy";
 }
 
-void ReachabilityPolicy::init(State *state __attribute__((unused)))
+void ReachabilityPolicy::init(State *state)
 {
-    violated = false;
+    state->network_state[state->itr_ec].violated = false;
 }
 
 void ReachabilityPolicy::config_procs(State *state,
@@ -93,6 +93,6 @@ void ReachabilityPolicy::check_violation(State *state)
         return;
     }
 
-    violated = (reachable != reached);
+    state->network_state[state->itr_ec].violated = (reachable != reached);
     state->choice_count = 0;
 }

@@ -60,9 +60,9 @@ std::string WaypointPolicy::get_type() const
     return "waypoint policy";
 }
 
-void WaypointPolicy::init(State *state __attribute__((unused)))
+void WaypointPolicy::init(State *state)
 {
-    violated = pass_through;
+    state->network_state[state->itr_ec].violated = pass_through;
 }
 
 void WaypointPolicy::config_procs(State *state, ForwardingProcess& fwd) const
@@ -82,7 +82,7 @@ void WaypointPolicy::check_violation(State *state)
         if (std::find(waypoints.begin(), waypoints.end(), current_node)
                 != waypoints.end()) {
             // encountering waypoint
-            violated = !pass_through;
+            state->network_state[state->itr_ec].violated = !pass_through;
             state->choice_count = 0;
         }
     }

@@ -104,8 +104,6 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
         "-E",   // suppress invalid end state errors
         "-n",   // suppress report for unreached states
         "-T",   // create trail files in read-only mode
-        "-v",   // verbose
-        "-x",   // don't overwrite existing trail file
     };
     const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
                                            ".log");
