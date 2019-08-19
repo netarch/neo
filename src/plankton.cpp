@@ -99,16 +99,14 @@ extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
+    const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
         "neo",
         "-E",   // suppress invalid end state errors
         "-n",   // suppress report for unreached states
-        "-T",   // create trail files in read-only mode
+        suffix.c_str(),
     };
-    const std::string working_dir
-        = fs::append(out_dir, std::to_string(policy->get_id()));
-    const std::string logfile
-        = fs::append(working_dir, std::to_string(getpid()) + ".log");
+    const std::string logfile = std::to_string(getpid()) + ".log";
 
     // reset signal handlers
     struct sigaction default_action;
@@ -118,12 +116,6 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
         sigaction(sigs[i], &default_action, nullptr);
     }
-
-    // change working directory
-    if (!fs::exists(working_dir)) {
-        fs::mkdir(working_dir);
-    }
-    fs::chdir(working_dir);
 
     // reset logger
     Logger::get_instance().set_file(logfile);
@@ -180,6 +172,14 @@ int Plankton::run()
     policies.compute_ecs(network);
 
     for (Policy *policy : policies) {
+        // change working directory
+        const std::string working_dir
+            = fs::append(out_dir, std::to_string(policy->get_id()));
+        if (!fs::exists(working_dir)) {
+            fs::mkdir(working_dir);
+        }
+        fs::chdir(working_dir);
+
         Logger::get_instance().info("====================");
         Logger::get_instance().info(std::to_string(policy->get_id())
                                     + ". Verifying " + policy->to_string());
