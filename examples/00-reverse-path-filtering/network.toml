@@ -93,8 +93,8 @@
 
 # Policy:
 #   1. Outgoing packets are always allowed.
-#   2. Incoming packets are always denied, unless they're replies to past
-#      requests.
+#   2. Incoming packets are always denied, except for 3.
+#   3. Incoming replies to past requests are allowed.
 
 [[policies]]
     type = "reachability"
@@ -104,13 +104,19 @@
     final_node = "h2"
     reachable = true
 [[policies]]
+    type = "reachability"
+    pkt_src = "10.0.0.1"
+    pkt_dst = "192.168.0.0/23"
+    start_node = "h2"
+    final_node = "h1|fw"
+    reachable = false
+[[policies]]
     type = "stateful-reachability"
     pkt_src = "10.0.0.1"
     pkt_dst = "192.168.0.1"
     start_node = "h2"
     final_node = "h1"
-    reachable = false
-    stateful_reachable = true
+    reachable = true
     [policies.prerequisite]
     type = "waypoint"
     pkt_src = "192.168.0.1"

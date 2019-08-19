@@ -59,3 +59,13 @@ public:
     get_peer(const std::string& intf_name) const;
     virtual void add_peer(const std::string&, Node *, Interface *);
 };
+
+class IPList
+{
+private:
+    std::unordered_map<IPv4Address, Node *> tbl;
+
+public:
+    void add(const IPv4Address&, Node *const);
+    Node *get_node(const IPv4Address&) const;
+};

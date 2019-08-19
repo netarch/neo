@@ -34,8 +34,16 @@ Link::Link(const std::shared_ptr<cpptoml::table>& config,
         Logger::get_instance().err("Missing intf2");
     }
 
-    node1 = nodes.at(*node1_name);
-    node2 = nodes.at(*node2_name);
+    auto node1_entry = nodes.find(*node1_name);
+    if (node1_entry == nodes.end()) {
+        Logger::get_instance().err("Unknown node: " + *node1_name);
+    }
+    node1 = node1_entry->second;
+    auto node2_entry = nodes.find(*node2_name);
+    if (node2_entry == nodes.end()) {
+        Logger::get_instance().err("Unknown node: " + *node2_name);
+    }
+    node2 = node2_entry->second;
     intf1 = node1->get_interface(*intf1_name);
     intf2 = node2->get_interface(*intf2_name);
 

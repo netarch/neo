@@ -4,12 +4,7 @@
 #include "node.hpp"
 #include "lib/logger.hpp"
 
-namespace
-{
-
-std::unordered_map<IPv4Address, Node *> ip2node;
-
-} // namespace
+static IPList iplist;
 
 Node::Node(const std::shared_ptr<cpptoml::table>& config)
 {
@@ -46,8 +41,8 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
                 // Add the directly connected route to rib
                 rib.emplace(intf->network(), intf->addr(), intf->get_name(), 0);
 
-                // Cache the mapping for later
-                ip2node[intf->addr()] = this;
+                // Add to the IP list
+                iplist.add(intf->addr(), this);
             }
         }
     }
@@ -96,12 +91,22 @@ bool Node::is_l3_only() const
 
 Interface *Node::get_interface(const std::string& intf_name) const
 {
-    return intfs.at(intf_name);
+    auto intf = intfs.find(intf_name);
+    if (intf == intfs.end()) {
+        Logger::get_instance().err(to_string() + " doesn't have interface "
+                                   + intf_name);
+    }
+    return intf->second;
 }
 
 Interface *Node::get_interface(const IPv4Address& addr) const
 {
-    return intfs_l3.at(addr);
+    auto intf = intfs_l3.find(addr);
+    if (intf == intfs_l3.end()) {
+        Logger::get_instance().err(to_string() + " doesn't own "
+                                   + addr.to_string());
+    }
+    return intf->second;
 }
 
 const std::map<IPv4Address, Interface *>& Node::get_intfs_l3() const
@@ -134,11 +139,10 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
             next_hops.insert(FIB_IPNH(this, this, nullptr));
         } else {
             // connected route; forward
-            auto peer = active_peers.find(it->get_intf());
-            if (peer != active_peers.end()) {
-                next_hops.insert(FIB_IPNH(ip2node.at(dst),
-                                          peer->second.first,
-                                          peer->second.second));
+            auto peer = get_peer(it->get_intf());   // L2 next hop
+            Node *dst_node = iplist.get_node(dst);  // L3 next hop
+            if (peer.first && dst_node) {
+                next_hops.insert(FIB_IPNH(dst_node, peer.first, peer.second));
             }
         }
     }
@@ -149,12 +153,11 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
 std::pair<Node *, Interface *>
 Node::get_peer(const std::string& intf_name) const
 {
-    try {
-        auto peer = active_peers.at(intf_name);
-        return std::make_pair(peer.first, peer.second);
-    } catch (const std::out_of_range&) {
+    auto peer = active_peers.find(intf_name);
+    if (peer == active_peers.end()) {
         return std::make_pair(nullptr, nullptr);
     }
+    return peer->second;
 }
 
 void Node::add_peer(const std::string& intf_name, Node *node, Interface *intf)
@@ -164,4 +167,18 @@ void Node::add_peer(const std::string& intf_name, Node *node, Interface *intf)
     if (res.second == false) {
         Logger::get_instance().err("Two peers on interface: " + intf_name);
     }
+}
+
+void IPList::add(const IPv4Address& addr, Node *const node)
+{
+    tbl[addr] = node;
+}
+
+Node *IPList::get_node(const IPv4Address& addr) const
+{
+    auto node = tbl.find(addr);
+    if (node == tbl.end()) {
+        return nullptr;
+    }
+    return node->second;
 }

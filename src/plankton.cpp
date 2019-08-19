@@ -159,6 +159,9 @@ int Plankton::run()
     struct sigaction new_action;
     new_action.sa_sigaction = signal_handler;
     sigemptyset(&new_action.sa_mask);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaddset(&new_action.sa_mask, sigs[i]);
+    }
     new_action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
         sigaction(sigs[i], &new_action, nullptr);
