@@ -11,41 +11,9 @@
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
 
-Plankton::Plankton(): policy(nullptr), pre_ec(nullptr), ec(nullptr)
-{
-}
-
-Plankton& Plankton::get_instance()
-{
-    static Plankton instance;
-    return instance;
-}
-
-void Plankton::init(bool rm_out_dir, size_t dop, bool verbose,
-                    const std::string& input_file,
-                    const std::string& output_dir)
-{
-    max_jobs = dop;
-    if (rm_out_dir && fs::exists(output_dir)) {
-        fs::remove(output_dir);
-    }
-    fs::mkdir(output_dir);
-    in_file = fs::realpath(input_file);
-    out_dir = fs::realpath(output_dir);
-    Logger::get_instance().set_file(fs::append(out_dir, "main.log"));
-    Logger::get_instance().set_verbose(verbose);
-
-    auto config = cpptoml::parse_file(in_file);
-    auto nodes_config = config->get_table_array("nodes");
-    auto links_config = config->get_table_array("links");
-    auto policies_config = config->get_table_array("policies");
-
-    network = Network(nodes_config, links_config);
-    policies = Policies(policies_config, network);
-}
-
 namespace
 {
+bool verify_all_ECs = false;    // verify all ECs even if violation is found
 std::set<int> tasks;
 const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
@@ -66,9 +34,11 @@ void signal_handler(int sig, siginfo_t *siginfo,
             break;
         case SIGUSR1:   // policy violated; kill all the other siblings
             pid = siginfo->si_pid;
-            for (int childpid : tasks) {
-                if (childpid != pid) {
-                    kill(childpid, SIGTERM);
+            if (!verify_all_ECs) {
+                for (int childpid : tasks) {
+                    if (childpid != pid) {
+                        kill(childpid, SIGTERM);
+                    }
                 }
             }
             Logger::get_instance().warn("Policy violated in process "
@@ -91,15 +61,51 @@ void signal_handler(int sig, siginfo_t *siginfo,
 }
 } // namespace
 
+Plankton::Plankton(): policy(nullptr), pre_ec(nullptr), ec(nullptr)
+{
+}
+
+Plankton& Plankton::get_instance()
+{
+    static Plankton instance;
+    return instance;
+}
+
+void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
+                    const std::string& input_file,
+                    const std::string& output_dir)
+{
+    verify_all_ECs = all_ECs;
+    max_jobs = dop;
+    if (rm_out_dir && fs::exists(output_dir)) {
+        fs::remove(output_dir);
+    }
+    fs::mkdir(output_dir);
+    in_file = fs::realpath(input_file);
+    out_dir = fs::realpath(output_dir);
+    Logger::get_instance().set_file(fs::append(out_dir, "main.log"));
+    Logger::get_instance().set_verbose(verbose);
+
+    auto config = cpptoml::parse_file(in_file);
+    auto nodes_config = config->get_table_array("nodes");
+    auto links_config = config->get_table_array("links");
+    auto policies_config = config->get_table_array("policies");
+
+    network = Network(nodes_config, links_config);
+    policies = Policies(policies_config, network);
+}
+
 extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
     static const char *spin_args[] = {
         "neo",
-        "-A",   // suppress assertion violations
         "-E",   // suppress invalid end state errors
         "-n",   // suppress report for unreached states
+        "-T",   // create trail files in read-only mode
+        "-v",   // verbose
+        "-x",   // don't overwrite existing trail file
     };
     const std::string logfile = fs::append(out_dir, std::to_string(getpid()) +
                                            ".log");

@@ -12,6 +12,7 @@ static void usage(const std::string& progname)
               "Usage: " + progname + " [OPTIONS] -i <file> -o <dir>\n"
               "Options:\n"
               "    -h, --help             print this help message\n"
+              "    -a, --all              verify all ECs after violation\n"
               "    -f, --force            remove the output directory\n"
               "    -j, --jobs <nprocs>    number of parallel tasks\n"
               "    -v, --verbose          print more debugging information\n"
@@ -20,15 +21,16 @@ static void usage(const std::string& progname)
               "    -o, --output <dir>     output directory\n";
 }
 
-static void parse_args(int argc, char **argv, bool& rm_out_dir,
+static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
                        size_t& max_jobs, bool& verbose, std::string& input_file,
                        std::string& output_dir)
 {
     int opt;
-    const char *optstring = "hfj:vi:o:";
+    const char *optstring = "hafj:vi:o:";
 
     const struct option longopts[] = {
         {"help",    no_argument,       0, 'h'},
+        {"all",     no_argument,       0, 'a'},
         {"force",   no_argument,       0, 'f'},
         {"jobs",    required_argument, 0, 'j'},
         {"verbose", no_argument,       0, 'v'},
@@ -42,6 +44,9 @@ static void parse_args(int argc, char **argv, bool& rm_out_dir,
             case 'h':
                 usage(argv[0]);
                 exit(0);
+            case 'a':
+                all_ECs = true;
+                break;
             case 'f':
                 rm_out_dir = true;
                 break;
@@ -81,13 +86,14 @@ static void parse_args(int argc, char **argv, bool& rm_out_dir,
 
 int main(int argc, char **argv)
 {
-    bool rm_out_dir = false, verbose = false;
+    bool all_ECs = false, rm_out_dir = false, verbose = false;
     size_t max_jobs = 1;
     std::string input_file, output_dir;
-    parse_args(argc, argv, rm_out_dir, max_jobs, verbose, input_file,
+    parse_args(argc, argv, all_ECs, rm_out_dir, max_jobs, verbose, input_file,
                output_dir);
 
     Plankton& plankton = Plankton::get_instance();
-    plankton.init(rm_out_dir, max_jobs, verbose, input_file, output_dir);
+    plankton.init(all_ECs, rm_out_dir, max_jobs, verbose, input_file,
+                  output_dir);
     return plankton.run();
 }
