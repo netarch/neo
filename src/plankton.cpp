@@ -52,25 +52,23 @@ const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 void signal_handler(int sig, siginfo_t *siginfo,
                     void *ctx __attribute__((unused)))
 {
-    int pid, code, status;
+    int pid, status;
 
     switch (sig) {
         case SIGCHLD:
-            pid = siginfo->si_pid;
-            code = siginfo->si_code;
-            status = siginfo->si_status;
-            waitpid(pid, nullptr, 0);
-            tasks.erase(pid);
-            if (code == CLD_EXITED && status != 0) {
-                Logger::get_instance().warn("Process " + std::to_string(pid)
-                                            + " failed");
+            while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+                tasks.erase(pid);
+                if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+                    Logger::get_instance().warn("Process " + std::to_string(pid)
+                                                + " failed");
+                }
             }
             break;
         case SIGUSR1:   // policy violated; kill all the other siblings
             pid = siginfo->si_pid;
             for (int childpid : tasks) {
                 if (childpid != pid) {
-                    kill(childpid, sig);
+                    kill(childpid, SIGTERM);
                 }
             }
             Logger::get_instance().warn("Policy violated in process "
