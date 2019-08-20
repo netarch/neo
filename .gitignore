@@ -24,6 +24,3 @@ pan.*.[ch]
 *.gcov
 *.gcda
 *.gcno
-
-# Spin violation trail files
-*.trail
