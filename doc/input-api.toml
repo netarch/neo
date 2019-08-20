@@ -9,6 +9,7 @@
     network = "x.x.x.x/x"
     next_hop = "x.x.x.x"
     adm_dist = 1                # optional (0..255), default: 1
+    weight = 1                  # optional, default: 1
     [[nodes.installed_routes]]  # optional
     network = "x.x.x.x/x"
     next_hop = "x.x.x.x"
@@ -16,7 +17,8 @@
 [[nodes]]
     name = "string"
     type = "middlebox"
-    driver = "netfilter-netns"
+    driver = "netns"
+    middlebox = "netfilter"
     config = ".*"
 
 # undirected (only need to specify once for each bidirectional link)
@@ -28,42 +30,37 @@
 
 [[policies]]
     type = "reachability"
-    pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
 [[policies]]
     type = "waypoint"
-    pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     waypoint = "node name regex"
     pass_through = true or false
 [[policies]]
     type = "stateful-reachability"
-    pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
     [policies.prerequisite]
     type = "reachability"
-    pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
 [[policies]]
+################## TODO
     type = "stateful-reachability"
-    pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
     [policies.prerequisite]
     type = "waypoint"
-    pkt_src = "x.x.x.x(/x)"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     waypoint = "node name regex"

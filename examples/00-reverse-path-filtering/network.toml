@@ -4,21 +4,27 @@
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.1/24"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.1.1/24"
     [[nodes.static_routes]]
     network = "0.0.0.0/0"
-    next_hop = "192.168.0.2"
+    next_hop = "192.168.0.254"
 [[nodes]]
     name = "h2"
     type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
-    ipv4 = "10.0.0.1/24"
+    ipv4 = "192.168.0.2/24"
     [[nodes.static_routes]]
-    network = "192.168.0.0/23"
-    next_hop = "10.0.0.2"
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h3"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.3/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
 [[nodes]]
     name = "s1"
     type = "generic"
@@ -26,69 +32,195 @@
     name = "eth0"
     [[nodes.interfaces]]
     name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+    [[nodes.interfaces]]
+    name = "eth3"
 [[nodes]]
-    name = "s2"
+    name = "r1"
     type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
+    ipv4 = "192.168.1.2/25"
     [[nodes.interfaces]]
     name = "eth1"
+    ipv4 = "192.168.1.129/25"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.1.130"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.1"
+[[nodes]]
+    name = "r2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.2.2/25"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.2.129/25"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.2.130"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.2.1"
+[[nodes]]
+    name = "r3"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.3.2/25"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.3.129/25"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.3.130"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.3.1"
+[[nodes]]
+    name = "r4"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.254/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.130/25"
+    [[nodes.interfaces]]
+    name = "eth2"
+    ipv4 = "192.168.2.130/25"
+    [[nodes.interfaces]]
+    name = "eth3"
+    ipv4 = "192.168.3.130/25"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.129"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.2.129"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.3.129"
 [[nodes]]
     name = "fw"
     type = "middlebox"
-    driver = "netfilter-netns"
+    driver = "netns"
+    middlebox = "netfilter"
     config = """
     *nat
     :PREROUTING ACCEPT [0:0]
     :INPUT ACCEPT [0:0]
     :OUTPUT ACCEPT [0:0]
     :POSTROUTING ACCEPT [0:0]
-    -A POSTROUTING -s 192.168.0.0/23 -o eth2 -j MASQUERADE
+    -A POSTROUTING -s 192.168.0.0/22 -o eth0 -j MASQUERADE
     COMMIT
 
     *filter
     :INPUT DROP [0:0]
     :FORWARD DROP [0:0]
     :OUTPUT ACCEPT [0:0]
-    -A FORWARD -i eth0 -j ACCEPT
+    -A INPUT -i eth1 -j ACCEPT
+    -A INPUT -i eth2 -j ACCEPT
+    -A INPUT -i eth3 -j ACCEPT
+    -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     -A FORWARD -i eth1 -j ACCEPT
+    -A FORWARD -i eth2 -j ACCEPT
+    -A FORWARD -i eth3 -j ACCEPT
     -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     COMMIT
     """
     [[nodes.interfaces]]
     name = "eth0"
-    ipv4 = "192.168.0.2/24"
+    ipv4 = "10.0.0.2/24"
     [[nodes.interfaces]]
     name = "eth1"
-    ipv4 = "192.168.1.2/24"
+    ipv4 = "192.168.1.1/25"
     [[nodes.interfaces]]
     name = "eth2"
-    ipv4 = "10.0.0.2/24"
+    ipv4 = "192.168.2.1/25"
+    [[nodes.interfaces]]
+    name = "eth3"
+    ipv4 = "192.168.3.1/25"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.1.2"
+    weight = 1
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.2.2"
+    weight = 2
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.3.2"
+    weight = 3
+[[nodes]]
+    name = "server"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "10.0.0.2"
 
 [[links]]
-    node1 = "h1"
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "fw"
+    intf2 = "eth0"
+[[links]]
+    node1 = "fw"
+    intf1 = "eth1"
+    node2 = "r1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "fw"
+    intf1 = "eth2"
+    node2 = "r2"
+    intf2 = "eth0"
+[[links]]
+    node1 = "fw"
+    intf1 = "eth3"
+    node2 = "r3"
+    intf2 = "eth0"
+[[links]]
+    node1 = "r1"
+    intf1 = "eth1"
+    node2 = "r4"
+    intf2 = "eth1"
+[[links]]
+    node1 = "r2"
+    intf1 = "eth1"
+    node2 = "r4"
+    intf2 = "eth2"
+[[links]]
+    node1 = "r3"
+    intf1 = "eth1"
+    node2 = "r4"
+    intf2 = "eth3"
+[[links]]
+    node1 = "r4"
     intf1 = "eth0"
     node2 = "s1"
     intf2 = "eth0"
 [[links]]
-    node1 = "h1"
+    node1 = "s1"
     intf1 = "eth1"
-    node2 = "s2"
+    node2 = "h1"
     intf2 = "eth0"
 [[links]]
     node1 = "s1"
-    intf1 = "eth1"
-    node2 = "fw"
-    intf2 = "eth0"
-[[links]]
-    node1 = "s2"
-    intf1 = "eth1"
-    node2 = "fw"
-    intf2 = "eth1"
-[[links]]
-    node1 = "fw"
     intf1 = "eth2"
     node2 = "h2"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth3"
+    node2 = "h3"
     intf2 = "eth0"
 
 # Policy:
@@ -98,28 +230,25 @@
 
 [[policies]]
     type = "reachability"
-    pkt_src = "192.168.1.1"
-    pkt_dst = "10.0.0.1"
-    start_node = "h1"
-    final_node = "h2"
+    pkt_dst = "10.0.0.0/24"
+    start_node = "h[123]"
+    final_node = "server|fw"
     reachable = true
 [[policies]]
     type = "reachability"
-    pkt_src = "10.0.0.1"
-    pkt_dst = "192.168.0.0/23"
-    start_node = "h2"
-    final_node = "h1|fw"
+    pkt_dst = "192.168.0.0/22"
+    start_node = "server"
+    final_node = "h[123]|s1|r[1-4]|fw"
     reachable = false
-[[policies]]
+[[policies]] # TODO
+####### TODO
     type = "stateful-reachability"
-    pkt_src = "10.0.0.1"
     pkt_dst = "192.168.0.1"
     start_node = "h2"
     final_node = "h1"
     reachable = true
     [policies.prerequisite]
     type = "waypoint"
-    pkt_src = "192.168.0.1"
     pkt_dst = "10.0.0.1"
     start_node = "h1"
     waypoint = "fw"
