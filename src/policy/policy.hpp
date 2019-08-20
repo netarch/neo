@@ -14,7 +14,6 @@ class Policy
 {
 protected:
     int                     id;
-    IPRange<IPv4Address>    pkt_src;
     IPRange<IPv4Address>    pkt_dst;
     EqClasses               ECs;        // ECs to be verified
 

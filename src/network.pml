@@ -4,8 +4,10 @@
  *   - fib
  *   - update history
  * - fowarding process state (per EC)
+ *   - forwarding mode
  *   - current packet location
- *   - execution mode
+ * - policy state (per EC)
+ *   - violation status
  *
  * Some parts of the system state are stored in hash tables. Pointers to the
  * actual objects are saved in the respective state variables. If the size of a

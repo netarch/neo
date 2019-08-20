@@ -12,36 +12,22 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
     static int next_id = 1;
     id = next_id++;
 
-    auto pkt_src_str = config->get_as<std::string>("pkt_src");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
 
-    if (!pkt_src_str) {
-        Logger::get_instance().err("Missing packet source");
-    }
     if (!pkt_dst_str) {
         Logger::get_instance().err("Missing packet destination");
     }
 
-    std::string src_str = *pkt_src_str;
     std::string dst_str = *pkt_dst_str;
-    if (src_str.find('/') == std::string::npos) {
-        src_str += "/32";
-    }
     if (dst_str.find('/') == std::string::npos) {
         dst_str += "/32";
     }
-    pkt_src = IPRange<IPv4Address>(src_str);
     pkt_dst = IPRange<IPv4Address>(dst_str);
 }
 
 int Policy::get_id() const
 {
     return id;
-}
-
-const IPRange<IPv4Address>& Policy::get_pkt_src() const
-{
-    return pkt_src;
 }
 
 const IPRange<IPv4Address>& Policy::get_pkt_dst() const
