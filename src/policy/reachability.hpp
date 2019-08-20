@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_set>
 #include <cpptoml/cpptoml.hpp>
 
 #include "policy/policy.hpp"
@@ -17,7 +18,7 @@ class ReachabilityPolicy : public Policy
 {
 private:
     std::vector<Node *> start_nodes;
-    std::vector<Node *> final_nodes;
+    std::unordered_set<Node *> final_nodes;
     bool reachable;
 
 public:

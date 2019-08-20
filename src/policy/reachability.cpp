@@ -28,7 +28,7 @@ ReachabilityPolicy::ReachabilityPolicy(
             start_nodes.push_back(node.second);
         }
         if (std::regex_match(node.first, std::regex(*final_regex))) {
-            final_nodes.push_back(node.second);
+            final_nodes.insert(node.second);
         }
     }
 
@@ -81,8 +81,7 @@ void ReachabilityPolicy::check_violation(State *state)
         Node *final_node;
         memcpy(&final_node, state->network_state[state->itr_ec].pkt_location,
                sizeof(Node *));
-        reached = (std::find(final_nodes.begin(), final_nodes.end(), final_node)
-                   != final_nodes.end());
+        reached = (final_nodes.count(final_node) > 0);
     } else if (current_fwd_mode == fwd_mode::DROPPED) {
         reached = false;
     } else {

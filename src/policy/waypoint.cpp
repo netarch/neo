@@ -28,7 +28,7 @@ WaypointPolicy::WaypointPolicy(
             start_nodes.push_back(node.second);
         }
         if (std::regex_match(node.first, std::regex(*wp_regex))) {
-            waypoints.push_back(node.second);
+            waypoints.insert(node.second);
         }
     }
 
@@ -79,8 +79,7 @@ void WaypointPolicy::check_violation(State *state)
         Node *current_node;
         memcpy(&current_node, state->network_state[state->itr_ec].pkt_location,
                sizeof(Node *));
-        if (std::find(waypoints.begin(), waypoints.end(), current_node)
-                != waypoints.end()) {
+        if (waypoints.count(current_node) > 0) {
             // encountering waypoint
             state->network_state[state->itr_ec].violated = !pass_through;
             state->choice_count = 0;

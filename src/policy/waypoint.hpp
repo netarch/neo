@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+#include <unordered_set>
 #include <cpptoml/cpptoml.hpp>
 
 #include "policy/policy.hpp"
@@ -16,7 +18,7 @@ class WaypointPolicy : public Policy
 {
 private:
     std::vector<Node *> start_nodes;
-    std::vector<Node *> waypoints;
+    std::unordered_set<Node *> waypoints;
     bool pass_through;
 
 public:
