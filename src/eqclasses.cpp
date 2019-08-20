@@ -142,9 +142,6 @@ void EqClasses::add_mask_range(const ECRange& mask_range,
         }
         ECs.insert(new_ec);
     }
-
-    // add non-overlapped subranges of the mask range, if any, to a new EC
-    add_non_overlapped_ec(mask_range);
 }
 
 std::string EqClasses::to_string() const
