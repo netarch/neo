@@ -41,6 +41,12 @@
     waypoint = "node name regex"
     pass_through = true or false
 [[policies]]
+    type = "reply-reachability"
+    pkt_dst = "x.x.x.x(/x)"
+    start_node = "node name regex"
+    final_node = "node name regex"
+    reachable = true or false
+[[policies]]
     type = "stateful-reachability"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
@@ -52,13 +58,7 @@
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
-[[policies]]
-################## TODO
-    type = "stateful-reachability"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
-    final_node = "node name regex"
-    reachable = true or false
+    # or
     [policies.prerequisite]
     type = "waypoint"
     pkt_dst = "x.x.x.x(/x)"

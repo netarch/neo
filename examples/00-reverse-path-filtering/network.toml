@@ -240,16 +240,9 @@
     start_node = "server"
     final_node = "h[123]|s1|r[1-4]|fw"
     reachable = false
-[[policies]] # TODO
-####### TODO
-    type = "stateful-reachability"
-    pkt_dst = "192.168.0.1"
-    start_node = "h2"
-    final_node = "h1"
-    reachable = true
-    [policies.prerequisite]
-    type = "waypoint"
+[[policies]]
+    type = "reply-reachability"
     pkt_dst = "10.0.0.1"
-    start_node = "h1"
-    waypoint = "fw"
-    pass_through = true
+    start_node = "h[123]"
+    final_node = "server"
+    reachable = true
