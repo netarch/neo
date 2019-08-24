@@ -3,6 +3,16 @@
 #include "eqclasses.hpp"
 #include "lib/logger.hpp"
 
+EqClasses::EqClasses(EqClass *ec)
+{
+    if (ec) {
+        for (const ECRange& range : *ec) {
+            allranges.insert(range);
+        }
+    }
+    ECs.insert(ec);
+}
+
 EqClasses::~EqClasses()
 {
     for (EqClass *const ec : ECs) {
@@ -31,8 +41,9 @@ std::set<EqClass *> EqClasses::get_overlapped_ecs(const ECRange& range) const
 void EqClasses::split_intersected_ec(EqClass *ec, const ECRange& range)
 {
     EqClass *new_ec = new EqClass();
+    const EqClass orig_ec(*ec);
 
-    for (ECRange ecrange : *ec) {
+    for (ECRange ecrange : orig_ec) {
         if (ecrange == range) {
             // overlapped range, split at the intersections (if any)
             allranges.erase(ecrange);
@@ -170,6 +181,9 @@ EqClasses::iterator EqClasses::erase(const_iterator pos)
 
 void EqClasses::clear()
 {
+    for (EqClass *const ec : ECs) {
+        delete ec;
+    }
     allranges.clear();
     ECs.clear();
 }

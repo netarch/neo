@@ -8,29 +8,36 @@
 
 enum fwd_mode {
     // start from 1 to avoid execution before configuration
-    FORWARD_PACKET = 1,
-    COLLECT_NHOPS = 2,
-    ACCEPTED = 3,
-    DROPPED = 4
+    INJECT_PACKET = 1,
+    FIRST_COLLECT = 2,
+    FIRST_FORWARD = 3,
+    COLLECT_NHOPS = 4,
+    FORWARD_PACKET = 5,
+    ACCEPTED = 6,
+    DROPPED = 7
 };
 
 struct CandHash {
-    size_t operator()(const std::vector<Node *> *const&) const;
+    size_t operator()(const std::vector<FIB_IPNH> *const&) const;
 };
 
 struct CandEq {
-    bool operator()(const std::vector<Node *> *const&,
-                    const std::vector<Node *> *const&) const;
+    bool operator()(const std::vector<FIB_IPNH> *const&,
+                    const std::vector<FIB_IPNH> *const&) const;
 };
 
 class ForwardingProcess : public Process
 {
 private:
-    std::unordered_set<std::vector<Node *> *, CandHash, CandEq> candidates_hist;
+    std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
+    candidates_hist;
 
-    void update_candidates(State *, const std::vector<Node *>&);
+    void inject_packet(State *) const;
+    void first_collect(State *);
+    void first_forward(State *) const;
     void forward_packet(State *) const;
     void collect_next_hops(State *);
+    void update_candidates(State *, const std::vector<FIB_IPNH>&);
 
 public:
     ForwardingProcess() = default;

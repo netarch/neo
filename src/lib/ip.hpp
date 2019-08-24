@@ -17,6 +17,7 @@ public:
     IPv4Address(const IPv4Address&) = default;
     IPv4Address(IPv4Address&&) = default;
     IPv4Address(const std::string&);
+    IPv4Address(const char *);
     IPv4Address(uint32_t);
 
     std::string to_string() const;

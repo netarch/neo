@@ -1,5 +1,4 @@
 #include <regex>
-#include <algorithm>
 
 #include "policy/waypoint.hpp"
 
@@ -35,6 +34,21 @@ WaypointPolicy::WaypointPolicy(
     pass_through = *through;
 }
 
+const EqClasses& WaypointPolicy::get_ecs() const
+{
+    return ECs;
+}
+
+size_t WaypointPolicy::num_ecs() const
+{
+    return ECs.size();
+}
+
+void WaypointPolicy::compute_ecs(const EqClasses& all_ECs)
+{
+    ECs.add_mask_range(pkt_dst, all_ECs);
+}
+
 std::string WaypointPolicy::to_string() const
 {
     std::string ret = "waypoint [";
@@ -57,7 +71,7 @@ std::string WaypointPolicy::to_string() const
 
 std::string WaypointPolicy::get_type() const
 {
-    return "waypoint policy";
+    return "waypoint";
 }
 
 void WaypointPolicy::init(State *state)

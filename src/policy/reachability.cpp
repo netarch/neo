@@ -1,5 +1,4 @@
 #include <regex>
-#include <algorithm>
 
 #include "policy/reachability.hpp"
 
@@ -35,6 +34,21 @@ ReachabilityPolicy::ReachabilityPolicy(
     reachable = *reachability;
 }
 
+const EqClasses& ReachabilityPolicy::get_ecs() const
+{
+    return ECs;
+}
+
+size_t ReachabilityPolicy::num_ecs() const
+{
+    return ECs.size();
+}
+
+void ReachabilityPolicy::compute_ecs(const EqClasses& all_ECs)
+{
+    ECs.add_mask_range(pkt_dst, all_ECs);
+}
+
 std::string ReachabilityPolicy::to_string() const
 {
     std::string ret = "reachability [";
@@ -57,7 +71,7 @@ std::string ReachabilityPolicy::to_string() const
 
 std::string ReachabilityPolicy::get_type() const
 {
-    return "reachability policy";
+    return "reachability";
 }
 
 void ReachabilityPolicy::init(State *state)

@@ -41,6 +41,11 @@ private:
     Node *l3_node;      // L3 next hop node
     Node *l2_node;      // L2 next hop node
     Interface *l2_intf; // L2 next hop interface
+    /*
+     * Note that l3_node and l2_node should/would never be nullptr, but l2_intf
+     * can be nullptr, which only occurs when l3_node and l2_node are both the
+     * same.
+     */
 
     friend class std::hash<FIB_IPNH>;
     friend bool operator<(const FIB_IPNH&, const FIB_IPNH&);
@@ -49,6 +54,7 @@ private:
 
 public:
     FIB_IPNH(Node *, Node *, Interface *);
+    FIB_IPNH(const FIB_IPNH&) = default;
 
     std::string to_string() const;
     Node *const& get_l3_node() const;
@@ -69,7 +75,7 @@ private:
     // resolved forwarding table for IP next hops
     std::map<Node *, std::set<FIB_IPNH> > iptbl;
     // TODO: find a way to increase hashing speed for FIB when update agent is
-    // implemented. (incremental hashing?)
+    // implemented. (incremental hashing)
 
     // L2 domain mappings
     std::map<Interface *, FIB_L2DM *> l2tbl;

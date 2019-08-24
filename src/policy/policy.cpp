@@ -4,6 +4,7 @@
 #include "policy/policy.hpp"
 #include "lib/logger.hpp"
 #include "policy/reachability.hpp"
+#include "policy/reply-reachability.hpp"
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
 
@@ -35,25 +36,21 @@ const IPRange<IPv4Address>& Policy::get_pkt_dst() const
     return pkt_dst;
 }
 
-const EqClasses& Policy::get_ecs() const
-{
-    return ECs;
-}
-
 const EqClasses& Policy::get_pre_ecs() const
 {
-    static const EqClasses null_pre_ECs = EqClasses();
+    static const EqClasses null_pre_ECs = EqClasses(nullptr);
     return null_pre_ECs;
+}
+
+const EqClasses& Policy::get_ecs() const
+{
+    static const EqClasses null_ECs = EqClasses(nullptr);
+    return null_ECs;
 }
 
 size_t Policy::num_ecs() const
 {
-    return ECs.size();
-}
-
-void Policy::compute_ecs(const EqClasses& all_ECs)
-{
-    ECs.add_mask_range(pkt_dst, all_ECs);
+    return 0;
 }
 
 void Policy::report(State *state) const
@@ -80,10 +77,12 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
 
             if (*type == "reachability") {
                 policy = new ReachabilityPolicy(config, network);
-            } else if (*type == "stateful-reachability") {
-                policy = new StatefulReachabilityPolicy(config, network);
             } else if (*type == "waypoint") {
                 policy = new WaypointPolicy(config, network);
+            } else if (*type == "reply-reachability") {
+                policy = new ReplyReachabilityPolicy(config, network);
+            } else if (*type == "stateful-reachability") {
+                policy = new StatefulReachabilityPolicy(config, network);
             } else {
                 Logger::get_instance().err("Unknown policy type: " + *type);
             }
@@ -91,8 +90,14 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
             policies.push_back(policy);
         }
     }
-    Logger::get_instance().info("Loaded " + std::to_string(policies.size()) +
-                                " policies");
+    if (policies.size() == 1) {
+        Logger::get_instance().info("Loaded 1 policy");
+    } else {
+        Logger::get_instance().info("Loaded "
+                                    + std::to_string(policies.size())
+                                    + " policies");
+    }
+    compute_ecs(network);
 }
 
 Policies::~Policies()

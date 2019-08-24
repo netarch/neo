@@ -65,6 +65,11 @@ const EqClasses& StatefulReachabilityPolicy::get_pre_ecs() const
     return prerequisite->get_ecs();
 }
 
+const EqClasses& StatefulReachabilityPolicy::get_ecs() const
+{
+    return ECs;
+}
+
 size_t StatefulReachabilityPolicy::num_ecs() const
 {
     return ECs.size() * prerequisite->get_ecs().size();
@@ -72,7 +77,7 @@ size_t StatefulReachabilityPolicy::num_ecs() const
 
 void StatefulReachabilityPolicy::compute_ecs(const EqClasses& all_ECs)
 {
-    Policy::compute_ecs(all_ECs);
+    ECs.add_mask_range(pkt_dst, all_ECs);
     prerequisite->compute_ecs(all_ECs);
 }
 
@@ -98,7 +103,7 @@ std::string StatefulReachabilityPolicy::to_string() const
 
 std::string StatefulReachabilityPolicy::get_type() const
 {
-    return "stateful-reachability policy";
+    return "stateful-reachability";
 }
 
 void StatefulReachabilityPolicy::init(State *state)

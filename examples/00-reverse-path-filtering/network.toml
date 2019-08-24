@@ -230,9 +230,9 @@
 
 [[policies]]
     type = "reachability"
-    pkt_dst = "10.0.0.0/24"
+    pkt_dst = "10.0.0.1"
     start_node = "h[123]"
-    final_node = "server|fw"
+    final_node = "server"
     reachable = true
 [[policies]]
     type = "reachability"
@@ -244,5 +244,5 @@
     type = "reply-reachability"
     pkt_dst = "10.0.0.1"
     start_node = "h[123]"
-    final_node = "server"
+    query_node = "server"
     reachable = true

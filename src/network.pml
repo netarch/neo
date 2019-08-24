@@ -25,6 +25,8 @@ typedef network_state_t {
 
     /* forwarding process */
     byte fwd_mode;                                  /* execution mode */
+    int src_addr[4 / SIZEOF_INT];                   /* (uint32_t) */
+    int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     /*int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
     /*int l3_nhop[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
@@ -34,10 +36,10 @@ typedef network_state_t {
 };
 
 network_state_t network_state[MAX_EC_COUNT];
-byte itr_ec = 0;    /* index of the executing EC */
+byte itr_ec;        /* index of the executing EC */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
-int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<Node *> *) */
+int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<FIB_IPNH> *) */
 
 
 c_code {

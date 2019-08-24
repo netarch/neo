@@ -21,6 +21,10 @@ IPv4Address::IPv4Address(const std::string& ips)
     }
 }
 
+IPv4Address::IPv4Address(const char *ips): IPv4Address(std::string(ips))
+{
+}
+
 IPv4Address::IPv4Address(uint32_t ip): value(ip)
 {
 }

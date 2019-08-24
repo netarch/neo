@@ -24,7 +24,13 @@ public:
     typedef std::set<EqClass *>::const_reverse_iterator const_reverse_iterator;
 
     EqClasses() = default;
+    EqClasses(const EqClasses&) = delete;
+    EqClasses(EqClasses&&) = default;
+    EqClasses(EqClass *);
     ~EqClasses();
+
+    EqClasses& operator=(const EqClasses&) = delete;
+    EqClasses& operator=(EqClasses&&) = default;
 
     void add_ec(const ECRange&);
     void add_ec(const IPNetwork<IPv4Address>&);

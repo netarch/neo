@@ -15,20 +15,18 @@ class Policy
 protected:
     int                     id;
     IPRange<IPv4Address>    pkt_dst;
-    EqClasses               ECs;        // ECs to be verified
 
 public:
     Policy(const std::shared_ptr<cpptoml::table>&);
     virtual ~Policy() = default;
 
     int get_id() const;
-    const IPRange<IPv4Address>& get_pkt_src() const;
     const IPRange<IPv4Address>& get_pkt_dst() const;
-    const EqClasses& get_ecs() const;
 
     virtual const EqClasses& get_pre_ecs() const;
+    virtual const EqClasses& get_ecs() const;
     virtual size_t num_ecs() const;
-    virtual void compute_ecs(const EqClasses&);
+    virtual void compute_ecs(const EqClasses&) = 0;
     virtual std::string to_string() const = 0;
     virtual std::string get_type() const = 0;
     virtual void init(State *) = 0;
@@ -41,6 +39,8 @@ class Policies
 {
 private:
     std::list<Policy *> policies;
+
+    void compute_ecs(const Network&) const;
 
 public:
     typedef std::list<Policy *>::size_type size_type;
@@ -57,8 +57,6 @@ public:
 
     Policies(const std::shared_ptr<cpptoml::table_array>&, const Network&);
     ~Policies();
-
-    void compute_ecs(const Network&) const;
 
     iterator               begin();
     const_iterator         begin() const;

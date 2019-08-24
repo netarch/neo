@@ -169,8 +169,6 @@ int Plankton::run()
         sigaction(sigs[i], &new_action, nullptr);
     }
 
-    policies.compute_ecs(network);
-
     for (Policy *policy : policies) {
         // change working directory
         const std::string working_dir
@@ -188,9 +186,6 @@ int Plankton::run()
         for (EqClass *ec : policy->get_ecs()) {
             for (EqClass *pre_ec : policy->get_pre_ecs()) {
                 dispatch(policy, pre_ec, ec);
-            }
-            if (policy->get_pre_ecs().empty()) {
-                dispatch(policy, nullptr, ec);
             }
         }
         // wait until all tasks are done
@@ -223,6 +218,9 @@ void Plankton::exec_step(State *state)
     policy->check_violation(state);
 
     if (state->itr_ec != old_itr_ec && state->choice_count > 0) {
+        if (policy->get_type() == "reply-reachability") {
+            ec = *(policy->get_ecs().begin());
+        }
         initialize(state);
     }
 }
