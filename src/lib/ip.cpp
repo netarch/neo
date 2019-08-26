@@ -47,80 +47,9 @@ uint32_t IPv4Address::get_value() const
     return value;
 }
 
-bool IPv4Address::operator<(const IPv4Address& rhs) const
-{
-    return value < rhs.value;
-}
-
-bool IPv4Address::operator<=(const IPv4Address& rhs) const
-{
-    return value <= rhs.value;
-}
-
-bool IPv4Address::operator>(const IPv4Address& rhs) const
-{
-    return value > rhs.value;
-}
-
-bool IPv4Address::operator>=(const IPv4Address& rhs) const
-{
-    return value >= rhs.value;
-}
-
-bool IPv4Address::operator==(const IPv4Address& rhs) const
-{
-    return value == rhs.value;
-}
-
-bool IPv4Address::operator!=(const IPv4Address& rhs) const
-{
-    return value != rhs.value;
-}
-
-bool IPv4Address::operator<(const std::string& rhs) const
-{
-    return *this < IPv4Address(rhs);
-}
-
-bool IPv4Address::operator<=(const std::string& rhs) const
-{
-    return *this <= IPv4Address(rhs);
-}
-
-bool IPv4Address::operator>(const std::string& rhs) const
-{
-    return *this > IPv4Address(rhs);
-}
-
-bool IPv4Address::operator>=(const std::string& rhs) const
-{
-    return *this >= IPv4Address(rhs);
-}
-
-bool IPv4Address::operator==(const std::string& rhs) const
-{
-    return *this == IPv4Address(rhs);
-}
-
-bool IPv4Address::operator!=(const std::string& rhs) const
-{
-    return *this != IPv4Address(rhs);
-}
-
-IPv4Address& IPv4Address::operator=(const std::string& rhs)
-{
-    return (*this = IPv4Address(rhs));
-}
-
 IPv4Address& IPv4Address::operator+=(const IPv4Address& rhs)
 {
     value += rhs.value;
-    return *this;
-}
-
-IPv4Address& IPv4Address::operator+=(uint32_t rhs)
-{
-    value += rhs;
     return *this;
 }
 
@@ -130,21 +59,10 @@ IPv4Address& IPv4Address::operator-=(const IPv4Address& rhs)
     return *this;
 }
 
-IPv4Address& IPv4Address::operator-=(uint32_t rhs)
-{
-    value -= rhs;
-    return *this;
-}
-
 IPv4Address& IPv4Address::operator&=(const IPv4Address& rhs)
 {
     value &= rhs.value;
     return *this;
-}
-
-IPv4Address& IPv4Address::operator&=(const std::string& rhs)
-{
-    return *this &= IPv4Address(rhs);
 }
 
 IPv4Address& IPv4Address::operator|=(const IPv4Address& rhs)
@@ -153,19 +71,9 @@ IPv4Address& IPv4Address::operator|=(const IPv4Address& rhs)
     return *this;
 }
 
-IPv4Address& IPv4Address::operator|=(const std::string& rhs)
-{
-    return *this |= IPv4Address(rhs);
-}
-
 IPv4Address IPv4Address::operator+(const IPv4Address& rhs) const
 {
     return IPv4Address(value + rhs.value);
-}
-
-IPv4Address IPv4Address::operator+(uint32_t rhs) const
-{
-    return IPv4Address(value + rhs);
 }
 
 int IPv4Address::operator-(const IPv4Address& rhs) const
@@ -173,19 +81,9 @@ int IPv4Address::operator-(const IPv4Address& rhs) const
     return (int)(value - rhs.value);
 }
 
-int IPv4Address::operator-(uint32_t rhs) const
-{
-    return (int)(value - rhs);
-}
-
 IPv4Address IPv4Address::operator&(const IPv4Address& rhs) const
 {
     return IPv4Address(value & rhs.value);
-}
-
-IPv4Address IPv4Address::operator&(const std::string& rhs) const
-{
-    return *this & IPv4Address(rhs);
 }
 
 uint32_t IPv4Address::operator&(uint32_t rhs) const
@@ -198,12 +96,37 @@ IPv4Address IPv4Address::operator|(const IPv4Address& rhs) const
     return IPv4Address(value | rhs.value);
 }
 
-IPv4Address IPv4Address::operator|(const std::string& rhs) const
-{
-    return *this | IPv4Address(rhs);
-}
-
 uint32_t IPv4Address::operator|(uint32_t rhs) const
 {
     return value | rhs;
+}
+
+bool operator<(const IPv4Address& a, const IPv4Address& b)
+{
+    return a.value < b.value;
+}
+
+bool operator<=(const IPv4Address& a, const IPv4Address& b)
+{
+    return a.value <= b.value;
+}
+
+bool operator>(const IPv4Address& a, const IPv4Address& b)
+{
+    return a.value > b.value;
+}
+
+bool operator>=(const IPv4Address& a, const IPv4Address& b)
+{
+    return a.value >= b.value;
+}
+
+bool operator==(const IPv4Address& a, const IPv4Address& b)
+{
+    return a.value == b.value;
+}
+
+bool operator!=(const IPv4Address& a, const IPv4Address& b)
+{
+    return a.value != b.value;
 }

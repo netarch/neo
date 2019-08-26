@@ -99,6 +99,11 @@ Interface *Node::get_interface(const std::string& intf_name) const
     return intf->second;
 }
 
+Interface *Node::get_interface(const char *intf_name) const
+{
+    return get_interface(std::string(intf_name));
+}
+
 Interface *Node::get_interface(const IPv4Address& addr) const
 {
     auto intf = intfs_l3.find(addr);

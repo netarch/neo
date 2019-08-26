@@ -41,10 +41,6 @@ public:
           const IPv4Address& nh = IPv4Address(),
           const std::string& ifn = "",
           int adm_dist = 255);
-    Route(const std::string& net,
-          const std::string& nh = std::string(),
-          const std::string& ifn = "",
-          int adm_dist = 255);
 
     std::string to_string() const;
     IPNetwork<IPv4Address> get_network() const;

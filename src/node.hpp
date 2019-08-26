@@ -44,6 +44,7 @@ public:
     virtual bool is_l3_only() const;
 
     virtual Interface *get_interface(const std::string&) const;
+    virtual Interface *get_interface(const char *) const;
     virtual Interface *get_interface(const IPv4Address&) const;
     virtual const std::map<IPv4Address, Interface *>& get_intfs_l3() const;
     virtual const std::set<Interface *>& get_intfs_l2() const;

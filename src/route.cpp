@@ -36,11 +36,6 @@ Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
     : network(net), next_hop(nh), egress_intf(ifn), adm_dist(adm_dist)
 {
 }
-Route::Route(const std::string& net, const std::string& nh,
-             const std::string& ifn, int adm_dist)
-    : network(net), next_hop(nh), egress_intf(ifn), adm_dist(adm_dist)
-{
-}
 
 std::string Route::to_string() const
 {
