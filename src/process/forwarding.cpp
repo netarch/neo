@@ -32,8 +32,8 @@ void ForwardingProcess::exec_step(State *state)
         return;
     }
 
-    auto& fwd_mode = state->network_state[state->itr_ec].fwd_mode;
-    switch (fwd_mode) {
+    auto& mode = state->network_state[state->itr_ec].fwd_mode;
+    switch (mode) {
         case fwd_mode::INJECT_PACKET:
             inject_packet(state);
             break;
@@ -55,7 +55,7 @@ void ForwardingProcess::exec_step(State *state)
             break;
         default:
             Logger::get_instance().err("forwarding process: unknown mode ("
-                                       + std::to_string(fwd_mode) + ")");
+                                       + std::to_string(mode) + ")");
     }
 }
 
