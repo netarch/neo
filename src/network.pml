@@ -21,14 +21,15 @@
 typedef network_state_t {
     /* network */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
-    int update_hist[SIZEOF_VOID_P / SIZEOF_INT];    /* update history */
 
     /* forwarding process */
     byte fwd_mode;                                  /* execution mode */
     int src_addr[4 / SIZEOF_INT];                   /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
+    int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
-    /*int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
+    int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
+    /* TODO: add ingress_intf into the forwarding process execution */
     /*int l3_nhop[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
 
     /* policy */

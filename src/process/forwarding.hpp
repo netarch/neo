@@ -5,6 +5,7 @@
 
 #include "process/process.hpp"
 #include "node.hpp"
+#include "pkt-hist.hpp"
 
 enum fwd_mode {
     // start from 1 to avoid execution before configuration
@@ -31,6 +32,7 @@ class ForwardingProcess : public Process
 private:
     std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
+    std::unordered_set<PacketHistory *> pkt_hist_hist;  // history pkt_hists
 
     void inject_packet(State *) const;
     void first_collect(State *);

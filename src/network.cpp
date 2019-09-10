@@ -4,8 +4,8 @@
 #include <cstring>
 
 #include "network.hpp"
+#include "middlebox.hpp"
 #include "lib/logger.hpp"
-#include "middlebox/middlebox.hpp"
 
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config)

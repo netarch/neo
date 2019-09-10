@@ -17,9 +17,10 @@
 [[nodes]]
     name = "string"
     type = "middlebox"
-    driver = "netns"
-    middlebox = "netfilter"
-    config = ".*"
+    env = "netns"
+    app = "netfilter"
+    rp_filter = 0               # optional (0..2?), default: 0
+    config = ".*"   # TODO
 
 # undirected (only need to specify once for each bidirectional link)
 [[links]]
@@ -44,7 +45,7 @@
     type = "reply-reachability"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
-    final_node = "node name regex"
+    query_node = "node name regex"
     reachable = true or false
 [[policies]]
     type = "stateful-reachability"

@@ -4,6 +4,9 @@
 #include "node.hpp"
 #include "lib/logger.hpp"
 
+// TODO: what if multiple nodes have the same IP address (e.g. private subnets)?
+// We need to find a better way to get the L3 next hops, but for now, we assume
+// there are no multiple nodes having the same IP address.
 static IPList iplist;
 
 Node::Node(const std::shared_ptr<cpptoml::table>& config)

@@ -75,24 +75,7 @@ void ForwardingProcess::inject_packet(State *state) const
 
 void ForwardingProcess::first_collect(State *state)
 {
-    Node *current_node;
-    memcpy(&current_node, state->network_state[state->itr_ec].pkt_location,
-           sizeof(Node *));
-    FIB *fib;
-    memcpy(&fib, state->network_state[state->itr_ec].fib, sizeof(FIB *));
-    const std::set<FIB_IPNH>& next_hops = fib->lookup(current_node);
-    if (next_hops.empty()) {
-        Logger::get_instance().info("Packet dropped by "
-                                    + current_node->to_string());
-        state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::DROPPED);
-        state->choice_count = 0;
-        return;
-    }
-    std::vector<FIB_IPNH> candidates;
-    for (const FIB_IPNH& next_hop : next_hops) {
-        candidates.push_back(next_hop);
-    }
-    update_candidates(state, candidates);
+    collect_next_hops(state);
     state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::FIRST_FORWARD);
 }
 

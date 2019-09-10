@@ -35,8 +35,8 @@ public:
     Node(Node&&) = default;
     virtual ~Node();
 
-    Node& operator=(const Node&) = delete;
-    Node& operator=(Node&&) = default;
+    virtual Node& operator=(const Node&) = delete;
+    virtual Node& operator=(Node&&) = default;
 
     virtual std::string to_string() const;
     virtual std::string get_name() const;

@@ -108,8 +108,9 @@
 [[nodes]]
     name = "fw"
     type = "middlebox"
-    driver = "netns"
-    middlebox = "netfilter"
+    env = "netns"
+    app = "netfilter"
+    rp_filter = 1
     config = """
     *nat
     :PREROUTING ACCEPT [0:0]
