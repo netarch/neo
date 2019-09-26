@@ -71,21 +71,6 @@
     type = "generic"
     [[nodes.interfaces]]
     name = "eth0"
-    ipv4 = "192.168.3.2/25"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.3.129/25"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "192.168.3.130"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.3.1"
-[[nodes]]
-    name = "r4"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
     ipv4 = "192.168.0.254/24"
     [[nodes.interfaces]]
     name = "eth1"
@@ -93,18 +78,12 @@
     [[nodes.interfaces]]
     name = "eth2"
     ipv4 = "192.168.2.130/25"
-    [[nodes.interfaces]]
-    name = "eth3"
-    ipv4 = "192.168.3.130/25"
     [[nodes.static_routes]]
     network = "0.0.0.0/0"
     next_hop = "192.168.1.129"
     [[nodes.static_routes]]
     network = "0.0.0.0/0"
     next_hop = "192.168.2.129"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.3.129"
 [[nodes]]
     name = "fw"
     type = "middlebox"
@@ -126,11 +105,9 @@
     :OUTPUT ACCEPT [0:0]
     -A INPUT -i eth1 -j ACCEPT
     -A INPUT -i eth2 -j ACCEPT
-    -A INPUT -i eth3 -j ACCEPT
     -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     -A FORWARD -i eth1 -j ACCEPT
     -A FORWARD -i eth2 -j ACCEPT
-    -A FORWARD -i eth3 -j ACCEPT
     -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     COMMIT
     """
@@ -143,21 +120,9 @@
     [[nodes.interfaces]]
     name = "eth2"
     ipv4 = "192.168.2.1/25"
-    [[nodes.interfaces]]
-    name = "eth3"
-    ipv4 = "192.168.3.1/25"
     [[nodes.static_routes]]
     network = "192.168.0.0/22"
     next_hop = "192.168.1.2"
-    weight = 1
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "192.168.2.2"
-    weight = 2
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "192.168.3.2"
-    weight = 3
 [[nodes]]
     name = "server"
     type = "generic"
@@ -184,27 +149,17 @@
     node2 = "r2"
     intf2 = "eth0"
 [[links]]
-    node1 = "fw"
-    intf1 = "eth3"
-    node2 = "r3"
-    intf2 = "eth0"
-[[links]]
     node1 = "r1"
     intf1 = "eth1"
-    node2 = "r4"
+    node2 = "r3"
     intf2 = "eth1"
 [[links]]
     node1 = "r2"
     intf1 = "eth1"
-    node2 = "r4"
+    node2 = "r3"
     intf2 = "eth2"
 [[links]]
     node1 = "r3"
-    intf1 = "eth1"
-    node2 = "r4"
-    intf2 = "eth3"
-[[links]]
-    node1 = "r4"
     intf1 = "eth0"
     node2 = "s1"
     intf2 = "eth0"
@@ -239,7 +194,7 @@
     type = "reachability"
     pkt_dst = "192.168.0.0/22"
     start_node = "server"
-    final_node = "h[123]|s1|r[1-4]|fw"
+    final_node = "h[123]|s1|r[123]|fw"
     reachable = false
 [[policies]]
     type = "reply-reachability"
