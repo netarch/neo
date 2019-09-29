@@ -29,7 +29,6 @@ typedef network_state_t {
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
-    /* TODO: add ingress_intf into the forwarding process execution */
     /*int l3_nhop[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
 
     /* policy */

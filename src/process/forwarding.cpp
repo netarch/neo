@@ -105,10 +105,11 @@ void ForwardingProcess::forward_packet(State *state) const
     Node *current_node;
     memcpy(&current_node, state->network_state[state->itr_ec].pkt_location,
            sizeof(Node *));
+
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
+
     Node *next_hop = (*candidates)[state->choice].get_l3_node();
-    //Interface *ingress_intf = (*candidates)[state->choice].get_l2_intf();
     if (next_hop == current_node) {
         Logger::get_instance().info("Packet delivered at "
                                     + next_hop->to_string());
@@ -118,7 +119,13 @@ void ForwardingProcess::forward_packet(State *state) const
     }
     memcpy(state->network_state[state->itr_ec].pkt_location, &next_hop,
            sizeof(Node *));
-    Logger::get_instance().info("Packet forwarded to " + next_hop->to_string());
+
+    Interface *ingress_intf = (*candidates)[state->choice].get_l3_intf();
+    memcpy(state->network_state[state->itr_ec].ingress_intf, &ingress_intf,
+           sizeof(Interface *));
+
+    Logger::get_instance().info("Packet forwarded to " + next_hop->to_string()
+                                + ", " + ingress_intf->to_string());
     state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
     state->choice_count = 1;    // deterministic choice
 }
