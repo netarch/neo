@@ -53,7 +53,7 @@ IPNetwork<IPv4Address> Interface::network() const
     return ipv4.network();
 }
 
-bool Interface::switching() const
+bool Interface::is_l2() const
 {
     return switchport;
 }

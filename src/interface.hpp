@@ -22,5 +22,5 @@ public:
     IPv4Address addr() const;
     int prefix_length() const;
     IPNetwork<IPv4Address> network() const;
-    bool switching() const;
+    bool is_l2() const;
 };

@@ -9,8 +9,10 @@
 #include "interface.hpp"
 #include "routingtable.hpp"
 class Node;
-#include "link.hpp"
-class Node;
+//#include "link.hpp"
+//class Node;
+#include "l2-lan.hpp"
+//class Node;
 #include "fib.hpp"
 
 class Node
@@ -25,8 +27,11 @@ protected:
 
     RoutingTable rib;   // global RIB for this node
 
-    // active connected peers indexed by interface name
-    std::map<std::string, std::pair<Node *, Interface *> > active_peers;
+    // active connected L2 peers indexed by interface name
+    std::map<std::string, std::pair<Node *, Interface *> > l2_peers;
+
+    // L2 interfaces to L2 LANs mappings
+    std::map<Interface *, L2_LAN *> l2_lans;
 
 public:
     Node(const std::shared_ptr<cpptoml::table>&);
@@ -50,23 +55,16 @@ public:
     virtual const std::set<Interface *>& get_intfs_l2() const;
     virtual const RoutingTable& get_rib() const;
 
+    virtual std::pair<Node *, Interface *>
+    get_peer(const std::string& intf_name) const;
+    virtual void add_peer(const std::string&, Node *, Interface *);
+
+    virtual bool mapped_to_l2lan(Interface *) const;
+    virtual void set_l2lan(Interface *, L2_LAN *);
+
     /*
      * Compute the IP next hops from this node for a given destination address
      * by recursively looking up in the RIB.
      */
     virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&);
-
-    virtual std::pair<Node *, Interface *>
-    get_peer(const std::string& intf_name) const;
-    virtual void add_peer(const std::string&, Node *, Interface *);
-};
-
-class IPList
-{
-private:
-    std::unordered_map<IPv4Address, Node *> tbl;
-
-public:
-    void add(const IPv4Address&, Node *const);
-    Node *get_node(const IPv4Address&) const;
 };

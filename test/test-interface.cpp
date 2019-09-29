@@ -36,7 +36,7 @@ TEST_CASE("interface")
         CHECK(intf->addr() == "1.2.3.4");
         CHECK(intf->prefix_length() == 8);
         CHECK(intf->network() == "1.0.0.0/8");
-        CHECK(intf->switching() == false);
+        CHECK(intf->is_l2() == false);
     }
 
     SECTION("L2 interface") {
@@ -54,7 +54,7 @@ TEST_CASE("interface")
         CHECK_THROWS_WITH(intf->addr(), "Switchport: br0");
         CHECK_THROWS_WITH(intf->prefix_length(), "Switchport: br0");
         CHECK_THROWS_WITH(intf->network(), "Switchport: br0");
-        CHECK(intf->switching() == true);
+        CHECK(intf->is_l2() == true);
     }
 
     delete intf;

@@ -4,11 +4,6 @@
 #include "node.hpp"
 #include "lib/logger.hpp"
 
-// TODO: what if multiple nodes have the same IP address (e.g. private subnets)?
-// We need to find a better way to get the L3 next hops, but for now, we assume
-// there are no multiple nodes having the same IP address.
-static IPList iplist;
-
 Node::Node(const std::shared_ptr<cpptoml::table>& config)
 {
     auto node_name = config->get_as<std::string>("name");
@@ -30,7 +25,7 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
                 Logger::get_instance().err("Duplicate interface name: " +
                                            res.first->first);
             }
-            if (intf->switching()) {
+            if (intf->is_l2()) {
                 // Add the new interface to intfs_l2
                 intfs_l2.insert(intf);
             } else {
@@ -43,9 +38,6 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
 
                 // Add the directly connected route to rib
                 rib.emplace(intf->network(), intf->addr(), intf->get_name(), 0);
-
-                // Add to the IP list
-                iplist.add(intf->addr(), this);
             }
         }
     }
@@ -132,6 +124,36 @@ const RoutingTable& Node::get_rib() const
     return rib;
 }
 
+std::pair<Node *, Interface *>
+Node::get_peer(const std::string& intf_name) const
+{
+    auto peer = l2_peers.find(intf_name);
+    if (peer == l2_peers.end()) {
+        return std::make_pair(nullptr, nullptr);
+    }
+    return peer->second;
+}
+
+void Node::add_peer(const std::string& intf_name, Node *node,
+                    Interface *intf)
+{
+    auto res = l2_peers.insert
+               (std::make_pair(intf_name, std::make_pair(node, intf)));
+    if (res.second == false) {
+        Logger::get_instance().err("Two peers on interface: " + intf_name);
+    }
+}
+
+bool Node::mapped_to_l2lan(Interface *intf) const
+{
+    return l2_lans.count(intf) > 0;
+}
+
+void Node::set_l2lan(Interface *intf, L2_LAN *l2_lan)
+{
+    l2_lans[intf] = l2_lan;
+}
+
 std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
 {
     std::set<FIB_IPNH> next_hops;
@@ -144,49 +166,26 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
             next_hops.insert(nhs.begin(), nhs.end());
         } else if (has_ip(dst)) {
             // connected route; accept
-            next_hops.insert(FIB_IPNH(this, this, nullptr));
+            next_hops.insert(FIB_IPNH(this, nullptr, this, nullptr));
+            //                        l3nh l3nh_intf l2nh l2nh_intf
         } else {
             // connected route; forward
-            auto peer = get_peer(it->get_intf());   // L2 next hop
-            Node *dst_node = iplist.get_node(dst);  // L3 next hop
-            if (peer.first && dst_node) {
-                next_hops.insert(FIB_IPNH(dst_node, peer.first, peer.second));
+            auto l2nh = get_peer(it->get_intf());   // L2 next hop
+            if (l2nh.first) { // if the interface is truly connected (has peer)
+                if (!l2nh.second->is_l2()) {    // L2 next hop == L3 next hop
+                    next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
+                                              l2nh.first, l2nh.second));
+                } else {
+                    auto l3nh =
+                        l2nh.first->l2_lans[l2nh.second]->find_l3_endpoint(dst);
+                    if (l3nh.first) {
+                        next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+                                                  l2nh.first, l2nh.second));
+                    }
+                }
             }
         }
     }
 
     return next_hops;
-}
-
-std::pair<Node *, Interface *>
-Node::get_peer(const std::string& intf_name) const
-{
-    auto peer = active_peers.find(intf_name);
-    if (peer == active_peers.end()) {
-        return std::make_pair(nullptr, nullptr);
-    }
-    return peer->second;
-}
-
-void Node::add_peer(const std::string& intf_name, Node *node, Interface *intf)
-{
-    auto res = active_peers.insert
-               (std::make_pair(intf_name, std::make_pair(node, intf)));
-    if (res.second == false) {
-        Logger::get_instance().err("Two peers on interface: " + intf_name);
-    }
-}
-
-void IPList::add(const IPv4Address& addr, Node *const node)
-{
-    tbl[addr] = node;
-}
-
-Node *IPList::get_node(const IPv4Address& addr) const
-{
-    auto node = tbl.find(addr);
-    if (node == tbl.end()) {
-        return nullptr;
-    }
-    return node->second;
 }

@@ -16,7 +16,7 @@ void ForwardingProcess::config(State *state,
 {
     std::vector<FIB_IPNH> candidates;
     for (Node *start_node : start_nodes) {
-        candidates.push_back(FIB_IPNH(start_node, start_node, nullptr));
+        candidates.push_back(FIB_IPNH(start_node, nullptr, start_node, nullptr));
     }
     update_candidates(state, candidates);
     state->network_state[state->itr_ec].fwd_mode
@@ -68,6 +68,8 @@ void ForwardingProcess::inject_packet(State *state) const
            sizeof(Node *));
     memcpy(state->network_state[state->itr_ec].pkt_location, &entry,
            sizeof(Node *));
+    memset(state->network_state[state->itr_ec].ingress_intf, 0,
+           sizeof(Interface *));
     Logger::get_instance().info("Packet injected at " + entry->to_string());
     state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::FIRST_COLLECT);
     state->choice_count = 1;    // deterministic choice
@@ -106,6 +108,7 @@ void ForwardingProcess::forward_packet(State *state) const
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
     Node *next_hop = (*candidates)[state->choice].get_l3_node();
+    //Interface *ingress_intf = (*candidates)[state->choice].get_l2_intf();
     if (next_hop == current_node) {
         Logger::get_instance().info("Packet delivered at "
                                     + next_hop->to_string());

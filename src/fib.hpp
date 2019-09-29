@@ -2,12 +2,10 @@
 
 #include <map>
 #include <set>
-#include <utility>
 #include <unordered_set>
 #include <string>
 #include <functional>
 
-class FIB_L2DM;
 class FIB_IPNH;
 class FIB;
 #include "node.hpp"
@@ -15,36 +13,17 @@ class FIB;
 #include "lib/hash.hpp"
 
 
-class FIB_L2DM  // FIB entry for an L2 domain
-{
-private:
-    std::map<Node *, std::set<std::pair<Node *, Interface *> > > tbl;
-    std::unordered_set<Interface *> intfs;
-
-    friend class FIB;
-    friend class std::hash<FIB_L2DM>;
-    friend bool operator==(const FIB_L2DM&, const FIB_L2DM&);
-
-    void collect_intfs(Node *, Interface *);
-
-public:
-    FIB_L2DM(Node *, Interface *);
-
-    std::string to_string() const;
-};
-
-bool operator==(const FIB_L2DM&, const FIB_L2DM&);
-
 class FIB_IPNH  // FIB entry for an IP next hop
 {
 private:
     Node *l3_node;      // L3 next hop node
+    Interface *l3_intf; // L3 next hop interface
     Node *l2_node;      // L2 next hop node
     Interface *l2_intf; // L2 next hop interface
     /*
-     * Note that l3_node and l2_node should/would never be nullptr, but l2_intf
-     * can be nullptr, which only occurs when l3_node and l2_node are both the
-     * same.
+     * Note that l3_node and l2_node should/would never be nullptr, but l3_intf
+     * and l2_intf can both be nullptrs (at the same time), which only occurs
+     * when l3_node and l2_node are both the same.
      */
 
     friend class std::hash<FIB_IPNH>;
@@ -53,11 +32,13 @@ private:
     friend bool operator==(const FIB_IPNH&, const FIB_IPNH&);
 
 public:
-    FIB_IPNH(Node *, Node *, Interface *);
+    FIB_IPNH(Node *l3nh, Interface *l3nh_intf,
+             Node *l2nh, Interface *l2nh_intf);
     FIB_IPNH(const FIB_IPNH&) = default;
 
     std::string to_string() const;
     Node *const& get_l3_node() const;
+    Interface *const& get_l3_intf() const;
     Node *const& get_l2_node() const;
     Interface *const& get_l2_intf() const;
 };
@@ -73,12 +54,9 @@ class FIB
 {
 private:
     // resolved forwarding table for IP next hops
-    std::map<Node *, std::set<FIB_IPNH> > iptbl;
+    std::map<Node *, std::set<FIB_IPNH> > tbl;
     // TODO: find a way to increase hashing speed for FIB when update agent is
     // implemented. (incremental hashing)
-
-    // L2 domain mappings
-    std::map<Interface *, FIB_L2DM *> l2tbl;
 
     friend class std::hash<FIB>;
     friend bool operator==(const FIB&, const FIB&);
@@ -86,10 +64,7 @@ private:
 public:
     std::string to_string() const;
     void set_ipnhs(Node *, std::set<FIB_IPNH>&&);
-    void set_l2dm(FIB_L2DM *);
-    bool in_l2dm(Interface *) const;
     const std::set<FIB_IPNH>& lookup(Node *const) const;
-    FIB_L2DM *const& lookup(Interface *const) const;
 };
 
 bool operator==(const FIB&, const FIB&);
@@ -99,40 +74,6 @@ namespace std
 {
 
 template <>
-struct hash<FIB_L2DM> {
-    size_t operator()(const FIB_L2DM& l2dm) const
-    {
-        size_t value = 0;
-        hash<Node *> node_hf;
-        hash<Interface *> intf_hf;
-        for (const auto& entry : l2dm.tbl) {
-            value <<= node_hf(entry.first) & 1;
-            for (const auto& nh : entry.second) {
-                ::hash::hash_combine(value, node_hf(nh.first));
-                ::hash::hash_combine(value, intf_hf(nh.second));
-            }
-        }
-        return value;
-    };
-};
-
-template <>
-struct hash<FIB_L2DM *> {
-    size_t operator()(FIB_L2DM *const& l2dm) const
-    {
-        return hash<FIB_L2DM>()(*l2dm);
-    };
-};
-
-template <>
-struct equal_to<FIB_L2DM *> {
-    bool operator()(FIB_L2DM *const& a, FIB_L2DM *const& b) const
-    {
-        return *a == *b;
-    }
-};
-
-template <>
 struct hash<FIB_IPNH> {
     size_t operator()(const FIB_IPNH& next_hop) const
     {
@@ -140,6 +81,7 @@ struct hash<FIB_IPNH> {
         hash<Node *> node_hf;
         hash<Interface *> intf_hf;
         ::hash::hash_combine(value, node_hf(next_hop.l3_node));
+        ::hash::hash_combine(value, intf_hf(next_hop.l3_intf));
         ::hash::hash_combine(value, node_hf(next_hop.l2_node));
         ::hash::hash_combine(value, intf_hf(next_hop.l2_intf));
         return value;
@@ -150,28 +92,15 @@ template <>
 struct hash<FIB> {
     size_t operator()(const FIB& fib) const
     {
+        size_t value = 0;
         hash<Node *> node_hf;
-        hash<Interface *> intf_hf;
         hash<FIB_IPNH> ipnh_hf;
-        hash<FIB_L2DM *> l2dm_hf;
-
-        size_t iptbl_value = 0;
-        for (const auto& entry : fib.iptbl) {
-            iptbl_value <<= node_hf(entry.first) & 1;
+        for (const auto& entry : fib.tbl) {
+            ::hash::hash_combine(value, node_hf(entry.first));
             for (const auto& nh : entry.second) {
-                ::hash::hash_combine(iptbl_value, ipnh_hf(nh));
+                ::hash::hash_combine(value, ipnh_hf(nh));
             }
         }
-
-        size_t l2tbl_value = 0;
-        for (const auto& entry : fib.l2tbl) {
-            l2tbl_value <<= intf_hf(entry.first) & 1;
-            ::hash::hash_combine(l2tbl_value, l2dm_hf(entry.second));
-        }
-
-        size_t value = 0;
-        ::hash::hash_combine(value, iptbl_value);
-        ::hash::hash_combine(value, l2tbl_value);
         return value;
     };
 };

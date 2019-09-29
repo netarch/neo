@@ -1,9 +1,10 @@
+#include "network.hpp"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <cstring>
 
-#include "network.hpp"
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
 
@@ -57,6 +58,24 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
     }
     Logger::get_instance().info("Loaded " + std::to_string(links.size()) +
                                 " links");
+
+    // collect L2 LANs
+    for (const auto& pair : nodes) {
+        Node *node = pair.second;
+        for (Interface *intf : node->get_intfs_l2()) {
+            if (!node->mapped_to_l2lan(intf)) {
+                L2_LAN *l2_lan = new L2_LAN(node, intf);
+                auto res = l2_lans.insert(l2_lan);
+                if (!res.second) {
+                    delete l2_lan;
+                    l2_lan = *(res.first);
+                }
+                for (const auto& ep : l2_lan->get_l2_endpoints()) {
+                    ep.first->set_l2lan(ep.second, l2_lan);
+                }
+            }
+        }
+    }
 }
 
 Network::~Network()
@@ -70,8 +89,8 @@ Network::~Network()
     for (FIB * const& fib : fibs) {
         delete fib;
     }
-    for (FIB_L2DM * const& l2dm : l2dms) {
-        delete l2dm;
+    for (L2_LAN * const& l2_lan : l2_lans) {
+        delete l2_lan;
     }
 }
 
@@ -100,24 +119,10 @@ void Network::fib_init(State *state, const EqClass *ec)
     FIB *fib = new FIB();
     IPv4Address addr = ec->begin()->get_lb();   // the representative address
 
+    // collect IP next hops
     for (const auto& pair : nodes) {
         Node *node = pair.second;
-
-        // collect IP next hops
         fib->set_ipnhs(node, node->get_ipnhs(addr));
-
-        // collect L2 domain
-        for (Interface *intf : node->get_intfs_l2()) {
-            if (!fib->in_l2dm(intf)) {
-                FIB_L2DM *l2_domain = new FIB_L2DM(node, intf);
-                auto res = l2dms.insert(l2_domain);
-                if (!res.second) {
-                    delete l2_domain;
-                    l2_domain = *(res.first);
-                }
-                fib->set_l2dm(l2_domain);
-            }
-        }
     }
 
     auto res = fibs.insert(fib);
@@ -126,4 +131,6 @@ void Network::fib_init(State *state, const EqClass *ec)
         fib = *(res.first);
     }
     memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
+
+    Logger::get_instance().info(fib->to_string());
 }
