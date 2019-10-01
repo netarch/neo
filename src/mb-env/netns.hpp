@@ -6,7 +6,7 @@
 class NetNS : public MB_Env
 {
 private:
-    ;
+    int old_net, new_net;
 
 public:
     NetNS(const Node *);

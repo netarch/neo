@@ -9,10 +9,7 @@
 #include "interface.hpp"
 #include "routingtable.hpp"
 class Node;
-//#include "link.hpp"
-//class Node;
 #include "l2-lan.hpp"
-//class Node;
 #include "fib.hpp"
 
 class Node
