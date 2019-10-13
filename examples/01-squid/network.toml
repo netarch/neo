@@ -1,0 +1,155 @@
+# nodes interface definition
+[[nodes]]
+    name = "h1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h3"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.3/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "r1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = 192.168.1.130/25"
+    [[nodes.interfaces]]
+    name = "eth1" 
+    ipv4 = "192.168.2.130/25"
+    [[nodes.interfaces]]
+    name = "eth2"
+    ipv4 = "192.168.0.254"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.129"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.2.129"
+
+# switch
+[[nodes]]
+    name = "s1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+    [[nodes.interfaces]]
+    name = "eth3"
+
+# middle box
+[[nodes]]
+    name = "proxy_main"
+    type = "middlebox"
+    env = "netns"
+    app = "squid"
+    acl_enabled = 1
+    config = """
+    *list
+    acl denied_list url_regex "/usr/local/squid/new_denied_list
+    
+    *acl
+    http_access deny denied_list
+
+    # *routing
+    # hierachical cache
+    # cache_peer proxy_out parent 3128 3130
+    # cache_peer proxy_sibling 
+    # acl acl list main_acc_list 
+    """
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.129/25"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.2/25"
+    
+[[nodes]]
+    name = "proxy_backup"
+    type = "middlebox"
+    env = "netns"
+    app = "squid"
+    acl_enabled = 1
+    config = """
+    *list
+    acl denied_list url_regex "/usr/local/squid/new_denied_list"
+    
+    *acl
+    http_access deny denied_list
+    """
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.2.129/25"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.2.2/25"
+
+[[nodes]] 
+    name = "gateway"
+    type = "middlebox"
+    env = "netns"
+    app = "netfilter"
+    rp_filter = 0
+    config = """
+    *nat
+    :PREROUTING ACCEPT [0:0]
+    :INPUT ACCEPT [0:0]
+    :OUTPUT ACCEPT [0:0]
+    :POSTROUTING ACCEPT [0:0]
+    -A POSTROUTING -s 192.168.0.0/24 -o etho0 -j MASQUERADE
+    COMMIT
+    """
+    [[nodes.interface]]
+    name = "eth0"
+    ipv4 = "192.168.1.1"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.2.1"
+
+# link 
+
+
+
+
+# policy
+[[policies]]
+    type = "reachability"
+    pkt_dst = "10.0.0.1"
+    start_node = "h[123]"
+    final_node = "server"
+    reachable = true
+[[policies]]
+    type = "cache_hit"
+    pkt_dst = "10.0.0.1"
+    start_node = "h[123]"
+    final_node = "server"
+    hit_proxy = "proxy_main"
+    hit_times = 2
+[[policies]]
+    type = "reachability"
+    # defined in file in /usr/local/squid/new_denied_list
+    pkt_dst = "10.0.1.1" 
+    start_node = h[123]
+    final_node = "server2"
+    reachable = false
