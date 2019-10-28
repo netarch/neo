@@ -8,8 +8,10 @@
 #include <unistd.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
+#include <net/route.h>
 
 #include "lib/logger.hpp"
 
@@ -57,6 +59,14 @@ void NetNS::set_interfaces(const Node *node)
         if (ioctl(ctrl_sock, SIOCSIFNETMASK, &ifr) < 0) {
             goto error;
         }
+
+        // bring up the interface
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_flags = IFF_UP;
+        strncpy(ifr.ifr_name, intf->get_name().c_str(), IFNAMSIZ - 1);
+        if (ioctl(ctrl_sock, SIOCSIFFLAGS, &ifr) < 0) {
+            goto error;
+        }
     }
 
     close(ctrl_sock);
@@ -67,11 +77,11 @@ error:
     Logger::get_instance().err(ifr.ifr_name, errno);
 }
 
-void NetNS::set_rttable(const RoutingTable& rib __attribute__((unused)))
+void NetNS::set_rttable(const RoutingTable& rib)
 {
-    /*
     int ctrl_sock;
     struct rtentry rt;
+    char intf_name[IFNAMSIZ];
 
     // open a ctrl_sock for setting up routing entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
@@ -81,15 +91,38 @@ void NetNS::set_rttable(const RoutingTable& rib __attribute__((unused)))
     for (const Route& route : rib) {
         memset(&rt, 0, sizeof(rt));
 
-        // network
-        rt.rt_dst
+        // flags
+        rt.rt_flags = RTF_UP;
+        // network address
+        ((struct sockaddr_in *)&rt.rt_dst)->sin_family = AF_INET;
+        ((struct sockaddr_in *)&rt.rt_dst)->sin_addr.s_addr
+            = htonl(route.get_network().network_addr().get_value());
+        // network mask
+        ((struct sockaddr_in *)&rt.rt_genmask)->sin_family = AF_INET;
+        ((struct sockaddr_in *)&rt.rt_genmask)->sin_addr.s_addr
+            = htonl(route.get_network().mask().get_value());
+        if (route.get_network().network_addr() ==
+                route.get_network().broadcast_addr()) {
+            rt.rt_flags |= RTF_HOST;
+        }
+        // gateway or rt_dev (next hop)
+        if (!route.get_intf().empty()) {
+            strncpy(intf_name, route.get_intf().c_str(), IFNAMSIZ - 1);
+            rt.rt_dev = intf_name;
+        } else {
+            ((struct sockaddr_in *)&rt.rt_gateway)->sin_family = AF_INET;
+            ((struct sockaddr_in *)&rt.rt_gateway)->sin_addr.s_addr
+                = htonl(route.get_next_hop().get_value());
+            rt.rt_flags |= RTF_GATEWAY;
+        }
 
-        // gateway
-        rt.rt_gateway
+        if (ioctl(ctrl_sock, SIOCADDRT, &rt) < 0) {
+            close(ctrl_sock);
+            Logger::get_instance().err(route.to_string(), errno);
+        }
     }
 
     close(ctrl_sock);
-    */
 }
 
 NetNS::NetNS(): old_net(-1), new_net(-1)
@@ -130,9 +163,6 @@ void NetNS::init(const Node *node)
     set_interfaces(node);
     // update routing table according to node->rib
     set_rttable(node->get_rib());
-    system("ip a");
-    system("ip r");
-    exit(0);
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
         Logger::get_instance().err("Failed to setns", errno);
