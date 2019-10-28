@@ -58,7 +58,7 @@ all: $(TARGET) install-git-hooks #neo.1.gz
 
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	sudo setcap cap_sys_admin+pe $@
+	sudo setcap 'cap_sys_admin+pe cap_net_admin+pe' $@
 
 $(OBJS) $(TEST_OBJS): pan.h
 
