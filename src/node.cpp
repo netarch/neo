@@ -64,6 +64,10 @@ Node::~Node()
     }
 }
 
+void Node::init()
+{
+}
+
 std::string Node::to_string() const
 {
     return name;

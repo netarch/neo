@@ -16,7 +16,7 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     }
 
     if (*environment == "netns") {
-        env = new NetNS(this);
+        env = new NetNS();
     } else {
         Logger::get_instance().err("Unknown environment: " + *environment);
     }
@@ -26,14 +26,18 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     } else {
         Logger::get_instance().err("Unknown appliance: " + *appliance);
     }
-
-    env->run(mb_app_init, app);
 }
 
 Middlebox::~Middlebox()
 {
     delete app;
     delete env;
+}
+
+void Middlebox::init()
+{
+    env->init(this);
+    env->run(mb_app_init, app);
 }
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(
@@ -49,6 +53,7 @@ std::set<FIB_IPNH> Middlebox::send_pkt(State *state __attribute__((unused)), con
     // rewind and update state if needed
     // update pkt_hist with this injecting packet
     // inject packet
+    //env->inject_packet();
     // return next hop(s)
     return std::set<FIB_IPNH>();
 }

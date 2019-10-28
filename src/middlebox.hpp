@@ -27,6 +27,11 @@ public:
     Middlebox& operator=(Middlebox&&) = default;
 
     /*
+     * Actually initialize and start the emulation.
+     */
+    void init() override;
+
+    /*
      * Return an empty set. We don't model the forwarding behavior of
      * middleboxes. The forwarding process will inject a concrete packet to the
      * emulation instance.

@@ -106,11 +106,19 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
 
 void Network::init(State *state, const EqClass *pre_ec, const EqClass *ec)
 {
+    // initialize FIB
     if (state->itr_ec == 0 && pre_ec) {
         fib_init(state, pre_ec);
     } else {
         fib_init(state, ec);
     }
+
+    // initialize and start middlebox emulations
+    for (const auto& pair : nodes) {
+        Node *node = pair.second;
+        node->init();
+    }
+
     // TODO: initialize update history if update agent is implemented
 }
 

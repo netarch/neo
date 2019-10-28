@@ -71,6 +71,7 @@ public:
     std::string to_string() const;
     int prefix_length() const;
     Addr addr() const;
+    Addr mask() const;
     IPNetwork<Addr> network() const;
     bool operator==(const IPInterface<Addr>&) const;
     bool operator!=(const IPInterface<Addr>&) const;
@@ -201,9 +202,16 @@ Addr IPInterface<Addr>::addr() const
 }
 
 template <class Addr>
+Addr IPInterface<Addr>::mask() const
+{
+    uint32_t mask = ~((1ULL << (Addr::length() - prefix)) - 1);
+    return Addr(mask);
+}
+
+template <class Addr>
 IPNetwork<Addr> IPInterface<Addr>::network() const
 {
-    uint32_t mask = (1 << (Addr::length() - prefix)) - 1;
+    uint32_t mask = (1ULL << (Addr::length() - prefix)) - 1;
     return IPNetwork<Addr>(Addr::value & (~mask), prefix);
 }
 

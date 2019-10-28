@@ -29,6 +29,14 @@ std::string Interface::get_name() const
     return name;
 }
 
+int Interface::prefix_length() const
+{
+    if (switchport) {
+        Logger::get_instance().err("Switchport: " + name);
+    }
+    return ipv4.prefix_length();
+}
+
 IPv4Address Interface::addr() const
 {
     if (switchport) {
@@ -37,12 +45,12 @@ IPv4Address Interface::addr() const
     return ipv4.addr();
 }
 
-int Interface::prefix_length() const
+IPv4Address Interface::mask() const
 {
     if (switchport) {
         Logger::get_instance().err("Switchport: " + name);
     }
-    return ipv4.prefix_length();
+    return ipv4.mask();
 }
 
 IPNetwork<IPv4Address> Interface::network() const
