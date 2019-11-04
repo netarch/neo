@@ -66,17 +66,32 @@
     app = "squid"
     acl_enabled = 1
     config = """
-    *list
-    acl denied_list url_regex "/usr/local/squid/new_denied_list
-    
-    *acl
-    http_access deny denied_list
-
-    # *routing
-    # hierachical cache
-    # cache_peer proxy_out parent 3128 3130
-    # cache_peer proxy_sibling 
-    # acl acl list main_acc_list 
+    access_log /home/leon/neo/examples/configs/squid/log/access.log
+    acl SSL_ports port 443    # https
+    acl Safe_ports port 80    # http
+    acl Safe_ports port 21    # ftp
+    acl Safe_ports port 443   # https
+    acl Safe_ports port 70    # gopher
+    acl Safe_ports port 210   # wais
+    acl Safe_ports port 1025-65535  # unregistered ports
+    acl Safe_ports port 280   # http-mgmt
+    acl Safe_ports port 488   # gss-http
+    acl Safe_ports port 591   # filemaker
+    acl Safe_ports port 777   # multiling http
+    acl CONNECT method CONNECT
+    http_access deny !Safe_ports
+    http_access deny CONNECT !SSL_ports
+    http_access allow localhost manager
+    http_access deny manager
+    http_access allow localhost
+    http_access deny all
+    http_port 3128
+    access_log stdio:/home/leon/neo/examples/configs/squid/log/access.log squid
+    cache_store_log stdio:/home/leon/neo/examples/configs/squid/log/store.log
+    cache_log /home/leon/neo/examples/configs/squid/log/cache.log
+    coredump_dir /var/spool/squid
+    pinger_enable off
+    # pid_filename /var/run/squid.pid
     """
     [[nodes.interfaces]]
     name = "eth0"
@@ -92,11 +107,32 @@
     app = "squid"
     acl_enabled = 1
     config = """
-    *list
-    acl denied_list url_regex "/usr/local/squid/new_denied_list"
-    
-    *acl
-    http_access deny denied_list
+    access_log /home/leon/neo/examples/configs/squid/log/access.log
+    acl SSL_ports port 443    # https
+    acl Safe_ports port 80    # http
+    acl Safe_ports port 21    # ftp
+    acl Safe_ports port 443   # https
+    acl Safe_ports port 70    # gopher
+    acl Safe_ports port 210   # wais
+    acl Safe_ports port 1025-65535  # unregistered ports
+    acl Safe_ports port 280   # http-mgmt
+    acl Safe_ports port 488   # gss-http
+    acl Safe_ports port 591   # filemaker
+    acl Safe_ports port 777   # multiling http
+    acl CONNECT method CONNECT
+    http_access deny !Safe_ports
+    http_access deny CONNECT !SSL_ports
+    http_access allow localhost manager
+    http_access deny manager
+    http_access allow localhost
+    http_access deny all
+    http_port 3128
+    access_log stdio:/home/leon/neo/examples/configs/squid/log/access.log squid
+    cache_store_log stdio:/home/leon/neo/examples/configs/squid/log/store.log
+    cache_log /home/leon/neo/examples/configs/squid/log/cache.log
+    coredump_dir /var/spool/squid
+    pinger_enable off
+    # pid_filename /var/run/squid.pid
     """
     [[nodes.interfaces]]
     name = "eth0"
@@ -139,17 +175,3 @@
     start_node = "h[123]"
     final_node = "server"
     reachable = true
-[[policies]]
-    type = "cache_hit"
-    pkt_dst = "10.0.0.1"
-    start_node = "h[123]"
-    final_node = "server"
-    hit_proxy = "proxy_main"
-    hit_times = 2
-[[policies]]
-    type = "reachability"
-    # defined in file in /usr/local/squid/new_denied_list
-    pkt_dst = "10.0.1.1" 
-    start_node = h[123]
-    final_node = "server2"
-    reachable = false

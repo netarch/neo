@@ -4,19 +4,16 @@
 #include <stack>
 #include <unordered_map>
 #include <vector>
+#include <string>
+#include <experimental/filesystem>
 
+namespace filesystem = std::experimental::filesystem;
 class CacheProxy : public MB_App
 {
 private:
     int server_pid;
-    char *curr_dir;
-    char *config_path;
-    char const *proxy_path;
-    std::vector<char*> proxy_argv;
+    std::string cmd;
     std::string proxy_config;
-    // internal state of the server
-    std::unordered_map<std::string, std::string> host_access_count;
-    std::stack<std::string> host_access_history;
     ;
 
 public:
@@ -26,5 +23,6 @@ public:
     void init() override;
     void reset() override;
     int shutnclean();
-    void parse_node();
+    int generate_config_file(const std::string& config_content);
+    int check_server();
 };
