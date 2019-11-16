@@ -107,11 +107,14 @@ std::shared_ptr<cpptoml::table> get_toml_config(
     return config;
 }
 
-bool copy(const std::string src_path, const std::string dest_path) {
+bool copy(const std::string src_path, const std::string dest_path)
+{
     if (is_regular_file(src_path)) {
         struct stat buffer;
         std::size_t rindex = dest_path.find_last_of("/");
-        if (rindex == std::string::npos) return false;
+        if (rindex == std::string::npos) {
+            return false;
+        }
         std::string dir = dest_path.substr(0, rindex);
 
         int status = stat(dir.c_str(), &buffer);
@@ -134,7 +137,8 @@ bool copy(const std::string src_path, const std::string dest_path) {
     return false;
 }
 
-bool is_regular_file(const std::string file_path) {
+bool is_regular_file(const std::string file_path)
+{
     struct stat buffer;
     int ret = stat(file_path.c_str(), &buffer);
     if (ret == -1) {
@@ -149,7 +153,8 @@ bool is_regular_file(const std::string file_path) {
     return true;
 }
 
-std::string get_cwd(void) {
+std::string get_cwd(void)
+{
     char path[PATH_MAX];
     std::string retval;
     if (getcwd(path, sizeof(path)) != NULL) {

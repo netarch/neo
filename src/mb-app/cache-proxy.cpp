@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <fcntl.h>
 
-#include <fstream> 
+#include <fstream>
 #include "mb-app/cache-proxy.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
@@ -16,28 +16,28 @@
 const std::string curr_dir = fs::get_cwd();
 std::string config_path(curr_dir + "/" + "examples/configs/squid/");
 
-const std::string proxy_path = "/usr/sbin/squid"; 
+const std::string proxy_path = "/usr/sbin/squid";
 const std::string squid_pid = "/var/run/squid.pid";
 const std::string log_dir = curr_dir + "/" + "examples/configs/squid/log/";
 const std::string cache_log = curr_dir + "/" + "examples/configs/squid/log/cache.log";        // debugging
-const std::string access_log = curr_dir + "/" + "examples/configs/squid/log/access.log";       // client 
+const std::string access_log = curr_dir + "/" + "examples/configs/squid/log/access.log";       // client
 const std::string cache_store_log = curr_dir + "/" + "examples/configs/squid/log/store.log";  // stored cache object if on disk
 
 void get_timestamp(char *buffer, int len);
 CacheProxy::CacheProxy(const std::shared_ptr<cpptoml::table>& node)
 {
-    server_pid = 0; 
+    server_pid = 0;
     std::string squid("squid");
     char buff[80];
     if (node) {
-        auto node_config = node->get_as<std::string>("config"); 
+        auto node_config = node->get_as<std::string>("config");
         auto app = node->get_as<std::string>("app");
-        if (app && squid.compare(*app)){
+        if (app && squid.compare(*app)) {
             auto config = node->get_as<std::string>("config");
             proxy_config = *config;
             get_timestamp(&buff[0], 80);
             config_path = config_path + "config-" + std::string(buff);
-            if (generate_config_file(proxy_config) == 0){
+            if (generate_config_file(proxy_config) == 0) {
                 Logger::get_instance().info("config file generated");
             } else {
                 exit(EXIT_FAILURE);
@@ -86,7 +86,7 @@ void CacheProxy::init()
     // launch
     pid_t pid;
     int status = -2;
-    if ((pid=fork()) == 0) {
+    if ((pid = fork()) == 0) {
         status = system(cmd.c_str());
         Logger::get_instance().info("cmd for launching squid: " + cmd);
         Logger::get_instance().info("init status for squid:" + std::to_string(status));
@@ -101,13 +101,17 @@ void CacheProxy::init()
             std::cout << "check server with pid: " << std::to_string(server_pid) << std::endl;
             count++;
         }
-        if (server_pid) Logger::get_instance().info("squid is launched");
-        else Logger::get_instance().err("init failed");
-    } 
+        if (server_pid) {
+            Logger::get_instance().info("squid is launched");
+        } else {
+            Logger::get_instance().err("init failed");
+        }
+    }
 }
 
 /** soft reset with sighup**/
-void CacheProxy::reset() {
+void CacheProxy::reset()
+{
     if (server_pid > 0) {
         int status = kill(server_pid, SIGHUP);
         if (status) {
@@ -124,22 +128,24 @@ void CacheProxy::reset() {
 }
 
 /**generate config file to config folder **/
-int CacheProxy::generate_config_file(const std::string& config_content) {
-    // output to the new file 
+int CacheProxy::generate_config_file(const std::string& config_content)
+{
+    // output to the new file
     Logger::get_instance().info("Start to write to configuration file...");
     std::ofstream output_stream(config_path, std::ios_base::out | std::ios_base::trunc);
     output_stream << config_content;
     output_stream.close();
     return 0;
 }
-	
+
 /** shutdown running proxy process and clean the cache directory, kill all
  * pinger process **/
-int CacheProxy::shutnclean() {
+int CacheProxy::shutnclean()
+{
     int count = 0;
     while (server_pid > 0) {
         Logger::get_instance().info(std::to_string(server_pid));
-				int status = kill(server_pid, SIGINT);
+        int status = kill(server_pid, SIGINT);
         Logger::get_instance().info("shutdown with kill to server: " + std::to_string(server_pid));
         if (status) {
             Logger::get_instance().info("There is.infoor in sending SIGINT");
@@ -148,15 +154,18 @@ int CacheProxy::shutnclean() {
         }
         std::string pinger_clean_cmd = "/usr/bin/pkill -f pinger";
         status = system(pinger_clean_cmd.c_str());
-        if (count > 5) return 1;
+        if (count > 5) {
+            return 1;
+        }
     }
     return 0;
 }
 
 /** By checking pid_filepath, we can get to know the pid of the server if it is running**/
-int CacheProxy::check_server() {
+int CacheProxy::check_server()
+{
     int stat_pid = 0;
-    FILE * fptr = fopen(squid_pid.c_str(), "r");
+    FILE *fptr = fopen(squid_pid.c_str(), "r");
     if (fptr == NULL) {
         Logger::get_instance().info(squid_pid);
     } else {
@@ -168,9 +177,10 @@ int CacheProxy::check_server() {
     return stat_pid;
 }
 
-void get_timestamp(char *buffer, int len) { 
+void get_timestamp(char *buffer, int len)
+{
     time_t raw_time;
-    struct tm * time_info; 
+    struct tm *time_info;
     time(&raw_time);
     time_info = localtime(&raw_time);
     strftime(buffer, len, "%F-%H-%M", time_info);
