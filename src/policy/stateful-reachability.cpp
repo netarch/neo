@@ -15,16 +15,16 @@ StatefulReachabilityPolicy::StatefulReachabilityPolicy(
     auto prereq = config->get_table("prerequisite");
 
     if (!start_regex) {
-        Logger::get_instance().err("Missing start node");
+        Logger::get().err("Missing start node");
     }
     if (!final_regex) {
-        Logger::get_instance().err("Missing final node");
+        Logger::get().err("Missing final node");
     }
     if (!reachability) {
-        Logger::get_instance().err("Missing reachability");
+        Logger::get().err("Missing reachability");
     }
     if (!prereq) {
-        Logger::get_instance().err("Missing prerequisite policy");
+        Logger::get().err("Missing prerequisite policy");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
@@ -42,7 +42,7 @@ StatefulReachabilityPolicy::StatefulReachabilityPolicy(
     auto type = prereq->get_as<std::string>("type");
 
     if (!type) {
-        Logger::get_instance().err("Missing policy type");
+        Logger::get().err("Missing policy type");
     }
 
     if (*type == "reachability") {
@@ -50,8 +50,7 @@ StatefulReachabilityPolicy::StatefulReachabilityPolicy(
     } else if (*type == "waypoint") {
         prerequisite = new WaypointPolicy(prereq, net);
     } else {
-        Logger::get_instance().err("Unsupported prerequisite policy type: "
-                                   + *type);
+        Logger::get().err("Unsupported prerequisite policy type: " + *type);
     }
 }
 

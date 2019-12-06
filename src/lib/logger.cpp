@@ -18,7 +18,7 @@ void Logger::log(const std::string& type, const std::string& msg)
     }
 }
 
-Logger& Logger::get_instance()
+Logger& Logger::get()
 {
     static Logger instance;
     return instance;

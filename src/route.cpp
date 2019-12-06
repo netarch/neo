@@ -9,10 +9,10 @@ Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)
     auto dist = config->get_as<int>("adm_dist");
 
     if (!net) {
-        Logger::get_instance().err("Missing network");
+        Logger::get().err("Missing network");
     }
     if (!nhop && !intf) {
-        Logger::get_instance().err("Missing next hop IP address or interface");
+        Logger::get().err("Missing next hop IP address or interface");
     }
 
     network = IPNetwork<IPv4Address>(*net);
@@ -24,8 +24,8 @@ Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)
     }
     if (dist) {
         if (*dist < 1 || *dist > 254) {
-            Logger::get_instance().err("Invalid administrative distance: " +
-                                       std::to_string(*dist));
+            Logger::get().err("Invalid administrative distance: " +
+                              std::to_string(*dist));
         }
         adm_dist = *dist;
     }

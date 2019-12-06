@@ -22,7 +22,7 @@ void NetNS::set_interfaces(const Node *node)
 
     // open a ctrl_sock for setting up IP addresses
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get_instance().err("socket", errno);
+        Logger::get().err("socket", errno);
     }
 
     for (const auto& pair : node->get_intfs_l3()) {
@@ -30,7 +30,7 @@ void NetNS::set_interfaces(const Node *node)
 
         // create a new tap device
         if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
-            Logger::get_instance().err("/dev/net/tun", errno);
+            Logger::get().err("/dev/net/tun", errno);
         }
         memset(&ifr, 0, sizeof(ifr));
         ifr.ifr_flags = IFF_TAP;
@@ -40,9 +40,9 @@ void NetNS::set_interfaces(const Node *node)
             goto error;
         }
         //if (ioctl(fd, TUNSETPERSIST, 1) == -1) {
-        //    Logger::get_instance().warn(intf->get_name(), errno);
+        //    Logger::get().warn(intf->get_name(), errno);
         //}
-        tapfds.emplace(intf->get_name(), tapfd);
+        tapfds.emplace(intf, tapfd);
 
         // set up IP address
         memset(&ifr, 0, sizeof(ifr));
@@ -59,6 +59,16 @@ void NetNS::set_interfaces(const Node *node)
         if (ioctl(ctrl_sock, SIOCSIFNETMASK, &ifr) < 0) {
             goto error;
         }
+        // save ethernet address
+        memset(&ifr, 0, sizeof(ifr));
+        strncpy(ifr.ifr_name, intf->get_name().c_str(), IFNAMSIZ - 1);
+        ifr.ifr_addr.sa_family = AF_INET;
+        if (ioctl(ctrl_sock, SIOCGIFHWADDR, &ifr) < 0) {
+            goto error;
+        }
+        uint8_t *mac = new uint8_t[6];
+        memcpy(mac, ifr.ifr_hwaddr.sa_data, sizeof(uint8_t) * 6);
+        tapmacs.emplace(intf, mac);
 
         // bring up the interface
         memset(&ifr, 0, sizeof(ifr));
@@ -74,7 +84,7 @@ void NetNS::set_interfaces(const Node *node)
 
 error:
     close(ctrl_sock);
-    Logger::get_instance().err(ifr.ifr_name, errno);
+    Logger::get().err(ifr.ifr_name, errno);
 }
 
 void NetNS::set_rttable(const RoutingTable& rib)
@@ -85,7 +95,7 @@ void NetNS::set_rttable(const RoutingTable& rib)
 
     // open a ctrl_sock for setting up routing entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get_instance().err("socket", errno);
+        Logger::get().err("socket", errno);
     }
 
     for (const Route& route : rib) {
@@ -118,7 +128,7 @@ void NetNS::set_rttable(const RoutingTable& rib)
 
         if (ioctl(ctrl_sock, SIOCADDRT, &rt) < 0) {
             close(ctrl_sock);
-            Logger::get_instance().err(route.to_string(), errno);
+            Logger::get().err(route.to_string(), errno);
         }
     }
 
@@ -139,6 +149,10 @@ NetNS::~NetNS()
     for (const auto& tap : tapfds) {
         close(tap.second);
     }
+    // delete the allocated ethernet addresses
+    for (const auto& mac : tapmacs) {
+        delete mac.second;
+    }
 
     close(new_net);
 }
@@ -149,15 +163,15 @@ void NetNS::init(const Node *node)
 
     // save the original netns fd
     if ((old_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::get_instance().err(netns_path, errno);
+        Logger::get().err(netns_path, errno);
     }
     // create and enter a new netns
     if (unshare(CLONE_NEWNET) < 0) {
-        Logger::get_instance().err("Failed to create a new netns", errno);
+        Logger::get().err("Failed to create a new netns", errno);
     }
     // save the new netns fd
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::get_instance().err(netns_path, errno);
+        Logger::get().err(netns_path, errno);
     }
     // create tap interfaces and set IP addresses
     set_interfaces(node);
@@ -165,7 +179,7 @@ void NetNS::init(const Node *node)
     set_rttable(node->get_rib());
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get_instance().err("Failed to setns", errno);
+        Logger::get().err("Failed to setns", errno);
     }
 }
 
@@ -173,15 +187,30 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
 {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::get_instance().err("Failed to setns", errno);
+        Logger::get().err("Failed to setns", errno);
     }
 
     app_action(app);
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get_instance().err("Failed to setns", errno);
+        Logger::get().err("Failed to setns", errno);
     }
+}
+
+void NetNS::get_mac(Interface *intf, uint8_t *mac) const
+{
+    memcpy(mac, tapmacs.at(intf), sizeof(uint8_t) * 6);
+}
+
+size_t NetNS::inject_packet(Interface *intf, const uint8_t *buf, size_t len)
+{
+    int fd = tapfds.at(intf);
+    ssize_t nwrite = write(fd, buf, len);
+    if (nwrite < 0) {
+        Logger::get().err("Packet injection failed", errno);
+    }
+    return nwrite;
 }
 
 /************* Code for creating a veth pair *************
@@ -191,7 +220,7 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
 
     // create and connect to a netlink socket
     if (!(sock = nl_socket_alloc())) {
-        Logger::get_instance().err("nl_socket_alloc", ENOMEM);
+        Logger::get().err("nl_socket_alloc", ENOMEM);
     }
     nl_connect(sock, NETLINK_ROUTE);
 
@@ -200,7 +229,7 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
 
         // configure veth interfaces and put the peer to the original netns
         if (!(link = rtnl_link_veth_alloc())) {
-            Logger::get_instance().err("rtnl_link_veth_alloc", ENOMEM);
+            Logger::get().err("rtnl_link_veth_alloc", ENOMEM);
         }
         peer = rtnl_link_veth_get_peer(link);
         rtnl_link_set_name(link, intf->get_name().c_str());
@@ -211,7 +240,7 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
         // actually create the interfaces
         int err = rtnl_link_add(sock, link, NLM_F_CREATE);
         if (err < 0) {
-            Logger::get_instance().err(std::string("rtnl_link_add: ") +
+            Logger::get().err(std::string("rtnl_link_add: ") +
                                        nl_geterror(err));
         }
 

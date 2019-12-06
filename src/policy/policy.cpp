@@ -16,7 +16,7 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
 
     if (!pkt_dst_str) {
-        Logger::get_instance().err("Missing packet destination");
+        Logger::get().err("Missing packet destination");
     }
 
     std::string dst_str = *pkt_dst_str;
@@ -56,10 +56,10 @@ size_t Policy::num_ecs() const
 void Policy::report(State *state) const
 {
     if (state->network_state[state->itr_ec].violated) {
-        Logger::get_instance().info("Policy violated!");
+        Logger::get().info("Policy violated!");
         kill(getppid(), SIGUSR1);
     } else {
-        Logger::get_instance().info("Policy holds!");
+        Logger::get().info("Policy holds!");
     }
 }
 
@@ -72,7 +72,7 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
             auto type = config->get_as<std::string>("type");
 
             if (!type) {
-                Logger::get_instance().err("Missing policy type");
+                Logger::get().err("Missing policy type");
             }
 
             if (*type == "reachability") {
@@ -84,18 +84,17 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
             } else if (*type == "stateful-reachability") {
                 policy = new StatefulReachabilityPolicy(config, network);
             } else {
-                Logger::get_instance().err("Unknown policy type: " + *type);
+                Logger::get().err("Unknown policy type: " + *type);
             }
 
             policies.push_back(policy);
         }
     }
     if (policies.size() == 1) {
-        Logger::get_instance().info("Loaded 1 policy");
+        Logger::get().info("Loaded 1 policy");
     } else {
-        Logger::get_instance().info("Loaded "
-                                    + std::to_string(policies.size())
-                                    + " policies");
+        Logger::get().info("Loaded " + std::to_string(policies.size())
+                           + " policies");
     }
     compute_ecs(network);
 }

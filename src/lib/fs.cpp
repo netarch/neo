@@ -1,12 +1,14 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cerrno>
-#include <climits>
+#include "lib/fs.hpp"
+
 #include <unistd.h>
 #include <sys/stat.h>
 #include <ftw.h>
 
-#include "lib/fs.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cerrno>
+#include <climits>
+
 #include "lib/logger.hpp"
 
 namespace fs
@@ -15,14 +17,14 @@ namespace fs
 void chdir(const std::string& wd)
 {
     if (::chdir(wd.c_str()) < 0) {
-        Logger::get_instance().err(wd, errno);
+        Logger::get().err(wd, errno);
     }
 }
 
 void mkdir(const std::string& p)
 {
     if (::mkdir(p.c_str(), 0777) < 0) {
-        Logger::get_instance().err(p, errno);
+        Logger::get().err(p, errno);
     }
 }
 
@@ -34,7 +36,7 @@ bool exists(const std::string& p)
         if (errno == ENOENT) {
             return false;
         }
-        Logger::get_instance().err(p, errno);
+        Logger::get().err(p, errno);
     }
     return true;
 }
@@ -57,7 +59,7 @@ static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
 void remove(const std::string& p)
 {
     if (nftw(p.c_str(), &rm, 10000, FTW_DEPTH | FTW_PHYS) < 0) {
-        Logger::get_instance().err(p, errno);
+        Logger::get().err(p, errno);
     }
 }
 
@@ -66,7 +68,7 @@ std::string realpath(const std::string& rel_p)
     char p[PATH_MAX];
 
     if (::realpath(rel_p.c_str(), p) == NULL) {
-        Logger::get_instance().err(rel_p, errno);
+        Logger::get().err(rel_p, errno);
     }
 
     return std::string(p);
@@ -93,13 +95,13 @@ std::shared_ptr<cpptoml::table> get_toml_config(
     std::shared_ptr<cpptoml::table> config;
 
     if ((fd = mkstemp(filename)) < 0) {
-        Logger::get_instance().err(filename, errno);
+        Logger::get().err(filename, errno);
     }
     if (write(fd, content.c_str(), content.size()) < 0) {
-        Logger::get_instance().err(filename, errno);
+        Logger::get().err(filename, errno);
     }
     if (close(fd) < 0) {
-        Logger::get_instance().err(filename, errno);
+        Logger::get().err(filename, errno);
     }
     config = cpptoml::parse_file(filename);
     remove(filename);

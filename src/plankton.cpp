@@ -27,8 +27,8 @@ void signal_handler(int sig, siginfo_t *siginfo,
             while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
                 tasks.erase(pid);
                 if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    Logger::get_instance().warn("Process " + std::to_string(pid)
-                                                + " failed");
+                    Logger::get().warn("Process " + std::to_string(pid)
+                                       + " failed");
                 }
             }
             break;
@@ -41,8 +41,8 @@ void signal_handler(int sig, siginfo_t *siginfo,
                     }
                 }
             }
-            Logger::get_instance().warn("Policy violated in process "
-                                        + std::to_string(pid));
+            Logger::get().warn("Policy violated in process "
+                               + std::to_string(pid));
             break;
         case SIGHUP:
         case SIGINT:
@@ -83,8 +83,8 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
     fs::mkdir(output_dir);
     in_file = fs::realpath(input_file);
     out_dir = fs::realpath(output_dir);
-    Logger::get_instance().set_file(fs::append(out_dir, "main.log"));
-    Logger::get_instance().set_verbose(verbose);
+    Logger::get().set_file(fs::append(out_dir, "main.log"));
+    Logger::get().set_verbose(verbose);
 
     auto config = cpptoml::parse_file(in_file);
     auto nodes_config = config->get_table_array("nodes");
@@ -118,14 +118,14 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
     }
 
     // reset logger
-    Logger::get_instance().set_file(logfile);
-    Logger::get_instance().set_verbose(false);
-    Logger::get_instance().info("Policy: " + policy->to_string());
+    Logger::get().set_file(logfile);
+    Logger::get().set_verbose(false);
+    Logger::get().info("Policy: " + policy->to_string());
 
     // duplicate file descriptors
     int fd = open(logfile.c_str(), O_WRONLY | O_APPEND);
     if (fd < 0) {
-        Logger::get_instance().err("Failed to open " + logfile, errno);
+        Logger::get().err("Failed to open " + logfile, errno);
     }
     dup2(fd, STDOUT_FILENO);
     dup2(fd, STDERR_FILENO);
@@ -144,7 +144,7 @@ void Plankton::dispatch(Policy *policy, EqClass *pre_ec, EqClass *ec)
 {
     int childpid;
     if ((childpid = fork()) < 0) {
-        Logger::get_instance().err("Failed to spawn new process", errno);
+        Logger::get().err("Failed to spawn new process", errno);
     } else if (childpid == 0) {
         verify(policy, pre_ec, ec);
     }
@@ -178,11 +178,10 @@ int Plankton::run()
         }
         fs::chdir(working_dir);
 
-        Logger::get_instance().info("====================");
-        Logger::get_instance().info(std::to_string(policy->get_id())
-                                    + ". Verifying " + policy->to_string());
-        Logger::get_instance().info("Packet ECs: "
-                                    + std::to_string(policy->num_ecs()));
+        Logger::get().info("====================");
+        Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
+                           + policy->to_string());
+        Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
         for (EqClass *ec : policy->get_ecs()) {
             for (EqClass *pre_ec : policy->get_pre_ecs()) {
                 dispatch(policy, pre_ec, ec);
@@ -200,9 +199,9 @@ int Plankton::run()
 void Plankton::initialize(State *state)
 {
     if (state->itr_ec == 0 && pre_ec) {
-        Logger::get_instance().info("EC: " + pre_ec->to_string());
+        Logger::get().info("EC: " + pre_ec->to_string());
     } else {
-        Logger::get_instance().info("EC: " + ec->to_string());
+        Logger::get().info("EC: " + ec->to_string());
     }
 
     network.init(state, pre_ec, ec);
@@ -217,9 +216,10 @@ void Plankton::exec_step(State *state)
     fwd.exec_step(state, ec);
     policy->check_violation(state);
 
+    // when EC is changed and the verification process hasn't ended
     if (state->itr_ec != old_itr_ec && state->choice_count > 0) {
         if (policy->get_type() == "reply-reachability") {
-            ec = *(policy->get_ecs().begin());
+            ec = *(policy->get_ecs().begin());  // the only one "reply" EC
         }
         initialize(state);
     }

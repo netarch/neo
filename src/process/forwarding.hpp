@@ -34,6 +34,8 @@ private:
     std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
 
+    // all history packets
+    std::unordered_set<Packet *, PacketHash, PacketEq> all_pkts;
     // history of node packet histories
     std::unordered_set<NodePacketHistory *, NodePacketHistoryHash,
         NodePacketHistoryEq> node_pkt_hist_hist;

@@ -16,26 +16,24 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             Node *node = nullptr;
             auto type = cfg->get_as<std::string>("type");
             if (!type) {
-                Logger::get_instance().err("Missing node type");
+                Logger::get().err("Missing node type");
             }
             if (*type == "generic") {
                 node = new Node(cfg);
             } else if (*type == "middlebox") {
                 node = new Middlebox(cfg);
             } else {
-                Logger::get_instance().err("Unknown node type: " + *type);
+                Logger::get().err("Unknown node type: " + *type);
             }
 
             // Add the new node to nodes
             auto res = nodes.insert(std::make_pair(node->get_name(), node));
             if (res.second == false) {
-                Logger::get_instance().err("Duplicate node: " +
-                                           res.first->first);
+                Logger::get().err("Duplicate node: " + res.first->first);
             }
         }
     }
-    Logger::get_instance().info("Loaded " + std::to_string(nodes.size()) +
-                                " nodes");
+    Logger::get().info("Loaded " + std::to_string(nodes.size()) + " nodes");
     if (links_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *links_config) {
             Link *link = new Link(cfg, nodes);
@@ -43,8 +41,8 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             // Add the new link to links
             auto res = links.insert(link);
             if (res.second == false) {
-                Logger::get_instance().err("Duplicate link: " +
-                                           (*res.first)->to_string());
+                Logger::get().err("Duplicate link: " +
+                                  (*res.first)->to_string());
             }
 
             // Add the new peer to the respective node structures
@@ -56,8 +54,7 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             node2->add_peer(intf2->get_name(), node1, intf1);
         }
     }
-    Logger::get_instance().info("Loaded " + std::to_string(links.size()) +
-                                " links");
+    Logger::get().info("Loaded " + std::to_string(links.size()) + " links");
 
     // collect L2 LANs
     for (const auto& pair : nodes) {
@@ -140,5 +137,5 @@ void Network::fib_init(State *state, const EqClass *ec)
     }
     memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
 
-    Logger::get_instance().info(fib->to_string());
+    Logger::get().info(fib->to_string());
 }

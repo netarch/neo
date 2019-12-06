@@ -12,13 +12,13 @@ WaypointPolicy::WaypointPolicy(
     auto through = config->get_as<bool>("pass_through");
 
     if (!start_regex) {
-        Logger::get_instance().err("Missing start node");
+        Logger::get().err("Missing start node");
     }
     if (!wp_regex) {
-        Logger::get_instance().err("Missing waypoint");
+        Logger::get().err("Missing waypoint");
     }
     if (!through) {
-        Logger::get_instance().err("Missing pass_through");
+        Logger::get().err("Missing pass_through");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();

@@ -9,7 +9,7 @@ void Link::normalize()
         std::swap(node1, node2);
         std::swap(intf1, intf2);
     } else if (node1 == node2) {
-        Logger::get_instance().err("Invalid link: " + to_string());
+        Logger::get().err("Invalid link: " + to_string());
     }
 }
 
@@ -22,26 +22,26 @@ Link::Link(const std::shared_ptr<cpptoml::table>& config,
     auto intf2_name = config->get_as<std::string>("intf2");
 
     if (!node1_name) {
-        Logger::get_instance().err("Missing node1");
+        Logger::get().err("Missing node1");
     }
     if (!intf1_name) {
-        Logger::get_instance().err("Missing intf1");
+        Logger::get().err("Missing intf1");
     }
     if (!node2_name) {
-        Logger::get_instance().err("Missing node2");
+        Logger::get().err("Missing node2");
     }
     if (!intf2_name) {
-        Logger::get_instance().err("Missing intf2");
+        Logger::get().err("Missing intf2");
     }
 
     auto node1_entry = nodes.find(*node1_name);
     if (node1_entry == nodes.end()) {
-        Logger::get_instance().err("Unknown node: " + *node1_name);
+        Logger::get().err("Unknown node: " + *node1_name);
     }
     node1 = node1_entry->second;
     auto node2_entry = nodes.find(*node2_name);
     if (node2_entry == nodes.end()) {
-        Logger::get_instance().err("Unknown node: " + *node2_name);
+        Logger::get().err("Unknown node: " + *node2_name);
     }
     node2 = node2_entry->second;
     intf1 = node1->get_interface(*intf1_name);

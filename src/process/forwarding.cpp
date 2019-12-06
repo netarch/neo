@@ -69,8 +69,8 @@ void ForwardingProcess::exec_step(State *state, const EqClass *ec)
             state->choice_count = 0;
             break;
         default:
-            Logger::get_instance().err("forwarding process: unknown mode ("
-                                       + std::to_string(mode) + ")");
+            Logger::get().err("forwarding process: unknown mode ("
+                              + std::to_string(mode) + ")");
     }
 }
 
@@ -85,7 +85,7 @@ void ForwardingProcess::packet_entry(State *state) const
            sizeof(Node *));
     memset(state->network_state[state->itr_ec].ingress_intf, 0,
            sizeof(Interface *));
-    Logger::get_instance().info("Packet injected at " + entry->to_string());
+    Logger::get().info("Packet injected at " + entry->to_string());
     state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::FIRST_COLLECT);
     state->choice_count = 1;    // deterministic choice
 }
@@ -126,8 +126,7 @@ void ForwardingProcess::forward_packet(State *state) const
 
     Node *next_hop = (*candidates)[state->choice].get_l3_node();
     if (next_hop == current_node) {
-        Logger::get_instance().info("Packet delivered at "
-                                    + next_hop->to_string());
+        Logger::get().info("Packet delivered at " + next_hop->to_string());
         state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::ACCEPTED);
         state->choice_count = 0;
         return;
@@ -139,8 +138,8 @@ void ForwardingProcess::forward_packet(State *state) const
     memcpy(state->network_state[state->itr_ec].ingress_intf, &ingress_intf,
            sizeof(Interface *));
 
-    Logger::get_instance().info("Packet forwarded to " + next_hop->to_string()
-                                + ", " + ingress_intf->to_string());
+    Logger::get().info("Packet forwarded to " + next_hop->to_string() + ", "
+                       + ingress_intf->to_string());
     state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
     state->choice_count = 1;    // deterministic choice
 }
@@ -165,8 +164,7 @@ void ForwardingProcess::collect_next_hops(State *state, const EqClass *ec)
     }
 
     if (next_hops.empty()) {
-        Logger::get_instance().info("Packet dropped by "
-                                    + current_node->to_string());
+        Logger::get().info("Packet dropped by " + current_node->to_string());
         state->network_state[state->itr_ec].fwd_mode = int(fwd_mode::DROPPED);
         state->choice_count = 0;
         return;
@@ -181,7 +179,7 @@ void ForwardingProcess::collect_next_hops(State *state, const EqClass *ec)
 }
 
 std::set<FIB_IPNH> ForwardingProcess::inject_packet(
-    State *state, Middlebox *mb, const IPv4Address& dst_ip __attribute__((unused)))
+    State *state, Middlebox *mb, const IPv4Address& dst_ip)
 {
     // check state's pkt_hist
     PacketHistory *pkt_hist;
@@ -194,24 +192,35 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(
     }
 
     // construct new packet
-    Packet *new_pkt = new Packet(); // TODO
+    Interface *ingress_intf;
+    memcpy(&ingress_intf, state->network_state[state->itr_ec].ingress_intf,
+           sizeof(Interface *));
+    uint32_t src_ip;
+    memcpy(&src_ip, state->network_state[state->itr_ec].src_addr,
+           sizeof(uint32_t));
+    Packet *new_pkt = new Packet(ingress_intf, src_ip, dst_ip);
+    auto res1 = all_pkts.insert(new_pkt);
+    if (!res1.second) {
+        delete new_pkt;
+        new_pkt = *(res1.first);
+    }
 
     // update node_pkt_hist with this new packet
     NodePacketHistory *new_nph = new NodePacketHistory(new_pkt, current_nph);
-    auto res1 = node_pkt_hist_hist.insert(new_nph);
-    if (!res1.second) {
+    auto res2 = node_pkt_hist_hist.insert(new_nph);
+    if (!res2.second) {
         delete new_nph;
-        new_nph = *(res1.first);
+        new_nph = *(res2.first);
     }
     mb->set_node_pkt_hist(new_nph);
 
     // update pkt_hist with this new packet
     PacketHistory *new_pkt_hist = new PacketHistory(*pkt_hist);
     new_pkt_hist->set_node_pkt_hist(mb, new_nph);
-    auto res2 = pkt_hist_hist.insert(new_pkt_hist);
-    if (!res2.second) {
+    auto res3 = pkt_hist_hist.insert(new_pkt_hist);
+    if (!res3.second) {
         delete new_pkt_hist;
-        new_pkt_hist = *(res2.first);
+        new_pkt_hist = *(res3.first);
     }
     memcpy(state->network_state[state->itr_ec].pkt_hist, &new_pkt_hist,
            sizeof(PacketHistory *));

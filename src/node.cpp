@@ -13,7 +13,7 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
     auto irs_cfg = config->get_table_array("installed_routes");
 
     if (!node_name) {
-        Logger::get_instance().err("Missing node name");
+        Logger::get().err("Missing node name");
     }
     name = std::move(*node_name);
 
@@ -23,8 +23,8 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
             // Add the new interface to intfs
             auto res = intfs.insert(std::make_pair(intf->get_name(), intf));
             if (res.second == false) {
-                Logger::get_instance().err("Duplicate interface name: " +
-                                           res.first->first);
+                Logger::get().err("Duplicate interface name: " +
+                                  res.first->first);
             }
             if (intf->is_l2()) {
                 // Add the new interface to intfs_l2
@@ -33,8 +33,8 @@ Node::Node(const std::shared_ptr<cpptoml::table>& config)
                 // Add the new interface to intfs_l3
                 auto res = intfs_l3.insert(std::make_pair(intf->addr(), intf));
                 if (res.second == false) {
-                    Logger::get_instance().err("Duplicate interface IP: " +
-                                               res.first->first.to_string());
+                    Logger::get().err("Duplicate interface IP: " +
+                                      res.first->first.to_string());
                 }
 
                 // Add the directly connected route to rib
@@ -93,8 +93,7 @@ Interface *Node::get_interface(const std::string& intf_name) const
 {
     auto intf = intfs.find(intf_name);
     if (intf == intfs.end()) {
-        Logger::get_instance().err(to_string() + " doesn't have interface "
-                                   + intf_name);
+        Logger::get().err(to_string() + " doesn't have interface " + intf_name);
     }
     return intf->second;
 }
@@ -108,8 +107,7 @@ Interface *Node::get_interface(const IPv4Address& addr) const
 {
     auto intf = intfs_l3.find(addr);
     if (intf == intfs_l3.end()) {
-        Logger::get_instance().err(to_string() + " doesn't own "
-                                   + addr.to_string());
+        Logger::get().err(to_string() + " doesn't own " + addr.to_string());
     }
     return intf->second;
 }
@@ -145,7 +143,7 @@ void Node::add_peer(const std::string& intf_name, Node *node,
     auto res = l2_peers.insert
                (std::make_pair(intf_name, std::make_pair(node, intf)));
     if (res.second == false) {
-        Logger::get_instance().err("Two peers on interface: " + intf_name);
+        Logger::get().err("Two peers on interface: " + intf_name);
     }
 }
 

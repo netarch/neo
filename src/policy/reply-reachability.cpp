@@ -12,13 +12,13 @@ ReplyReachabilityPolicy::ReplyReachabilityPolicy(
     auto reachability = config->get_as<bool>("reachable");
 
     if (!start_regex) {
-        Logger::get_instance().err("Missing start node");
+        Logger::get().err("Missing start node");
     }
     if (!query_regex) {
-        Logger::get_instance().err("Missing query node");
+        Logger::get().err("Missing query node");
     }
     if (!reachability) {
-        Logger::get_instance().err("Missing reachability");
+        Logger::get().err("Missing reachability");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();

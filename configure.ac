@@ -243,6 +243,10 @@ CHECK_LDFLAGS([$LDFLAGS])
 ##
 ## Libraries
 ##
+AC_CHECK_HEADERS(libnet.h, [], [AC_ERROR([libnet is not installed])])
+CHECK_LIB(net, libnet_init, [], [AC_ERROR([libnet does not work])])
+ADD_LIB($(libnet-config --libs))
+
 #AC_CHECK_HEADERS(pthread.h, [], [AC_ERROR([pthread is not available])])
 #CHECK_LIB(pthread, pthread_create, [], [AC_ERROR([pthread does not work])])
 #ADD_CFLAG(-pthread)
