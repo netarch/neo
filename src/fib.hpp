@@ -2,7 +2,6 @@
 
 #include <map>
 #include <set>
-#include <unordered_set>
 #include <string>
 #include <functional>
 
@@ -55,6 +54,7 @@ class FIB
 private:
     // resolved forwarding table for IP next hops
     std::map<Node *, std::set<FIB_IPNH> > tbl;
+    // TODO: change tbl from map to unordered_map(hash table) ?
     // TODO: find a way to increase hashing speed for FIB when update agent is
     // implemented. (incremental hashing)
 

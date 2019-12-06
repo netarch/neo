@@ -1,7 +1,8 @@
+#include "node.hpp"
+
 #include <utility>
 #include <stdexcept>
 
-#include "node.hpp"
 #include "lib/logger.hpp"
 
 Node::Node(const std::shared_ptr<cpptoml::table>& config)

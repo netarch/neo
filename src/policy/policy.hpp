@@ -30,7 +30,8 @@ public:
     virtual std::string to_string() const = 0;
     virtual std::string get_type() const = 0;
     virtual void init(State *) = 0;
-    virtual void config_procs(State *, ForwardingProcess&) const = 0;
+    virtual void config_procs(State *, const Network&, ForwardingProcess&) const
+        = 0;
     virtual void check_violation(State *) = 0;
     virtual void report(State *) const;
 };

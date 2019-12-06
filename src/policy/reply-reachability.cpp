@@ -85,14 +85,14 @@ void ReplyReachabilityPolicy::init(State *state)
     state->network_state[state->itr_ec].violated = false;
 }
 
-void ReplyReachabilityPolicy::config_procs(State *state,
+void ReplyReachabilityPolicy::config_procs(State *state, const Network& net,
         ForwardingProcess& fwd) const
 {
     if (state->itr_ec == 0) {
-        fwd.config(state, start_nodes);
+        fwd.config(state, net, start_nodes);
         fwd.enable();
     } else {
-        fwd.config(state, std::vector<Node *>(1, queried_node));
+        fwd.config(state, net, std::vector<Node *>(1, queried_node));
         fwd.enable();
     }
 }

@@ -79,10 +79,10 @@ void ReachabilityPolicy::init(State *state)
     state->network_state[state->itr_ec].violated = false;
 }
 
-void ReachabilityPolicy::config_procs(State *state,
+void ReachabilityPolicy::config_procs(State *state, const Network& net,
                                       ForwardingProcess& fwd) const
 {
-    fwd.config(state, start_nodes);
+    fwd.config(state, net, start_nodes);
     fwd.enable();
 }
 

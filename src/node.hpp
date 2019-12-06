@@ -11,6 +11,7 @@
 class Node;
 #include "l2-lan.hpp"
 #include "fib.hpp"
+#include "pan.h"
 
 class Node
 {

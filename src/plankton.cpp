@@ -207,14 +207,14 @@ void Plankton::initialize(State *state)
 
     network.init(state, pre_ec, ec);
     policy->init(state);
-    policy->config_procs(state, fwd);
+    policy->config_procs(state, network, fwd);
 }
 
 void Plankton::exec_step(State *state)
 {
     int old_itr_ec = state->itr_ec;
 
-    fwd.exec_step(state);
+    fwd.exec_step(state, ec);
     policy->check_violation(state);
 
     if (state->itr_ec != old_itr_ec && state->choice_count > 0) {
