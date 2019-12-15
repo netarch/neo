@@ -19,8 +19,9 @@ public:
 
     std::string to_string() const;
     std::string get_name() const;
-    IPv4Address addr() const;
     int prefix_length() const;
+    IPv4Address addr() const;
+    IPv4Address mask() const;
     IPNetwork<IPv4Address> network() const;
-    bool switching() const;
+    bool is_l2() const;
 };

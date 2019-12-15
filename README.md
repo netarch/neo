@@ -25,15 +25,13 @@ components.
 
 ### Dependencies
 
-The following dependencies are needed for building Plankton-neo.
+The following dependencies are needed for Plankton-neo.
 
 - autoconf
+- libnet
 - make
 - spin
 - modern C and C++ compilers
-
-It doesn't need anything in particular to run Plankton-neo, except for the C and
-C++ standard libraries.
 
 ### Install SPIN
 
@@ -59,10 +57,8 @@ $ sudo apt install spin
 
 #### Others
 
-If your distribution doesn't have package for SPIN, you may install it from the
-[official GitHub repository](https://github.com/nimble-code/Spin). To make
-things easier, you might want to run `setup.sh` for building and installing
-SPIN, though it will also install other dependencies.
+If your distribution doesn't have the package for SPIN, you may install it from
+the [official GitHub repository](https://github.com/nimble-code/Spin).
 
 ### Install Plankton-neo
 

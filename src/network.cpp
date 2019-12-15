@@ -1,9 +1,10 @@
+#include "network.hpp"
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <cstring>
 
-#include "network.hpp"
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
 
@@ -15,26 +16,24 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             Node *node = nullptr;
             auto type = cfg->get_as<std::string>("type");
             if (!type) {
-                Logger::get_instance().err("Missing node type");
+                Logger::get().err("Missing node type");
             }
             if (*type == "generic") {
                 node = new Node(cfg);
             } else if (*type == "middlebox") {
                 node = new Middlebox(cfg);
             } else {
-                Logger::get_instance().err("Unknown node type: " + *type);
+                Logger::get().err("Unknown node type: " + *type);
             }
 
             // Add the new node to nodes
             auto res = nodes.insert(std::make_pair(node->get_name(), node));
             if (res.second == false) {
-                Logger::get_instance().err("Duplicate node: " +
-                                           res.first->first);
+                Logger::get().err("Duplicate node: " + res.first->first);
             }
         }
     }
-    Logger::get_instance().info("Loaded " + std::to_string(nodes.size()) +
-                                " nodes");
+    Logger::get().info("Loaded " + std::to_string(nodes.size()) + " nodes");
     if (links_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *links_config) {
             Link *link = new Link(cfg, nodes);
@@ -42,8 +41,8 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             // Add the new link to links
             auto res = links.insert(link);
             if (res.second == false) {
-                Logger::get_instance().err("Duplicate link: " +
-                                           (*res.first)->to_string());
+                Logger::get().err("Duplicate link: " +
+                                  (*res.first)->to_string());
             }
 
             // Add the new peer to the respective node structures
@@ -55,8 +54,25 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             node2->add_peer(intf2->get_name(), node1, intf1);
         }
     }
-    Logger::get_instance().info("Loaded " + std::to_string(links.size()) +
-                                " links");
+    Logger::get().info("Loaded " + std::to_string(links.size()) + " links");
+
+    // collect L2 LANs
+    for (const auto& pair : nodes) {
+        Node *node = pair.second;
+        for (Interface *intf : node->get_intfs_l2()) {
+            if (!node->mapped_to_l2lan(intf)) {
+                L2_LAN *l2_lan = new L2_LAN(node, intf);
+                auto res = l2_lans.insert(l2_lan);
+                if (!res.second) {
+                    delete l2_lan;
+                    l2_lan = *(res.first);
+                }
+                for (const auto& ep : l2_lan->get_l2_endpoints()) {
+                    ep.first->set_l2lan(ep.second, l2_lan);
+                }
+            }
+        }
+    }
 }
 
 Network::~Network()
@@ -70,8 +86,8 @@ Network::~Network()
     for (FIB * const& fib : fibs) {
         delete fib;
     }
-    for (FIB_L2DM * const& l2dm : l2dms) {
-        delete l2dm;
+    for (L2_LAN * const& l2_lan : l2_lans) {
+        delete l2_lan;
     }
 }
 
@@ -87,11 +103,19 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
 
 void Network::init(State *state, const EqClass *pre_ec, const EqClass *ec)
 {
+    // initialize FIB
     if (state->itr_ec == 0 && pre_ec) {
         fib_init(state, pre_ec);
     } else {
         fib_init(state, ec);
     }
+
+    // initialize and start middlebox emulations
+    for (const auto& pair : nodes) {
+        Node *node = pair.second;
+        node->init();
+    }
+
     // TODO: initialize update history if update agent is implemented
 }
 
@@ -100,24 +124,10 @@ void Network::fib_init(State *state, const EqClass *ec)
     FIB *fib = new FIB();
     IPv4Address addr = ec->begin()->get_lb();   // the representative address
 
+    // collect IP next hops
     for (const auto& pair : nodes) {
         Node *node = pair.second;
-
-        // collect IP next hops
         fib->set_ipnhs(node, node->get_ipnhs(addr));
-
-        // collect L2 domain
-        for (Interface *intf : node->get_intfs_l2()) {
-            if (!fib->in_l2dm(intf)) {
-                FIB_L2DM *l2_domain = new FIB_L2DM(node, intf);
-                auto res = l2dms.insert(l2_domain);
-                if (!res.second) {
-                    delete l2_domain;
-                    l2_domain = *(res.first);
-                }
-                fib->set_l2dm(l2_domain);
-            }
-        }
     }
 
     auto res = fibs.insert(fib);
@@ -126,4 +136,6 @@ void Network::fib_init(State *state, const EqClass *ec)
         fib = *(res.first);
     }
     memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
+
+    Logger::get().info(fib->to_string());
 }

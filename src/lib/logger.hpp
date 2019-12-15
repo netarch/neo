@@ -18,7 +18,7 @@ public:
     Logger(const Logger&) = delete;
     void operator=(const Logger&) = delete;
 
-    static Logger& get_instance();
+    static Logger& get();
 
     void set_file(const std::string&);
     void set_verbose(bool);

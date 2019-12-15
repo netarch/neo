@@ -12,13 +12,13 @@ ReplyReachabilityPolicy::ReplyReachabilityPolicy(
     auto reachability = config->get_as<bool>("reachable");
 
     if (!start_regex) {
-        Logger::get_instance().err("Missing start node");
+        Logger::get().err("Missing start node");
     }
     if (!query_regex) {
-        Logger::get_instance().err("Missing query node");
+        Logger::get().err("Missing query node");
     }
     if (!reachability) {
-        Logger::get_instance().err("Missing reachability");
+        Logger::get().err("Missing reachability");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
@@ -85,14 +85,14 @@ void ReplyReachabilityPolicy::init(State *state)
     state->network_state[state->itr_ec].violated = false;
 }
 
-void ReplyReachabilityPolicy::config_procs(State *state,
+void ReplyReachabilityPolicy::config_procs(State *state, const Network& net,
         ForwardingProcess& fwd) const
 {
     if (state->itr_ec == 0) {
-        fwd.config(state, start_nodes);
+        fwd.config(state, net, start_nodes);
         fwd.enable();
     } else {
-        fwd.config(state, std::vector<Node *>(1, queried_node));
+        fwd.config(state, net, std::vector<Node *>(1, queried_node));
         fwd.enable();
     }
 }

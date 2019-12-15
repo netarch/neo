@@ -1,13 +1,17 @@
 /*
  * The state of the whole system consists of:
  * - network state (per EC)
- *   - fib
- *   - update history
+ *      - fib
+ *      - update history
  * - fowarding process state (per EC)
- *   - forwarding mode
- *   - current packet location
+ *      - forwarding mode
+ *      - source address of the current EC
+ *      - source node (entry node) of the current EC
+ *      - packet history (of the whole network)
+ *      - current packet location
+ *      - ingress interface (entry interface) of the current EC
  * - policy state (per EC)
- *   - violation status
+ *      - violation status
  *
  * Some parts of the system state are stored in hash tables. Pointers to the
  * actual objects are saved in the respective state variables. If the size of a
@@ -24,12 +28,11 @@ typedef network_state_t {
 
     /* forwarding process */
     byte fwd_mode;                                  /* execution mode */
-    int src_addr[4 / SIZEOF_INT];                   /* (uint32_t) */
+    int src_addr[4 / SIZEOF_INT];                   /* (uint32_t), for reply-reachability policy */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
-    int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
-    /* TODO: add ingress_intf into the forwarding process execution */
+    int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *), for MB packet injection */
     /*int l3_nhop[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
 
     /* policy */
@@ -49,6 +52,7 @@ c_code {
 
 init {
     c_code {
+        now.itr_ec = 0;
         initialize(&now);
     }
 

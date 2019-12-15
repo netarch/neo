@@ -6,10 +6,11 @@
 #include "process/process.hpp"
 #include "node.hpp"
 #include "pkt-hist.hpp"
+#include "middlebox.hpp"
 
 enum fwd_mode {
     // start from 1 to avoid execution before configuration
-    INJECT_PACKET = 1,
+    PACKET_ENTRY = 1,
     FIRST_COLLECT = 2,
     FIRST_FORWARD = 3,
     COLLECT_NHOPS = 4,
@@ -32,13 +33,24 @@ class ForwardingProcess : public Process
 private:
     std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
-    std::unordered_set<PacketHistory *> pkt_hist_hist;  // history pkt_hists
 
-    void inject_packet(State *) const;
-    void first_collect(State *);
+    // all history packets
+    std::unordered_set<Packet *, PacketHash, PacketEq> all_pkts;
+    // history of node packet histories
+    std::unordered_set<NodePacketHistory *, NodePacketHistoryHash,
+        NodePacketHistoryEq> node_pkt_hist_hist;
+    // history of packet histories
+    std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq>
+    pkt_hist_hist;
+
+    void packet_entry(State *) const;
+    void first_collect(State *, const EqClass *);
     void first_forward(State *) const;
     void forward_packet(State *) const;
-    void collect_next_hops(State *);
+    void collect_next_hops(State *, const EqClass *);
+
+    std::set<FIB_IPNH> inject_packet(State *, Middlebox *,
+                                     const IPv4Address& dst_ip);
     void update_candidates(State *, const std::vector<FIB_IPNH>&);
 
 public:
@@ -50,6 +62,6 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
-    void config(State *, const std::vector<Node *>&);
-    void exec_step(State *) override;
+    void config(State *, const Network&, const std::vector<Node *>&);
+    void exec_step(State *, const EqClass *) override;
 };

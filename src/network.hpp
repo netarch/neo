@@ -28,7 +28,7 @@ private:
     std::set<Link *, LinkCompare>   links;
 
     std::unordered_set<FIB *> fibs;         // history FIBs
-    std::unordered_set<FIB_L2DM *> l2dms;   // history L2 domains
+    std::unordered_set<L2_LAN *> l2_lans;   // history L2 LANs
 
     void fib_init(State *, const EqClass *);
 

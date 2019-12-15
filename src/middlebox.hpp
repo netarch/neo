@@ -5,6 +5,7 @@
 #include "node.hpp"
 #include "mb-env/mb-env.hpp"
 #include "mb-app/mb-app.hpp"
+#include "pkt-hist.hpp"
 #include "pan.h"
 
 class Middlebox : public Node
@@ -12,9 +13,8 @@ class Middlebox : public Node
 private:
     MB_Env *env;    // environment
     MB_App *app;    // appliance
-    // pkt_hist
 
-    //void rewind(NPH); // env->run(mb_app_reset, app) and replay history
+    NodePacketHistory *node_pkt_hist;
 
 public:
     Middlebox(const std::shared_ptr<cpptoml::table>&);
@@ -27,11 +27,19 @@ public:
     Middlebox& operator=(Middlebox&&) = default;
 
     /*
+     * Actually initialize and start the emulation.
+     */
+    void init() override;
+
+    void rewind(NodePacketHistory *);
+    NodePacketHistory *get_node_pkt_hist() const;
+    void set_node_pkt_hist(NodePacketHistory *);
+    std::set<FIB_IPNH> send_pkt(const Packet&);
+
+    /*
      * Return an empty set. We don't model the forwarding behavior of
      * middleboxes. The forwarding process will inject a concrete packet to the
      * emulation instance.
      */
     std::set<FIB_IPNH> get_ipnhs(const IPv4Address&) override;
-
-    std::set<FIB_IPNH> send_pkt(State *, const IPv4Address& dst_ip) const;
 };

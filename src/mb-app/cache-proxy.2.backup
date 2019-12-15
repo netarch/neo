@@ -1,0 +1,236 @@
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <cstdlib>
+#include <iostream>
+#include <fcntl.h>
+#include <filesystem> 
+
+#include <fstream> 
+#include "mb-app/cache-proxy.hpp"
+#include "lib/fs.hpp"
+
+const char *cache_log = "examples/configs/squid/log/cache.log";        // log for debugging info
+const char *access_log = "examples/configs/squid/log/access.log";       // log for client request 
+const char *cache_store_log = "examples/configs/squid/log/store.log";  // log for stored cache object changes
+/** 
+    store.log
+  	time       The time this entry was logged.  The value is the
+               raw Unix time plus milliseconds.
+    action     One of RELEASE, SWAPIN, or SWAPOUT.
+               RELEASE means the object has been removed from the cache.
+               SWAPOUT means the object has been saved to disk.
+               SWAPIN  means the object existed on disk and has bee
+                       swapped into memory.
+    status     The HTTP reply code
+    The following three fields are timestamps parsed from the HTTP
+    reply headers.  All are expressed in Unix time.  A missing header
+    is represented with -2 and an unparsable header is represented as -1.
+    datehdr    The value of the HTTP Date: reply header.
+    lastmod    The value of the HTTP Last-Modified: reply header.
+    expires    The value of the HTTP Expires: reply header.
+    type       The HTTP Content-Type reply header.
+    expect-len The value of the HTTP Content-Length reply header.
+               Zero if Content-Length was missing.
+    real-len   The number of bytes of content actually read.  If the
+               expect-len is non-zero, and not equal to the real-len,
+               the object will be released from the cache.
+    method     HTTP request method
+    key        The cache key.  Often this is simply the URL.  Cache objects
+               which never become public will have cache keys that include
+               a unique integer sequence number, the request method, and
+               then the URL.
+*/
+
+/*
+ *  format of access.log 
+ *  ts 
+ *  duration:       request handle
+ *  host addr:      
+ *  result code:    defined by squid, code is separated by underscore 
+										wiki.squid-cache.org/SquidFaq/SquidLogs#Squid_result_codes 
+ *  bytes:          include headers and errors
+ *  request metd:   could be PURGE in additional supported method identifier
+ *  URL:            target url
+ *  user:           user who make the request, - for not defined*
+ *  hierachy code:  the hit status of the request, DIRECT means no hit
+ *  type:           type seen in the HTTP reply header
+ */
+
+CacheProxy::CacheProxy(const std::shared_ptr<cpptoml::table>& node)
+{
+    server_pid = 0;
+    curr_dir = std::filesystem::absolute(std::filesystem::current_path());
+    config_path = curr_dir + "/examples/configs/squid/squid.conf";
+    config_template_path = curr_dir + "/examples/configs/squid/conf.template";
+    proxy_path = "/usr/sbin/squid"; 
+    if (std::filesystem::is_regular_file()) {
+        std::filesystem::copy(config_template_path, config_path);
+    } else {
+        std::cerr << "The examples/configs/squid/conf.template is not found" << std::endl;
+        _exit(EXIT_FAILURE); 
+    }
+       
+    if (node) {
+      auto node_config = node->get_as<std::string>("config"); 
+      std::string squid("squid");
+      auto app = node->get_as<std::string>("app");
+      if (app && !squid.compare(*app)){
+          auto config = node->get_as<std::string>("config");
+          proxy_config = *config;
+          // modify the base configuration file, append supported lines of
+          // configuration to the file
+          if (proxy_config) config_file_rewrite(config_path, proxy_config);
+      } else {
+          std::cerr << "it is not a squid node" << std::endl;
+      }
+    } else {
+      std::cerr << "node_config is empty, please check " << std::endl;
+      _exit(EXIT_FAILURE); // terminate the calling process
+    }
+
+    proxy_argv.push_back(const_cast<char*>("-N"));  // non-background squid
+    proxy_argv.push_back(const_cast<char*>("-f"));  // use config file
+    proxy_argv.push_back(config_path);				// configureation file path
+    proxy_argv.push_back(NULL);
+
+    std::cout << "Cache Proxy is created.." << std::endl;
+}
+
+CacheProxy::~CacheProxy()
+{
+    shutnclean();
+    std::cout << "Cache Proxy is destroyed.." << std::endl;
+}
+
+/** clean cache storage and launch server in child process**/
+void CacheProxy::init()
+{
+    if (server_pid > 0) {
+        int status = shutnclean();
+        if (status) return;
+    }
+    pid_t pid;
+    if ((pid=fork()) == 0) {
+        char * argv[] = {NULL};
+        char ** p_argv = &proxy_argv[0];
+        int status __attribute__((unused))= execve(proxy_path, p_argv, argv);
+        std::cerr << "failed with launch proxy for :" << strerror(errno) << "\n" << std::endl;
+    } else if (pid == -1) {
+        std::cerr << "fork failure during cache proxy init" << std::endl;
+    } else {
+        int status; 
+		// 
+        int retval = waitpid(pid, &status, WNOHANG);  // TODO check cache.log
+        if (!retval) std::cout << "child process is launched for squid..." << std::endl;
+    } 
+}
+
+/** soft reset,  **/
+void CacheProxy::reset(char const *option __attribute__((unused)))
+{
+	
+	// cache manager
+	//http://etutorials.org/Server+Administration/Squid.+The+definitive+guide/Chapter+14.+Monitoring+Squid/14.2+The+Cache+Manager/ 
+	
+    // TOOD reset with finding the last access.log information and try to remove corresponding cached object by calling script
+
+		// update the hashmap with access log 
+		std::ifstream logstream(access_log, ios_base::in);
+		std::string line; 
+
+		if (log_pos) {
+				logstream.seekg(log_pos);
+		} else {
+				log_pos = logstream.tellg();
+		}
+		logstream.open(); 
+		// iterate till the EOF and update the log file pointer
+		while ((line = std::readline(logstream, line)) != ios::end) {
+				int start_index = 0;
+				int next_index;
+				int count = 1;
+				while ((next_index = line.find("\t", start_index)) != std::string::npos && count < 7) {
+						count++;
+						start_index = next_index + 1;
+				}
+				
+				std::string target_url = line.substr(start_index, next_index); // 7th column of acces.log is URL
+				host_access_history.push(line);
+				host_access_count[target_url]++; // increase cache count for url
+		}
+		//update log pointer
+		log_pos = logstream.tellg(); 
+		logstream.close();
+		
+		// reset to last step
+		if (!stack.empty()) {
+				std::cerr << "there is no objects cached in the disk so far" << std::endl;
+		} else {
+				std::string last_access = host_access_history.pop();
+				std::string target = last_access; // split the saved request for the host as key in host_access_count map
+				host_access_count[last_access]--;
+				if (!host_access_count[last_access]) {
+						// launch the purge 
+						// TODO deal with version control of the file
+						std::string purge_cmd = "squidclient -PURGE " + target;
+            std::string retval = execute(purge_cmd);
+            
+            // check the return status, or TODO we can use other client to send
+            // the purge request
+            if (!retval || retval.find("200") == std::string::nopos) {
+              std::cerr << "The purge is not successfully" << std::endl;
+            }
+				}	
+		}
+}
+
+/** shutdown running proxy process and clean the cache directory, kill all
+ * pinger process **/
+int CacheProxy::shutnclean() {
+    if (server_pid > 0) {
+        std::cout << server_pid << std::endl;
+				std::string squid_kill_cmd = "/bin/kill -INT -" + std.tostring(server_pid);
+				std::string pinger_clean_cmd = "/usr/bin/pkill -f pinger";
+        int status = system(squid_kill_cmd.c_str());
+        if (!status) server_pid = -1;
+        else std::cerr << "Error occurred during termination of proxy" << std::endl;
+        status = system(pinger_clean_cmd.c_str());
+    } else {
+        std::cout << "There is no proxy server running" << std::endl;
+    } 
+    std::string argv = "./examples/configs/squid/clean.sh";
+    int status = system(argv.c_str());
+    if (!status) {
+        std::cerr << "Error occurred during executing clean.sh" << std::endl;
+    }
+    return 0;
+}
+
+/** append configuration to base configuration rile **/
+void CacheProxy::config_file_rewrite(std::string& config_content) {
+    //append with customized configuration
+    std::ofstream output_stream(config_path);
+    output_stream << config_content;
+    output_stream.close();
+}
+
+/** execute program in another thread and save the output to buffer**/ 
+std::string& CacheProxy::execute(std::string& command) {
+    std::array<char, 500> buffer;
+    std::string retstr;
+    // redirect the output file number to process object declared here
+    std::uniptr<FILE, decltype(fclose)> pipe(system(client_cmd, "r"), fclose());
+
+    if (!pipe) {
+        std:cerr << "Problem occurred when opening pipe for logging file" << std::strerror(errno) << std::endl;
+        return retval;
+    }
+    // start to copy the buffer back 
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) {
+        retstr += buffer.data();
+    }
+    return retstr;
+}
+

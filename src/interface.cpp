@@ -8,7 +8,7 @@ Interface::Interface(const std::shared_ptr<cpptoml::table>& intf_config)
     // TODO vlans (ignored for now)
 
     if (!intf_name) {
-        Logger::get_instance().err("Missing interface name");
+        Logger::get().err("Missing interface name");
     }
     name = *intf_name;
     if (ipv4_addr) {
@@ -29,31 +29,39 @@ std::string Interface::get_name() const
     return name;
 }
 
+int Interface::prefix_length() const
+{
+    if (switchport) {
+        Logger::get().err("Switchport: " + name);
+    }
+    return ipv4.prefix_length();
+}
+
 IPv4Address Interface::addr() const
 {
     if (switchport) {
-        Logger::get_instance().err("Switchport: " + name);
+        Logger::get().err("Switchport: " + name);
     }
     return ipv4.addr();
 }
 
-int Interface::prefix_length() const
+IPv4Address Interface::mask() const
 {
     if (switchport) {
-        Logger::get_instance().err("Switchport: " + name);
+        Logger::get().err("Switchport: " + name);
     }
-    return ipv4.prefix_length();
+    return ipv4.mask();
 }
 
 IPNetwork<IPv4Address> Interface::network() const
 {
     if (switchport) {
-        Logger::get_instance().err("Switchport: " + name);
+        Logger::get().err("Switchport: " + name);
     }
     return ipv4.network();
 }
 
-bool Interface::switching() const
+bool Interface::is_l2() const
 {
     return switchport;
 }

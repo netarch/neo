@@ -71,6 +71,7 @@ public:
     std::string to_string() const;
     int prefix_length() const;
     Addr addr() const;
+    Addr mask() const;
     IPNetwork<Addr> network() const;
     bool operator==(const IPInterface<Addr>&) const;
     bool operator!=(const IPInterface<Addr>&) const;
@@ -146,8 +147,7 @@ IPInterface<Addr>::IPInterface(const Addr& addr, int prefix)
     : Addr(addr), prefix(prefix)
 {
     if (prefix < 0 || (size_t)prefix > Addr::length()) {
-        Logger::get_instance().err("Invalid prefix length: " +
-                                   std::to_string(prefix));
+        Logger::get().err("Invalid prefix length: " + std::to_string(prefix));
     }
 }
 
@@ -159,20 +159,18 @@ IPInterface<Addr>::IPInterface(const std::string& cidr)
     r = sscanf(cidr.c_str(), "%d.%d.%d.%d/%d%n", oct, oct + 1, oct + 2, oct + 3,
                &prefix_len, &parsed);
     if (r != 5 || parsed != (int)cidr.size()) {
-        Logger::get_instance().err("Failed to parse IP: " + cidr);
+        Logger::get().err("Failed to parse IP: " + cidr);
     }
     Addr::value = 0;
     for (int i = 0; i < 4; ++i) {
         if (oct[i] < 0 || oct[i] > 255) {
-            Logger::get_instance().err("Invalid IP octet: " +
-                                       std::to_string(oct[i]));
+            Logger::get().err("Invalid IP octet: " + std::to_string(oct[i]));
         }
         Addr::value = (Addr::value << 8) + oct[i];
     }
     prefix = prefix_len;
     if (prefix < 0 || (size_t)prefix > Addr::length()) {
-        Logger::get_instance().err("Invalid prefix length: " +
-                                   std::to_string(prefix));
+        Logger::get().err("Invalid prefix length: " + std::to_string(prefix));
     }
 }
 
@@ -201,9 +199,16 @@ Addr IPInterface<Addr>::addr() const
 }
 
 template <class Addr>
+Addr IPInterface<Addr>::mask() const
+{
+    uint32_t mask = ~((1ULL << (Addr::length() - prefix)) - 1);
+    return Addr(mask);
+}
+
+template <class Addr>
 IPNetwork<Addr> IPInterface<Addr>::network() const
 {
-    uint32_t mask = (1 << (Addr::length() - prefix)) - 1;
+    uint32_t mask = (1ULL << (Addr::length() - prefix)) - 1;
     return IPNetwork<Addr>(Addr::value & (~mask), prefix);
 }
 
@@ -234,8 +239,7 @@ IPNetwork<Addr>::IPNetwork(const Addr& addr, int prefix)
     : IPInterface<Addr>(addr, prefix)
 {
     if (!is_network()) {
-        Logger::get_instance().err("Invalid network: " +
-                                   IPInterface<Addr>::to_string());
+        Logger::get().err("Invalid network: " + IPInterface<Addr>::to_string());
     }
 }
 
@@ -244,8 +248,7 @@ IPNetwork<Addr>::IPNetwork(const std::string& cidr)
     : IPInterface<Addr>(cidr)
 {
     if (!is_network()) {
-        Logger::get_instance().err("Invalid network: " +
-                                   IPInterface<Addr>::to_string());
+        Logger::get().err("Invalid network: " + IPInterface<Addr>::to_string());
     }
 }
 
@@ -261,7 +264,7 @@ IPNetwork<Addr>::IPNetwork(const IPRange<Addr>& range)
     uint32_t size = range.size();
 
     if ((size & (size - 1)) != 0 || (range.get_lb() & (size - 1)) != 0) {
-        Logger::get_instance().err("Invalid network: " + range.to_string());
+        Logger::get().err("Invalid network: " + range.to_string());
     }
 
     IPInterface<Addr>::value = range.get_lb().get_value();
@@ -312,7 +315,7 @@ template <class Addr>
 IPRange<Addr>::IPRange(const Addr& lb, const Addr& ub): lb(lb), ub(ub)
 {
     if (lb > ub) {
-        Logger::get_instance().err("Invalid IP range: " + to_string());
+        Logger::get().err("Invalid IP range: " + to_string());
     }
 }
 

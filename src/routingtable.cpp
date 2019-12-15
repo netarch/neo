@@ -72,7 +72,7 @@ std::pair<RoutingTable::iterator, RoutingTable::iterator>
 RoutingTable::lookup(const IPv4Address& dst)
 {
     for (const Route& route : tbl) {
-        if (route.get_network().contains(dst)) {
+        if (route.get_network().contains(dst)) {    // longest prefix match
             return tbl.equal_range(route);
         }
     }
@@ -83,7 +83,7 @@ std::pair<RoutingTable::const_iterator, RoutingTable::const_iterator>
 RoutingTable::lookup(const IPv4Address& dst) const
 {
     for (const Route& route : tbl) {
-        if (route.get_network().contains(dst)) {
+        if (route.get_network().contains(dst)) {    // longest prefix match
             return tbl.equal_range(route);
         }
     }

@@ -1,33 +1,32 @@
 #include "middlebox.hpp"
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
+#include "lib/net.hpp"
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
-    : Node(node_config)
+    : Node(node_config), node_pkt_hist(nullptr)
 {
     auto environment = node_config->get_as<std::string>("env");
     auto appliance = node_config->get_as<std::string>("app");
 
     if (!environment) {
-        Logger::get_instance().err("Missing environment");
+        Logger::get().err("Missing environment");
     }
     if (!appliance) {
-        Logger::get_instance().err("Missing appliance");
+        Logger::get().err("Missing appliance");
     }
 
     if (*environment == "netns") {
-        env = new NetNS(this);
+        env = new NetNS();
     } else {
-        Logger::get_instance().err("Unknown environment: " + *environment);
+        Logger::get().err("Unknown environment: " + *environment);
     }
 
     if (*appliance == "netfilter") {
         app = new NetFilter(node_config);
     } else {
-        Logger::get_instance().err("Unknown appliance: " + *appliance);
+        Logger::get().err("Unknown appliance: " + *appliance);
     }
-
-    env->run(mb_app_init, app);
 }
 
 Middlebox::~Middlebox()
@@ -36,19 +35,69 @@ Middlebox::~Middlebox()
     delete env;
 }
 
-std::set<FIB_IPNH> Middlebox::get_ipnhs(
-    const IPv4Address& dst __attribute__((unused)))
+void Middlebox::init()
 {
+    env->init(this);
+    env->run(mb_app_init, app);
+}
+
+void Middlebox::rewind(NodePacketHistory *nph)
+{
+    env->run(mb_app_reset, app);
+
+    // replay history (TODO)
+
+    node_pkt_hist = nph;
+}
+
+NodePacketHistory *Middlebox::get_node_pkt_hist() const
+{
+    return node_pkt_hist;
+}
+
+void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
+{
+    node_pkt_hist = nph;
+}
+
+std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
+{
+    // TODO
+
+    // inject packet (3-way handshake)
+    // (construct libnet packet?)
+    uint8_t *packet;
+    uint8_t payload[] = "PLANKTON";
+    uint32_t payload_size = sizeof(payload) / sizeof(uint8_t);
+    uint8_t src_mac[6] = {0}, dst_mac[6] = {0};
+    env->get_mac(pkt.get_intf(), dst_mac);
+    uint32_t seq = 0, ack = 0;
+    uint32_t packet_size
+        = Net::get().get_pkt(
+              &packet,          // concrete packet buffer
+              pkt,              // pkt
+              payload,          // payload
+              payload_size,     // payload size
+              //NULL,             // payload
+              //0,                // payload size
+              12345,            // source port
+              80,               // destination port
+              seq,              // sequence number
+              ack,              // acknowledgement number
+              TH_SYN,           // control flags
+              src_mac,          // ethernet source
+              dst_mac           // ethernet destination
+          );
+    env->inject_packet(pkt.get_intf(), packet, packet_size);
+    Net::get().free_pkt(packet);
+
+    // observe output packet
+    // return next hop(s)
     return std::set<FIB_IPNH>();
 }
 
-std::set<FIB_IPNH> Middlebox::send_pkt(State *state __attribute__((unused)), const IPv4Address& dst_ip __attribute__((unused))) const
+std::set<FIB_IPNH> Middlebox::get_ipnhs(
+    const IPv4Address& dst __attribute__((unused)))
 {
-    // TODO
-    // check state's pkt_hist
-    // rewind and update state if needed
-    // update pkt_hist with this injecting packet
-    // inject packet
-    // return next hop(s)
     return std::set<FIB_IPNH>();
 }

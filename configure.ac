@@ -86,6 +86,10 @@ AC_ARG_ENABLE([debug],
 ###
 ### Predefined functions
 ###
+define([ADD_CPPFLAG], [
+    AS_IF([test -z "$CPPFLAGS"], [CPPFLAGS="$1"],
+          [AS_IF([test -n "${CPPFLAGS##*$1*}"], [CPPFLAGS="$CPPFLAGS $1"])])
+])
 define([ADD_CFLAG], [
     AS_IF([test -z "$CFLAGS"], [CFLAGS="$1"],
           [AS_IF([test -n "${CFLAGS##*$1*}"], [CFLAGS="$CFLAGS $1"])])
@@ -177,8 +181,8 @@ define([CHECK_LIB], [
 ##
 ADD_CFLAG([-std=c11])
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
-ADD_CFLAG_CXXFLAG([-iquote ${srcdir}/src -iquote .])
-ADD_CFLAG_CXXFLAG([-isystem ${srcdir}/third_party])
+ADD_CPPFLAG([-iquote ${srcdir}/src -iquote .])
+ADD_CPPFLAG([-isystem ${srcdir}/third_party])
 ADD_SPINFLAG([-a])
 ADD_SPINFLAG([-DNOBOUNDCHECK])
 ADD_SPINFLAG([-DNOCOMP])
@@ -239,6 +243,10 @@ CHECK_LDFLAGS([$LDFLAGS])
 ##
 ## Libraries
 ##
+AC_CHECK_HEADERS(libnet.h, [], [AC_ERROR([libnet is not installed])])
+CHECK_LIB(net, libnet_init, [], [AC_ERROR([libnet does not work])])
+ADD_LIB($(libnet-config --libs))
+
 #AC_CHECK_HEADERS(pthread.h, [], [AC_ERROR([pthread is not available])])
 #CHECK_LIB(pthread, pthread_create, [], [AC_ERROR([pthread does not work])])
 #ADD_CFLAG(-pthread)

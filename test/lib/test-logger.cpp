@@ -8,7 +8,7 @@
 
 TEST_CASE("logger")
 {
-    Logger& logger = Logger::get_instance();
+    Logger& logger = Logger::get();
 
     SECTION("verbosity") {
         int outfd, nullfd;

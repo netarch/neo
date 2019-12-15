@@ -9,7 +9,6 @@
     network = "x.x.x.x/x"
     next_hop = "x.x.x.x"
     adm_dist = 1                # optional (0..255), default: 1
-    weight = 1                  # optional, default: 1
     [[nodes.installed_routes]]  # optional
     network = "x.x.x.x/x"
     next_hop = "x.x.x.x"
