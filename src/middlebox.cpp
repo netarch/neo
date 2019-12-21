@@ -1,6 +1,7 @@
 #include "middlebox.hpp"
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
+#include "mb-app/cache-proxy.hpp"
 #include "lib/net.hpp"
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
@@ -24,10 +25,13 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
 
     if (*appliance == "netfilter") {
         app = new NetFilter(node_config);
+    } else if (*appliance == "squid-proxy") {
+        app = new CacheProxy(node_config);
     } else {
         Logger::get().err("Unknown appliance: " + *appliance);
     }
 }
+
 
 Middlebox::~Middlebox()
 {
@@ -39,6 +43,8 @@ void Middlebox::init()
 {
     env->init(this);
     env->run(mb_app_init, app);
+    // TODO check the status of the app
+
 }
 
 void Middlebox::rewind(NodePacketHistory *nph)
