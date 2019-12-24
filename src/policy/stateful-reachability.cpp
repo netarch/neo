@@ -7,16 +7,12 @@
 StatefulReachabilityPolicy::StatefulReachabilityPolicy(
     const std::shared_ptr<cpptoml::table>& config,
     const Network& net)
-    : Policy(config)
+    : Policy(config, net)
 {
-    auto start_regex = config->get_as<std::string>("start_node");
     auto final_regex = config->get_as<std::string>("final_node");
     auto reachability = config->get_as<bool>("reachable");
     auto prereq = config->get_table("prerequisite");
 
-    if (!start_regex) {
-        Logger::get().err("Missing start node");
-    }
     if (!final_regex) {
         Logger::get().err("Missing final node");
     }
@@ -29,9 +25,6 @@ StatefulReachabilityPolicy::StatefulReachabilityPolicy(
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
     for (const auto& node : nodes) {
-        if (std::regex_match(node.first, std::regex(*start_regex))) {
-            start_nodes.push_back(node.second);
-        }
         if (std::regex_match(node.first, std::regex(*final_regex))) {
             final_nodes.insert(node.second);
         }
@@ -59,27 +52,6 @@ StatefulReachabilityPolicy::~StatefulReachabilityPolicy()
     delete prerequisite;
 }
 
-const EqClasses& StatefulReachabilityPolicy::get_pre_ecs() const
-{
-    return prerequisite->get_ecs();
-}
-
-const EqClasses& StatefulReachabilityPolicy::get_ecs() const
-{
-    return ECs;
-}
-
-size_t StatefulReachabilityPolicy::num_ecs() const
-{
-    return ECs.size() * prerequisite->get_ecs().size();
-}
-
-void StatefulReachabilityPolicy::compute_ecs(const EqClasses& all_ECs)
-{
-    ECs.add_mask_range(pkt_dst, all_ECs);
-    prerequisite->compute_ecs(all_ECs);
-}
-
 std::string StatefulReachabilityPolicy::to_string() const
 {
     std::string ret = "stateful-reachability [";
@@ -100,46 +72,29 @@ std::string StatefulReachabilityPolicy::to_string() const
     return ret;
 }
 
-std::string StatefulReachabilityPolicy::get_type() const
+void StatefulReachabilityPolicy::init(State *state) const
 {
-    return "stateful-reachability";
-}
-
-void StatefulReachabilityPolicy::init(State *state)
-{
-    if (state->itr_ec == 0) {
+    if (state->comm == 0) {
         prerequisite->init(state);
         return;
     }
 
-    state->network_state[state->itr_ec].violated = false;
-}
-
-void StatefulReachabilityPolicy::config_procs(State *state, const Network& net,
-        ForwardingProcess& fwd) const
-{
-    if (state->itr_ec == 0) {
-        prerequisite->config_procs(state, net, fwd);
-        return;
-    }
-
-    fwd.config(state, net, start_nodes);
-    fwd.enable();
+    state->comm_state[state->comm].violated = false;
 }
 
 void StatefulReachabilityPolicy::check_violation(State *state)
 {
-    if (state->itr_ec == 0) {
+    if (state->comm == 0) {
         prerequisite->check_violation(state);
         if (state->choice_count == 0) {
-            if (state->network_state[state->itr_ec].violated) {
+            if (state->comm_state[state->comm].violated) {
                 // prerequisite policy violated
-                ++state->itr_ec;
-                state->network_state[state->itr_ec].violated = false;
+                ++state->comm;
+                state->comm_state[state->comm].violated = false;
                 state->choice_count = 0;
             } else {
                 // prerequisite policy holds
-                ++state->itr_ec;
+                ++state->comm;
                 state->choice_count = 1;
             }
         }
@@ -147,14 +102,14 @@ void StatefulReachabilityPolicy::check_violation(State *state)
     }
 
     bool reached;
-    auto& current_fwd_mode = state->network_state[state->itr_ec].fwd_mode;
+    int fwd_mode = state->comm_state[state->comm].fwd_mode;
 
-    if (current_fwd_mode == fwd_mode::ACCEPTED) {
+    if (fwd_mode == fwd_mode::ACCEPTED) {
         Node *final_node;
-        memcpy(&final_node, state->network_state[state->itr_ec].pkt_location,
+        memcpy(&final_node, state->comm_state[state->comm].pkt_location,
                sizeof(Node *));
         reached = (final_nodes.count(final_node) > 0);
-    } else if (current_fwd_mode == fwd_mode::DROPPED) {
+    } else if (fwd_mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
         /*
@@ -164,6 +119,6 @@ void StatefulReachabilityPolicy::check_violation(State *state)
         return;
     }
 
-    state->network_state[state->itr_ec].violated = (reachable != reached);
+    state->comm_state[state->comm].violated = (reachable != reached);
     state->choice_count = 0;
 }

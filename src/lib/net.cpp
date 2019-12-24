@@ -52,51 +52,51 @@ uint32_t Net::get_pkt(uint8_t **packet,
     //}
 
     tag = libnet_build_tcp(
-              src_port,
-              dst_port,
-              seq,
-              ack,
-              ctrl_flags,
-              65535,
-              0,
-              0,
-              LIBNET_TCP_H + payload_size,
-              payload,
-              payload_size,
-              l,
-              0);
+              src_port,                     // source port
+              dst_port,                     // destination port
+              seq,                          // sequence number
+              ack,                          // acknowledgement number
+              ctrl_flags,                   // control flags
+              65535,                        // window size
+              0,                            // checksum (0: autofill)
+              0,                            // urgent pointer
+              LIBNET_TCP_H + payload_size,  // length
+              payload,                      // payload
+              payload_size,                 // payload length
+              l,                            // libnet context
+              0);                           // ptag (0: build a new one)
     if (tag < 0) {
         Logger::get().err(std::string("Can't build TCP header: ")
                           + libnet_geterror(l));
     }
 
     tag = libnet_build_ipv4(
-              LIBNET_IPV4_H + LIBNET_TCP_H + payload_size,
-              0,
-              242,
-              0,
-              64,
-              IPPROTO_TCP,
-              0,
-              htonl(pkt.get_src_ip().get_value()),
-              htonl(pkt.get_dst_ip().get_value()),
-              NULL,
-              0,
-              l,
-              0);
+              LIBNET_IPV4_H + LIBNET_TCP_H + payload_size,  // length
+              0,                                // ToS
+              242,                              // identification number
+              0,                                // fragmentation offset
+              64,                               // TTL (time to live)
+              IPPROTO_TCP,                      // upper layer protocol
+              0,                                // checksum (0: autofill)
+              pkt.get_src_ip().get_value(),     // source address
+              pkt.get_dst_ip().get_value(),     // destination address
+              NULL,                             // payload
+              0,                                // payload length
+              l,                                // libnet context
+              0);                               // ptag (0: build a new one)
     if (tag < 0) {
         Logger::get().err(std::string("Can't build IP header: ")
                           + libnet_geterror(l));
     }
 
     tag = libnet_build_ethernet(
-              src_mac,
-              dst_mac,
-              ETHERTYPE_IP,
-              NULL,
-              0,
-              l,
-              0);
+              dst_mac,          // destination ethernet address
+              src_mac,          // source ethernet address
+              ETHERTYPE_IP,     // upper layer protocol
+              NULL,             // payload
+              0,                // payload length
+              l,                // libnet context
+              0);               // ptag (0: build a new one)
     if (tag < 0) {
         Logger::get().err(std::string("Can't build ethernet header: ")
                           + libnet_geterror(l));

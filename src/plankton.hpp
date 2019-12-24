@@ -18,8 +18,7 @@ private:
 
     /* per process variables */
     Policy    *policy;    // the policy being verified
-    EqClass   *pre_ec;    // EC of the prerequisite policy
-    EqClass   *ec;        // EC to be verified
+    EqClass   *ec;
 
     /* processes */
     ForwardingProcess   fwd;
@@ -29,8 +28,8 @@ private:
      */
 
     Plankton();
-    void verify(Policy *, EqClass *, EqClass *);
-    void dispatch(Policy *, EqClass *, EqClass *);
+    void verify(Policy *, EqClass *);
+    void dispatch(Policy *, EqClass *);
 
 public:
     // Disable the copy constructor and the copy assignment operator

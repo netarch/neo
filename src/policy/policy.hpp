@@ -7,6 +7,7 @@
 #include "lib/ip.hpp"
 #include "eqclasses.hpp"
 #include "network.hpp"
+class ForwardingProcess;
 #include "process/forwarding.hpp"
 #include "pan.h"
 
@@ -15,25 +16,34 @@ class Policy
 protected:
     int                     id;
     IPRange<IPv4Address>    pkt_dst;
+    std::vector<Node *>     start_nodes;
+    uint16_t                src_port, dst_port;
+    EqClasses               ECs;
+    Policy                  *prerequisite;
+    // assuming only 2 correlated ECs for now
+    // may be changed to a list of prerequisite Policies in the future
+    // or defined recursively
 
 public:
-    Policy(const std::shared_ptr<cpptoml::table>&);
+    Policy(const std::shared_ptr<cpptoml::table>&, const Network&);
+    Policy(const IPRange<IPv4Address>& pkt_dst,
+           const std::vector<Node *> start_nodes);
     virtual ~Policy() = default;
 
     int get_id() const;
-    const IPRange<IPv4Address>& get_pkt_dst() const;
+    const std::vector<Node *>& get_start_nodes(State *) const;
+    uint16_t get_src_port(State *) const;
+    uint16_t get_dst_port(State *) const;
+    Policy *get_prerequisite() const;
 
-    virtual const EqClasses& get_pre_ecs() const;
     virtual const EqClasses& get_ecs() const;
     virtual size_t num_ecs() const;
-    virtual void compute_ecs(const EqClasses&) = 0;
-    virtual std::string to_string() const = 0;
-    virtual std::string get_type() const = 0;
-    virtual void init(State *) = 0;
-    virtual void config_procs(State *, const Network&, ForwardingProcess&) const
-        = 0;
-    virtual void check_violation(State *) = 0;
+    virtual void compute_ecs(const EqClasses&);
     virtual void report(State *) const;
+
+    virtual std::string to_string() const = 0;
+    virtual void init(State *) const = 0;
+    virtual void check_violation(State *) = 0;
 };
 
 class Policies

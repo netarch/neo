@@ -19,28 +19,31 @@
  * ability of the OS isn't enough for accessing all state-related data.
  */
 
-/* maximum number of ECs modelled simultaneously */
-#define MAX_EC_COUNT 2
+/* maximum number of communications modelled simultaneously */
+#define MAX_COMM_COUNT 2
 
-typedef network_state_t {
+typedef comm_state_t {
+    /* plankton */
+    int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
+
     /* network */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
 
     /* forwarding process */
-    byte fwd_mode;                                  /* execution mode */
-    int src_addr[4 / SIZEOF_INT];                   /* (uint32_t), for reply-reachability policy */
+    unsigned fwd_mode : 3;                          /* execution mode */
+    unsigned pkt_state : 5;                         /* packet state */
+    int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *), for MB packet injection */
-    /*int l3_nhop[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
 
     /* policy */
     bool violated;
 };
 
-network_state_t network_state[MAX_EC_COUNT];
-byte itr_ec;        /* index of the executing EC */
+comm_state_t comm_state[MAX_COMM_COUNT];
+byte comm;          /* index of the executing communication */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
 int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<FIB_IPNH> *) */
@@ -52,7 +55,7 @@ c_code {
 
 init {
     c_code {
-        now.itr_ec = 0;
+        now.comm = 0;
         initialize(&now);
     }
 
@@ -68,5 +71,5 @@ init {
     c_code {
         report(&now);
     }
-    assert(!network_state[itr_ec].violated);
+    assert(!comm_state[comm].violated);
 }

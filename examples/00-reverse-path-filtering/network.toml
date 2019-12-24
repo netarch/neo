@@ -196,9 +196,9 @@
     start_node = "server"
     final_node = "h[123]|s1|r[123]|fw"
     reachable = false
-[[policies]]
-    type = "reply-reachability"
-    pkt_dst = "10.0.0.1"
-    start_node = "h[123]"
-    query_node = "server"
-    reachable = true
+#[[policies]]
+#    type = "reply-reachability"
+#    pkt_dst = "10.0.0.1"
+#    start_node = "h[123]"
+#    query_node = "server"
+#    reachable = true

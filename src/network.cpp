@@ -101,14 +101,12 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-void Network::init(State *state, const EqClass *pre_ec, const EqClass *ec)
+void Network::init(State *state)
 {
     // initialize FIB
-    if (state->itr_ec == 0 && pre_ec) {
-        fib_init(state, pre_ec);
-    } else {
-        fib_init(state, ec);
-    }
+    EqClass *cur_ec;
+    memcpy(&cur_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    fib_init(state, cur_ec);
 
     // initialize and start middlebox emulations
     for (const auto& pair : nodes) {
@@ -135,7 +133,7 @@ void Network::fib_init(State *state, const EqClass *ec)
         delete fib;
         fib = *(res.first);
     }
-    memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
+    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
 
     Logger::get().info(fib->to_string());
 }

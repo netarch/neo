@@ -1,5 +1,6 @@
 #include <csignal>
 #include <unistd.h>
+#include <regex>
 
 #include "policy/policy.hpp"
 #include "lib/logger.hpp"
@@ -8,15 +9,21 @@
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
 
-Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
+Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
+               const Network& net)
+    : prerequisite(nullptr)
 {
     static int next_id = 1;
     id = next_id++;
 
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
+    auto start_regex = config->get_as<std::string>("start_node");
 
     if (!pkt_dst_str) {
         Logger::get().err("Missing packet destination");
+    }
+    if (!start_regex) {
+        Logger::get().err("Missing start node");
     }
 
     std::string dst_str = *pkt_dst_str;
@@ -24,6 +31,23 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config)
         dst_str += "/32";
     }
     pkt_dst = IPRange<IPv4Address>(dst_str);
+
+    const std::map<std::string, Node *>& nodes = net.get_nodes();
+    for (const auto& node : nodes) {
+        if (std::regex_match(node.first, std::regex(*start_regex))) {
+            start_nodes.push_back(node.second);
+        }
+    }
+
+    // NOTE: fixed port numbers for now
+    src_port = 1234;
+    dst_port = 80;
+}
+
+Policy::Policy(const IPRange<IPv4Address>& pkt_dst,
+               const std::vector<Node *> start_nodes)
+    : id(0), pkt_dst(pkt_dst), start_nodes(start_nodes), prerequisite(nullptr)
+{
 }
 
 int Policy::get_id() const
@@ -31,37 +55,91 @@ int Policy::get_id() const
     return id;
 }
 
-const IPRange<IPv4Address>& Policy::get_pkt_dst() const
+const std::vector<Node *>& Policy::get_start_nodes(State *state) const
 {
-    return pkt_dst;
+    if (prerequisite && state->comm == 0) {
+        return prerequisite->start_nodes;
+    } else {
+        return start_nodes;
+    }
 }
 
-const EqClasses& Policy::get_pre_ecs() const
+uint16_t Policy::get_src_port(State *state) const
 {
-    static const EqClasses null_pre_ECs = EqClasses(nullptr);
-    return null_pre_ECs;
+    bool is_reply = state->comm_state[state->comm].pkt_state | PS_REP;
+
+    if (prerequisite && state->comm == 0) {
+        if (is_reply) {
+            return prerequisite->dst_port;
+        } else {
+            return prerequisite->src_port;
+        }
+    } else {
+        if (is_reply) {
+            return dst_port;
+        } else {
+            return src_port;
+        }
+    }
+}
+
+uint16_t Policy::get_dst_port(State *state) const
+{
+    bool is_reply = state->comm_state[state->comm].pkt_state | PS_REP;
+
+    if (prerequisite && state->comm == 0) {
+        if (is_reply) {
+            return prerequisite->src_port;
+        } else {
+            return prerequisite->dst_port;
+        }
+    } else {
+        if (is_reply) {
+            return src_port;
+        } else {
+            return dst_port;
+        }
+    }
+}
+
+Policy *Policy::get_prerequisite() const
+{
+    return prerequisite;
 }
 
 const EqClasses& Policy::get_ecs() const
 {
-    static const EqClasses null_ECs = EqClasses(nullptr);
-    return null_ECs;
+    return ECs;
 }
 
 size_t Policy::num_ecs() const
 {
-    return 0;
+    if (prerequisite) {
+        return ECs.size() * prerequisite->num_ecs();
+    } else {
+        return ECs.size();
+    }
+}
+
+void Policy::compute_ecs(const EqClasses& all_ECs)
+{
+    ECs.add_mask_range(pkt_dst, all_ECs);
+    if (prerequisite) {
+        prerequisite->compute_ecs(all_ECs);
+    }
 }
 
 void Policy::report(State *state) const
 {
-    if (state->network_state[state->itr_ec].violated) {
+    if (state->comm_state[state->comm].violated) {
         Logger::get().info("Policy violated!");
         kill(getppid(), SIGUSR1);
     } else {
         Logger::get().info("Policy holds!");
     }
 }
+
+/******************************************************************************/
 
 Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
                    const Network& network)

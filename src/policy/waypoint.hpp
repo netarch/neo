@@ -16,10 +16,8 @@
 class WaypointPolicy : public Policy
 {
 private:
-    std::vector<Node *> start_nodes;
     std::unordered_set<Node *> waypoints;
     bool pass_through;
-    EqClasses ECs;  // ECs to be verified
 
 public:
     WaypointPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
@@ -28,9 +26,6 @@ public:
     size_t num_ecs() const override;
     void compute_ecs(const EqClasses&) override;
     std::string to_string() const override;
-    std::string get_type() const override;
-    void init(State *) override;
-    void config_procs(State *, const Network&, ForwardingProcess&) const
-    override;
+    void init(State *) const override;
     void check_violation(State *) override;
 };

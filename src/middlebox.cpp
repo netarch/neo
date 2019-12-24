@@ -62,10 +62,8 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
 
 std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
 {
-    // TODO
-
-    // inject packet (3-way handshake)
-    // (construct libnet packet?)
+    // inject packet (TODO: 3-way handshake)
+    // construct libnet packet
     uint8_t *packet;
     uint8_t payload[] = "PLANKTON";
     uint32_t payload_size = sizeof(payload) / sizeof(uint8_t);
@@ -91,7 +89,7 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     env->inject_packet(pkt.get_intf(), packet, packet_size);
     Net::get().free_pkt(packet);
 
-    // observe output packet
+    // TODO: observe/read output packet
     // return next hop(s)
     return std::set<FIB_IPNH>();
 }

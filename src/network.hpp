@@ -47,7 +47,7 @@ public:
     const std::set<Link *, LinkCompare>& get_links() const;
 
     /* initialize network state variables */
-    void init(State *, const EqClass *pre_ec, const EqClass *ec);
+    void init(State *);
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

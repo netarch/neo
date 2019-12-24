@@ -16,21 +16,13 @@
 class ReachabilityPolicy : public Policy
 {
 private:
-    std::vector<Node *> start_nodes;
     std::unordered_set<Node *> final_nodes;
     bool reachable;
-    EqClasses ECs;  // ECs to be verified
 
 public:
     ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
 
-    const EqClasses& get_ecs() const override;
-    size_t num_ecs() const override;
-    void compute_ecs(const EqClasses&) override;
     std::string to_string() const override;
-    std::string get_type() const override;
-    void init(State *) override;
-    void config_procs(State *, const Network&, ForwardingProcess&) const
-    override;
+    void init(State *) const override;
     void check_violation(State *) override;
 };

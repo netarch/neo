@@ -4,6 +4,9 @@
 #include <unordered_set>
 
 #include "process/process.hpp"
+class Policy;
+class Policies;
+#include "policy/policy.hpp"
 #include "node.hpp"
 #include "pkt-hist.hpp"
 #include "middlebox.hpp"
@@ -31,6 +34,8 @@ struct CandEq {
 class ForwardingProcess : public Process
 {
 private:
+    Policy *policy;
+
     std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
 
@@ -44,10 +49,10 @@ private:
     pkt_hist_hist;
 
     void packet_entry(State *) const;
-    void first_collect(State *, const EqClass *);
+    void first_collect(State *);
     void first_forward(State *) const;
     void forward_packet(State *) const;
-    void collect_next_hops(State *, const EqClass *);
+    void collect_next_hops(State *);
 
     std::set<FIB_IPNH> inject_packet(State *, Middlebox *,
                                      const IPv4Address& dst_ip);
@@ -62,6 +67,6 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
-    void config(State *, const Network&, const std::vector<Node *>&);
-    void exec_step(State *, const EqClass *) override;
+    void init(State *, const Network&, Policy *);
+    void exec_step(State *) override;
 };
