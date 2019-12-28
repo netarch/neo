@@ -66,7 +66,7 @@ const std::vector<Node *>& Policy::get_start_nodes(State *state) const
 
 uint16_t Policy::get_src_port(State *state) const
 {
-    bool is_reply = state->comm_state[state->comm].pkt_state | PS_REP;
+    bool is_reply = PS_IS_REPLY(state->comm_state[state->comm].pkt_state);
 
     if (prerequisite && state->comm == 0) {
         if (is_reply) {
@@ -85,7 +85,7 @@ uint16_t Policy::get_src_port(State *state) const
 
 uint16_t Policy::get_dst_port(State *state) const
 {
-    bool is_reply = state->comm_state[state->comm].pkt_state | PS_REP;
+    bool is_reply = PS_IS_REPLY(state->comm_state[state->comm].pkt_state);
 
     if (prerequisite && state->comm == 0) {
         if (is_reply) {

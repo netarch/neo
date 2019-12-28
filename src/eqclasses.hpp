@@ -40,6 +40,7 @@ public:
     std::string to_string() const;
     bool empty() const;
     size_type size() const;
+    EqClass *find_ec(const IPv4Address&) const;
     iterator erase(const_iterator);
     void clear();
 

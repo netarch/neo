@@ -174,6 +174,15 @@ EqClasses::size_type EqClasses::size() const
     return ECs.size();
 }
 
+EqClass *EqClasses::find_ec(const IPv4Address& ip) const
+{
+    auto it = allranges.find(ECRange(ip, ip));
+    if (it == allranges.end()) {
+        return nullptr;
+    }
+    return it->get_ec();
+}
+
 EqClasses::iterator EqClasses::erase(const_iterator pos)
 {
     return ECs.erase(pos);

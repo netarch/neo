@@ -31,12 +31,12 @@ typedef comm_state_t {
 
     /* forwarding process */
     unsigned fwd_mode : 3;                          /* execution mode */
-    unsigned pkt_state : 5;                         /* packet state */
+    unsigned pkt_state : 4;                         /* packet state */
     int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
-    int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *), for MB packet injection */
+    int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
 
     /* policy */
     bool violated;

@@ -32,7 +32,6 @@ public:
     void init() override;
 
     void rewind(NodePacketHistory *);
-    NodePacketHistory *get_node_pkt_hist() const;
     void set_node_pkt_hist(NodePacketHistory *);
     std::set<FIB_IPNH> send_pkt(const Packet&); // send one L7 packet
 

@@ -43,7 +43,7 @@ public:
     int run();
 
 
-    /***** functions called by the Promela network model *****/
+    /***** functions used by the Promela network model *****/
 
     void initialize(State *);
     void exec_step(State *);

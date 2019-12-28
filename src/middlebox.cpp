@@ -43,16 +43,15 @@ void Middlebox::init()
 
 void Middlebox::rewind(NodePacketHistory *nph)
 {
+    if (node_pkt_hist == nph) {
+        return;
+    }
+
     env->run(mb_app_reset, app);
 
     // replay history (TODO)
 
     node_pkt_hist = nph;
-}
-
-NodePacketHistory *Middlebox::get_node_pkt_hist() const
-{
-    return node_pkt_hist;
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)

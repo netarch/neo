@@ -52,18 +52,6 @@ void ReplyReachabilityPolicy::init(State *state) const
     state->comm_state[state->comm].violated = false;
 }
 
-//void ReplyReachabilityPolicy::init_procs(State *state, const Network& net,
-//        ForwardingProcess& fwd) const
-//{
-//    if (state->itr_ec == 0) {
-//        fwd.init(state, net, start_nodes);
-//        fwd.enable();
-//    } else {
-//        fwd.init(state, net, std::vector<Node *>(1, queried_node));
-//        fwd.enable();
-//    }
-//}
-
 void ReplyReachabilityPolicy::check_violation(State *state)
 {
     bool reached;

@@ -26,6 +26,7 @@ public:
     bool empty() const;
     void add_range(const ECRange&);
     void rm_range(const ECRange&);
+    IPv4Address representative_addr() const;
 
     iterator               begin();
     const_iterator         begin() const;

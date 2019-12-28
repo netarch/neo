@@ -104,9 +104,7 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
 void Network::init(State *state)
 {
     // initialize FIB
-    EqClass *cur_ec;
-    memcpy(&cur_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-    fib_init(state, cur_ec);
+    update_fib(state);
 
     // initialize and start middlebox emulations
     for (const auto& pair : nodes) {
@@ -117,10 +115,13 @@ void Network::init(State *state)
     // TODO: initialize update history if update agent is implemented
 }
 
-void Network::fib_init(State *state, const EqClass *ec)
+void Network::update_fib(State *state)
 {
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
     FIB *fib = new FIB();
-    IPv4Address addr = ec->begin()->get_lb();   // the representative address
+    IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops
     for (const auto& pair : nodes) {
@@ -128,6 +129,7 @@ void Network::fib_init(State *state, const EqClass *ec)
         fib->set_ipnhs(node, node->get_ipnhs(addr));
     }
 
+    // insert into the pool of history FIBs
     auto res = fibs.insert(fib);
     if (!res.second) {
         delete fib;

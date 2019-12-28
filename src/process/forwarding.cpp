@@ -24,7 +24,7 @@ void ForwardingProcess::init(State *state, const Network& network,
     this->policy = policy;
 
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
-    state->comm_state[state->comm].pkt_state = PS_REQ | PS_SYN;
+    state->comm_state[state->comm].pkt_state = PS_TCP_INIT_1;
     memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].pkt_location, 0, sizeof(Node *));
@@ -45,7 +45,7 @@ void ForwardingProcess::init(State *state, const Network& network,
     update_candidates(state, candidates);
 }
 
-void ForwardingProcess::exec_step(State *state)
+void ForwardingProcess::exec_step(State *state, Network& network)
 {
     if (!enabled) {
         return;
@@ -69,11 +69,13 @@ void ForwardingProcess::exec_step(State *state)
             forward_packet(state);
             break;
         case fwd_mode::ACCEPTED:
+            accepted(state, network);
+            break;
         case fwd_mode::DROPPED:
             state->choice_count = 0;
             break;
         default:
-            Logger::get().err("forwarding process: unknown mode ("
+            Logger::get().err("Forwarding process: unknown mode ("
                               + std::to_string(mode) + ")");
     }
 }
@@ -86,7 +88,9 @@ void ForwardingProcess::packet_entry(State *state) const
     memcpy(state->comm_state[state->comm].src_node, &entry, sizeof(Node *));
     memcpy(state->comm_state[state->comm].pkt_location, &entry, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
-    Logger::get().info("Packet injected at " + entry->to_string());
+    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    Logger::get().info("Packet (state: " + std::to_string(pkt_state)
+                       + ") injected at " + entry->to_string());
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FIRST_COLLECT);
     state->choice_count = 1;    // deterministic choice
 }
@@ -99,7 +103,7 @@ void ForwardingProcess::first_collect(State *state)
 
 void ForwardingProcess::first_forward(State *state) const
 {
-    // update the source address
+    // update the source IP address
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
     FIB_IPNH next_hop = (*candidates)[state->choice];
@@ -108,41 +112,12 @@ void ForwardingProcess::first_forward(State *state) const
             = next_hop.get_l2_node()->get_peer(
                   next_hop.get_l2_intf()->get_name()
               ).second;
-        uint32_t src_ip_value = egress_intf->addr().get_value();
-        memcpy(state->comm_state[state->comm].src_ip, &src_ip_value,
+        uint32_t src_ip = egress_intf->addr().get_value();
+        memcpy(state->comm_state[state->comm].src_ip, &src_ip,
                sizeof(uint32_t));
     }
 
     forward_packet(state);
-}
-
-void ForwardingProcess::forward_packet(State *state) const
-{
-    Node *current_node;
-    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
-           sizeof(Node *));
-
-    std::vector<FIB_IPNH> *candidates;
-    memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
-
-    Node *next_hop = (*candidates)[state->choice].get_l3_node();
-    if (next_hop == current_node) {
-        Logger::get().info("Packet delivered at " + next_hop->to_string());
-        state->comm_state[state->comm].fwd_mode = int(fwd_mode::ACCEPTED);
-        state->choice_count = 0;
-        return;
-    }
-    memcpy(state->comm_state[state->comm].pkt_location, &next_hop,
-           sizeof(Node *));
-
-    Interface *ingress_intf = (*candidates)[state->choice].get_l3_intf();
-    memcpy(state->comm_state[state->comm].ingress_intf, &ingress_intf,
-           sizeof(Interface *));
-
-    Logger::get().info("Packet forwarded to " + next_hop->to_string() + ", "
-                       + ingress_intf->to_string());
-    state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
-    state->choice_count = 1;    // deterministic choice
 }
 
 void ForwardingProcess::collect_next_hops(State *state)
@@ -180,18 +155,102 @@ void ForwardingProcess::collect_next_hops(State *state)
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FORWARD_PACKET);
 }
 
+void ForwardingProcess::forward_packet(State *state) const
+{
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+
+    std::vector<FIB_IPNH> *candidates;
+    memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
+
+    Node *next_hop = (*candidates)[state->choice].get_l3_node();
+    if (next_hop == current_node) {
+        Logger::get().info("Packet delivered at " + next_hop->to_string());
+        state->comm_state[state->comm].fwd_mode = int(fwd_mode::ACCEPTED);
+        state->choice_count = 1;
+        return;
+    }
+    memcpy(state->comm_state[state->comm].pkt_location, &next_hop,
+           sizeof(Node *));
+
+    Interface *ingress_intf = (*candidates)[state->choice].get_l3_intf();
+    memcpy(state->comm_state[state->comm].ingress_intf, &ingress_intf,
+           sizeof(Interface *));
+
+    Logger::get().info("Packet forwarded to " + next_hop->to_string() + ", "
+                       + ingress_intf->to_string());
+    state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
+    state->choice_count = 1;    // deterministic choice
+}
+
+void ForwardingProcess::accepted(State *state, Network& network)
+{
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+    uint32_t src_ip;
+    memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
+
+    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    switch (pkt_state) {
+        case PS_TCP_INIT_1: {
+            state->comm_state[state->comm].pkt_state = PS_TCP_INIT_2;
+            state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
+            memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
+            memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
+            memset(state->comm_state[state->comm].ingress_intf, 0,
+                   sizeof(Interface *));
+
+            // update candidates as start nodes
+            std::vector<FIB_IPNH> candidates(
+                1, FIB_IPNH(current_node, nullptr, current_node, nullptr));
+            update_candidates(state, candidates);
+
+            // update packet EC and reinitialize the FIB
+            EqClass *next_ec = policy->get_ecs().find_ec(src_ip);
+            memcpy(state->comm_state[state->comm].ec, &next_ec,
+                   sizeof(EqClass *));
+            network.update_fib(state);
+        }
+        break;
+        case PS_TCP_INIT_2:
+            break;
+        case PS_TCP_INIT_3:
+            break;
+        case PS_HTTP_REQ:
+            break;
+        case PS_HTTP_REQ_A:
+            break;
+        case PS_HTTP_REP:
+            break;
+        case PS_HTTP_REP_A:
+            break;
+        case PS_TCP_TERM_1:
+            break;
+        case PS_TCP_TERM_2:
+            break;
+        case PS_TCP_TERM_3:
+            break;
+        case PS_ICMP_REQ:
+            break;
+        case PS_ICMP_REP:
+            break;
+        default:
+            Logger::get().err("Forwarding process: unknown packet state "
+                              + std::to_string(pkt_state));
+    }
+}
+
 std::set<FIB_IPNH> ForwardingProcess::inject_packet(
     State *state, Middlebox *mb, const IPv4Address& dst_ip)
 {
-    // check state's pkt_hist
+    // check state's pkt_hist and rewind the middlebox state
     PacketHistory *pkt_hist;
     memcpy(&pkt_hist, state->comm_state[state->comm].pkt_hist,
            sizeof(PacketHistory *));
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
-    // rewind and update local state if needed
-    if (mb->get_node_pkt_hist() != current_nph) {
-        mb->rewind(current_nph);
-    }
+    mb->rewind(current_nph);
 
     // construct new packet
     Interface *ingress_intf;

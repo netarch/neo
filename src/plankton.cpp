@@ -212,14 +212,13 @@ void Plankton::initialize(State *state)
     policy->init(state);
     fwd.init(state, network, policy);
     fwd.enable();
-    //policy->init_procs(state, network, fwd);
 }
 
 void Plankton::exec_step(State *state)
 {
     //int old_itr_ec = state->itr_ec;
 
-    fwd.exec_step(state);
+    fwd.exec_step(state, network);
     policy->check_violation(state);
 
     // when EC is changed and the verification process hasn't ended

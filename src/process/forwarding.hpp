@@ -51,8 +51,9 @@ private:
     void packet_entry(State *) const;
     void first_collect(State *);
     void first_forward(State *) const;
-    void forward_packet(State *) const;
     void collect_next_hops(State *);
+    void forward_packet(State *) const;
+    void accepted(State *, Network&);
 
     std::set<FIB_IPNH> inject_packet(State *, Middlebox *,
                                      const IPv4Address& dst_ip);
@@ -68,5 +69,5 @@ public:
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
     void init(State *, const Network&, Policy *);
-    void exec_step(State *) override;
+    void exec_step(State *, Network&) override;
 };

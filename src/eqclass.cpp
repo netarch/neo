@@ -25,6 +25,11 @@ void EqClass::rm_range(const ECRange& range)
     while (ranges.erase(range) > 0);
 }
 
+IPv4Address EqClass::representative_addr() const
+{
+    return ranges.begin()->get_lb();
+}
+
 EqClass::iterator EqClass::begin()
 {
     return ranges.begin();
