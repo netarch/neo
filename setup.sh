@@ -173,9 +173,9 @@ main() {
 
     elif [ "$DISTRO" = "Ubuntu" ]; then
         sudo apt update -y -qq
-        deps=(build-essential)
+        deps=(build-essential libnet1-dev)
         for dep in ${depends[@]}; do
-            if [ "$dep" != "spin-git" ]; then
+            if [ "$dep" != "spin-git" -a "$dep" != "libnet" ]; then
                 deps+=("$dep")
             fi
         done
