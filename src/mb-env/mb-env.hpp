@@ -1,6 +1,7 @@
 #pragma once
 
 #include "node.hpp"
+#include "interface.hpp"
 #include "mb-app/mb-app.hpp"
 
 class MB_Env

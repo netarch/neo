@@ -1,16 +1,18 @@
 /*
  * The state of the whole system consists of:
- * - network state (per EC)
+ * - network state
  *      - fib
  *      - update history
- * - fowarding process state (per EC)
+ * - fowarding process state
+ *      - packet state
  *      - forwarding mode
- *      - source address of the current EC
+ *      - packet EC (destination IP range)
+ *      - source IP of the current EC
  *      - source node (entry node) of the current EC
  *      - packet history (of the whole network)
  *      - current packet location
  *      - ingress interface (entry interface) of the current EC
- * - policy state (per EC)
+ * - policy state
  *      - violation status
  *
  * Some parts of the system state are stored in hash tables. Pointers to the
@@ -23,16 +25,16 @@
 #define MAX_COMM_COUNT 2
 
 typedef comm_state_t {
-    /* plankton */
-    int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
-
     /* network */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
 
     /* forwarding process */
-    unsigned fwd_mode : 3;                          /* execution mode */
     unsigned pkt_state : 4;                         /* packet state */
+    unsigned fwd_mode : 3;                          /* execution mode */
+    int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
     int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
+    int seq[4 / SIZEOF_INT];                        /* (uint32_t) */
+    int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
@@ -57,19 +59,19 @@ init {
     c_code {
         now.comm = 0;
         initialize(&now);
-    }
+    };
 
     do
     :: choice_count > 0 ->
         select(choice: 0 .. choice_count - 1);
         c_code {
             exec_step(&now);
-        }
-    :: else -> break
+        };
+    :: else -> break;
     od
 
     c_code {
         report(&now);
-    }
+    };
     assert(!comm_state[comm].violated);
 }

@@ -6,7 +6,6 @@
 #include "mb-env/mb-env.hpp"
 #include "mb-app/mb-app.hpp"
 #include "pkt-hist.hpp"
-#include "pan.h"
 
 class Middlebox : public Node
 {

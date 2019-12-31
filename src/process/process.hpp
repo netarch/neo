@@ -1,7 +1,7 @@
 #pragma once
 
 #include "network.hpp"
-#include "pan.h"
+class State;
 
 class Process
 {

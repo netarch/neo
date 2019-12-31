@@ -4,12 +4,13 @@
 #include <unordered_set>
 
 #include "process/process.hpp"
-class Policy;
-class Policies;
 #include "policy/policy.hpp"
-#include "node.hpp"
+#include "fib.hpp"
+#include "packet.hpp"
 #include "pkt-hist.hpp"
+#include "network.hpp"
 #include "middlebox.hpp"
+class State;
 
 enum fwd_mode {
     // start from 1 to avoid execution before configuration
@@ -55,8 +56,7 @@ private:
     void forward_packet(State *) const;
     void accepted(State *, Network&);
 
-    std::set<FIB_IPNH> inject_packet(State *, Middlebox *,
-                                     const IPv4Address& dst_ip);
+    std::set<FIB_IPNH> inject_packet(State *, Middlebox *);
     void update_candidates(State *, const std::vector<FIB_IPNH>&);
 
 public:
@@ -68,6 +68,6 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
-    void init(State *, const Network&, Policy *);
+    void init(State *, Network&, Policy *);
     void exec_step(State *, Network&) override;
 };

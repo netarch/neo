@@ -1,6 +1,7 @@
+#include "link.hpp"
+
 #include <utility>
 
-#include "link.hpp"
 #include "lib/logger.hpp"
 
 void Link::normalize()

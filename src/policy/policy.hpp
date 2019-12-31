@@ -1,15 +1,16 @@
 #pragma once
 
+#include <vector>
 #include <string>
 #include <list>
 #include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
-#include "eqclasses.hpp"
+#include "node.hpp"
 #include "network.hpp"
-class ForwardingProcess;
-#include "process/forwarding.hpp"
-#include "pan.h"
+#include "eqclasses.hpp"
+#include "eqclass.hpp"
+class State;
 
 class Policy
 {
@@ -19,27 +20,35 @@ protected:
     std::vector<Node *>     start_nodes;
     uint16_t                src_port, dst_port;
     EqClasses               ECs;
+    EqClass                 *initial_ec;
     Policy                  *prerequisite;
-    // assuming only 2 correlated ECs for now
-    // may be changed to a list of prerequisite Policies in the future
-    // or defined recursively
+    // assuming only 2 correlated communications for now
+    // std::vector<Policy *> prerequisite;
+    // in the future.
 
 public:
     Policy(const std::shared_ptr<cpptoml::table>&, const Network&);
-    Policy(const IPRange<IPv4Address>& pkt_dst,
-           const std::vector<Node *> start_nodes);
+    //Policy(const IPRange<IPv4Address>& pkt_dst,
+    //       const std::vector<Node *> start_nodes,
+    //       uint16_t src_port, uint16_t dst_port);
     virtual ~Policy() = default;
 
     int get_id() const;
     const std::vector<Node *>& get_start_nodes(State *) const;
     uint16_t get_src_port(State *) const;
     uint16_t get_dst_port(State *) const;
+
+    void add_ec(const IPv4Address&);
+    const EqClasses& get_ecs() const;
+    size_t num_ecs() const;
+    void compute_ecs(const EqClasses&);
+
+    void set_initial_ec(EqClass *);
+    EqClass *get_initial_ec() const;
+
     Policy *get_prerequisite() const;
 
-    virtual const EqClasses& get_ecs() const;
-    virtual size_t num_ecs() const;
-    virtual void compute_ecs(const EqClasses&);
-    virtual void report(State *) const;
+    void report(State *) const;
 
     virtual std::string to_string() const = 0;
     virtual void init(State *) const = 0;

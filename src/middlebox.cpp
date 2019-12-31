@@ -1,4 +1,5 @@
 #include "middlebox.hpp"
+
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
 #include "lib/net.hpp"
@@ -61,34 +62,21 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
 
 std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
 {
-    // inject packet (TODO: 3-way handshake)
-    // construct libnet packet
-    uint8_t *packet;
-    uint8_t payload[] = "PLANKTON";
-    uint32_t payload_size = sizeof(payload) / sizeof(uint8_t);
+    // serialize the packet
     uint8_t src_mac[6] = {0}, dst_mac[6] = {0};
     env->get_mac(pkt.get_intf(), dst_mac);
-    uint32_t seq = 0, ack = 0;
-    uint32_t packet_size
-        = Net::get().get_pkt(
-              &packet,          // concrete packet buffer
-              pkt,              // pkt
-              payload,          // payload
-              payload_size,     // payload size
-              //NULL,             // payload
-              //0,                // payload size
-              12345,            // source port
-              80,               // destination port
-              seq,              // sequence number
-              ack,              // acknowledgement number
-              TH_SYN,           // control flags
-              src_mac,          // ethernet source
-              dst_mac           // ethernet destination
-          );
-    env->inject_packet(pkt.get_intf(), packet, packet_size);
-    Net::get().free_pkt(packet);
+    uint8_t *buffer;
+    uint32_t buffer_size = Net::get().serialize(&buffer, pkt, src_mac, dst_mac);
+    // inject packet
+    env->inject_packet(pkt.get_intf(), buffer, buffer_size);
+    Net::get().free(buffer);
 
     // TODO: observe/read output packet
+    // env->read_packet();
+    // deserialize
+    // find egress interface
+    // find next hop interface and node
+
     // return next hop(s)
     return std::set<FIB_IPNH>();
 }

@@ -4,7 +4,6 @@
 #include <string>
 #include <cpptoml/cpptoml.hpp>
 
-class Link;
 #include "node.hpp"
 
 class Link

@@ -1,11 +1,35 @@
 #include "packet.hpp"
 
-Packet::Packet(Interface *intf, const IPv4Address& src_ip,
-               const IPv4Address& dst_ip, uint16_t src_port, uint16_t dst_port,
-               uint8_t pkt_state)
-    : interface(intf), src_ip(src_ip), dst_ip(dst_ip), src_port(src_port),
-      dst_port(dst_port), pkt_state(pkt_state)
+#include <cstring>
+
+#include "pan.h"
+
+Packet::Packet(State *state, const Policy *policy)
 {
+    // ingress interface
+    memcpy(&interface, state->comm_state[state->comm].ingress_intf,
+           sizeof(Interface *));
+    // IP
+    memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
+    memcpy(&dst_ip_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    // packet state
+    pkt_state = state->comm_state[state->comm].pkt_state;
+
+    if (pkt_state == PS_ICMP_REQ || pkt_state == PS_ICMP_REP) {
+        // ICMP (TODO, not implemented yet)
+        src_port = 0;
+        dst_port = 0;
+        seq = 0;
+        ack = 0;
+        payload = nullptr;
+    } else {
+        // TCP
+        src_port = policy->get_src_port(state);
+        dst_port = policy->get_dst_port(state);
+        memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
+        memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
+        payload = PayloadMgr::get().get_payload(state, dst_port);
+    }
 }
 
 Interface *Packet::get_intf() const
@@ -20,7 +44,7 @@ IPv4Address Packet::get_src_ip() const
 
 IPv4Address Packet::get_dst_ip() const
 {
-    return dst_ip;
+    return dst_ip_ec->representative_addr();
 }
 
 uint16_t Packet::get_src_port() const
@@ -33,17 +57,55 @@ uint16_t Packet::get_dst_port() const
     return dst_port;
 }
 
+uint32_t Packet::get_seq() const
+{
+    return seq;
+}
+
+uint32_t Packet::get_ack() const
+{
+    return ack;
+}
+
 uint8_t Packet::get_pkt_state() const
 {
     return pkt_state;
+}
+
+Payload *Packet::get_payload() const
+{
+    return payload;
 }
 
 bool operator==(const Packet& a, const Packet& b)
 {
     return (a.interface == b.interface &&
             a.src_ip == b.src_ip &&
-            a.dst_ip == b.dst_ip &&
+            a.dst_ip_ec == b.dst_ip_ec &&
             a.src_port == b.src_port &&
             a.dst_port == b.dst_port &&
-            a.pkt_state == b.pkt_state);
+            a.seq == b.seq &&
+            a.ack == b.ack &&
+            a.pkt_state == b.pkt_state &&
+            a.payload == b.payload);
+}
+
+size_t PacketHash::operator()(Packet *const& p) const
+{
+    size_t value = 0;
+    ::hash::hash_combine(value, std::hash<Interface *>()(p->interface));
+    ::hash::hash_combine(value, std::hash<IPv4Address>()(p->src_ip));
+    ::hash::hash_combine(value, std::hash<EqClass *>()  (p->dst_ip_ec));
+    ::hash::hash_combine(value, std::hash<uint16_t>()   (p->src_port));
+    ::hash::hash_combine(value, std::hash<uint16_t>()   (p->dst_port));
+    ::hash::hash_combine(value, std::hash<uint32_t>()   (p->seq));
+    ::hash::hash_combine(value, std::hash<uint32_t>()   (p->ack));
+    ::hash::hash_combine(value, std::hash<uint8_t>()    (p->pkt_state));
+    ::hash::hash_combine(value, std::hash<Payload *>()(p->payload));
+    return value;
+}
+
+bool PacketEq::operator()(Packet *const& a, Packet *const& b) const
+{
+    return *a == *b;
 }

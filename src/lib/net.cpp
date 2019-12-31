@@ -2,10 +2,12 @@
 
 #include <string>
 
+#include "payload.hpp"
 #include "lib/logger.hpp"
 
 Net::Net()
 {
+    char errbuf[LIBNET_ERRBUF_SIZE];
     l = libnet_init(LIBNET_LINK_ADV, NULL, errbuf);
     if (!l) {
         Logger::get().err(std::string("libnet_init() failed: ") + errbuf);
@@ -23,23 +25,41 @@ Net& Net::get()
     return instance;
 }
 
-uint32_t Net::get_pkt(uint8_t **packet,
-                      const Packet& pkt,
-                      // L7
-                      const uint8_t *payload,
-                      uint32_t payload_size,
-                      // TCP
-                      uint16_t src_port,
-                      uint16_t dst_port,
-                      uint32_t seq,
-                      uint32_t ack,
-                      uint8_t ctrl_flags,
-                      // Ethernet
-                      const uint8_t *src_mac,
-                      const uint8_t *dst_mac)
+uint32_t Net::serialize(uint8_t **buffer, const Packet& pkt,
+                        const uint8_t *src_mac,
+                        const uint8_t *dst_mac) const
 {
     libnet_ptag_t tag;
     libnet_clear_packet(l);
+
+    uint8_t ctrl_flags = 0;
+    switch (pkt.get_pkt_state()) {
+        case PS_TCP_INIT_1:
+            ctrl_flags = TH_SYN;
+            break;
+        case PS_TCP_INIT_2:
+            ctrl_flags = TH_SYN | TH_ACK;
+            break;
+        case PS_TCP_INIT_3:
+        case PS_HTTP_REQ_A:
+        case PS_HTTP_REP_A:
+        case PS_TCP_TERM_3:
+            ctrl_flags = TH_ACK;
+            break;
+        case PS_HTTP_REQ:
+        case PS_HTTP_REP:
+            ctrl_flags = TH_PUSH | TH_ACK;
+            break;
+        case PS_TCP_TERM_1:
+        case PS_TCP_TERM_2:
+            ctrl_flags = TH_FIN | TH_ACK;
+            break;
+        default:
+            Logger::get().err("Unknown packet state "
+                              + std::to_string(pkt.get_pkt_state()));
+    }
+    const uint8_t *payload = pkt.get_payload()->get();
+    uint32_t payload_size = pkt.get_payload()->get_size();
 
     //tag = libnet_build_tcp_options(
     //        "\x00",
@@ -52,10 +72,10 @@ uint32_t Net::get_pkt(uint8_t **packet,
     //}
 
     tag = libnet_build_tcp(
-              src_port,                     // source port
-              dst_port,                     // destination port
-              seq,                          // sequence number
-              ack,                          // acknowledgement number
+              pkt.get_src_port(),          // source port
+              pkt.get_dst_port(),          // destination port
+              pkt.get_seq(),               // sequence number
+              pkt.get_ack(),               // acknowledgement number
               ctrl_flags,                   // control flags
               65535,                        // window size
               0,                            // checksum (0: autofill)
@@ -102,17 +122,17 @@ uint32_t Net::get_pkt(uint8_t **packet,
                           + libnet_geterror(l));
     }
 
-    uint32_t packet_size;
+    uint32_t buffer_size;
 
-    if (libnet_adv_cull_packet(l, packet, &packet_size) < 0) {
+    if (libnet_adv_cull_packet(l, buffer, &buffer_size) < 0) {
         Logger::get().err(std::string("libnet_adv_cull_packet() failed: ")
                           + libnet_geterror(l));
     }
 
-    return packet_size;
+    return buffer_size;
 }
 
-void Net::free_pkt(uint8_t *packet)
+void Net::free(uint8_t *buffer) const
 {
-    libnet_adv_free_packet(l, packet);
+    libnet_adv_free_packet(l, buffer);
 }

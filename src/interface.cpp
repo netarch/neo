@@ -1,4 +1,5 @@
 #include "interface.hpp"
+
 #include "lib/logger.hpp"
 
 Interface::Interface(const std::shared_ptr<cpptoml::table>& intf_config)

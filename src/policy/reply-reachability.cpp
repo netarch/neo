@@ -1,6 +1,9 @@
+#include "policy/reply-reachability.hpp"
+
 #include <regex>
 
-#include "policy/reply-reachability.hpp"
+#include "process/forwarding.hpp"
+#include "pan.h"
 
 ReplyReachabilityPolicy::ReplyReachabilityPolicy(
     const std::shared_ptr<cpptoml::table>& config,

@@ -7,7 +7,6 @@
 
 class L2_LAN;
 #include "node.hpp"
-#include "lib/ip.hpp"
 #include "lib/hash.hpp"
 
 class L2_LAN

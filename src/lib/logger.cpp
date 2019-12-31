@@ -1,10 +1,10 @@
+#include "lib/logger.hpp"
+
 #include <iostream>
 #include <string>
 #include <cstring>
 #include <clocale>
 #include <stdexcept>
-
-#include "lib/logger.hpp"
 
 Logger::Logger(): verbose(false)
 {

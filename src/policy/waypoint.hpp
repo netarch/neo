@@ -22,9 +22,6 @@ private:
 public:
     WaypointPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
 
-    const EqClasses& get_ecs() const override;
-    size_t num_ecs() const override;
-    void compute_ecs(const EqClasses&) override;
     std::string to_string() const override;
     void init(State *) const override;
     void check_violation(State *) override;

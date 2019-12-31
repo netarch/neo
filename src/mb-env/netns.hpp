@@ -3,7 +3,9 @@
 #include <unordered_map>
 
 #include "mb-env/mb-env.hpp"
+#include "interface.hpp"
 #include "node.hpp"
+#include "routingtable.hpp"
 
 class NetNS : public MB_Env
 {

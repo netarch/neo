@@ -1,6 +1,7 @@
+#include "eqclasses.hpp"
+
 #include <algorithm>
 
-#include "eqclasses.hpp"
 #include "lib/logger.hpp"
 
 EqClasses::EqClasses(EqClass *ec)

@@ -3,8 +3,12 @@
 #include <functional>
 
 #include "interface.hpp"
+#include "eqclass.hpp"
+#include "payload.hpp"
+#include "policy/policy.hpp"
 #include "lib/ip.hpp"
 #include "lib/hash.hpp"
+class State;
 
 /*
  * Packet state
@@ -46,49 +50,42 @@
 class Packet
 {
 private:
+    // ingress interface
     Interface *interface;
-    IPv4Address src_ip, dst_ip;
+    // IP
+    IPv4Address src_ip;
+    EqClass *dst_ip_ec;
+    // TCP
     uint16_t src_port, dst_port;
+    uint32_t seq, ack;
+    // packet state (L4/L7)
     uint8_t pkt_state;
+    // L7 payload
+    Payload *payload;
 
-    friend struct PacketHash;
+    friend class PacketHash;
     friend bool operator==(const Packet&, const Packet&);
 
 public:
-    Packet(Interface *, const IPv4Address& src_ip, const IPv4Address& dst_ip,
-           uint16_t src_port, uint16_t dst_port, uint8_t pkt_state);
+    Packet(State *, const Policy *);
 
     Interface *get_intf() const;
     IPv4Address get_src_ip() const;
     IPv4Address get_dst_ip() const;
     uint16_t get_src_port() const;
     uint16_t get_dst_port() const;
+    uint32_t get_seq() const;
+    uint32_t get_ack() const;
     uint8_t get_pkt_state() const;
+    Payload *get_payload() const;
 };
 
 bool operator==(const Packet&, const Packet&);
 
 struct PacketHash {
-    size_t operator()(Packet *const& p) const
-    {
-        size_t value = 0;
-        std::hash<Interface *> intf_hf;
-        std::hash<IPv4Address> ipv4_hf;
-        std::hash<uint16_t>    port_hf;
-        std::hash<uint8_t>     state_hf;
-        ::hash::hash_combine(value, intf_hf(p->interface));
-        ::hash::hash_combine(value, ipv4_hf(p->src_ip));
-        ::hash::hash_combine(value, ipv4_hf(p->dst_ip));
-        ::hash::hash_combine(value, port_hf(p->src_port));
-        ::hash::hash_combine(value, port_hf(p->dst_port));
-        ::hash::hash_combine(value, state_hf(p->pkt_state));
-        return value;
-    }
+    size_t operator()(Packet *const&) const;
 };
 
 struct PacketEq {
-    bool operator()(Packet *const& a, Packet *const& b) const
-    {
-        return *a == *b;
-    }
+    bool operator()(Packet *const&, Packet *const&) const;
 };

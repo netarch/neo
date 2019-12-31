@@ -1,6 +1,9 @@
+#include "policy/waypoint.hpp"
+
 #include <regex>
 
-#include "policy/waypoint.hpp"
+#include "process/forwarding.hpp"
+#include "pan.h"
 
 WaypointPolicy::WaypointPolicy(
     const std::shared_ptr<cpptoml::table>& config,
@@ -25,21 +28,6 @@ WaypointPolicy::WaypointPolicy(
     }
 
     pass_through = *through;
-}
-
-const EqClasses& WaypointPolicy::get_ecs() const
-{
-    return ECs;
-}
-
-size_t WaypointPolicy::num_ecs() const
-{
-    return ECs.size();
-}
-
-void WaypointPolicy::compute_ecs(const EqClasses& all_ECs)
-{
-    ECs.add_mask_range(pkt_dst, all_ECs);
 }
 
 std::string WaypointPolicy::to_string() const

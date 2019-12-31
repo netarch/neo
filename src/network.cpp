@@ -1,12 +1,13 @@
 #include "network.hpp"
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
-#include <cstring>
 
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
+#include "pan.h"
 
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config)
@@ -101,11 +102,8 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-void Network::init(State *state)
+void Network::init(State *state __attribute__((unused)))
 {
-    // initialize FIB
-    update_fib(state);
-
     // initialize and start middlebox emulations
     for (const auto& pair : nodes) {
         Node *node = pair.second;

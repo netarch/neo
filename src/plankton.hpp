@@ -5,7 +5,7 @@
 #include "network.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
-#include "pan.h"
+class State;
 
 class Plankton
 {
@@ -18,7 +18,6 @@ private:
 
     /* per process variables */
     Policy    *policy;    // the policy being verified
-    EqClass   *ec;
 
     /* processes */
     ForwardingProcess   fwd;
@@ -28,8 +27,8 @@ private:
      */
 
     Plankton();
-    void verify(Policy *, EqClass *);
-    void dispatch(Policy *, EqClass *);
+    void verify(Policy *);
+    void dispatch(Policy *);
 
 public:
     // Disable the copy constructor and the copy assignment operator

@@ -1,9 +1,11 @@
+#include "process/forwarding.hpp"
+
 #include <cstring>
 #include <typeinfo>
 
-#include "process/forwarding.hpp"
-#include "fib.hpp"
+#include "lib/logger.hpp"
 #include "lib/hash.hpp"
+#include "pan.h"
 
 ForwardingProcess::~ForwardingProcess()
 {
@@ -18,14 +20,16 @@ ForwardingProcess::~ForwardingProcess()
     }
 }
 
-void ForwardingProcess::init(State *state, const Network& network,
-                             Policy *policy)
+void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 {
     this->policy = policy;
 
+    uint8_t pkt_state = PS_TCP_INIT_1;
+    state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
-    state->comm_state[state->comm].pkt_state = PS_TCP_INIT_1;
     memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].seq, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].ack, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].pkt_location, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
@@ -43,6 +47,18 @@ void ForwardingProcess::init(State *state, const Network& network,
                                       nullptr));
     }
     update_candidates(state, candidates);
+
+    // initialize packet EC and update the FIB
+    EqClass *ec;
+    if (state->comm == 0 && policy->get_prerequisite()) {
+        // assuming there is only 1 EC in the prerequisite policy
+        ec = *policy->get_prerequisite()->get_ecs().begin();
+    } else {
+        ec = policy->get_initial_ec();
+    }
+    memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
+    Logger::get().info("EC: " + ec->to_string());
+    network.update_fib(state);
 }
 
 void ForwardingProcess::exec_step(State *state, Network& network)
@@ -82,15 +98,22 @@ void ForwardingProcess::exec_step(State *state, Network& network)
 
 void ForwardingProcess::packet_entry(State *state) const
 {
+    // logging
+    ;
+
+    // TODO: move packet into spin state
+
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
     Node *entry = (*candidates)[state->choice].get_l3_node();
     memcpy(state->comm_state[state->comm].src_node, &entry, sizeof(Node *));
     memcpy(state->comm_state[state->comm].pkt_location, &entry, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
+
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
     Logger::get().info("Packet (state: " + std::to_string(pkt_state)
                        + ") injected at " + entry->to_string());
+
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FIRST_COLLECT);
     state->choice_count = 1;    // deterministic choice
 }
@@ -135,10 +158,7 @@ void ForwardingProcess::collect_next_hops(State *state)
         next_hops = fib->lookup(current_node);
     } else {
         // current_node is a Middlebox; inject packet to get next hops
-        EqClass *cur_ec;
-        memcpy(&cur_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-        next_hops = inject_packet(state, (Middlebox *)current_node,
-                                  cur_ec->begin()->get_lb());
+        next_hops = inject_packet(state, (Middlebox *)current_node);
     }
 
     if (next_hops.empty()) {
@@ -198,6 +218,8 @@ void ForwardingProcess::accepted(State *state, Network& network)
             state->comm_state[state->comm].pkt_state = PS_TCP_INIT_2;
             state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
             memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
+            memset(state->comm_state[state->comm].seq, 0, sizeof(uint32_t));
+            memset(state->comm_state[state->comm].ack, 1, sizeof(uint32_t));
             memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
             memset(state->comm_state[state->comm].ingress_intf, 0,
                    sizeof(Interface *));
@@ -207,10 +229,11 @@ void ForwardingProcess::accepted(State *state, Network& network)
                 1, FIB_IPNH(current_node, nullptr, current_node, nullptr));
             update_candidates(state, candidates);
 
-            // update packet EC and reinitialize the FIB
+            // update packet EC and the FIB
             EqClass *next_ec = policy->get_ecs().find_ec(src_ip);
             memcpy(state->comm_state[state->comm].ec, &next_ec,
                    sizeof(EqClass *));
+            Logger::get().info("EC: " + next_ec->to_string());
             network.update_fib(state);
         }
         break;
@@ -242,8 +265,7 @@ void ForwardingProcess::accepted(State *state, Network& network)
     }
 }
 
-std::set<FIB_IPNH> ForwardingProcess::inject_packet(
-    State *state, Middlebox *mb, const IPv4Address& dst_ip)
+std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
 {
     // check state's pkt_hist and rewind the middlebox state
     PacketHistory *pkt_hist;
@@ -253,15 +275,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(
     mb->rewind(current_nph);
 
     // construct new packet
-    Interface *ingress_intf;
-    memcpy(&ingress_intf, state->comm_state[state->comm].ingress_intf,
-           sizeof(Interface *));
-    uint32_t src_ip;
-    memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
-    Packet *new_pkt = new Packet(ingress_intf, src_ip, dst_ip,
-                                 policy->get_src_port(state),
-                                 policy->get_dst_port(state),
-                                 state->comm_state[state->comm].pkt_state);
+    Packet *new_pkt = new Packet(state, policy);
     auto res1 = all_pkts.insert(new_pkt);
     if (!res1.second) {
         delete new_pkt;
@@ -277,7 +291,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(
     }
     mb->set_node_pkt_hist(new_nph);
 
-    // update pkt_hist with this new packet
+    // update pkt_hist with this new node_pkt_hist
     PacketHistory *new_pkt_hist = new PacketHistory(*pkt_hist);
     new_pkt_hist->set_node_pkt_hist(mb, new_nph);
     auto res3 = pkt_hist_hist.insert(new_pkt_hist);
@@ -306,6 +320,8 @@ void ForwardingProcess::update_candidates(
     state->choice_count = candidates->size();
     memcpy(state->candidates, &candidates, sizeof(std::vector<FIB_IPNH> *));
 }
+
+/******************************************************************************/
 
 size_t CandHash::operator()(const std::vector<FIB_IPNH> *const& c) const
 {

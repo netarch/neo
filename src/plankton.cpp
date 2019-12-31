@@ -1,3 +1,5 @@
+#include "plankton.hpp"
+
 #include <cstdlib>
 #include <cstring>
 #include <csignal>
@@ -8,9 +10,9 @@
 #include <set>
 #include <cpptoml/cpptoml.hpp>
 
-#include "plankton.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
+#include "pan.h"
 
 namespace
 {
@@ -62,7 +64,7 @@ void signal_handler(int sig, siginfo_t *siginfo,
 }
 } // namespace
 
-Plankton::Plankton(): policy(nullptr), ec(nullptr)
+Plankton::Plankton(): policy(nullptr)
 {
 }
 
@@ -98,7 +100,7 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
 
 extern "C" int spin_main(int argc, const char *argv[]);
 
-void Plankton::verify(Policy *policy, EqClass *ec)
+void Plankton::verify(Policy *policy)
 {
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
@@ -134,19 +136,18 @@ void Plankton::verify(Policy *policy, EqClass *ec)
 
     // configure per process variables
     this->policy = policy;
-    this->ec = ec;
 
     // run SPIN verifier
     exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
 }
 
-void Plankton::dispatch(Policy *policy, EqClass *ec)
+void Plankton::dispatch(Policy *policy)
 {
     int childpid;
     if ((childpid = fork()) < 0) {
         Logger::get().err("Failed to spawn new process", errno);
     } else if (childpid == 0) {
-        verify(policy, ec);
+        verify(policy);
     }
 
     tasks.insert(childpid);
@@ -183,8 +184,8 @@ int Plankton::run()
                            + policy->to_string());
         Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
         for (EqClass *ec : policy->get_ecs()) {
-            // assuming there is only 1 EC in the prerequisite policy
-            dispatch(policy, ec);
+            policy->set_initial_ec(ec);
+            dispatch(policy);
         }
         // wait until all tasks are done
         while (!tasks.empty()) {
@@ -197,17 +198,6 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    // initialize EC for the current communication
-    if (state->comm == 0 && policy->get_prerequisite()) {
-        // assuming there is only 1 EC in the prerequisite policy
-        EqClass *pre_ec = *policy->get_prerequisite()->get_ecs().begin();
-        memcpy(state->comm_state[state->comm].ec, &pre_ec, sizeof(EqClass *));
-        Logger::get().info("EC: " + pre_ec->to_string());
-    } else {
-        memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
-        Logger::get().info("EC: " + ec->to_string());
-    }
-
     network.init(state);
     policy->init(state);
     fwd.init(state, network, policy);
@@ -216,18 +206,8 @@ void Plankton::initialize(State *state)
 
 void Plankton::exec_step(State *state)
 {
-    //int old_itr_ec = state->itr_ec;
-
     fwd.exec_step(state, network);
     policy->check_violation(state);
-
-    // when EC is changed and the verification process hasn't ended
-    //if (state->itr_ec != old_itr_ec && state->choice_count > 0) {
-    //    if (typeid(policy) == typeid(ReplyReachabilityPolicy)) {
-    //        ec = *(policy->get_ecs().begin());  // the only one "reply" EC
-    //    }
-    //    initialize(state);
-    //}
 }
 
 void Plankton::report(State *state)

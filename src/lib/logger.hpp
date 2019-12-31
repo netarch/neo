@@ -16,7 +16,7 @@ private:
 public:
     // Disable the copy constructor and the copy assignment operator
     Logger(const Logger&) = delete;
-    void operator=(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
 
     static Logger& get();
 

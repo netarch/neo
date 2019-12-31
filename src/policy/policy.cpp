@@ -1,17 +1,20 @@
+#include "policy/policy.hpp"
+
 #include <csignal>
 #include <unistd.h>
 #include <regex>
 
-#include "policy/policy.hpp"
 #include "lib/logger.hpp"
+#include "packet.hpp"
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
+#include "pan.h"
 
 Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
                const Network& net)
-    : prerequisite(nullptr)
+    : initial_ec(nullptr), prerequisite(nullptr)
 {
     static int next_id = 1;
     id = next_id++;
@@ -44,11 +47,13 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
     dst_port = 80;
 }
 
-Policy::Policy(const IPRange<IPv4Address>& pkt_dst,
-               const std::vector<Node *> start_nodes)
-    : id(0), pkt_dst(pkt_dst), start_nodes(start_nodes), prerequisite(nullptr)
-{
-}
+//Policy::Policy(const IPRange<IPv4Address>& pkt_dst,
+//               const std::vector<Node *> start_nodes,
+//               uint16_t src_port, uint16_t dst_port)
+//    : id(0), pkt_dst(pkt_dst), start_nodes(start_nodes), src_port(src_port),
+//      dst_port(dst_port), initial_ec(nullptr), prerequisite(nullptr)
+//{
+//}
 
 int Policy::get_id() const
 {
@@ -102,9 +107,24 @@ uint16_t Policy::get_dst_port(State *state) const
     }
 }
 
+void Policy::set_initial_ec(EqClass *ec)
+{
+    initial_ec = ec;
+}
+
+EqClass *Policy::get_initial_ec() const
+{
+    return initial_ec;
+}
+
 Policy *Policy::get_prerequisite() const
 {
     return prerequisite;
+}
+
+void Policy::add_ec(const IPv4Address& addr)
+{
+    ECs.add_ec(addr);
 }
 
 const EqClasses& Policy::get_ecs() const

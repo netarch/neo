@@ -9,8 +9,7 @@
 #include "node.hpp"
 #include "link.hpp"
 #include "fib.hpp"
-#include "eqclass.hpp"
-#include "pan.h"
+class State;
 
 /*
  * A network is an undirected graph. Nodes and links will remain constant once
