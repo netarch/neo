@@ -58,15 +58,15 @@ void ReplyReachabilityPolicy::init(State *state) const
 void ReplyReachabilityPolicy::check_violation(State *state)
 {
     bool reached;
-    int fwd_mode = state->comm_state[state->comm].fwd_mode;
+    int mode = state->comm_state[state->comm].fwd_mode;
 
     if (state->comm == 0) {   // request
-        if (fwd_mode == fwd_mode::ACCEPTED) {
+        if (mode == fwd_mode::ACCEPTED) {
             memcpy(&queried_node,
                    state->comm_state[state->comm].pkt_location,
                    sizeof(Node *));
             reached = (query_nodes.count(queried_node) > 0);
-        } else if (fwd_mode == fwd_mode::DROPPED) {
+        } else if (mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
             /*
@@ -105,7 +105,7 @@ void ReplyReachabilityPolicy::check_violation(State *state)
             state->choice_count = 1;
         }
     } else {    // reply
-        if (fwd_mode == fwd_mode::ACCEPTED) {
+        if (mode == fwd_mode::ACCEPTED) {
             Node *final_node, *req_src_node;
             memcpy(&final_node,
                    state->comm_state[state->comm].pkt_location,
@@ -113,7 +113,7 @@ void ReplyReachabilityPolicy::check_violation(State *state)
             memcpy(&req_src_node, state->comm_state[0].src_node,
                    sizeof(Node *));
             reached = (final_node == req_src_node);
-        } else if (fwd_mode == fwd_mode::DROPPED) {
+        } else if (mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
             /*

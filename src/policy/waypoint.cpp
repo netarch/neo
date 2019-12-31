@@ -57,9 +57,9 @@ void WaypointPolicy::init(State *state) const
 
 void WaypointPolicy::check_violation(State *state)
 {
-    int fwd_mode = state->comm_state[state->comm].fwd_mode;
+    int mode = state->comm_state[state->comm].fwd_mode;
 
-    if (fwd_mode == fwd_mode::COLLECT_NHOPS) {
+    if (mode == fwd_mode::COLLECT_NHOPS) {
         Node *current_node;
         memcpy(&current_node, state->comm_state[state->comm].pkt_location,
                sizeof(Node *));

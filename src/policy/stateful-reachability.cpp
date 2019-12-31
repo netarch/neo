@@ -105,14 +105,14 @@ void StatefulReachabilityPolicy::check_violation(State *state)
     }
 
     bool reached;
-    int fwd_mode = state->comm_state[state->comm].fwd_mode;
+    int mode = state->comm_state[state->comm].fwd_mode;
 
-    if (fwd_mode == fwd_mode::ACCEPTED) {
+    if (mode == fwd_mode::ACCEPTED) {
         Node *final_node;
         memcpy(&final_node, state->comm_state[state->comm].pkt_location,
                sizeof(Node *));
         reached = (final_nodes.count(final_node) > 0);
-    } else if (fwd_mode == fwd_mode::DROPPED) {
+    } else if (mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
         /*
