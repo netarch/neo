@@ -13,4 +13,5 @@ public:
     virtual void run(void (*)(MB_App *), MB_App *) = 0;
     virtual void get_mac(Interface *, uint8_t *) const = 0;
     virtual size_t inject_packet(Interface *, const uint8_t *buf, size_t len) = 0;
+    virtual size_t read_packet(Interface *&, uint8_t *buf, size_t len) = 0;
 };

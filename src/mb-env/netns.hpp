@@ -25,5 +25,5 @@ public:
     void run(void (*)(MB_App *), MB_App *) override;
     void get_mac(Interface *, uint8_t *) const override;
     size_t inject_packet(Interface *, const uint8_t *buf, size_t len) override;
-    // TODO: read_packet
+    size_t read_packet(Interface *&, uint8_t *buf, size_t len) override;
 };

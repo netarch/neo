@@ -62,6 +62,8 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
 
 std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
 {
+    std::set<FIB_IPNH> next_hops;
+
     // serialize the packet
     uint8_t src_mac[6] = {0}, dst_mac[6] = {0};
     env->get_mac(pkt.get_intf(), dst_mac);
@@ -71,14 +73,30 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     env->inject_packet(pkt.get_intf(), buffer, buffer_size);
     Net::get().free(buffer);
 
-    // TODO: observe/read output packet
-    // env->read_packet();
-    // deserialize
-    // find egress interface
-    // find next hop interface and node
+    // read output packet
+    Interface *egress_intf;
+    env->read_packet(egress_intf, buffer, buffer_size);
+
+    // find the next hop
+    if (egress_intf) {
+        auto l2nh = get_peer(egress_intf->get_name());   // L2 next hop
+        if (l2nh.first) { // if the interface is truly connected
+            if (!l2nh.second->is_l2()) {    // L2 next hop == L3 next hop
+                next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
+                                          l2nh.first, l2nh.second));
+            } else {
+                L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
+                auto l3nh = l2_lan->find_l3_endpoint(pkt.get_dst_ip());
+                if (l3nh.first) {
+                    next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+                                              l2nh.first, l2nh.second));
+                }
+            }
+        }
+    }
 
     // return next hop(s)
-    return std::set<FIB_IPNH>();
+    return next_hops;
 }
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(

@@ -59,6 +59,7 @@ public:
 
     virtual bool mapped_to_l2lan(Interface *) const;
     virtual void set_l2lan(Interface *, L2_LAN *);
+    virtual L2_LAN *get_l2lan(Interface *) const;
 
     /*
      * Compute the IP next hops from this node for a given destination address

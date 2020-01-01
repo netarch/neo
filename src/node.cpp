@@ -157,6 +157,11 @@ void Node::set_l2lan(Interface *intf, L2_LAN *l2_lan)
     l2_lans[intf] = l2_lan;
 }
 
+L2_LAN *Node::get_l2lan(Interface *intf) const
+{
+    return l2_lans.at(intf);
+}
+
 std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
 {
     std::set<FIB_IPNH> next_hops;

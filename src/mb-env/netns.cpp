@@ -6,9 +6,9 @@
 #include <fcntl.h>
 #include <sched.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/route.h>
@@ -22,7 +22,7 @@ void NetNS::set_interfaces(const Node *node)
 
     // open a ctrl_sock for setting up IP addresses
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket", errno);
+        Logger::get().err("socket()", errno);
     }
 
     for (const auto& pair : node->get_intfs_l3()) {
@@ -95,7 +95,7 @@ void NetNS::set_rttable(const RoutingTable& rib)
 
     // open a ctrl_sock for setting up routing entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket", errno);
+        Logger::get().err("socket()", errno);
     }
 
     for (const Route& route : rib) {
@@ -179,7 +179,7 @@ void NetNS::init(const Node *node)
     set_rttable(node->get_rib());
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::get().err("setns()", errno);
     }
 }
 
@@ -187,14 +187,14 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
 {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::get().err("setns()", errno);
     }
 
     app_action(app);
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::get().err("setns()", errno);
     }
 }
 
@@ -205,12 +205,76 @@ void NetNS::get_mac(Interface *intf, uint8_t *mac) const
 
 size_t NetNS::inject_packet(Interface *intf, const uint8_t *buf, size_t len)
 {
+    // enter the isolated netns
+    if (setns(new_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("setns()", errno);
+    }
+
     int fd = tapfds.at(intf);
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
         Logger::get().err("Packet injection failed", errno);
     }
+
+    // return to the original netns
+    if (setns(old_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("setns()", errno);
+    }
+
     return nwrite;
+}
+
+size_t NetNS::read_packet(Interface *&intf, uint8_t *buf, size_t len)
+{
+    ssize_t nread = 0;
+    intf = nullptr;
+
+    // enter the isolated netns
+    if (setns(new_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("setns()", errno);
+    }
+
+    // set read fds
+    int nfds = 0;
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    for (const auto& tapfd : tapfds) {
+        FD_SET(tapfd.second, &readfds);
+        if (tapfd.second >= nfds) {
+            nfds = tapfd.second + 1;
+        }
+    }
+
+    // set timeout
+    struct timeval timeout;
+    timeout.tv_sec = 0;     // seconds
+    timeout.tv_usec = 50;   // microseconds
+
+    // select among the tap fds
+    int res;
+    if ((res = select(nfds, &readfds, NULL, NULL, &timeout)) < 0) {
+        Logger::get().err("select()", errno);
+    } else if (res == 0) {
+        Logger::get().warn("Timed out!");
+        return 0;
+    }
+
+    for (const auto& tapfd : tapfds) {
+        if (FD_ISSET(tapfd.second, &readfds)) {
+            if ((nread = read(tapfd.second, buf, len)) < 0) {
+                Logger::get().err("Failed to read packet", errno);
+            }
+            intf = tapfd.first;
+            break;
+        }
+    }
+
+    // return to the original netns
+    if (setns(old_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("Failed to setns", errno);
+    }
+
+    return nread;
 }
 
 /************* Code for creating a veth pair *************
