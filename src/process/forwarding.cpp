@@ -12,6 +12,9 @@ ForwardingProcess::~ForwardingProcess()
     for (auto& candidates : candidates_hist) {
         delete candidates;
     }
+    for (auto& packet : all_pkts) {
+        delete packet;
+    }
     for (auto& node_pkt_hist : node_pkt_hist_hist) {
         delete node_pkt_hist;
     }

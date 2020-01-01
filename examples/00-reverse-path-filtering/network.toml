@@ -90,7 +90,7 @@
     env = "netns"
     app = "netfilter"
     rp_filter = 1
-    config = """
+    rules = """
     *nat
     :PREROUTING ACCEPT [0:0]
     :INPUT ACCEPT [0:0]

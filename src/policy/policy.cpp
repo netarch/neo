@@ -47,14 +47,6 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
     dst_port = 80;
 }
 
-//Policy::Policy(const IPRange<IPv4Address>& pkt_dst,
-//               const std::vector<Node *> start_nodes,
-//               uint16_t src_port, uint16_t dst_port)
-//    : id(0), pkt_dst(pkt_dst), start_nodes(start_nodes), src_port(src_port),
-//      dst_port(dst_port), initial_ec(nullptr), prerequisite(nullptr)
-//{
-//}
-
 int Policy::get_id() const
 {
     return id;

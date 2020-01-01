@@ -28,9 +28,6 @@ protected:
 
 public:
     Policy(const std::shared_ptr<cpptoml::table>&, const Network&);
-    //Policy(const IPRange<IPv4Address>& pkt_dst,
-    //       const std::vector<Node *> start_nodes,
-    //       uint16_t src_port, uint16_t dst_port);
     virtual ~Policy() = default;
 
     int get_id() const;

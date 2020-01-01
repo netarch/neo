@@ -50,7 +50,10 @@ void Middlebox::rewind(NodePacketHistory *nph)
 
     env->run(mb_app_reset, app);
 
-    // replay history (TODO)
+    // replay history
+    for (Packet *packet : nph->get_packets()) {
+        send_pkt(*packet);
+    }
 
     node_pkt_hist = nph;
 }
@@ -75,7 +78,10 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
 
     // read output packet
     Interface *egress_intf;
+    buffer_size = 1500;
+    buffer = new uint8_t[buffer_size];
     env->read_packet(egress_intf, buffer, buffer_size);
+    delete [] buffer;
 
     // find the next hop
     if (egress_intf) {

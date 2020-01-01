@@ -151,7 +151,7 @@ NetNS::~NetNS()
     }
     // delete the allocated ethernet addresses
     for (const auto& mac : tapmacs) {
-        delete mac.second;
+        delete [] mac.second;
     }
 
     close(new_net);

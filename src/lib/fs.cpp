@@ -91,7 +91,7 @@ std::shared_ptr<cpptoml::table> get_toml_config(
     const std::string& content)
 {
     int fd;
-    char filename[] = "/tmp/neotest.XXXXXX";
+    char filename[] = "/tmp/neo-config.XXXXXX";
     std::shared_ptr<cpptoml::table> config;
 
     if ((fd = mkstemp(filename)) < 0) {

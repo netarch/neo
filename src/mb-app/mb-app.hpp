@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cpptoml/cpptoml.hpp>
-
 /*
  * Don't start emulation processes in the constructor.
  * Only read the configurations in constructors and later start the emulation in
