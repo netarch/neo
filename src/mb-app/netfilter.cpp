@@ -70,7 +70,14 @@ void NetFilter::reset()
     if (close(fd) < 0) {
         Logger::get().err(filename, errno);
     }
-    system("iptables -FZ");
-    system((std::string("iptables-restore ") + filename).c_str());
+    if (system("iptables -F")) {
+        Logger::get().err("iptables -F");
+    }
+    if (system("iptables -Z")) {
+        Logger::get().err("iptables -Z");
+    }
+    if (system((std::string("iptables-restore ") + filename).c_str())) {
+        Logger::get().err("iptables-restore");
+    }
     fs::remove(filename);
 }

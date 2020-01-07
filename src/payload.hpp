@@ -79,4 +79,5 @@ public:
     static PayloadMgr& get();
 
     Payload *get_payload(State *, uint16_t dst_port);
+    //Payload *get_payload(const Payload&);
 };

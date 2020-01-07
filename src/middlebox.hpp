@@ -1,5 +1,9 @@
 #pragma once
 
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
@@ -14,6 +18,13 @@ private:
     MB_App *app;    // appliance
 
     NodePacketHistory *node_pkt_hist;
+    std::thread *listener;
+    std::atomic<bool> listener_end;
+    std::set<FIB_IPNH> next_hops;
+    std::mutex mtx;                 // lock for accessing next_hops
+    std::condition_variable cv;     // for reading next_hops
+
+    void listen_packets();
 
 public:
     Middlebox(const std::shared_ptr<cpptoml::table>&);

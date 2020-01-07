@@ -7,13 +7,14 @@
 #include <sched.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <linux/if.h>
+#include <net/if.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/route.h>
 
 #include "lib/logger.hpp"
+#include "lib/net.hpp"
 
 void NetNS::set_interfaces(const Node *node)
 {
@@ -33,7 +34,7 @@ void NetNS::set_interfaces(const Node *node)
             Logger::get().err("/dev/net/tun", errno);
         }
         memset(&ifr, 0, sizeof(ifr));
-        ifr.ifr_flags = IFF_TAP;
+        ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
         strncpy(ifr.ifr_name, intf->get_name().c_str(), IFNAMSIZ - 1);
         if (ioctl(tapfd, TUNSETIFF, &ifr) < 0) {
             close(tapfd);
@@ -77,6 +78,9 @@ void NetNS::set_interfaces(const Node *node)
         if (ioctl(ctrl_sock, SIOCSIFFLAGS, &ifr) < 0) {
             goto error;
         }
+
+        // DEBUG: launch wireshark
+        system(("wireshark -k -i " + intf->get_name() + " &").c_str());
     }
 
     close(ctrl_sock);
@@ -198,23 +202,30 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
     }
 }
 
-void NetNS::get_mac(Interface *intf, uint8_t *mac) const
-{
-    memcpy(mac, tapmacs.at(intf), sizeof(uint8_t) * 6);
-}
-
-size_t NetNS::inject_packet(Interface *intf, const uint8_t *buf, size_t len)
+size_t NetNS::inject_packet(const Packet& pkt)
 {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
         Logger::get().err("setns()", errno);
     }
 
-    int fd = tapfds.at(intf);
+    // serialize the packet
+    uint8_t *buf;
+    uint32_t len;
+    uint8_t src_mac[6] = ID_ETH_ADDR;
+    uint8_t dst_mac[6] = {0};
+    memcpy(dst_mac, tapmacs.at(pkt.get_intf()), sizeof(uint8_t) * 6);
+    Net::get().serialize(&buf, &len, pkt, src_mac, dst_mac);
+
+    // write to the tap device fd
+    int fd = tapfds.at(pkt.get_intf());
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
         Logger::get().err("Packet injection failed", errno);
     }
+
+    // free resources
+    Net::get().free(buf);
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
@@ -224,10 +235,9 @@ size_t NetNS::inject_packet(Interface *intf, const uint8_t *buf, size_t len)
     return nwrite;
 }
 
-size_t NetNS::read_packet(Interface *&intf, uint8_t *buf, size_t len)
+std::list<PktBuffer> NetNS::read_packets() const
 {
-    ssize_t nread = 0;
-    intf = nullptr;
+    std::list<PktBuffer> pkts;
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
@@ -245,27 +255,22 @@ size_t NetNS::read_packet(Interface *&intf, uint8_t *buf, size_t len)
         }
     }
 
-    // set timeout
-    struct timeval timeout;
-    timeout.tv_sec = 0;     // seconds
-    timeout.tv_usec = 50;   // microseconds
-
     // select among the tap fds
-    int res;
-    if ((res = select(nfds, &readfds, NULL, NULL, &timeout)) < 0) {
+    if (select(nfds, &readfds, NULL, NULL, NULL) < 0) {
         Logger::get().err("select()", errno);
-    } else if (res == 0) {
-        Logger::get().warn("Timed out!");
-        return 0;
     }
 
+    // read from tap fds if available
     for (const auto& tapfd : tapfds) {
         if (FD_ISSET(tapfd.second, &readfds)) {
-            if ((nread = read(tapfd.second, buf, len)) < 0) {
+            PktBuffer pkt(tapfd.first);
+            ssize_t nread;
+            if ((nread = read(tapfd.second, pkt.get_buffer(),
+                              pkt.get_len())) < 0) {
                 Logger::get().err("Failed to read packet", errno);
             }
-            intf = tapfd.first;
-            break;
+            pkt.set_len(nread);
+            pkts.push_back(pkt);
         }
     }
 
@@ -274,7 +279,7 @@ size_t NetNS::read_packet(Interface *&intf, uint8_t *buf, size_t len)
         Logger::get().err("Failed to setns", errno);
     }
 
-    return nread;
+    return pkts;
 }
 
 /************* Code for creating a veth pair *************

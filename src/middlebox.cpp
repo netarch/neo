@@ -1,11 +1,13 @@
 #include "middlebox.hpp"
 
+#include <libnet.h>
+
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
-#include "lib/net.hpp"
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
-    : Node(node_config), node_pkt_hist(nullptr)
+    : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
+      listener_end(false)
 {
     auto environment = node_config->get_as<std::string>("env");
     auto appliance = node_config->get_as<std::string>("app");
@@ -32,14 +34,89 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
 
 Middlebox::~Middlebox()
 {
+    if (listener && listener->joinable()) {
+        listener_end = true;
+        Packet dummy(intfs.begin()->second, (uint32_t)0, (uint32_t)0,
+                     PS_ARP_REP);
+        env->inject_packet(dummy);
+        listener->join();
+    }
+    delete listener;
     delete app;
     delete env;
+}
+
+void Middlebox::listen_packets()
+{
+    std::list<PktBuffer> pkts;
+    uint8_t id_mac[6] = ID_ETH_ADDR;
+
+    while (!listener_end) {
+        // read output packet
+        pkts = env->read_packets();
+
+        for (PktBuffer pb : pkts) {
+            uint8_t *buffer = pb.get_buffer();
+            uint8_t *dst_mac = buffer;
+            uint16_t ethertype;
+            memcpy(&ethertype, buffer + 12, 2);
+            ethertype = ntohs(ethertype);
+
+            if (ethertype == ETHERTYPE_ARP) {
+                uint16_t arp_op;
+                memcpy(&arp_op, buffer + 20, 2);
+                arp_op = ntohs(arp_op);
+
+                if (arp_op == ARPOP_REQUEST) {
+                    uint32_t src_ip;
+                    memcpy(&src_ip, buffer + 28, 4);
+                    src_ip = ntohl(src_ip);
+                    uint32_t target_ip;
+                    memcpy(&target_ip, buffer + 38, 4);
+                    target_ip = ntohl(target_ip);
+
+                    Packet reply(pb.get_intf(), target_ip, src_ip, PS_ARP_REP);
+                    env->inject_packet(reply);
+                }
+            } else if (ethertype == ETHERTYPE_IP) {
+                if (memcmp(dst_mac, id_mac, 6) != 0) {
+                    continue;
+                }
+
+                uint32_t dst_ip;
+                memcpy(&dst_ip, buffer + 30, 4);
+                dst_ip = ntohl(dst_ip);
+
+                // find the next hop
+                auto l2nh = get_peer(pb.get_intf()->get_name()); // L2 nhop
+                if (l2nh.first) { // if the interface is truly connected
+                    if (!l2nh.second->is_l2()) { // L2 nhop == L3 nhop
+                        std::unique_lock<std::mutex> lck(mtx);
+                        next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
+                                                  l2nh.first, l2nh.second));
+                    } else {
+                        L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
+                        auto l3nh = l2_lan->find_l3_endpoint(dst_ip);
+                        if (l3nh.first) {
+                            std::unique_lock<std::mutex> lck(mtx);
+                            next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+                                                      l2nh.first, l2nh.second));
+                        }
+                    }
+                }
+            }
+        }
+        cv.notify_all();
+    }
 }
 
 void Middlebox::init()
 {
     env->init(this);
     env->run(mb_app_init, app);
+    if (!listener) {
+        listener = new std::thread(&Middlebox::listen_packets, this);
+    }
 }
 
 void Middlebox::rewind(NodePacketHistory *nph)
@@ -48,6 +125,7 @@ void Middlebox::rewind(NodePacketHistory *nph)
         return;
     }
 
+    // reset middlebox state
     env->run(mb_app_reset, app);
 
     // replay history
@@ -65,41 +143,25 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
 
 std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
 {
-    std::set<FIB_IPNH> next_hops;
+    std::unique_lock<std::mutex> lck(mtx);
+    next_hops.clear();
 
-    // serialize the packet
-    uint8_t src_mac[6] = {0}, dst_mac[6] = {0};
-    env->get_mac(pkt.get_intf(), dst_mac);
-    uint8_t *buffer;
-    uint32_t buffer_size = Net::get().serialize(&buffer, pkt, src_mac, dst_mac);
     // inject packet
-    env->inject_packet(pkt.get_intf(), buffer, buffer_size);
-    Net::get().free(buffer);
+    Logger::get().info("Injecting packet " + pkt.to_string());
+    env->inject_packet(pkt);
 
-    // read output packet
-    Interface *egress_intf;
-    buffer_size = 1500;
-    buffer = new uint8_t[buffer_size];
-    env->read_packet(egress_intf, buffer, buffer_size);
-    delete [] buffer;
+    // wait for timeout
+    std::chrono::milliseconds duration(50);
+    cv.wait_for(lck, duration);
 
-    // find the next hop
-    if (egress_intf) {
-        auto l2nh = get_peer(egress_intf->get_name());   // L2 next hop
-        if (l2nh.first) { // if the interface is truly connected
-            if (!l2nh.second->is_l2()) {    // L2 next hop == L3 next hop
-                next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
-                                          l2nh.first, l2nh.second));
-            } else {
-                L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
-                auto l3nh = l2_lan->find_l3_endpoint(pkt.get_dst_ip());
-                if (l3nh.first) {
-                    next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
-                                              l2nh.first, l2nh.second));
-                }
-            }
-        }
+    // logging
+    std::string nhops_str;
+    nhops_str += to_string() + " -> [";
+    for (auto nhop = next_hops.begin(); nhop != next_hops.end(); ++nhop) {
+        nhops_str += " " + nhop->to_string();
     }
+    nhops_str += " ]";
+    Logger::get().info(nhops_str);
 
     // return next hop(s)
     return next_hops;

@@ -73,24 +73,31 @@ void ForwardingProcess::exec_step(State *state, Network& network)
     int mode = state->comm_state[state->comm].fwd_mode;
     switch (mode) {
         case fwd_mode::PACKET_ENTRY:
+            //Logger::get().info("fwd_mode: packet_entry");
             packet_entry(state);
             break;
         case fwd_mode::FIRST_COLLECT:
+            //Logger::get().info("fwd_mode: first_collect");
             first_collect(state);
             break;
         case fwd_mode::FIRST_FORWARD:
+            //Logger::get().info("fwd_mode: first_forward");
             first_forward(state);
             break;
         case fwd_mode::COLLECT_NHOPS:
+            //Logger::get().info("fwd_mode: collect_nhops");
             collect_next_hops(state);
             break;
         case fwd_mode::FORWARD_PACKET:
+            //Logger::get().info("fwd_mode: forward_packet");
             forward_packet(state);
             break;
         case fwd_mode::ACCEPTED:
+            //Logger::get().info("fwd_mode: accepted");
             accepted(state, network);
             break;
         case fwd_mode::DROPPED:
+            //Logger::get().info("fwd_mode: dropped");
             state->choice_count = 0;
             break;
         default:
@@ -102,7 +109,6 @@ void ForwardingProcess::exec_step(State *state, Network& network)
 void ForwardingProcess::packet_entry(State *state) const
 {
     // logging
-    ;
 
     // TODO: move packet into spin state
 
@@ -221,8 +227,9 @@ void ForwardingProcess::accepted(State *state, Network& network)
             state->comm_state[state->comm].pkt_state = PS_TCP_INIT_2;
             state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
             memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
-            memset(state->comm_state[state->comm].seq, 0, sizeof(uint32_t));
-            memset(state->comm_state[state->comm].ack, 1, sizeof(uint32_t));
+            uint32_t seq = 0, ack = 1;
+            memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
+            memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
             memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
             memset(state->comm_state[state->comm].ingress_intf, 0,
                    sizeof(Interface *));
@@ -233,6 +240,7 @@ void ForwardingProcess::accepted(State *state, Network& network)
             update_candidates(state, candidates);
 
             // update packet EC and the FIB
+            policy->add_ec(src_ip);
             EqClass *next_ec = policy->get_ecs().find_ec(src_ip);
             memcpy(state->comm_state[state->comm].ec, &next_ec,
                    sizeof(EqClass *));

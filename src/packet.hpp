@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <functional>
 
 #include "interface.hpp"
@@ -25,6 +26,8 @@ class State;
 #define PS_TCP_TERM_3   9   // TCP termination ACK
 #define PS_ICMP_REQ    10   // ICMP request
 #define PS_ICMP_REP    11   // ICMP reply
+#define PS_ARP_REQ     12   // ARP request
+#define PS_ARP_REP     13   // ARP reply
 
 #define PS_IS_REQUEST(x) (      \
         (x) == PS_TCP_INIT_1 || \
@@ -34,8 +37,7 @@ class State;
         (x) == PS_TCP_TERM_2 || \
         (x) == PS_ICMP_REQ      \
 )
-
-#define PS_IS_REPLY(x)  (       \
+#define PS_IS_REPLY(x) (        \
         (x) == PS_TCP_INIT_2 || \
         (x) == PS_HTTP_REQ_A || \
         (x) == PS_HTTP_REP   || \
@@ -43,6 +45,16 @@ class State;
         (x) == PS_TCP_TERM_3 || \
         (x) == PS_ICMP_REP      \
 )
+#define PS_IS_TCP(x) ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
+#define PS_IS_ICMP(x) ((x) >= PS_ICMP_REQ && (x) <= PS_ICMP_REP)
+#define PS_IS_ARP(x) ((x) >= PS_ARP_REQ && (x) <= PS_ARP_REP)
+
+/*
+ * ID ethernet address.
+ * It is used for all modelled interfaces and for identification of relevant
+ * packets.
+ */
+#define ID_ETH_ADDR {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 
 /*
  * A located abstract representative packet.
@@ -54,7 +66,10 @@ private:
     Interface *interface;
     // IP
     IPv4Address src_ip;
-    EqClass *dst_ip_ec;
+    union {
+        EqClass *dst_ip_ec;
+        IPv4Address dst_ip;
+    };
     // TCP
     uint16_t src_port, dst_port;
     uint32_t seq, ack;
@@ -68,7 +83,10 @@ private:
 
 public:
     Packet(State *, const Policy *);
+    Packet(Interface *, const IPv4Address& src_ip, const IPv4Address& dst_ip,
+           uint8_t pkt_state);  // used for ARP packet construction
 
+    std::string to_string() const;
     Interface *get_intf() const;
     IPv4Address get_src_ip() const;
     IPv4Address get_dst_ip() const;

@@ -247,10 +247,9 @@ AC_CHECK_HEADERS(libnet.h, [], [AC_ERROR([libnet is not installed])])
 CHECK_LIB(net, libnet_init, [], [AC_ERROR([libnet does not work])])
 ADD_LIB($(libnet-config --libs))
 
-#AC_CHECK_HEADERS(pthread.h, [], [AC_ERROR([pthread is not available])])
-#CHECK_LIB(pthread, pthread_create, [], [AC_ERROR([pthread does not work])])
-#ADD_CFLAG(-pthread)
-#ADD_LIB(-pthread)
+AC_CHECK_HEADERS(thread, [], [AC_ERROR([C++11 thread is not available])])
+ADD_CFLAG(-pthread)
+ADD_LIB(-pthread)
 
 #AC_DEFINE([PCRE2_CODE_UNIT_WIDTH], [8])
 #AC_CHECK_HEADERS(pcre2.h, [], [AC_ERROR([pcre2 is not installed])])
