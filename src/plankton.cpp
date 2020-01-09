@@ -202,7 +202,7 @@ void Plankton::initialize(State *state)
     policy->init(state);
     fwd.init(state, network, policy);
     fwd.enable();
-    //sleep(7);   // DEBUG
+    //sleep(7);   // DEBUG: wait for wireshark to launch
 }
 
 void Plankton::exec_step(State *state)
