@@ -166,7 +166,7 @@ void Net::build_arp(const Packet& pkt, const uint8_t *src_mac,
 void Net::serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
                     const uint8_t *src_mac, const uint8_t *dst_mac) const
 {
-    uint8_t pkt_state = pkt.get_pkt_state();
+    int pkt_state = pkt.get_pkt_state();
 
     if (PS_IS_TCP(pkt_state)) {
         build_tcp(pkt, src_mac, dst_mac);

@@ -15,7 +15,7 @@ Packet::Packet(State *state, const Policy *policy)
     // packet state
     pkt_state = state->comm_state[state->comm].pkt_state;
 
-    if (PS_IS_TCP(pkt_state)) {
+    if (PS_IS_TCP((int)pkt_state)) {
         // TCP
         src_port = policy->get_src_port(state);
         dst_port = policy->get_dst_port(state);
