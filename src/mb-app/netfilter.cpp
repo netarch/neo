@@ -46,7 +46,9 @@ void NetFilter::reset()
     if (fwd < 0) {
         Logger::get().err("Failed to open " + forwarding_fn, errno);
     }
-    write(fwd, "1", 1);
+    if (write(fwd, "1", 1) < 0) {
+        Logger::get().err("Failed to set forwarding");
+    }
     close(fwd);
 
     // set rp_filter
@@ -55,7 +57,9 @@ void NetFilter::reset()
         Logger::get().err("Failed to open " + rp_filter_fn, errno);
     }
     std::string rpf_str = std::to_string(rp_filter);
-    write(rpf, rpf_str.c_str(), rpf_str.size());
+    if (write(rpf, rpf_str.c_str(), rpf_str.size()) < 0) {
+        Logger::get().err("Failed to set rp_filter");
+    }
     close(rpf);
 
     // set rules

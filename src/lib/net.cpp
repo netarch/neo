@@ -166,8 +166,6 @@ void Net::build_arp(const Packet& pkt, const uint8_t *src_mac,
 void Net::serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
                     const uint8_t *src_mac, const uint8_t *dst_mac) const
 {
-    libnet_clear_packet(l);
-
     uint8_t pkt_state = pkt.get_pkt_state();
 
     if (PS_IS_TCP(pkt_state)) {
@@ -186,6 +184,8 @@ void Net::serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
         Logger::get().err(std::string("libnet_adv_cull_packet() failed: ")
                           + libnet_geterror(l));
     }
+
+    libnet_clear_packet(l);
 }
 
 void Net::free(uint8_t *buffer) const

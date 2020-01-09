@@ -106,7 +106,10 @@ void Middlebox::listen_packets()
                 }
             }
         }
-        cv.notify_all();
+        std::unique_lock<std::mutex> lck(mtx);
+        if (!next_hops.empty()) {
+            cv.notify_all();
+        }
     }
 }
 

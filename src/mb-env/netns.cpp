@@ -80,7 +80,7 @@ void NetNS::set_interfaces(const Node *node)
         }
 
         // DEBUG: launch wireshark
-        system(("wireshark -k -i " + intf->get_name() + " &").c_str());
+        //system(("wireshark -k -i " + intf->get_name() + " &").c_str());
     }
 
     close(ctrl_sock);

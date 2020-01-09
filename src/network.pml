@@ -32,9 +32,9 @@ typedef comm_state_t {
     unsigned pkt_state : 4;                         /* packet state */
     unsigned fwd_mode : 3;                          /* execution mode */
     int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
-    int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int seq[4 / SIZEOF_INT];                        /* (uint32_t) */
     int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
+    int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */

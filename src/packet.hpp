@@ -45,9 +45,11 @@ class State;
         (x) == PS_TCP_TERM_3 || \
         (x) == PS_ICMP_REP      \
 )
-#define PS_IS_TCP(x) ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
+#define PS_IS_TCP(x)  ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
 #define PS_IS_ICMP(x) ((x) >= PS_ICMP_REQ && (x) <= PS_ICMP_REP)
-#define PS_IS_ARP(x) ((x) >= PS_ARP_REQ && (x) <= PS_ARP_REP)
+#define PS_IS_ARP(x)  ((x) >= PS_ARP_REQ && (x) <= PS_ARP_REP)
+#define PS_HAS_SYN(x) ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
+#define PS_HAS_FIN(x) ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
 
 /*
  * ID ethernet address.

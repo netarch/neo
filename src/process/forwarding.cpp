@@ -30,9 +30,9 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     uint8_t pkt_state = PS_TCP_INIT_1;
     state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
-    memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].seq, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].ack, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].pkt_location, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
@@ -73,31 +73,24 @@ void ForwardingProcess::exec_step(State *state, Network& network)
     int mode = state->comm_state[state->comm].fwd_mode;
     switch (mode) {
         case fwd_mode::PACKET_ENTRY:
-            //Logger::get().info("fwd_mode: packet_entry");
             packet_entry(state);
             break;
         case fwd_mode::FIRST_COLLECT:
-            //Logger::get().info("fwd_mode: first_collect");
             first_collect(state);
             break;
         case fwd_mode::FIRST_FORWARD:
-            //Logger::get().info("fwd_mode: first_forward");
             first_forward(state);
             break;
         case fwd_mode::COLLECT_NHOPS:
-            //Logger::get().info("fwd_mode: collect_nhops");
             collect_next_hops(state);
             break;
         case fwd_mode::FORWARD_PACKET:
-            //Logger::get().info("fwd_mode: forward_packet");
             forward_packet(state);
             break;
         case fwd_mode::ACCEPTED:
-            //Logger::get().info("fwd_mode: accepted");
             accepted(state, network);
             break;
         case fwd_mode::DROPPED:
-            //Logger::get().info("fwd_mode: dropped");
             state->choice_count = 0;
             break;
         default:
@@ -213,58 +206,92 @@ void ForwardingProcess::forward_packet(State *state) const
     state->choice_count = 1;    // deterministic choice
 }
 
+void ForwardingProcess::phase_transition(State *state, Network& network,
+        uint8_t next_pkt_state, bool change_direction)
+{
+    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+
+    // compute seq and ack numbers
+    uint32_t seq, ack;
+    memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
+    memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
+    uint32_t payload_size = PayloadMgr::get().get_payload(state,
+                            policy->get_dst_port(state))->get_size();
+    if (payload_size > 0) {
+        seq += payload_size;
+    } else if (PS_HAS_SYN(pkt_state) || PS_HAS_FIN(pkt_state)) {
+        seq += 1;
+    }
+    seq ^= ack ^= seq ^= ack;   // swap
+
+    // update candidates as the start node
+    Node *start_node;
+    if (change_direction) {
+        memcpy(&start_node, state->comm_state[state->comm].pkt_location,
+               sizeof(Node *));
+    } else {
+        memcpy(&start_node, state->comm_state[state->comm].src_node,
+               sizeof(Node *));
+    }
+    std::vector<FIB_IPNH> candidates(
+        1, FIB_IPNH(start_node, nullptr, start_node, nullptr));
+    update_candidates(state, candidates);
+
+    // update packet EC and the FIB
+    if (change_direction) {
+        uint32_t src_ip;
+        memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
+        if (pkt_state == PS_TCP_INIT_1) {
+            policy->add_ec(src_ip);
+        }
+        EqClass *next_ec = policy->get_ecs().find_ec(src_ip);
+        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
+        Logger::get().info("EC: " + next_ec->to_string());
+        network.update_fib(state);
+    }
+
+    state->comm_state[state->comm].pkt_state = next_pkt_state;
+    state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
+    memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
+    memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
+}
+
 void ForwardingProcess::accepted(State *state, Network& network)
 {
-    Node *current_node;
-    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
-           sizeof(Node *));
-    uint32_t src_ip;
-    memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
-
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
     switch (pkt_state) {
-        case PS_TCP_INIT_1: {
-            state->comm_state[state->comm].pkt_state = PS_TCP_INIT_2;
-            state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
-            memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
-            uint32_t seq = 0, ack = 1;
-            memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
-            memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
-            memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
-            memset(state->comm_state[state->comm].ingress_intf, 0,
-                   sizeof(Interface *));
-
-            // update candidates as start nodes
-            std::vector<FIB_IPNH> candidates(
-                1, FIB_IPNH(current_node, nullptr, current_node, nullptr));
-            update_candidates(state, candidates);
-
-            // update packet EC and the FIB
-            policy->add_ec(src_ip);
-            EqClass *next_ec = policy->get_ecs().find_ec(src_ip);
-            memcpy(state->comm_state[state->comm].ec, &next_ec,
-                   sizeof(EqClass *));
-            Logger::get().info("EC: " + next_ec->to_string());
-            network.update_fib(state);
-        }
-        break;
+        case PS_TCP_INIT_1:
+            phase_transition(state, network, PS_TCP_INIT_2, true);
+            break;
         case PS_TCP_INIT_2:
+            phase_transition(state, network, PS_TCP_INIT_3, true);
             break;
         case PS_TCP_INIT_3:
+            phase_transition(state, network, PS_HTTP_REQ, false);
             break;
         case PS_HTTP_REQ:
+            phase_transition(state, network, PS_HTTP_REQ_A, true);
             break;
         case PS_HTTP_REQ_A:
+            phase_transition(state, network, PS_HTTP_REP, false);
             break;
         case PS_HTTP_REP:
+            phase_transition(state, network, PS_HTTP_REP_A, true);
             break;
         case PS_HTTP_REP_A:
+            phase_transition(state, network, PS_TCP_TERM_1, true);
             break;
         case PS_TCP_TERM_1:
+            phase_transition(state, network, PS_TCP_TERM_2, true);
             break;
         case PS_TCP_TERM_2:
+            phase_transition(state, network, PS_TCP_TERM_3, true);
             break;
         case PS_TCP_TERM_3:
+            state->choice_count = 0;
             break;
         case PS_ICMP_REQ:
             break;

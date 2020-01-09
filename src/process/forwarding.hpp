@@ -56,6 +56,9 @@ private:
     void forward_packet(State *) const;
     void accepted(State *, Network&);
 
+    void phase_transition(State *, Network&, uint8_t next_pkt_state,
+                          bool change_direction);
+
     std::set<FIB_IPNH> inject_packet(State *, Middlebox *);
     void update_candidates(State *, const std::vector<FIB_IPNH>&);
 

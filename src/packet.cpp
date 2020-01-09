@@ -53,7 +53,8 @@ std::string Packet::to_string() const
           + " -> "
           + _dst_ip.to_string() + ":" + std::to_string(dst_port)
           + " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (S/A)]"
-          + " (state: " + std::to_string(pkt_state) + ")"
+          + " state: " + std::to_string(pkt_state)
+          + ", payload size: " + std::to_string(payload->get_size())
           + " }"
           ;
     return ret;
