@@ -13,9 +13,10 @@ Packet::Packet(State *state, const Policy *policy)
     memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
     memcpy(&dst_ip_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
     // packet state
-    pkt_state = state->comm_state[state->comm].pkt_state;
+    int pkt_state = state->comm_state[state->comm].pkt_state;
+    this->pkt_state = pkt_state;
 
-    if (PS_IS_TCP((int)pkt_state)) {
+    if (PS_IS_TCP(pkt_state)) {
         // TCP
         src_port = policy->get_src_port(state);
         dst_port = policy->get_dst_port(state);
