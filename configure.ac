@@ -40,10 +40,8 @@ AC_CONFIG_AUX_DIR([build-aux])
 ##
 ## Preset default flags
 ##
-#: ${CFLAGS="-O3"}
-#: ${CXXFLAGS="-O3"}
-: ${CFLAGS=""}
-: ${CXXFLAGS=""}
+: ${CFLAGS="-O3"}
+: ${CXXFLAGS="-O3"}
 : ${LDFLAGS=""}
 : ${LIBS=""}
 : ${SPINFLAGS=""}

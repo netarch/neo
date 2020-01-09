@@ -64,7 +64,7 @@ void NetFilter::reset()
 
     // set rules
     int fd;
-    char filename[] = "/tmp/neo-netfilter.XXXXXX";
+    char filename[] = "/tmp/netfilter-rules.XXXXXX";
     if ((fd = mkstemp(filename)) < 0) {
         Logger::get().err(filename, errno);
     }
@@ -74,13 +74,22 @@ void NetFilter::reset()
     if (close(fd) < 0) {
         Logger::get().err(filename, errno);
     }
+    /*
+     * NOTE:
+     * Use iptables "-w" option to wait for the shared "/run/xtables.lock".
+     * Ideally we should create different mnt namespaces for each middlebox.
+     *
+     * See:
+     * https://www.spinics.net/lists/netfilter-devel/msg56960.html
+     * https://www.spinics.net/lists/netdev/msg497351.html
+     */
     if (system("iptables -F")) {
-        Logger::get().err("iptables -F");
+        Logger::get().err("iptables -F -w 10");
     }
     if (system("iptables -Z")) {
-        Logger::get().err("iptables -Z");
+        Logger::get().err("iptables -Z -w 10");
     }
-    if (system((std::string("iptables-restore ") + filename).c_str())) {
+    if (system((std::string("iptables-restore -w 10 ") + filename).c_str())) {
         Logger::get().err("iptables-restore");
     }
     fs::remove(filename);

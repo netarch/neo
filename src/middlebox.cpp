@@ -132,8 +132,10 @@ void Middlebox::rewind(NodePacketHistory *nph)
     env->run(mb_app_reset, app);
 
     // replay history
-    for (Packet *packet : nph->get_packets()) {
-        send_pkt(*packet);
+    if (nph) {
+        for (Packet *packet : nph->get_packets()) {
+            send_pkt(*packet);
+        }
     }
 
     node_pkt_hist = nph;

@@ -89,7 +89,7 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
-    rp_filter = 0
+    rp_filter = 1   # misconfiguration, should be 0
     rules = """
 *filter
 :INPUT DROP [0:0]
@@ -179,16 +179,15 @@ COMMIT
 [[policies]]
     type = "reachability"
     pkt_dst = "10.0.0.1"
-    #start_node = "h[123]"
-    start_node = "h1"
+    start_node = "h[123]"
     final_node = "server"
     reachable = true
-#[[policies]]
-#    type = "reachability"
-#    pkt_dst = "192.168.0.0/22"
-#    start_node = "server"
-#    final_node = "h[123]|s1|r[123]|fw"
-#    reachable = false
+[[policies]]
+    type = "reachability"
+    pkt_dst = "192.168.0.0/22"
+    start_node = "server"
+    final_node = "h[123]|s1|r[123]|fw"
+    reachable = false
 #[[policies]]
 #    type = "reply-reachability"
 #    pkt_dst = "10.0.0.1"
