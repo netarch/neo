@@ -14,20 +14,20 @@ class State;
 /*
  * Packet state
  */
-#define PS_TCP_INIT_1   0   // TCP 3-way handshake SYN
-#define PS_TCP_INIT_2   1   // TCP 3-way handshake SYN/ACK
-#define PS_TCP_INIT_3   2   // TCP 3-way handshake ACK
-#define PS_HTTP_REQ     3   // HTTP request
-#define PS_HTTP_REQ_A   4   // HTTP request ACK
-#define PS_HTTP_REP     5   // HTTP reply
-#define PS_HTTP_REP_A   6   // HTTP reply ACK
-#define PS_TCP_TERM_1   7   // TCP termination FIN/ACK
-#define PS_TCP_TERM_2   8   // TCP termination FIN/ACK
-#define PS_TCP_TERM_3   9   // TCP termination ACK
-#define PS_ICMP_REQ    10   // ICMP request
-#define PS_ICMP_REP    11   // ICMP reply
-#define PS_ARP_REQ     12   // ARP request
-#define PS_ARP_REP     13   // ARP reply
+#define PS_TCP_INIT_1       0   // TCP 3-way handshake SYN
+#define PS_TCP_INIT_2       1   // TCP 3-way handshake SYN/ACK
+#define PS_TCP_INIT_3       2   // TCP 3-way handshake ACK
+#define PS_HTTP_REQ         3   // HTTP request
+#define PS_HTTP_REQ_A       4   // HTTP request ACK
+#define PS_HTTP_REP         5   // HTTP reply
+#define PS_HTTP_REP_A       6   // HTTP reply ACK
+#define PS_TCP_TERM_1       7   // TCP termination FIN/ACK
+#define PS_TCP_TERM_2       8   // TCP termination FIN/ACK
+#define PS_TCP_TERM_3       9   // TCP termination ACK
+#define PS_ICMP_ECHO_REQ   10   // ICMP echo request
+#define PS_ICMP_ECHO_REP   11   // ICMP echo reply
+#define PS_ARP_REQ         12   // ARP request
+#define PS_ARP_REP         13   // ARP reply
 
 #define PS_IS_REQUEST(x) (      \
         (x) == PS_TCP_INIT_1 || \
@@ -35,7 +35,7 @@ class State;
         (x) == PS_HTTP_REQ   || \
         (x) == PS_HTTP_REP_A || \
         (x) == PS_TCP_TERM_2 || \
-        (x) == PS_ICMP_REQ      \
+        (x) == PS_ICMP_ECHO_REQ \
 )
 #define PS_IS_REPLY(x) (        \
         (x) == PS_TCP_INIT_2 || \
@@ -43,13 +43,17 @@ class State;
         (x) == PS_HTTP_REP   || \
         (x) == PS_TCP_TERM_1 || \
         (x) == PS_TCP_TERM_3 || \
-        (x) == PS_ICMP_REP      \
+        (x) == PS_ICMP_ECHO_REP \
 )
-#define PS_IS_TCP(x)  ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
-#define PS_IS_ICMP(x) ((x) >= PS_ICMP_REQ && (x) <= PS_ICMP_REP)
-#define PS_IS_ARP(x)  ((x) >= PS_ARP_REQ && (x) <= PS_ARP_REP)
-#define PS_HAS_SYN(x) ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
-#define PS_HAS_FIN(x) ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
+#define PS_IS_FIRST(x) (        \
+        (x) == PS_TCP_INIT_1 || \
+        (x) == PS_ICMP_ECHO_REQ \
+)
+#define PS_IS_TCP(x)       ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
+#define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
+#define PS_IS_ARP(x)       ((x) >= PS_ARP_REQ && (x) <= PS_ARP_REP)
+#define PS_HAS_SYN(x)      ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
+#define PS_HAS_FIN(x)      ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
 
 /*
  * ID ethernet address.

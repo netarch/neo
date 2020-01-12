@@ -172,7 +172,8 @@ COMMIT
     intf2 = "eth0"
 
 # Policy:
-#   1. Outgoing packets are always allowed.
+#   1. Outgoing packets are always allowed. (This should fail due to the
+#      misconfiguration.)
 #   2. Incoming packets are always denied, except for 3.
 #   3. Incoming replies to past requests are allowed.
 

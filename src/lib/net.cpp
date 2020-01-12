@@ -87,12 +87,74 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
               64,                               // TTL (time to live)
               IPPROTO_TCP,                      // upper layer protocol
               0,                                // checksum (0: autofill)
-              ntohl(pkt.get_src_ip().get_value()),  // source address
-              ntohl(pkt.get_dst_ip().get_value()),  // destination address
+              htonl(pkt.get_src_ip().get_value()),  // source address
+              htonl(pkt.get_dst_ip().get_value()),  // destination address
               NULL,                             // payload
               0,                                // payload length
               l,                                // libnet context
               0);                               // ptag (0: build a new one)
+    if (tag < 0) {
+        Logger::get().err(std::string("Can't build IP header: ")
+                          + libnet_geterror(l));
+    }
+
+    tag = libnet_build_ethernet(
+              dst_mac,          // destination ethernet address
+              src_mac,          // source ethernet address
+              ETHERTYPE_IP,     // upper layer protocol
+              NULL,             // payload
+              0,                // payload length
+              l,                // libnet context
+              0);               // ptag (0: build a new one)
+    if (tag < 0) {
+        Logger::get().err(std::string("Can't build ethernet header: ")
+                          + libnet_geterror(l));
+    }
+}
+
+void Net::build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
+                          const uint8_t *dst_mac) const
+{
+    libnet_ptag_t tag;
+
+    uint8_t icmp_type = 0;
+    if (pkt.get_pkt_state() == PS_ICMP_ECHO_REQ) {
+        icmp_type = ICMP_ECHO;
+    } else if (pkt.get_pkt_state() == PS_ICMP_ECHO_REP) {
+        icmp_type = ICMP_ECHOREPLY;
+    } else {
+        Logger::get().err("pkt_state is not related to ICMP echo");
+    }
+
+    tag = libnet_build_icmpv4_echo(
+              icmp_type,    // ICMP type
+              0,            // ICMP code
+              0,            // checksum (0: autofill)
+              42,           // identification number
+              0,            // packet sequence number
+              NULL,         // payload
+              0,            // payload length
+              l,            // libnet context
+              0);           // ptag (0: build a new one)
+    if (tag < 0) {
+        Logger::get().err(std::string("Can't build TCP header: ")
+                          + libnet_geterror(l));
+    }
+
+    tag = libnet_build_ipv4(
+              LIBNET_IPV4_H + LIBNET_ICMPV4_ECHO_H, // length
+              0,                                    // ToS
+              42,                                   // identification number
+              0,                                    // fragmentation offset
+              64,                                   // TTL (time to live)
+              IPPROTO_TCP,                          // upper layer protocol
+              0,                                    // checksum (0: autofill)
+              htonl(pkt.get_src_ip().get_value()),  // source address
+              htonl(pkt.get_dst_ip().get_value()),  // destination address
+              NULL,                                 // payload
+              0,                                    // payload length
+              l,                                    // libnet context
+              0);                                   // ptag (0: build a new one)
     if (tag < 0) {
         Logger::get().err(std::string("Can't build IP header: ")
                           + libnet_geterror(l));
@@ -170,9 +232,8 @@ void Net::serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
 
     if (PS_IS_TCP(pkt_state)) {
         build_tcp(pkt, src_mac, dst_mac);
-    } else if (PS_IS_ICMP(pkt_state)) {
-        // TODO
-        Logger::get().err("ICMP is not implemented yet");
+    } else if (PS_IS_ICMP_ECHO(pkt_state)) {
+        build_icmp_echo(pkt, src_mac, dst_mac);
     } else if (PS_IS_ARP(pkt_state)) {
         build_arp(pkt, src_mac, dst_mac);
     } else {

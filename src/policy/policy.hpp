@@ -13,8 +13,8 @@
 class State;
 
 enum proto {
-    HTTP = 0,
-    PING = 1
+    PR_HTTP = 0,
+    PR_ICMP_ECHO = 1
 };
 
 class Policy

@@ -23,13 +23,13 @@ Packet::Packet(State *state, const Policy *policy)
         memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
         memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
         payload = PayloadMgr::get().get_payload(state, dst_port);
-//    } else if (PS_IS_ICMP(pkt_state)) {
-//        // ICMP (TODO)
-//        src_port = 0;
-//        dst_port = 0;
-//        seq = 0;
-//        ack = 0;
-//        payload = nullptr;
+    } else if (PS_IS_ICMP_ECHO(pkt_state)) {
+        // ICMP
+        src_port = 0;
+        dst_port = 0;
+        seq = 0;
+        ack = 0;
+        payload = nullptr;
     } else {
         Logger::get().err("Unsupported packet state "
                           + std::to_string(pkt_state));
@@ -48,16 +48,22 @@ std::string Packet::to_string() const
     IPv4Address _dst_ip
         = PS_IS_ARP(pkt_state) ? dst_ip : dst_ip_ec->representative_addr();
 
-    std::string ret
-        = "{ "
-          + src_ip.to_string() + ":" + std::to_string(src_port)
-          + " -> "
-          + _dst_ip.to_string() + ":" + std::to_string(dst_port)
-          + " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (S/A)]"
-          + " state: " + std::to_string(pkt_state)
-          + ", payload size: " + std::to_string(payload->get_size())
-          + " }"
-          ;
+    std::string ret = "{ " + src_ip.to_string();
+    if (PS_IS_TCP(pkt_state)) {
+        ret += ":" + std::to_string(src_port);
+    }
+    ret += " -> " + _dst_ip.to_string();
+    if (PS_IS_TCP(pkt_state)) {
+        ret += ":" + std::to_string(dst_port);
+    }
+    ret += " (state: " + std::to_string(pkt_state) + ")";
+    if (PS_IS_TCP(pkt_state)) {
+        ret +=
+            " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (S/A)]"
+            " payload size: " +
+            (payload ? std::to_string(payload->get_size()) : std::string("0"));
+    }
+    ret += " }";
     return ret;
 }
 

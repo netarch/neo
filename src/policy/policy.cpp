@@ -40,14 +40,14 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
             return std::tolower(c);
         });
         if (proto_s == "http") {
-            protocol = proto::HTTP;
-        } else if (proto_s == "ping") {
-            protocol = proto::PING;
+            protocol = proto::PR_HTTP;
+        } else if (proto_s == "icmp-echo") {
+            protocol = proto::PR_ICMP_ECHO;
         } else {
             Logger::get().err("Unknown protocol: " + *proto_str);
         }
     } else {
-        protocol = proto::HTTP;
+        protocol = proto::PR_HTTP;
     }
 
     std::string dst_str = *pkt_dst_str;

@@ -27,11 +27,14 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 {
     this->policy = policy;
 
-    uint8_t pkt_state;
-    if (policy->get_protocol() == proto::HTTP) {
+    uint8_t pkt_state = 0;
+    if (policy->get_protocol() == proto::PR_HTTP) {
         pkt_state = PS_TCP_INIT_1;
+    } else if (policy->get_protocol() == proto::PR_ICMP_ECHO) {
+        pkt_state = PS_ICMP_ECHO_REQ;
     } else {
-        pkt_state = PS_ICMP_REQ;
+        Logger::get().err("Unknown protocol: "
+                          + std::to_string(policy->get_protocol()));
     }
     state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
@@ -119,7 +122,7 @@ void ForwardingProcess::packet_entry(State *state) const
     // TODO: better logging information
     Logger::get().info("Packet (state: " + std::to_string(pkt_state)
                        + ") injected at " + entry->to_string());
-    if (pkt_state == PS_TCP_INIT_1 || pkt_state == PS_ICMP_REQ) {
+    if (PS_IS_FIRST(pkt_state)) {
         policy->set_comm_tx(state, entry);
     }
 }
@@ -211,13 +214,13 @@ void ForwardingProcess::forward_packet(State *state) const
 void ForwardingProcess::phase_transition(State *state, Network& network,
         uint8_t next_pkt_state, bool change_direction)
 {
-    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    int pkt_state = state->comm_state[state->comm].pkt_state;
     Node *current_node;
     memcpy(&current_node, state->comm_state[state->comm].pkt_location,
            sizeof(Node *));
 
     // store the original receiving endpoint of the communication
-    if (pkt_state == PS_TCP_INIT_1 || pkt_state == PS_ICMP_REQ) {
+    if (PS_IS_FIRST(pkt_state)) {
         policy->set_comm_rx(state, current_node);
     }
 
@@ -312,10 +315,10 @@ void ForwardingProcess::accepted(State *state, Network& network)
         case PS_TCP_TERM_3:
             state->choice_count = 0;
             break;
-        case PS_ICMP_REQ:
-            phase_transition(state, network, PS_ICMP_REP, true);
+        case PS_ICMP_ECHO_REQ:
+            phase_transition(state, network, PS_ICMP_ECHO_REP, true);
             break;
-        case PS_ICMP_REP:
+        case PS_ICMP_ECHO_REP:
             state->choice_count = 0;
             break;
         default:
