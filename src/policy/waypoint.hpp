@@ -8,10 +8,11 @@
 #include "node.hpp"
 
 /*
- * For all possible packets starting from any of start_nodes, with destination
- * address within pkt_dst, the packet should eventually pass through one of
- * waypoints when pass_through is true. Otherwise, if pass_through is false, the
- * packet should not pass through any of the waypoints.
+ * For all possible communications starting from any of start_nodes, with
+ * destination address within pkt_dst, the packets of that communication should
+ * eventually pass through one of waypoints if pass_through is true. Otherwise,
+ * if pass_through is false, the packet should not pass through any of the
+ * waypoints.
  */
 class WaypointPolicy : public Policy
 {

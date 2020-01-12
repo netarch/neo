@@ -45,6 +45,7 @@ Packet::Packet(Interface *intf, const IPv4Address& src_ip,
 
 std::string Packet::to_string() const
 {
+    int pkt_state = this->pkt_state;
     IPv4Address _dst_ip
         = PS_IS_ARP(pkt_state) ? dst_ip : dst_ip_ec->representative_addr();
 
