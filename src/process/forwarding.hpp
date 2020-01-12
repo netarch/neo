@@ -55,6 +55,7 @@ private:
     void collect_next_hops(State *);
     void forward_packet(State *) const;
     void accepted(State *, Network&);
+    void dropped(State *) const;
 
     void phase_transition(State *, Network&, uint8_t next_pkt_state,
                           bool change_direction);

@@ -12,15 +12,24 @@
 #include "eqclass.hpp"
 class State;
 
+enum proto {
+    HTTP = 0,
+    PING = 1
+};
+
 class Policy
 {
 protected:
     int                     id;
+    int                     protocol;
     IPRange<IPv4Address>    pkt_dst;
     std::vector<Node *>     start_nodes;
     uint16_t                src_port, dst_port;
     EqClasses               ECs;
     EqClass                 *initial_ec;
+    Node                    *comm_tx;  // node that initiated the communication
+    Node                    *comm_rx;  // node that received the communication
+
     Policy                  *prerequisite;
     // assuming only 2 correlated communications for now
     // std::vector<Policy *> prerequisite;
@@ -31,6 +40,7 @@ public:
     virtual ~Policy() = default;
 
     int get_id() const;
+    int get_protocol() const;
     const std::vector<Node *>& get_start_nodes(State *) const;
     uint16_t get_src_port(State *) const;
     uint16_t get_dst_port(State *) const;
@@ -42,6 +52,11 @@ public:
 
     void set_initial_ec(EqClass *);
     EqClass *get_initial_ec() const;
+
+    void set_comm_tx(State *, Node *);
+    void set_comm_rx(State *, Node *);
+    Node *get_comm_tx(State *);
+    Node *get_comm_rx(State *);
 
     Policy *get_prerequisite() const;
 

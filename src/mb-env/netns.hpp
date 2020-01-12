@@ -13,9 +13,12 @@ private:
     int old_net, new_net;
     std::unordered_map<Interface *, int> tapfds;    // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> tapmacs; // intf --> mac addr
+    //const char *xtables_lock_mnt = "/run/xtables.lock";
+    //char xtables_lock[25];  // "/tmp/xtables.lock.XXXXXX"
 
     void set_interfaces(const Node *);
     void set_rttable(const RoutingTable&);
+    //void mntns_xtables_lock();
 
 public:
     NetNS();

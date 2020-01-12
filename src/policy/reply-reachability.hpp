@@ -8,14 +8,14 @@
 #include "node.hpp"
 
 /*
- * For all possible packets starting from any of start_nodes, with destination
- * address within pkt_dst, if a packet is accepted by one of query_nodes, the
- * reply packet, with its destination address being the source of the request
- * packet, should be accepted by the sender of request when reachable is true,
- * and when reachable is false, the reply packet should either be dropped, or be
- * accepted by any other node.
+ * For all possible communications starting from any of start_nodes, with
+ * destination address within pkt_dst, if the request packet is accepted by one
+ * of query_nodes, the reply packet, with its destination address being the
+ * source of the request, should be accepted by the sender of request when
+ * reachable is true, and when reachable is false, the reply packet should
+ * either be dropped, or be accepted by any other node.
  *
- * If the original request packet is not accepted by any of query_nodes, the
+ * If the original request packets are not accepted by any of query_nodes, the
  * policy holds.
  */
 class ReplyReachabilityPolicy : public Policy

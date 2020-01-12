@@ -27,7 +27,12 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 {
     this->policy = policy;
 
-    uint8_t pkt_state = PS_TCP_INIT_1;
+    uint8_t pkt_state;
+    if (policy->get_protocol() == proto::HTTP) {
+        pkt_state = PS_TCP_INIT_1;
+    } else {
+        pkt_state = PS_ICMP_REQ;
+    }
     state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
     memset(state->comm_state[state->comm].seq, 0, sizeof(uint32_t));
@@ -101,23 +106,22 @@ void ForwardingProcess::exec_step(State *state, Network& network)
 
 void ForwardingProcess::packet_entry(State *state) const
 {
-    // logging
-
-    // TODO: move packet into spin state
-
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
     Node *entry = (*candidates)[state->choice].get_l3_node();
     memcpy(state->comm_state[state->comm].src_node, &entry, sizeof(Node *));
     memcpy(state->comm_state[state->comm].pkt_location, &entry, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
-
-    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
-    Logger::get().info("Packet (state: " + std::to_string(pkt_state)
-                       + ") injected at " + entry->to_string());
-
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FIRST_COLLECT);
     state->choice_count = 1;    // deterministic choice
+
+    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    // TODO: better logging information
+    Logger::get().info("Packet (state: " + std::to_string(pkt_state)
+                       + ") injected at " + entry->to_string());
+    if (pkt_state == PS_TCP_INIT_1 || pkt_state == PS_ICMP_REQ) {
+        policy->set_comm_tx(state, entry);
+    }
 }
 
 void ForwardingProcess::first_collect(State *state)
@@ -164,9 +168,7 @@ void ForwardingProcess::collect_next_hops(State *state)
     }
 
     if (next_hops.empty()) {
-        Logger::get().info("Packet dropped by " + current_node->to_string());
-        state->comm_state[state->comm].fwd_mode = int(fwd_mode::DROPPED);
-        state->choice_count = 0;
+        dropped(state);
         return;
     }
     std::vector<FIB_IPNH> candidates;
@@ -210,25 +212,44 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         uint8_t next_pkt_state, bool change_direction)
 {
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+
+    // store the original receiving endpoint of the communication
+    if (pkt_state == PS_TCP_INIT_1 || pkt_state == PS_ICMP_REQ) {
+        policy->set_comm_rx(state, current_node);
+    }
+
+    // check if the endpoints remain consistent
+    if ((PS_IS_REQUEST(pkt_state) && current_node != policy->get_comm_rx(state))
+            || (PS_IS_REPLY(pkt_state)
+                && current_node != policy->get_comm_tx(state))) {
+        dropped(state);
+        return;
+    }
 
     // compute seq and ack numbers
-    uint32_t seq, ack;
-    memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
-    memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
-    uint32_t payload_size = PayloadMgr::get().get_payload(state,
-                            policy->get_dst_port(state))->get_size();
-    if (payload_size > 0) {
-        seq += payload_size;
-    } else if (PS_HAS_SYN(pkt_state) || PS_HAS_FIN(pkt_state)) {
-        seq += 1;
+    if (PS_IS_TCP(pkt_state)) {
+        uint32_t seq, ack;
+        memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
+        memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
+        uint32_t payload_size = PayloadMgr::get().get_payload(state,
+                                policy->get_dst_port(state))->get_size();
+        if (payload_size > 0) {
+            seq += payload_size;
+        } else if (PS_HAS_SYN(pkt_state) || PS_HAS_FIN(pkt_state)) {
+            seq += 1;
+        }
+        seq ^= ack ^= seq ^= ack;   // swap
+        memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
+        memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
     }
-    seq ^= ack ^= seq ^= ack;   // swap
 
     // update candidates as the start node
     Node *start_node;
     if (change_direction) {
-        memcpy(&start_node, state->comm_state[state->comm].pkt_location,
-               sizeof(Node *));
+        start_node = current_node;
     } else {
         memcpy(&start_node, state->comm_state[state->comm].src_node,
                sizeof(Node *));
@@ -252,8 +273,6 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
 
     state->comm_state[state->comm].pkt_state = next_pkt_state;
     state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
-    memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
-    memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
@@ -294,13 +313,25 @@ void ForwardingProcess::accepted(State *state, Network& network)
             state->choice_count = 0;
             break;
         case PS_ICMP_REQ:
+            phase_transition(state, network, PS_ICMP_REP, true);
             break;
         case PS_ICMP_REP:
+            state->choice_count = 0;
             break;
         default:
             Logger::get().err("Forwarding process: unknown packet state "
                               + std::to_string(pkt_state));
     }
+}
+
+void ForwardingProcess::dropped(State *state) const
+{
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+    Logger::get().info("Packet dropped by " + current_node->to_string());
+    state->comm_state[state->comm].fwd_mode = int(fwd_mode::DROPPED);
+    state->choice_count = 0;
 }
 
 std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)

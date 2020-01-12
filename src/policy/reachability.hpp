@@ -8,10 +8,11 @@
 #include "node.hpp"
 
 /*
- * For all possible packets starting from any of start_nodes, with destination
- * address within pkt_dst, the packet should eventually be accepted by one of
- * final_nodes when reachable is true. Otherwise, if reachable is false, the
- * packet should either be dropped, or be accepted by none of the final_nodes.
+ * For all possible communications starting from any of start_nodes, with
+ * destination address within pkt_dst, the packets of that communication should
+ * eventually be accepted by one of final_nodes when reachable is true.
+ * Otherwise, if reachable is false, the packets should either be dropped, or be
+ * accepted by none of the final_nodes.
  */
 class ReachabilityPolicy : public Policy
 {

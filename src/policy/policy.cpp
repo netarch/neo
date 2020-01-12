@@ -2,7 +2,9 @@
 
 #include <csignal>
 #include <unistd.h>
+#include <cctype>
 #include <regex>
+#include <algorithm>
 
 #include "lib/logger.hpp"
 #include "packet.hpp"
@@ -14,11 +16,13 @@
 
 Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
                const Network& net)
-    : initial_ec(nullptr), prerequisite(nullptr)
+    : initial_ec(nullptr), comm_tx(nullptr), comm_rx(nullptr),
+      prerequisite(nullptr)
 {
     static int next_id = 1;
     id = next_id++;
 
+    auto proto_str = config->get_as<std::string>("protocol");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
     auto start_regex = config->get_as<std::string>("start_node");
 
@@ -27,6 +31,23 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
     }
     if (!start_regex) {
         Logger::get().err("Missing start node");
+    }
+
+    if (proto_str) {
+        std::string proto_s = *proto_str;
+        std::transform(proto_s.begin(), proto_s.end(), proto_s.begin(),
+        [](unsigned char c) {
+            return std::tolower(c);
+        });
+        if (proto_s == "http") {
+            protocol = proto::HTTP;
+        } else if (proto_s == "ping") {
+            protocol = proto::PING;
+        } else {
+            Logger::get().err("Unknown protocol: " + *proto_str);
+        }
+    } else {
+        protocol = proto::HTTP;
     }
 
     std::string dst_str = *pkt_dst_str;
@@ -50,6 +71,11 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
 int Policy::get_id() const
 {
     return id;
+}
+
+int Policy::get_protocol() const
+{
+    return protocol;
 }
 
 const std::vector<Node *>& Policy::get_start_nodes(State *state) const
@@ -99,21 +125,6 @@ uint16_t Policy::get_dst_port(State *state) const
     }
 }
 
-void Policy::set_initial_ec(EqClass *ec)
-{
-    initial_ec = ec;
-}
-
-EqClass *Policy::get_initial_ec() const
-{
-    return initial_ec;
-}
-
-Policy *Policy::get_prerequisite() const
-{
-    return prerequisite;
-}
-
 void Policy::add_ec(const IPv4Address& addr)
 {
     ECs.add_ec(addr);
@@ -139,6 +150,57 @@ void Policy::compute_ecs(const EqClasses& all_ECs)
     if (prerequisite) {
         prerequisite->compute_ecs(all_ECs);
     }
+}
+
+void Policy::set_initial_ec(EqClass *ec)
+{
+    initial_ec = ec;
+}
+
+EqClass *Policy::get_initial_ec() const
+{
+    return initial_ec;
+}
+
+void Policy::set_comm_tx(State *state, Node *node)
+{
+    if (prerequisite && state->comm == 0) {
+        prerequisite->comm_tx = node;
+    } else {
+        comm_tx = node;
+    }
+}
+
+void Policy::set_comm_rx(State *state, Node *node)
+{
+    if (prerequisite && state->comm == 0) {
+        prerequisite->comm_rx = node;
+    } else {
+        comm_rx = node;
+    }
+}
+
+Node *Policy::get_comm_tx(State *state)
+{
+    if (prerequisite && state->comm == 0) {
+        return prerequisite->comm_tx;
+    } else {
+        return comm_tx;
+    }
+}
+
+Node *Policy::get_comm_rx(State *state)
+{
+    if (prerequisite && state->comm == 0) {
+        return prerequisite->comm_rx;
+    } else {
+        return comm_rx;
+    }
+}
+
+Policy *Policy::get_prerequisite() const
+{
+    return prerequisite;
 }
 
 void Policy::report(State *state) const

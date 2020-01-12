@@ -61,7 +61,8 @@ void ReachabilityPolicy::check_violation(State *state)
     int mode = state->comm_state[state->comm].fwd_mode;
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
 
-    if (mode == fwd_mode::ACCEPTED && pkt_state == PS_HTTP_REQ) {
+    if (mode == fwd_mode::ACCEPTED &&
+            (pkt_state == PS_HTTP_REQ || pkt_state == PS_ICMP_REQ)) {
         Node *final_node;
         memcpy(&final_node, state->comm_state[state->comm].pkt_location,
                sizeof(Node *));

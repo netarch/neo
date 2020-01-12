@@ -59,71 +59,41 @@ void ReplyReachabilityPolicy::check_violation(State *state)
 {
     bool reached;
     int mode = state->comm_state[state->comm].fwd_mode;
+    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
 
-    if (state->comm == 0) {   // request
+    if (pkt_state == PS_HTTP_REP || pkt_state == PS_ICMP_REP) {
         if (mode == fwd_mode::ACCEPTED) {
-            memcpy(&queried_node,
-                   state->comm_state[state->comm].pkt_location,
+            Node *final_node;
+            memcpy(&final_node, state->comm_state[state->comm].pkt_location,
                    sizeof(Node *));
-            reached = (query_nodes.count(queried_node) > 0);
+            reached = (final_node == comm_tx);
         } else if (mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
             /*
-             * If the packet hasn't been accepted or dropped, there is nothing
-             * to check.
+             * If the reply hasn't been accepted or dropped, there is nothing to
+             * check.
              */
             return;
         }
-
-        if (!reached) {
-            // prerequisite policy violated (request not received)
-            state->comm_state[state->comm].violated = true;
-            ++state->comm;
-            state->comm_state[state->comm].violated = false;
-            state->choice_count = 0;
-        } else {
-            // prerequisite policy holds (request received)
-            uint32_t req_src;
-            memcpy(&req_src, state->comm_state[state->comm].src_ip,
-                   sizeof(uint32_t));
-            if (req_src == 0) {
-                /*
-                 * If the request source address hasn't been filled, it means
-                 * the queried node is the source node itself, so, WLOG, we
-                 * choose the address of its first L3 interface as the reply
-                 * destination address.
-                 */
-                Node *src_node;
-                memcpy(&src_node, state->comm_state[state->comm].src_node,
-                       sizeof(Node *));
-                req_src = src_node->get_intfs_l3().begin()->first.get_value();
-            }
-            ECs.clear();
-            ECs.add_ec(IPv4Address(req_src));
-            ++state->comm;
-            state->choice_count = 1;
-        }
-    } else {    // reply
-        if (mode == fwd_mode::ACCEPTED) {
-            Node *final_node, *req_src_node;
-            memcpy(&final_node,
-                   state->comm_state[state->comm].pkt_location,
-                   sizeof(Node *));
-            memcpy(&req_src_node, state->comm_state[0].src_node,
-                   sizeof(Node *));
-            reached = (final_node == req_src_node);
-        } else if (mode == fwd_mode::DROPPED) {
-            reached = false;
-        } else {
-            /*
-             * If the packet hasn't been accepted or dropped, there is nothing
-             * to check.
-             */
-            return;
-        }
-
         state->comm_state[state->comm].violated = (reachable != reached);
         state->choice_count = 0;
+    } else {    // previous phases
+        if (mode == fwd_mode::ACCEPTED) {
+            reached = (query_nodes.count(comm_rx) > 0);
+        } else if (mode == fwd_mode::DROPPED) {
+            reached = false;
+        } else {
+            /*
+             * If the reply hasn't been accepted or dropped, there is nothing to
+             * check.
+             */
+            return;
+        }
+        if (!reached) {
+            // precondition is false (request not received)
+            state->comm_state[state->comm].violated = false;
+            state->choice_count = 0;
+        }
     }
 }
