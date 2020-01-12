@@ -14,8 +14,8 @@ TEST_TARGET        = test-$(TARGET)
 
 # Source files and directories
 srcdir      = @srcdir@
-SRCS        = $(shell find $(srcdir)/src $(srcdir)/third_party -type f | \
-	        grep -E '\.(c|cpp)$$')
+SRCS        = $(shell find $(srcdir)/src $(srcdir)/third_party -type f \
+              | grep -E '\.(c|cpp)$$')
 OBJS        = $(notdir $(patsubst %.c,%.o,$(SRCS:%.cpp=%.o))) pan.o
 VPATH       = $(shell find $(srcdir)/src $(srcdir)/third_party -type d) .
 
