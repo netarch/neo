@@ -5,7 +5,7 @@
 
 #include "lib/logger.hpp"
 #include "lib/hash.hpp"
-#include "pan.h"
+#include "model.h"
 
 ForwardingProcess::~ForwardingProcess()
 {
@@ -28,13 +28,13 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     this->policy = policy;
 
     uint8_t pkt_state = 0;
-    if (policy->get_protocol() == proto::PR_HTTP) {
+    if (policy->get_protocol(state) == proto::PR_HTTP) {
         pkt_state = PS_TCP_INIT_1;
-    } else if (policy->get_protocol() == proto::PR_ICMP_ECHO) {
+    } else if (policy->get_protocol(state) == proto::PR_ICMP_ECHO) {
         pkt_state = PS_ICMP_ECHO_REQ;
     } else {
         Logger::get().err("Unknown protocol: "
-                          + std::to_string(policy->get_protocol()));
+                          + std::to_string(policy->get_protocol(state)));
     }
     state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
@@ -47,7 +47,11 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 
     // initialize packet history
     PacketHistory *pkt_hist = new PacketHistory(network);
-    pkt_hist_hist.insert(pkt_hist); // there should be no duplicates
+    auto res = pkt_hist_hist.insert(pkt_hist);
+    if (!res.second) {
+        delete pkt_hist;
+        pkt_hist = *(res.first);
+    }
     memcpy(state->comm_state[state->comm].pkt_hist, &pkt_hist,
            sizeof(PacketHistory *));
 
@@ -60,13 +64,7 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     update_candidates(state, candidates);
 
     // initialize packet EC and update the FIB
-    EqClass *ec;
-    if (state->comm == 0 && policy->get_prerequisite()) {
-        // assuming there is only 1 EC in the prerequisite policy
-        ec = *policy->get_prerequisite()->get_ecs().begin();
-    } else {
-        ec = policy->get_initial_ec();
-    }
+    EqClass *ec = policy->get_initial_ec(state);
     memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
     Logger::get().info("EC: " + ec->to_string());
     network.update_fib(state);
@@ -193,6 +191,22 @@ void ForwardingProcess::forward_packet(State *state) const
 
     Node *next_hop = (*candidates)[state->choice].get_l3_node();
     if (next_hop == current_node) {
+        // check if the endpoints remain consistent
+        int pkt_state = state->comm_state[state->comm].pkt_state;
+        Node *current_node;
+        memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+               sizeof(Node *));
+        if (PS_IS_FIRST(pkt_state)) {
+            // store the original receiving endpoint of the communication
+            policy->set_comm_rx(state, current_node);
+        } else if ((PS_IS_REQUEST(pkt_state)
+                    && current_node != policy->get_comm_rx(state))
+                   || (PS_IS_REPLY(pkt_state)
+                       && current_node != policy->get_comm_tx(state))) {
+            dropped(state);
+            return;
+        }
+
         Logger::get().info("Packet delivered at " + next_hop->to_string());
         state->comm_state[state->comm].fwd_mode = int(fwd_mode::ACCEPTED);
         state->choice_count = 1;
@@ -215,22 +229,6 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         uint8_t next_pkt_state, bool change_direction)
 {
     int pkt_state = state->comm_state[state->comm].pkt_state;
-    Node *current_node;
-    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
-           sizeof(Node *));
-
-    // store the original receiving endpoint of the communication
-    if (PS_IS_FIRST(pkt_state)) {
-        policy->set_comm_rx(state, current_node);
-    }
-
-    // check if the endpoints remain consistent
-    if ((PS_IS_REQUEST(pkt_state) && current_node != policy->get_comm_rx(state))
-            || (PS_IS_REPLY(pkt_state)
-                && current_node != policy->get_comm_tx(state))) {
-        dropped(state);
-        return;
-    }
 
     // compute seq and ack numbers
     if (PS_IS_TCP(pkt_state)) {
@@ -252,7 +250,8 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
     // update candidates as the start node
     Node *start_node;
     if (change_direction) {
-        start_node = current_node;
+        memcpy(&start_node, state->comm_state[state->comm].pkt_location,
+               sizeof(Node *));
     } else {
         memcpy(&start_node, state->comm_state[state->comm].src_node,
                sizeof(Node *));
@@ -266,9 +265,9 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         uint32_t src_ip;
         memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
         if (pkt_state == PS_TCP_INIT_1) {
-            policy->add_ec(src_ip);
+            policy->add_ec(state, src_ip);
         }
-        EqClass *next_ec = policy->get_ecs().find_ec(src_ip);
+        EqClass *next_ec = policy->get_ecs(state).find_ec(src_ip);
         memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
         Logger::get().info("EC: " + next_ec->to_string());
         network.update_fib(state);

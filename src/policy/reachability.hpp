@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <unordered_set>
 #include <cpptoml/cpptoml.hpp>
 
@@ -19,6 +18,10 @@ class ReachabilityPolicy : public Policy
 private:
     std::unordered_set<Node *> final_nodes;
     bool reachable;
+
+    void parse_final_node(const std::shared_ptr<cpptoml::table>&,
+                          const Network&);
+    void parse_reachable(const std::shared_ptr<cpptoml::table>&);
 
 public:
     ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);

@@ -39,44 +39,30 @@
 
 [[policies]]
     type = "reachability"
-    protocol = "http" or "icmp-echo"     # default: "http"
+    protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
 [[policies]]
-    type = "waypoint"
-    protocol = "http" or "icmp-echo"     # default: "http"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
-    waypoint = "node name regex"
-    pass_through = true or false
-[[policies]]
     type = "reply-reachability"
-    protocol = "http" or "icmp-echo"     # default: "http"
+    protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     query_node = "node name regex"
     reachable = true or false
 [[policies]]
-    type = "stateful-reachability"
-    protocol = "http" or "icmp-echo"     # default: "http"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
-    final_node = "node name regex"
-    reachable = true or false
-    [policies.prerequisite]
-    type = "reachability"
-    protocol = "http" or "icmp-echo"     # default: "http"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
-    final_node = "node name regex"
-    reachable = true or false
-    # or
-    [policies.prerequisite]
     type = "waypoint"
-    protocol = "http" or "icmp-echo"     # default: "http"
+    protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
     start_node = "node name regex"
     waypoint = "node name regex"
     pass_through = true or false
+[[policies]]
+    type = "conditional"
+    [[policies.correlated_policies]]
+    # <reachability>, <reply-reachability>, or <waypoint>
+[[policies]]
+    type = "consistency"
+    [[policies.correlated_policies]]
+    # <reachability>, <reply-reachability>, or <waypoint>

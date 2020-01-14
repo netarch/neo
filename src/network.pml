@@ -39,13 +39,13 @@ typedef comm_state_t {
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
-
-    /* policy */
-    bool violated;
 };
 
+/* policy */
+bool violated;
+
 comm_state_t comm_state[MAX_COMM_COUNT];
-byte comm;          /* index of the executing communication */
+unsigned comm : 1;  /* index of the executing communication */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
 int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<FIB_IPNH> *) */
@@ -73,5 +73,5 @@ init {
     c_code {
         report(&now);
     };
-    assert(!comm_state[comm].violated);
+    assert(!violated);
 }

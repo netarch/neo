@@ -5,7 +5,7 @@
 
 #include "packet.hpp"
 #include "lib/hash.hpp"
-#include "pan.h"
+#include "model.h"
 
 Payload::Payload(const std::string& pl)
 {

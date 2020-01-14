@@ -8,46 +8,54 @@
 
 #include "lib/logger.hpp"
 #include "packet.hpp"
+#include "policy/conditional.hpp"
+#include "policy/consistency.hpp"
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
-#include "policy/stateful-reachability.hpp"
 #include "policy/waypoint.hpp"
-#include "pan.h"
+#include "model.h"
 
-Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
-               const Network& net)
-    : initial_ec(nullptr), comm_tx(nullptr), comm_rx(nullptr),
-      prerequisite(nullptr)
+Policy::Policy(): initial_ec(nullptr), comm_tx(nullptr), comm_rx(nullptr)
 {
     static int next_id = 1;
     id = next_id++;
+}
 
+Policy::~Policy()
+{
+    for (Policy *p : correlated_policies) {
+        delete p;
+    }
+}
+
+void Policy::parse_protocol(const std::shared_ptr<cpptoml::table>& config)
+{
     auto proto_str = config->get_as<std::string>("protocol");
+
+    if (!proto_str) {
+        Logger::get().err("Missing protocol");
+    }
+
+    std::string proto_s = *proto_str;
+    std::transform(proto_s.begin(), proto_s.end(), proto_s.begin(),
+    [](unsigned char c) {
+        return std::tolower(c);
+    });
+    if (proto_s == "http") {
+        protocol = proto::PR_HTTP;
+    } else if (proto_s == "icmp-echo") {
+        protocol = proto::PR_ICMP_ECHO;
+    } else {
+        Logger::get().err("Unknown protocol: " + *proto_str);
+    }
+}
+
+void Policy::parse_pkt_dst(const std::shared_ptr<cpptoml::table>& config)
+{
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
-    auto start_regex = config->get_as<std::string>("start_node");
 
     if (!pkt_dst_str) {
         Logger::get().err("Missing packet destination");
-    }
-    if (!start_regex) {
-        Logger::get().err("Missing start node");
-    }
-
-    if (proto_str) {
-        std::string proto_s = *proto_str;
-        std::transform(proto_s.begin(), proto_s.end(), proto_s.begin(),
-        [](unsigned char c) {
-            return std::tolower(c);
-        });
-        if (proto_s == "http") {
-            protocol = proto::PR_HTTP;
-        } else if (proto_s == "icmp-echo") {
-            protocol = proto::PR_ICMP_ECHO;
-        } else {
-            Logger::get().err("Unknown protocol: " + *proto_str);
-        }
-    } else {
-        protocol = proto::PR_HTTP;
     }
 
     std::string dst_str = *pkt_dst_str;
@@ -55,6 +63,16 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
         dst_str += "/32";
     }
     pkt_dst = IPRange<IPv4Address>(dst_str);
+}
+
+void Policy::parse_start_node(const std::shared_ptr<cpptoml::table>& config,
+                              const Network& net)
+{
+    auto start_regex = config->get_as<std::string>("start_node");
+
+    if (!start_regex) {
+        Logger::get().err("Missing start node");
+    }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
     for (const auto& node : nodes) {
@@ -62,10 +80,45 @@ Policy::Policy(const std::shared_ptr<cpptoml::table>& config,
             start_nodes.push_back(node.second);
         }
     }
+}
 
+void Policy::parse_tcp_ports(
+    const std::shared_ptr<cpptoml::table>& config __attribute__((unused)))
+{
     // NOTE: fixed port numbers for now
     src_port = 1234;
     dst_port = 80;
+}
+
+void Policy::parse_correlated_policies(
+    const std::shared_ptr<cpptoml::table>& config, const Network& network)
+{
+    auto policies_config = config->get_table_array("correlated_policies");
+
+    if (!policies_config) {
+        Logger::get().err("Missing correlated policies");
+    }
+
+    for (auto config : *policies_config) {
+        Policy *policy = nullptr;
+        auto type = config->get_as<std::string>("type");
+
+        if (!type) {
+            Logger::get().err("Missing policy type");
+        }
+
+        if (*type == "reachability") {
+            policy = new ReachabilityPolicy(config, network);
+        } else if (*type == "reply-reachability") {
+            policy = new ReplyReachabilityPolicy(config, network);
+        } else if (*type == "waypoint") {
+            policy = new WaypointPolicy(config, network);
+        } else {
+            Logger::get().err("Unsupported policy type: " + *type);
+        }
+
+        correlated_policies.push_back(policy);
+    }
 }
 
 int Policy::get_id() const
@@ -73,15 +126,19 @@ int Policy::get_id() const
     return id;
 }
 
-int Policy::get_protocol() const
+int Policy::get_protocol(State *state) const
 {
-    return protocol;
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->protocol;
+    } else {
+        return protocol;
+    }
 }
 
 const std::vector<Node *>& Policy::get_start_nodes(State *state) const
 {
-    if (prerequisite && state->comm == 0) {
-        return prerequisite->start_nodes;
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->start_nodes;
     } else {
         return start_nodes;
     }
@@ -91,11 +148,11 @@ uint16_t Policy::get_src_port(State *state) const
 {
     bool is_reply = PS_IS_REPLY(state->comm_state[state->comm].pkt_state);
 
-    if (prerequisite && state->comm == 0) {
+    if (!correlated_policies.empty()) {
         if (is_reply) {
-            return prerequisite->dst_port;
+            return correlated_policies[state->comm]->dst_port;
         } else {
-            return prerequisite->src_port;
+            return correlated_policies[state->comm]->src_port;
         }
     } else {
         if (is_reply) {
@@ -110,11 +167,11 @@ uint16_t Policy::get_dst_port(State *state) const
 {
     bool is_reply = PS_IS_REPLY(state->comm_state[state->comm].pkt_state);
 
-    if (prerequisite && state->comm == 0) {
+    if (!correlated_policies.empty()) {
         if (is_reply) {
-            return prerequisite->src_port;
+            return correlated_policies[state->comm]->src_port;
         } else {
-            return prerequisite->dst_port;
+            return correlated_policies[state->comm]->dst_port;
         }
     } else {
         if (is_reply) {
@@ -125,20 +182,32 @@ uint16_t Policy::get_dst_port(State *state) const
     }
 }
 
-void Policy::add_ec(const IPv4Address& addr)
+void Policy::add_ec(State *state, const IPv4Address& addr)
 {
-    ECs.add_ec(addr);
+    if (!correlated_policies.empty()) {
+        correlated_policies[state->comm]->ECs.add_ec(addr);
+    } else {
+        ECs.add_ec(addr);
+    }
 }
 
-const EqClasses& Policy::get_ecs() const
+const EqClasses& Policy::get_ecs(State *state) const
 {
-    return ECs;
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->ECs;
+    } else {
+        return ECs;
+    }
 }
 
 size_t Policy::num_ecs() const
 {
-    if (prerequisite) {
-        return ECs.size() * prerequisite->num_ecs();
+    if (!correlated_policies.empty()) {
+        size_t num = 1;
+        for (Policy *p : correlated_policies) {
+            num *= p->ECs.size();
+        }
+        return num;
     } else {
         return ECs.size();
     }
@@ -146,26 +215,63 @@ size_t Policy::num_ecs() const
 
 void Policy::compute_ecs(const EqClasses& all_ECs)
 {
-    ECs.add_mask_range(pkt_dst, all_ECs);
-    if (prerequisite) {
-        prerequisite->compute_ecs(all_ECs);
+    if (correlated_policies.empty()) {
+        ECs.add_mask_range(pkt_dst, all_ECs);
+    } else {
+        for (Policy *p : correlated_policies) {
+            p->ECs.add_mask_range(p->pkt_dst, all_ECs);
+        }
     }
 }
 
-void Policy::set_initial_ec(EqClass *ec)
+bool Policy::set_initial_ec()
 {
-    initial_ec = ec;
+    if (correlated_policies.empty()) {
+        if (!initial_ec) {  // first run
+            ECs_itr = ECs.begin();
+            initial_ec = *ECs_itr;
+            return true;
+        } else {    // subsequent calls
+            if (++ECs_itr != ECs.end()) {
+                initial_ec = *ECs_itr;
+                return true;
+            }
+            return false;
+        }
+    } else {
+        if (!correlated_policies[0]->initial_ec) {  // first run
+            for (Policy *p : correlated_policies) {
+                p->ECs_itr = p->ECs.begin();
+                p->initial_ec = *p->ECs_itr;
+            }
+            return true;
+        } else {    // subsequent calls
+            for (Policy *p : correlated_policies) {
+                if (++p->ECs_itr != p->ECs.end()) {
+                    p->initial_ec = *p->ECs_itr;
+                    return true;
+                }
+                p->ECs_itr = p->ECs.begin();
+                p->initial_ec = *p->ECs_itr;
+            }
+            return false;
+        }
+    }
 }
 
-EqClass *Policy::get_initial_ec() const
+EqClass *Policy::get_initial_ec(State *state) const
 {
-    return initial_ec;
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->initial_ec;
+    } else {
+        return initial_ec;
+    }
 }
 
 void Policy::set_comm_tx(State *state, Node *node)
 {
-    if (prerequisite && state->comm == 0) {
-        prerequisite->comm_tx = node;
+    if (!correlated_policies.empty()) {
+        correlated_policies[state->comm]->comm_tx = node;
     } else {
         comm_tx = node;
     }
@@ -173,8 +279,8 @@ void Policy::set_comm_tx(State *state, Node *node)
 
 void Policy::set_comm_rx(State *state, Node *node)
 {
-    if (prerequisite && state->comm == 0) {
-        prerequisite->comm_rx = node;
+    if (!correlated_policies.empty()) {
+        correlated_policies[state->comm]->comm_rx = node;
     } else {
         comm_rx = node;
     }
@@ -182,8 +288,8 @@ void Policy::set_comm_rx(State *state, Node *node)
 
 Node *Policy::get_comm_tx(State *state)
 {
-    if (prerequisite && state->comm == 0) {
-        return prerequisite->comm_tx;
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->comm_tx;
     } else {
         return comm_tx;
     }
@@ -191,21 +297,16 @@ Node *Policy::get_comm_tx(State *state)
 
 Node *Policy::get_comm_rx(State *state)
 {
-    if (prerequisite && state->comm == 0) {
-        return prerequisite->comm_rx;
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->comm_rx;
     } else {
         return comm_rx;
     }
 }
 
-Policy *Policy::get_prerequisite() const
-{
-    return prerequisite;
-}
-
 void Policy::report(State *state) const
 {
-    if (state->comm_state[state->comm].violated) {
+    if (state->violated) {
         Logger::get().info("Policy violated!");
         kill(getppid(), SIGUSR1);
     } else {
@@ -229,12 +330,14 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
 
             if (*type == "reachability") {
                 policy = new ReachabilityPolicy(config, network);
-            } else if (*type == "waypoint") {
-                policy = new WaypointPolicy(config, network);
             } else if (*type == "reply-reachability") {
                 policy = new ReplyReachabilityPolicy(config, network);
-            } else if (*type == "stateful-reachability") {
-                policy = new StatefulReachabilityPolicy(config, network);
+            } else if (*type == "waypoint") {
+                policy = new WaypointPolicy(config, network);
+            } else if (*type == "conditional") {
+                policy = new ConditionalPolicy(config, network);
+            } else if (*type == "consistency") {
+                policy = new ConsistencyPolicy(config, network);
             } else {
                 Logger::get().err("Unknown policy type: " + *type);
             }

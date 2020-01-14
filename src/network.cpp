@@ -7,7 +7,7 @@
 
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
-#include "pan.h"
+#include "model.h"
 
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config)

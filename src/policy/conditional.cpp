@@ -1,16 +1,16 @@
-#include "policy/stateful-reachability.hpp"
+#include "policy/conditional.hpp"
 
 #include <regex>
 
 #include "policy/reachability.hpp"
 #include "policy/waypoint.hpp"
 #include "process/forwarding.hpp"
-#include "pan.h"
+#include "model.h"
 
-StatefulReachabilityPolicy::StatefulReachabilityPolicy(
+ConditionalPolicy::ConditionalPolicy(
     const std::shared_ptr<cpptoml::table>& config,
     const Network& net)
-    : Policy(config, net)
+    : Policy()
 {
     auto final_regex = config->get_as<std::string>("final_node");
     auto reachability = config->get_as<bool>("reachable");
@@ -50,12 +50,7 @@ StatefulReachabilityPolicy::StatefulReachabilityPolicy(
     }
 }
 
-StatefulReachabilityPolicy::~StatefulReachabilityPolicy()
-{
-    delete prerequisite;
-}
-
-std::string StatefulReachabilityPolicy::to_string() const
+std::string ConditionalPolicy::to_string() const
 {
     std::string ret = "stateful-reachability [";
     for (Node *node : start_nodes) {
@@ -75,25 +70,25 @@ std::string StatefulReachabilityPolicy::to_string() const
     return ret;
 }
 
-void StatefulReachabilityPolicy::init(State *state) const
+void ConditionalPolicy::init(State *state) const
 {
     if (state->comm == 0) {
         prerequisite->init(state);
         return;
     }
 
-    state->comm_state[state->comm].violated = false;
+    state->violated = false;
 }
 
-void StatefulReachabilityPolicy::check_violation(State *state)
+void ConditionalPolicy::check_violation(State *state)
 {
     if (state->comm == 0) {
         prerequisite->check_violation(state);
         if (state->choice_count == 0) {
-            if (state->comm_state[state->comm].violated) {
+            if (state->violated) {
                 // prerequisite policy violated
                 ++state->comm;
-                state->comm_state[state->comm].violated = false;
+                state->violated = false;
                 state->choice_count = 0;
             } else {
                 // prerequisite policy holds
@@ -122,6 +117,6 @@ void StatefulReachabilityPolicy::check_violation(State *state)
         return;
     }
 
-    state->comm_state[state->comm].violated = (reachable != reached);
+    state->violated = (reachable != reached);
     state->choice_count = 0;
 }

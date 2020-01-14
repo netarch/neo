@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <unordered_set>
 #include <cpptoml/cpptoml.hpp>
 
@@ -17,7 +16,7 @@
  * is verified to be true. If the prerequisite policy is violated, the policy
  * holds.
  */
-class StatefulReachabilityPolicy : public Policy
+class ConditionalPolicy : public Policy
 {
 private:
     std::unordered_set<Node *> final_nodes;
@@ -25,9 +24,8 @@ private:
     Policy *prerequisite;
 
 public:
-    StatefulReachabilityPolicy(const std::shared_ptr<cpptoml::table>&,
-                               const Network&);
-    ~StatefulReachabilityPolicy() override;
+    ConditionalPolicy(const std::shared_ptr<cpptoml::table>&,
+                      const Network&);
 
     std::string to_string() const override;
     void init(State *) const override;

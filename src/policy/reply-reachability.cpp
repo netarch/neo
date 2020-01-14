@@ -3,21 +3,28 @@
 #include <regex>
 
 #include "process/forwarding.hpp"
-#include "pan.h"
+#include "model.h"
 
 ReplyReachabilityPolicy::ReplyReachabilityPolicy(
     const std::shared_ptr<cpptoml::table>& config,
     const Network& net)
-    : Policy(config, net), queried_node(nullptr)
+    : Policy()
+{
+    parse_protocol(config);
+    parse_pkt_dst(config);
+    parse_start_node(config, net);
+    parse_tcp_ports(config);
+    parse_query_node(config, net);
+    parse_reachable(config);
+}
+
+void ReplyReachabilityPolicy::parse_query_node(
+    const std::shared_ptr<cpptoml::table>& config, const Network& net)
 {
     auto query_regex = config->get_as<std::string>("query_node");
-    auto reachability = config->get_as<bool>("reachable");
 
     if (!query_regex) {
         Logger::get().err("Missing query node");
-    }
-    if (!reachability) {
-        Logger::get().err("Missing reachability");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
@@ -25,6 +32,16 @@ ReplyReachabilityPolicy::ReplyReachabilityPolicy(
         if (std::regex_match(node.first, std::regex(*query_regex))) {
             query_nodes.insert(node.second);
         }
+    }
+}
+
+void ReplyReachabilityPolicy::parse_reachable(
+    const std::shared_ptr<cpptoml::table>& config)
+{
+    auto reachability = config->get_as<bool>("reachable");
+
+    if (!reachability) {
+        Logger::get().err("Missing reachability");
     }
 
     reachable = *reachability;
@@ -52,7 +69,7 @@ std::string ReplyReachabilityPolicy::to_string() const
 
 void ReplyReachabilityPolicy::init(State *state) const
 {
-    state->comm_state[state->comm].violated = false;
+    state->violated = false;
 }
 
 void ReplyReachabilityPolicy::check_violation(State *state)
@@ -76,12 +93,12 @@ void ReplyReachabilityPolicy::check_violation(State *state)
              */
             return;
         }
-        state->comm_state[state->comm].violated = (reachable != reached);
+        state->violated = (reachable != reached);
         state->choice_count = 0;
     } else {    // previous phases
-        if (mode == fwd_mode::ACCEPTED) {
-            reached = (query_nodes.count(comm_rx) > 0);
-        } else if (mode == fwd_mode::DROPPED) {
+        if ((mode == fwd_mode::ACCEPTED
+                && query_nodes.count(comm_rx) == 0)
+                || mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
             /*
@@ -92,7 +109,7 @@ void ReplyReachabilityPolicy::check_violation(State *state)
         }
         if (!reached) {
             // precondition is false (request not received)
-            state->comm_state[state->comm].violated = false;
+            state->violated = false;
             state->choice_count = 0;
         }
     }

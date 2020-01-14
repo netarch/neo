@@ -3,21 +3,28 @@
 #include <regex>
 
 #include "process/forwarding.hpp"
-#include "pan.h"
+#include "model.h"
 
 ReachabilityPolicy::ReachabilityPolicy(
     const std::shared_ptr<cpptoml::table>& config,
     const Network& net)
-    : Policy(config, net)
+    : Policy()
+{
+    parse_protocol(config);
+    parse_pkt_dst(config);
+    parse_start_node(config, net);
+    parse_tcp_ports(config);
+    parse_final_node(config, net);
+    parse_reachable(config);
+}
+
+void ReachabilityPolicy::parse_final_node(
+    const std::shared_ptr<cpptoml::table>& config, const Network& net)
 {
     auto final_regex = config->get_as<std::string>("final_node");
-    auto reachability = config->get_as<bool>("reachable");
 
     if (!final_regex) {
         Logger::get().err("Missing final node");
-    }
-    if (!reachability) {
-        Logger::get().err("Missing reachability");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
@@ -25,6 +32,16 @@ ReachabilityPolicy::ReachabilityPolicy(
         if (std::regex_match(node.first, std::regex(*final_regex))) {
             final_nodes.insert(node.second);
         }
+    }
+}
+
+void ReachabilityPolicy::parse_reachable(
+    const std::shared_ptr<cpptoml::table>& config)
+{
+    auto reachability = config->get_as<bool>("reachable");
+
+    if (!reachability) {
+        Logger::get().err("Missing reachability");
     }
 
     reachable = *reachability;
@@ -52,7 +69,7 @@ std::string ReachabilityPolicy::to_string() const
 
 void ReachabilityPolicy::init(State *state) const
 {
-    state->comm_state[state->comm].violated = false;
+    state->violated = false;
 }
 
 void ReachabilityPolicy::check_violation(State *state)
@@ -63,10 +80,7 @@ void ReachabilityPolicy::check_violation(State *state)
 
     if (mode == fwd_mode::ACCEPTED &&
             (pkt_state == PS_HTTP_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
-        Node *final_node;
-        memcpy(&final_node, state->comm_state[state->comm].pkt_location,
-               sizeof(Node *));
-        reached = (final_nodes.count(final_node) > 0);
+        reached = (final_nodes.count(comm_rx) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
@@ -77,6 +91,6 @@ void ReachabilityPolicy::check_violation(State *state)
         return;
     }
 
-    state->comm_state[state->comm].violated = (reachable != reached);
+    state->violated = (reachable != reached);
     state->choice_count = 0;
 }

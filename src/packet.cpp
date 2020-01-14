@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "pan.h"
+#include "model.h"
 
 Packet::Packet(State *state, const Policy *policy)
 {

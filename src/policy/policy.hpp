@@ -25,40 +25,45 @@ protected:
     IPRange<IPv4Address>    pkt_dst;
     std::vector<Node *>     start_nodes;
     uint16_t                src_port, dst_port;
+
     EqClasses               ECs;
+    EqClasses::iterator     ECs_itr;
     EqClass                 *initial_ec;
     Node                    *comm_tx;  // node that initiated the communication
     Node                    *comm_rx;  // node that received the communication
 
-    Policy                  *prerequisite;
-    // assuming only 2 correlated communications for now
-    // std::vector<Policy *> prerequisite;
-    // in the future.
+    std::vector<Policy *>   correlated_policies;
+
+    void parse_protocol(const std::shared_ptr<cpptoml::table>&);
+    void parse_pkt_dst(const std::shared_ptr<cpptoml::table>&);
+    void parse_start_node(const std::shared_ptr<cpptoml::table>&,
+                          const Network&);
+    void parse_tcp_ports(const std::shared_ptr<cpptoml::table>&);
+    void parse_correlated_policies(const std::shared_ptr<cpptoml::table>&,
+                                   const Network&);
 
 public:
-    Policy(const std::shared_ptr<cpptoml::table>&, const Network&);
-    virtual ~Policy() = default;
+    Policy();
+    virtual ~Policy();
 
     int get_id() const;
-    int get_protocol() const;
+    int get_protocol(State *) const;
     const std::vector<Node *>& get_start_nodes(State *) const;
     uint16_t get_src_port(State *) const;
     uint16_t get_dst_port(State *) const;
 
-    void add_ec(const IPv4Address&);
-    const EqClasses& get_ecs() const;
+    void add_ec(State *, const IPv4Address&);
+    const EqClasses& get_ecs(State *) const;
     size_t num_ecs() const;
     void compute_ecs(const EqClasses&);
 
-    void set_initial_ec(EqClass *);
-    EqClass *get_initial_ec() const;
+    bool set_initial_ec();
+    EqClass *get_initial_ec(State *) const;
 
     void set_comm_tx(State *, Node *);
     void set_comm_rx(State *, Node *);
     Node *get_comm_tx(State *);
     Node *get_comm_rx(State *);
-
-    Policy *get_prerequisite() const;
 
     void report(State *) const;
 

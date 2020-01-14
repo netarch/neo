@@ -12,7 +12,7 @@
 
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
-#include "pan.h"
+#include "model.h"
 
 namespace
 {
@@ -183,8 +183,7 @@ int Plankton::run()
         Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
                            + policy->to_string());
         Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
-        for (EqClass *ec : policy->get_ecs()) {
-            policy->set_initial_ec(ec);
+        while (policy->set_initial_ec()) {
             dispatch(policy);
         }
         // wait until all tasks are done
@@ -207,8 +206,16 @@ void Plankton::initialize(State *state)
 
 void Plankton::exec_step(State *state)
 {
+    int comm = state->comm;
+
     fwd.exec_step(state, network);
     policy->check_violation(state);
+
+    if (state->comm != comm) {
+        // communication changed, reinitialize the policy and forwarding process
+        policy->init(state);
+        fwd.init(state, network, policy);
+    }
 }
 
 void Plankton::report(State *state)

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <unordered_set>
 #include <cpptoml/cpptoml.hpp>
 
@@ -19,6 +18,9 @@ class WaypointPolicy : public Policy
 private:
     std::unordered_set<Node *> waypoints;
     bool pass_through;
+
+    void parse_waypoint(const std::shared_ptr<cpptoml::table>&, const Network&);
+    void parse_pass_through(const std::shared_ptr<cpptoml::table>&);
 
 public:
     WaypointPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
