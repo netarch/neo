@@ -47,6 +47,12 @@ L2_LAN::get_l2_endpoints() const
     return l2_endpoints;
 }
 
+const std::map<IPv4Address, std::pair<Node *, Interface *> >&
+L2_LAN::get_l3_endpoints() const
+{
+    return l3_endpoints;
+}
+
 std::pair<Node *, Interface *>
 L2_LAN::find_l3_endpoint(const IPv4Address& dst) const
 {

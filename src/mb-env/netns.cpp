@@ -8,17 +8,19 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/route.h>
 //#include <sys/mount.h>
+#include <set>
 
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
 //#include "lib/fs.hpp"
 
-void NetNS::set_interfaces(const Node *node)
+void NetNS::set_interfaces(const Node& node)
 {
     struct ifreq ifr;
     int tapfd, ctrl_sock;
@@ -28,7 +30,9 @@ void NetNS::set_interfaces(const Node *node)
         Logger::get().err("socket()", errno);
     }
 
-    for (const auto& pair : node->get_intfs_l3()) {
+    // TODO: what about L2 interface?
+
+    for (const auto& pair : node.get_intfs_l3()) {
         Interface *intf = pair.second;
 
         // create a new tap device
@@ -141,6 +145,64 @@ void NetNS::set_rttable(const RoutingTable& rib)
     close(ctrl_sock);
 }
 
+void NetNS::set_arp_cache(const Node& node)
+{
+    int ctrl_sock;
+    struct arpreq arp = {
+        .arp_pa = {AF_INET, {0}},
+        .arp_ha = {ARPHRD_ETHER, {0}},
+        .arp_flags = ATF_COM | ATF_PERM,
+        .arp_netmask = {AF_UNSPEC, {0}},
+        .arp_dev = {0}
+    };
+    uint8_t id_mac[6] = ID_ETH_ADDR;
+    memcpy(arp.arp_ha.sa_data, id_mac, 6);
+
+    // open a ctrl_sock for setting up arp cache entries
+    if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
+        Logger::get().err("socket()", errno);
+    }
+
+    // collect L3 peer IP addresses and egress interface
+    std::set<std::pair<IPv4Address, Interface *>> arp_inputs;
+    for (auto intf : node.get_intfs()) {
+        // find L3 peer
+        auto l2peer = node.get_peer(intf.first);
+        if (l2peer.first) { // if the interface is truly connected
+            if (!l2peer.second->is_l2()) {
+                // L2 peer == L3 peer
+                arp_inputs.emplace(l2peer.second->addr(), intf.second);
+            } else {
+                // pure L2 peer, find all L3 peers in the L2 LAN
+                L2_LAN *l2_lan = l2peer.first->get_l2lan(l2peer.second);
+                for (auto l3_endpoint : l2_lan->get_l3_endpoints()) {
+                    const std::pair<Node *, Interface *>& l3peer
+                        = l3_endpoint.second;
+                    if (l3peer.second != intf.second) {
+                        arp_inputs.emplace(l3peer.second->addr(), intf.second);
+                    }
+                }
+            }
+        }
+    }
+
+    // set permanent arp cache entries
+    for (const auto& arp_input : arp_inputs) {
+        ((struct sockaddr_in *)&arp.arp_pa)->sin_addr.s_addr
+            = htonl(arp_input.first.get_value());
+        strncpy(arp.arp_dev, arp_input.second->get_name().c_str(), 15);
+        arp.arp_dev[15] = '\0';
+
+        if (ioctl(ctrl_sock, SIOCSARP, &arp) < 0) {
+            close(ctrl_sock);
+            Logger::get().err("Failed to set ARP cache for "
+                              + arp_input.first.to_string(), errno);
+        }
+    }
+
+    close(ctrl_sock);
+}
+
 //void NetNS::mntns_xtables_lock()
 //{
 //    // create and enter a new mntns
@@ -193,7 +255,7 @@ NetNS::~NetNS()
     //fs::remove(xtables_lock);
 }
 
-void NetNS::init(const Node *node)
+void NetNS::init(const Node& node)
 {
     const char *netns_path = "/proc/self/ns/net";
 
@@ -212,7 +274,9 @@ void NetNS::init(const Node *node)
     // create tap interfaces and set IP addresses
     set_interfaces(node);
     // update routing table according to node->rib
-    set_rttable(node->get_rib());
+    set_rttable(node.get_rib());
+    // set ARP entries
+    set_arp_cache(node);
     // create a new mount namespace for /run/xtables.lock
     //mntns_xtables_lock();
     // return to the original netns

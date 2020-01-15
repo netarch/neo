@@ -49,6 +49,7 @@ public:
     virtual Interface *get_interface(const std::string&) const;
     virtual Interface *get_interface(const char *) const;
     virtual Interface *get_interface(const IPv4Address&) const;
+    virtual const std::map<std::string, Interface *>& get_intfs() const;
     virtual const std::map<IPv4Address, Interface *>& get_intfs_l3() const;
     virtual const std::set<Interface *>& get_intfs_l2() const;
     virtual const RoutingTable& get_rib() const;

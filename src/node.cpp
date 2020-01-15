@@ -112,6 +112,11 @@ Interface *Node::get_interface(const IPv4Address& addr) const
     return intf->second;
 }
 
+const std::map<std::string, Interface *>& Node::get_intfs() const
+{
+    return intfs;
+}
+
 const std::map<IPv4Address, Interface *>& Node::get_intfs_l3() const
 {
     return intfs_l3;

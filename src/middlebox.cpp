@@ -62,23 +62,7 @@ void Middlebox::listen_packets()
             memcpy(&ethertype, buffer + 12, 2);
             ethertype = ntohs(ethertype);
 
-            if (ethertype == ETHERTYPE_ARP) {
-                uint16_t arp_op;
-                memcpy(&arp_op, buffer + 20, 2);
-                arp_op = ntohs(arp_op);
-
-                if (arp_op == ARPOP_REQUEST) {
-                    uint32_t src_ip;
-                    memcpy(&src_ip, buffer + 28, 4);
-                    src_ip = ntohl(src_ip);
-                    uint32_t target_ip;
-                    memcpy(&target_ip, buffer + 38, 4);
-                    target_ip = ntohl(target_ip);
-
-                    Packet reply(pb.get_intf(), target_ip, src_ip, PS_ARP_REP);
-                    env->inject_packet(reply);
-                }
-            } else if (ethertype == ETHERTYPE_IP) {
+            if (ethertype == ETHERTYPE_IP) {
                 if (memcmp(dst_mac, id_mac, 6) != 0) {
                     continue;
                 }
@@ -115,7 +99,7 @@ void Middlebox::listen_packets()
 
 void Middlebox::init()
 {
-    env->init(this);
+    env->init(*this);
     env->run(mb_app_init, app);
     if (!listener) {
         listener = new std::thread(&Middlebox::listen_packets, this);
