@@ -24,3 +24,6 @@ model.[ch]
 *.gcov
 *.gcda
 *.gcno
+
+# Python cache files
+__pycache__
