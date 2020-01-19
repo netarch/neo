@@ -26,7 +26,6 @@ public:
     EqClasses() = default;
     EqClasses(const EqClasses&) = delete;
     EqClasses(EqClasses&&) = default;
-    EqClasses(EqClass *);
     ~EqClasses();
 
     EqClasses& operator=(const EqClasses&) = delete;

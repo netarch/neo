@@ -119,7 +119,7 @@ void ForwardingProcess::packet_entry(State *state) const
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
     // TODO: better logging information
     Logger::get().info("Packet (state: " + std::to_string(pkt_state)
-                       + ") injected at " + entry->to_string());
+                       + ") started at " + entry->to_string());
     if (PS_IS_FIRST(pkt_state)) {
         policy->set_comm_tx(state, entry);
     }
@@ -133,18 +133,21 @@ void ForwardingProcess::first_collect(State *state)
 
 void ForwardingProcess::first_forward(State *state) const
 {
-    // update the source IP address
-    std::vector<FIB_IPNH> *candidates;
-    memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
-    FIB_IPNH next_hop = (*candidates)[state->choice];
-    if (next_hop.get_l2_intf()) {
-        const Interface *egress_intf
-            = next_hop.get_l2_node()->get_peer(
-                  next_hop.get_l2_intf()->get_name()
-              ).second;
-        uint32_t src_ip = egress_intf->addr().get_value();
-        memcpy(state->comm_state[state->comm].src_ip, &src_ip,
-               sizeof(uint32_t));
+    int pkt_state = state->comm_state[state->comm].pkt_state;
+    if (PS_IS_FIRST(pkt_state)) {
+        // update the source IP address according to the egress interface
+        std::vector<FIB_IPNH> *candidates;
+        memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
+        FIB_IPNH next_hop = (*candidates)[state->choice];
+        if (next_hop.get_l2_intf()) {
+            const Interface *egress_intf
+                = next_hop.get_l2_node()->get_peer(
+                      next_hop.get_l2_intf()->get_name()
+                  ).second;
+            uint32_t src_ip = egress_intf->addr().get_value();
+            memcpy(state->comm_state[state->comm].src_ip, &src_ip,
+                   sizeof(uint32_t));
+        }
     }
 
     forward_packet(state);
@@ -260,22 +263,32 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         1, FIB_IPNH(start_node, nullptr, start_node, nullptr));
     update_candidates(state, candidates);
 
-    // update packet EC and the FIB
+    // update src IP, packet EC and the FIB
     if (change_direction) {
         uint32_t src_ip;
         memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
-        if (pkt_state == PS_TCP_INIT_1) {
+        EqClass *old_ec;
+        memcpy(&old_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
+        // set the next src IP
+        uint32_t next_src_ip = old_ec->representative_addr().get_value();
+        memcpy(state->comm_state[state->comm].src_ip, &next_src_ip,
+               sizeof(uint32_t));
+
+        // set the next EC
+        if (PS_IS_FIRST(pkt_state)) {
             policy->add_ec(state, src_ip);
         }
         EqClass *next_ec = policy->get_ecs(state).find_ec(src_ip);
         memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
         Logger::get().info("EC: " + next_ec->to_string());
+
+        // update FIB according to the new EC
         network.update_fib(state);
     }
 
     state->comm_state[state->comm].pkt_state = next_pkt_state;
     state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
-    memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
 }

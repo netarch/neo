@@ -127,9 +127,9 @@ COMMIT
     policies.add_policy(ReachabilityPolicy(
         protocol = 'http',
         pkt_dst = '12.0.0.0/8',
-        owned_dst_only = True, # TODO: test
+        owned_dst_only = True,
         start_node = 'internet',
-        final_node = 'public[0-9]+-host[0-9]+',
+        final_node = '(public[0-9]+-host[0-9]+)|gw',
         reachable = True))
     # private subnets can initiate connections to the outside world
     policies.add_policy(ReachabilityPolicy(

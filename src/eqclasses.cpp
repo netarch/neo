@@ -4,16 +4,6 @@
 
 #include "lib/logger.hpp"
 
-EqClasses::EqClasses(EqClass *ec)
-{
-    if (ec) {
-        for (const ECRange& range : *ec) {
-            allranges.insert(range);
-        }
-    }
-    ECs.insert(ec);
-}
-
 EqClasses::~EqClasses()
 {
     for (EqClass *const ec : ECs) {
