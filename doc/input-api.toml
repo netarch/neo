@@ -41,6 +41,7 @@
     type = "reachability"
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
@@ -48,6 +49,7 @@
     type = "reply-reachability"
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
     query_node = "node name regex"
     reachable = true or false
@@ -55,6 +57,7 @@
     type = "waypoint"
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
     waypoint = "node name regex"
     pass_through = true or false

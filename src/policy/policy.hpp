@@ -23,6 +23,7 @@ protected:
     int                     id;
     int                     protocol;
     IPRange<IPv4Address>    pkt_dst;
+    bool                    owned_dst_only;
     std::vector<Node *>     start_nodes;
     uint16_t                src_port, dst_port;
 
@@ -34,8 +35,11 @@ protected:
 
     std::vector<Policy *>   correlated_policies;
 
+    friend class Policies;
+
     void parse_protocol(const std::shared_ptr<cpptoml::table>&);
     void parse_pkt_dst(const std::shared_ptr<cpptoml::table>&);
+    void parse_owned_dst_only(const std::shared_ptr<cpptoml::table>&);
     void parse_start_node(const std::shared_ptr<cpptoml::table>&,
                           const Network&);
     void parse_tcp_ports(const std::shared_ptr<cpptoml::table>&);

@@ -65,6 +65,17 @@ void Policy::parse_pkt_dst(const std::shared_ptr<cpptoml::table>& config)
     pkt_dst = IPRange<IPv4Address>(dst_str);
 }
 
+void Policy::parse_owned_dst_only(const std::shared_ptr<cpptoml::table>& config)
+{
+    auto owned_only = config->get_as<bool>("owned_dst_only");
+
+    if (owned_only) {
+        owned_dst_only = *owned_only;
+    } else {
+        owned_dst_only = false;
+    }
+}
+
 void Policy::parse_start_node(const std::shared_ptr<cpptoml::table>& config,
                               const Network& net)
 {
@@ -363,11 +374,12 @@ Policies::~Policies()
 
 void Policies::compute_ecs(const Network& network) const
 {
-    EqClasses all_ECs;
+    EqClasses all_ECs, owned_ECs;
 
     for (const auto& node : network.get_nodes()) {
         for (const auto& intf : node.second->get_intfs_l3()) {
             all_ECs.add_ec(intf.first);
+            owned_ECs.add_ec(intf.first);
         }
         for (const Route& route : node.second->get_rib()) {
             all_ECs.add_ec(route.get_network());
@@ -375,7 +387,11 @@ void Policies::compute_ecs(const Network& network) const
     }
 
     for (Policy *policy : policies) {
-        policy->compute_ecs(all_ECs);
+        if (policy->owned_dst_only) {
+            policy->compute_ecs(owned_ECs);
+        } else {
+            policy->compute_ecs(all_ECs);
+        }
     }
 }
 

@@ -126,7 +126,8 @@ COMMIT
     # public subnets can accept connections from the outside world
     policies.add_policy(ReachabilityPolicy(
         protocol = 'http',
-        pkt_dst = '12.0.0.2', # TODO: 12.0-(#_of_subnets-1).x.x
+        pkt_dst = '12.0.0.0/8',
+        owned_dst_only = True, # TODO: test
         start_node = 'internet',
         final_node = 'public[0-9]+-host[0-9]+',
         reachable = True))

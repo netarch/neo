@@ -101,24 +101,33 @@ class Network:
         return data
 
 class Policy:
-    def __init__(self, type, protocol=None, pkt_dst=None, start_node=None):
-        self.type: str       = type
-        self.protocol: str   = protocol
-        self.pkt_dst: str    = pkt_dst
-        self.start_node: str = start_node
+    def __init__(self, type, protocol=None, pkt_dst=None, owned_dst_only=None,
+                 start_node=None):
+        self.type: str            = type
+        self.protocol: str        = protocol
+        self.pkt_dst: str         = pkt_dst
+        self.owned_dst_only: bool = owned_dst_only
+        self.start_node: str      = start_node
 
     def to_dict(self):
-        return self.__dict__
+        data = self.__dict__
+        if self.owned_dst_only == None:
+            data.pop('owned_dst_only')
+        return data
 
 class ReachabilityPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, final_node, reachable):
-        Policy.__init__(self, 'reachability', protocol, pkt_dst, start_node)
+    def __init__(self, protocol, pkt_dst, start_node, final_node, reachable,
+                 owned_dst_only=None):
+        Policy.__init__(self, 'reachability', protocol, pkt_dst, owned_dst_only,
+                        start_node)
         self.final_node: str = final_node
         self.reachable: bool = reachable
 
 class ReplyReachabilityPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, query_node, reachable):
-        Policy.__init__(self, 'reply-reachability', protocol, pkt_dst, start_node)
+    def __init__(self, protocol, pkt_dst, start_node, query_node, reachable,
+                 owned_dst_only=None):
+        Policy.__init__(self, 'reply-reachability', protocol, pkt_dst,
+                        owned_dst_only, start_node)
         self.query_node: str = query_node
         self.reachable: bool = reachable
 

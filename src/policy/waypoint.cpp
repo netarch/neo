@@ -12,6 +12,7 @@ WaypointPolicy::WaypointPolicy(
 {
     parse_protocol(config);
     parse_pkt_dst(config);
+    parse_owned_dst_only(config);
     parse_start_node(config, net);
     parse_tcp_ports(config);
     parse_waypoint(config, net);
