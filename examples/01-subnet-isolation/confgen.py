@@ -173,7 +173,7 @@ COMMIT
     print(toml.dumps(config))
 
 def main():
-    parser = argparse.ArgumentParser(description='01-enterprise-network')
+    parser = argparse.ArgumentParser(description='01-subnet-isolation')
     parser.add_argument('-s', '--subnets', type=int,
                         help='Number of subnets in each policy zone')
     parser.add_argument('-H', '--hosts', type=int,
