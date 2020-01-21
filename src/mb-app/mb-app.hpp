@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 /*
  * Don't start emulation processes in the constructor.
  * Only read the configurations in constructors and later start the emulation in
@@ -7,8 +9,13 @@
  */
 class MB_App
 {
+protected:
+    std::chrono::microseconds timeout;
+
 public:
     virtual ~MB_App() = default;
+
+    std::chrono::microseconds get_timeout() const;
 
     /* Note that all internal states should be flushed/reset */
     virtual void init() = 0;    // hard-reset, restart, start

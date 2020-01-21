@@ -1,6 +1,7 @@
 #include "middlebox.hpp"
 
 #include <libnet.h>
+#include <chrono>
 
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
@@ -140,8 +141,7 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     env->inject_packet(pkt);
 
     // wait for timeout
-    std::chrono::milliseconds duration(50);
-    cv.wait_for(lck, duration);
+    cv.wait_for(lck, app->get_timeout());
 
     // logging
     std::string nhops_str;

@@ -50,6 +50,9 @@ int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
 int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<FIB_IPNH> *) */
 
+/* reserved extended state for later use */
+int ext_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (void *) */
+
 
 c_code {
     \#include "api.hpp"

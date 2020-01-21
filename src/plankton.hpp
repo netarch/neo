@@ -47,4 +47,5 @@ public:
     void initialize(State *);
     void exec_step(State *);
     void report(State *);
+    void verify_exit(int);
 };

@@ -135,5 +135,5 @@ void Network::update_fib(State *state)
     }
     memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
 
-    Logger::get().info(fib->to_string());
+    Logger::get().debug(fib->to_string());
 }

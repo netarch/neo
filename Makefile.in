@@ -71,6 +71,7 @@ model.h: pan.h
 model.c: pan.c
 	sed $< \
 	    -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/' \
+	    -e '1s/^/#define exit(...) verify_exit(__VA_ARGS__)\n/' \
 		> $@
 
 pan.h pan.c: $(srcdir)/src/network.pml

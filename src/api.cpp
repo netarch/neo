@@ -18,3 +18,8 @@ void report(State *state)
 {
     plankton.report(state);
 }
+
+void verify_exit(int status)
+{
+    plankton.verify_exit(status);
+}

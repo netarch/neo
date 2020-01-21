@@ -1,5 +1,6 @@
 #include "plankton.hpp"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <csignal>
@@ -7,17 +8,25 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include <set>
+#include <chrono>
 #include <cpptoml/cpptoml.hpp>
 
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "model.h"
 
+using namespace std::chrono;
+
 namespace
 {
 bool verify_all_ECs = false;    // verify all ECs even if violation is found
+bool policy_violated = false;   // true if policy is violated
 std::set<int> tasks;
+high_resolution_clock::time_point ec_t1, ec_t2;
 const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
 void signal_handler(int sig, siginfo_t *siginfo,
@@ -35,8 +44,9 @@ void signal_handler(int sig, siginfo_t *siginfo,
                 }
             }
             break;
-        case SIGUSR1:   // policy violated; kill all the other siblings
+        case SIGUSR1:   // policy violated; kill all the other children
             pid = siginfo->si_pid;
+            policy_violated = true;
             if (!verify_all_ECs) {
                 for (int childpid : tasks) {
                     if (childpid != pid) {
@@ -59,7 +69,7 @@ void signal_handler(int sig, siginfo_t *siginfo,
                     break;
                 };
             };
-            exit(0);
+            exit(128 + sig);
     }
 }
 } // namespace
@@ -100,6 +110,21 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
 
 extern "C" int spin_main(int argc, const char *argv[]);
 
+void Plankton::verify_exit(int status)
+{
+    // record time usage for this EC
+    ec_t2 = high_resolution_clock::now();
+    auto ec_time = duration_cast<microseconds>(ec_t2 - ec_t1);
+
+    // flush the C file stream buffers and reopen the file in C++
+    fflush(NULL);
+    Logger::get().reopen();
+    Logger::get().info("Finished in " + std::to_string(ec_time.count())
+                       + " microseconds");
+
+    exit(status);
+}
+
 void Plankton::verify(Policy *policy)
 {
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
@@ -137,8 +162,11 @@ void Plankton::verify(Policy *policy)
     // configure per process variables
     this->policy = policy;
 
+    // record time usage for this EC
+    ec_t1 = high_resolution_clock::now();
+
     // run SPIN verifier
-    exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
+    verify_exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
 }
 
 void Plankton::dispatch(Policy *policy)
@@ -170,6 +198,9 @@ int Plankton::run()
         sigaction(sigs[i], &new_action, nullptr);
     }
 
+    // record the total time usage
+    auto total_t1 = high_resolution_clock::now();
+
     for (Policy *policy : policies) {
         // change working directory
         const std::string working_dir
@@ -179,18 +210,52 @@ int Plankton::run()
         }
         fs::chdir(working_dir);
 
+        // record time usage for this policy
+        auto policy_t1 = high_resolution_clock::now();
+
+        // verifying all combinations of ECs
         Logger::get().info("====================");
         Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
                            + policy->to_string());
         Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
         while (policy->set_initial_ec()) {
             dispatch(policy);
+            if (!verify_all_ECs && policy_violated) {
+                break;
+            }
         }
-        // wait until all tasks are done
-        while (!tasks.empty()) {
-            pause();
+
+        // record time usage for this policy
+        auto policy_t2 = high_resolution_clock::now();
+        auto policy_time = duration_cast<microseconds>(policy_t2 - policy_t1);
+        Logger::get().info("Finished in " + std::to_string(policy_time.count())
+                           + " microseconds");
+
+        if (!verify_all_ECs && policy_violated) {
+            break;
         }
     }
+
+    // wait until all tasks are done
+    while (!tasks.empty()) {
+        pause();
+    }
+
+    // record the total time usage
+    auto total_t2 = high_resolution_clock::now();
+    auto total_time = duration_cast<microseconds>(total_t2 - total_t1);
+    Logger::get().info("====================");
+    Logger::get().info("Total time: " + std::to_string(total_time.count())
+                       + " microseconds");
+
+    // record the peak RSS (resident set size)
+    struct rusage ru;
+    if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
+        fprintf(stderr, "getrusage() failed\\n");
+        exit(-1);
+    }
+    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss) +
+                       " kilobytes");
 
     return 0;
 }

@@ -46,9 +46,6 @@ void NetNS::set_interfaces(const Node& node)
             close(tapfd);
             goto error;
         }
-        //if (ioctl(fd, TUNSETPERSIST, 1) == -1) {
-        //    Logger::get().warn(intf->get_name(), errno);
-        //}
         tapfds.emplace(intf, tapfd);
 
         // set up IP address

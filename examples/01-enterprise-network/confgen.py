@@ -170,8 +170,7 @@ COMMIT
     ## output as TOML
     config = network.to_dict()
     config.update(policies.to_dict())
-    with open('network.toml', 'w') as f:
-        toml.dump(config, f)
+    print(toml.dumps(config))
 
 def main():
     parser = argparse.ArgumentParser(description='01-enterprise-network')
