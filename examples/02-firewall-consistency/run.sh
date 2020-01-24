@@ -17,14 +17,13 @@ type "$NEO" >/dev/null 2>&1 || \
 
 mkdir -p "$OUT_DIR"
 
-for num_subnets in 5 10 15; do
-    for num_hosts in 5 10 15; do
+for num_apps in 5 10 15; do
+    for num_hosts in 4 8 12; do
         for num_procs in 1; do
-            echo "[+] Verifying $(($num_subnets)) subnets/zone and $num_hosts hosts/subnet..."
-            python confgen.py --subnets $num_subnets --hosts $num_hosts \
-                > network.toml
+            echo "[+] Verifying $num_apps applications and $num_hosts hosts/app..."
+            python confgen.py --apps $num_apps --hosts $num_hosts > network.toml
             sudo "$NEO" -f -j $num_procs -i network.toml \
-                -o "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs"
+                -o "$OUT_DIR/$num_apps-apps.$num_hosts-hosts.DOP-$num_procs"
         done
     done
 done

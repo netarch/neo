@@ -40,16 +40,16 @@ COMMIT
     gw = Node('gw')
     gw.add_interface(Interface('eth0', '9.0.0.2/24'))
     for subnet in range(subnets):   # add "public"-connecting interfaces
-        intf = Interface('eth' + str(subnet + 1),
-                         '12.' + str(subnet) + '.0.1/16')
+        intf = Interface('eth%d' % (subnet + 1),
+                         '12.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     for subnet in range(subnets):   # add "private"-connecting interfaces
-        intf = Interface('eth' + str(subnet + 1 + subnets),
-                         '11.' + str(subnet) + '.0.1/16')
+        intf = Interface('eth%d' % (subnet + 1 + subnets),
+                         '11.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     for subnet in range(subnets):   # add "quarantined"-connecting interfaces
-        intf = Interface('eth' + str(subnet + 1 + subnets * 2),
-                         '10.' + str(subnet) + '.0.1/16')
+        intf = Interface('eth%d' % (subnet + 1 + subnets * 2),
+                         '10.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     gw.add_static_route(Route('0.0.0.0/0', '9.0.0.1'))
     network.add_node(gw)
@@ -58,62 +58,59 @@ COMMIT
 
     ## add nodes and links in the public subnets
     for subnet in range(subnets):
-        sw = Node('public' + str(subnet) + '-sw')
+        sw = Node('public%d-sw' % subnet)
         sw.add_interface(Interface('eth0'))
         for i in range(1, hosts + 1):
-            sw.add_interface(Interface('eth' + str(i)))
+            sw.add_interface(Interface('eth%d' % i))
         network.add_node(sw)
-        network.add_link(Link(sw.name, 'eth0', 'gw', 'eth' + str(subnet + 1)))
+        network.add_link(Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1)))
         for i in range(1, hosts + 1):
-            host = Node('public' + str(subnet) + '-host' + str(i))
-            second_last_octet = str(((i + 1) // 256) % 256)
-            last_octet = str((i + 1) % 256)
-            host.add_interface(Interface('eth0', '12.' + str(subnet) + '.'
-                + second_last_octet + '.' + last_octet + '/16'))
-            host.add_static_route(Route('0.0.0.0/0',
-                                        '12.' + str(subnet) + '.0.1'))
+            host = Node('public%d-host%d' % (subnet, i))
+            second_last_octet = ((i + 1) // 256) % 256
+            last_octet = (i + 1) % 256
+            host.add_interface(Interface('eth0',
+                '12.%d.%d.%d/16' % (subnet, second_last_octet, last_octet)))
+            host.add_static_route(Route('0.0.0.0/0', '12.%d.0.1' % subnet))
             network.add_node(host)
-            network.add_link(Link(host.name, 'eth0', sw.name, 'eth' + str(i)))
+            network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add nodes and links in the private subnets
     for subnet in range(subnets):
-        sw = Node('private' + str(subnet) + '-sw')
+        sw = Node('private%d-sw' % subnet)
         sw.add_interface(Interface('eth0'))
         for i in range(1, hosts + 1):
-            sw.add_interface(Interface('eth' + str(i)))
+            sw.add_interface(Interface('eth%d' % i))
         network.add_node(sw)
         network.add_link(Link(sw.name, 'eth0', 'gw',
-                              'eth' + str(subnet + 1 + subnets)))
+                              'eth%d' % (subnet + 1 + subnets)))
         for i in range(1, hosts + 1):
-            host = Node('private' + str(subnet) + '-host' + str(i))
-            second_last_octet = str(((i + 1) // 256) % 256)
-            last_octet = str((i + 1) % 256)
-            host.add_interface(Interface('eth0', '11.' + str(subnet) + '.'
-                + second_last_octet + '.' + last_octet + '/16'))
-            host.add_static_route(Route('0.0.0.0/0',
-                                        '11.' + str(subnet) + '.0.1'))
+            host = Node('private%d-host%d' % (subnet, i))
+            second_last_octet = ((i + 1) // 256) % 256
+            last_octet = (i + 1) % 256
+            host.add_interface(Interface('eth0',
+                '11.%d.%d.%d/16' % (subnet, second_last_octet, last_octet)))
+            host.add_static_route(Route('0.0.0.0/0', '11.%d.0.1' % subnet))
             network.add_node(host)
-            network.add_link(Link(host.name, 'eth0', sw.name, 'eth' + str(i)))
+            network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add nodes and links in the quarantined subnets
     for subnet in range(subnets):
-        sw = Node('quarantined' + str(subnet) + '-sw')
+        sw = Node('quarantined%d-sw' % subnet)
         sw.add_interface(Interface('eth0'))
         for i in range(1, hosts + 1):
-            sw.add_interface(Interface('eth' + str(i)))
+            sw.add_interface(Interface('eth%d' % i))
         network.add_node(sw)
         network.add_link(Link(sw.name, 'eth0', 'gw',
-                              'eth' + str(subnet + 1 + subnets * 2)))
+                              'eth%d' % (subnet + 1 + subnets * 2)))
         for i in range(1, hosts + 1):
-            host = Node('quarantined' + str(subnet) + '-host' + str(i))
-            second_last_octet = str(((i + 1) // 256) % 256)
-            last_octet = str((i + 1) % 256)
-            host.add_interface(Interface('eth0', '10.' + str(subnet) + '.'
-                + second_last_octet + '.' + last_octet + '/16'))
-            host.add_static_route(Route('0.0.0.0/0',
-                                        '10.' + str(subnet) + '.0.1'))
+            host = Node('quarantined%d-host%d' % (subnet, i))
+            second_last_octet = ((i + 1) // 256) % 256
+            last_octet = (i + 1) % 256
+            host.add_interface(Interface('eth0',
+                '10.%d.%d.%d/16' % (subnet, second_last_octet, last_octet)))
+            host.add_static_route(Route('0.0.0.0/0', '10.%d.0.1' % subnet))
             network.add_node(host)
-            network.add_link(Link(host.name, 'eth0', sw.name, 'eth' + str(i)))
+            network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add policies
     # public subnets can initiate connections to the outside world

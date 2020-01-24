@@ -20,7 +20,7 @@ mkdir -p "$OUT_DIR"
 for num_subnets in 5 10 15; do
     for num_hosts in 5 10 15; do
         for num_procs in 1; do
-            echo "[+] Verifying $(($num_subnets)) subnets/zone and $num_hosts hosts/subnet..."
+            echo "[+] Verifying $num_subnets subnets/zone and $num_hosts hosts/subnet..."
             python confgen.py --subnets $num_subnets --hosts $num_hosts \
                 > network.toml
             sudo "$NEO" -f -j $num_procs -i network.toml \
