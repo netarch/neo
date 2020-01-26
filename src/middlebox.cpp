@@ -5,6 +5,7 @@
 
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
+#include "mb-app/ipvs.hpp"
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
