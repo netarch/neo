@@ -17,63 +17,47 @@ def confgen(apps, hosts):
 :OUTPUT ACCEPT [0:0]
 """
     for app in range(apps):
-        second_octet = (app // 256) % 256
-        third_octet = app % 256
+        second = (app // 256) % 256
+        third = app % 256
         fw_rules += ('-A FORWARD -i eth0 -s 10.%d.%d.0/24 -d 11.%d.%d.0/24 -j ACCEPT\n'
-                % (second_octet, third_octet, second_octet, third_octet))
+                % (second, third, second, third))
         fw_rules += ('-A FORWARD -i eth0 -s 11.%d.%d.0/24 -d 10.%d.%d.0/24 -j ACCEPT\n'
-                % (second_octet, third_octet, second_octet, third_octet))
+                % (second, third, second, third))
     fw_rules += 'COMMIT\n'
 
     ## add the core, aggregation, and firewall nodes/links
     core1 = Node('core1')
-    core1.add_interface(Interface('eth0', '9.0.0.1/24'))
-    core1.add_interface(Interface('eth1', '9.0.1.1/24'))
-    core1.add_static_route(Route('10.0.0.0/7', '9.0.0.2'))
+    core1.add_interface(Interface('eth0', '8.0.0.1/24'))
+    core1.add_interface(Interface('eth1', '8.0.1.1/24'))
     agg1_sink = Node('agg1-sink')
-    agg1_sink.add_interface(Interface('eth0', '9.0.2.1/24'))
-    agg1_sink.add_interface(Interface('eth1', '9.0.0.2/24'))
-    agg1_sink.add_interface(Interface('eth2', '9.0.8.1/24'))
-    agg1_sink.add_interface(Interface('eth3', '9.0.9.1/24'))
-    agg1_sink.add_static_route(Route('0.0.0.0/0', '9.0.2.2'))
+    agg1_sink.add_interface(Interface('eth0', '8.0.2.1/24'))
+    agg1_sink.add_interface(Interface('eth1', '8.0.0.2/24'))
+    agg1_sink.add_static_route(Route('0.0.0.0/0', '8.0.2.2'))
     fw1 = Middlebox('fw1', 'netns', 'netfilter')
-    fw1.add_interface(Interface('eth0', '9.0.2.2/24'))
-    fw1.add_interface(Interface('eth1', '9.0.3.1/24'))
-    fw1.add_static_route(Route('0.0.0.0/0', '9.0.3.2'))
+    fw1.add_interface(Interface('eth0', '8.0.2.2/24'))
+    fw1.add_interface(Interface('eth1', '8.0.3.1/24'))
+    fw1.add_static_route(Route('0.0.0.0/0', '8.0.3.2'))
     fw1.add_config('rp_filter', 0)
     fw1.add_config('rules', fw_rules)
     agg1_source = Node('agg1-source')
-    agg1_source.add_interface(Interface('eth0', '9.0.3.2/24'))
-    agg1_source.add_interface(Interface('eth1', '9.0.1.2/24'))
-    agg1_source.add_interface(Interface('eth2', '9.0.10.1/24'))
-    agg1_source.add_interface(Interface('eth3', '9.0.11.1/24'))
-    agg1_source.add_static_route(Route('10.0.0.0/8', '9.0.10.2'))
-    agg1_source.add_static_route(Route('11.0.0.0/8', '9.0.11.2'))
-    agg1_source.add_static_route(Route('0.0.0.0/0', '9.0.1.1'))
+    agg1_source.add_interface(Interface('eth0', '8.0.3.2/24'))
+    agg1_source.add_interface(Interface('eth1', '8.0.1.2/24'))
     core2 = Node('core2')
-    core2.add_interface(Interface('eth0', '9.0.4.1/24'))
-    core2.add_interface(Interface('eth1', '9.0.5.1/24'))
-    core2.add_static_route(Route('10.0.0.0/7', '9.0.4.2'))
+    core2.add_interface(Interface('eth0', '8.0.4.1/24'))
+    core2.add_interface(Interface('eth1', '8.0.5.1/24'))
     agg2_sink = Node('agg2-sink')
-    agg2_sink.add_interface(Interface('eth0', '9.0.6.1/24'))
-    agg2_sink.add_interface(Interface('eth1', '9.0.4.2/24'))
-    agg2_sink.add_interface(Interface('eth2', '9.0.12.1/24'))
-    agg2_sink.add_interface(Interface('eth3', '9.0.13.1/24'))
-    agg2_sink.add_static_route(Route('0.0.0.0/0', '9.0.6.2'))
+    agg2_sink.add_interface(Interface('eth0', '8.0.6.1/24'))
+    agg2_sink.add_interface(Interface('eth1', '8.0.4.2/24'))
+    agg2_sink.add_static_route(Route('0.0.0.0/0', '8.0.6.2'))
     fw2 = Middlebox('fw2', 'netns', 'netfilter')
-    fw2.add_interface(Interface('eth0', '9.0.6.2/24'))
-    fw2.add_interface(Interface('eth1', '9.0.7.1/24'))
-    fw2.add_static_route(Route('0.0.0.0/0', '9.0.7.2'))
+    fw2.add_interface(Interface('eth0', '8.0.6.2/24'))
+    fw2.add_interface(Interface('eth1', '8.0.7.1/24'))
+    fw2.add_static_route(Route('0.0.0.0/0', '8.0.7.2'))
     fw2.add_config('rp_filter', 0)
     fw2.add_config('rules', fw_rules)
     agg2_source = Node('agg2-source')
-    agg2_source.add_interface(Interface('eth0', '9.0.7.2/24'))
-    agg2_source.add_interface(Interface('eth1', '9.0.5.2/24'))
-    agg2_source.add_interface(Interface('eth2', '9.0.14.1/24'))
-    agg2_source.add_interface(Interface('eth3', '9.0.15.1/24'))
-    agg2_source.add_static_route(Route('10.0.0.0/8', '9.0.14.2'))
-    agg2_source.add_static_route(Route('11.0.0.0/8', '9.0.15.2'))
-    agg2_source.add_static_route(Route('0.0.0.0/0', '9.0.5.1'))
+    agg2_source.add_interface(Interface('eth0', '8.0.7.2/24'))
+    agg2_source.add_interface(Interface('eth1', '8.0.5.2/24'))
     network.add_node(core1)
     network.add_node(agg1_sink)
     network.add_node(fw1)
@@ -91,58 +75,62 @@ def confgen(apps, hosts):
     network.add_link(Link('agg2-sink', 'eth0', 'fw2', 'eth0'))
     network.add_link(Link('agg2-source', 'eth0', 'fw2', 'eth1'))
 
-    ## add access nodes/links
-    access1 = Node('access1')
-    access1.add_interface(Interface('eth0', '9.0.8.2/24'))
-    access1.add_interface(Interface('eth1', '9.0.10.2/24'))
-    access1.add_interface(Interface('eth2', '9.0.12.2/24'))
-    access1.add_interface(Interface('eth3', '9.0.14.2/24'))
-    access1.add_static_route(Route('0.0.0.0/0', '9.0.8.1'))
-    access1.add_static_route(Route('0.0.0.0/0', '9.0.12.1'))
-    access2 = Node('access2')
-    access2.add_interface(Interface('eth0', '9.0.9.2/24'))
-    access2.add_interface(Interface('eth1', '9.0.11.2/24'))
-    access2.add_interface(Interface('eth2', '9.0.13.2/24'))
-    access2.add_interface(Interface('eth3', '9.0.15.2/24'))
-    access2.add_static_route(Route('0.0.0.0/0', '9.0.9.1'))
-    access2.add_static_route(Route('0.0.0.0/0', '9.0.13.1'))
-    network.add_node(access1)
-    network.add_node(access2)
-    network.add_link(Link('access1', 'eth0', 'agg1-sink',   'eth2'))
-    network.add_link(Link('access1', 'eth1', 'agg1-source', 'eth2'))
-    network.add_link(Link('access1', 'eth2', 'agg2-sink',   'eth2'))
-    network.add_link(Link('access1', 'eth3', 'agg2-source', 'eth2'))
-    network.add_link(Link('access2', 'eth0', 'agg1-sink',   'eth3'))
-    network.add_link(Link('access2', 'eth1', 'agg1-source', 'eth3'))
-    network.add_link(Link('access2', 'eth2', 'agg2-sink',   'eth3'))
-    network.add_link(Link('access2', 'eth3', 'agg2-source', 'eth3'))
-
-    ## add application hosts and related nodes/links
     for app in range(apps):
+        ## add access nodes/links
+        second = (app // 256) % 256
+        third = app % 256
+        agg1_sink.add_interface(Interface('eth%d' % (2 * app + 2), '9.%d.%d.1/30' % (second, third)))
+        agg1_sink.add_interface(Interface('eth%d' % (2 * app + 3), '9.%d.%d.5/30' % (second, third)))
+        agg1_source.add_interface(Interface('eth%d' % (2 * app + 2), '9.%d.%d.9/30' % (second, third)))
+        agg1_source.add_interface(Interface('eth%d' % (2 * app + 3), '9.%d.%d.13/30' % (second, third)))
+        agg1_source.add_static_route(Route('10.%d.%d.0/24' % (second, third), '9.%d.%d.10' % (second, third)))
+        agg1_source.add_static_route(Route('11.%d.%d.0/24' % (second, third), '9.%d.%d.14' % (second, third)))
+        agg2_sink.add_interface(Interface('eth%d' % (2 * app + 2), '9.%d.%d.17/30' % (second, third)))
+        agg2_sink.add_interface(Interface('eth%d' % (2 * app + 3), '9.%d.%d.21/30' % (second, third)))
+        agg2_source.add_interface(Interface('eth%d' % (2 * app + 2), '9.%d.%d.25/30' % (second, third)))
+        agg2_source.add_interface(Interface('eth%d' % (2 * app + 3), '9.%d.%d.29/30' % (second, third)))
+        agg2_source.add_static_route(Route('10.%d.%d.0/24' % (second, third), '9.%d.%d.26' % (second, third)))
+        agg2_source.add_static_route(Route('11.%d.%d.0/24' % (second, third), '9.%d.%d.30' % (second, third)))
+        access1 = Node('access1-app%d' % app)
+        access1.add_interface(Interface('eth0', '9.%d.%d.2/30' % (second, third)))
+        access1.add_interface(Interface('eth1', '9.%d.%d.10/30' % (second, third)))
+        access1.add_interface(Interface('eth2', '9.%d.%d.18/30' % (second, third)))
+        access1.add_interface(Interface('eth3', '9.%d.%d.26/30' % (second, third)))
+        access1.add_static_route(Route('0.0.0.0/0', '9.%d.%d.1' % (second, third)))
+        access1.add_static_route(Route('0.0.0.0/0', '9.%d.%d.17' % (second, third)))
+        access2 = Node('access2-app%d' % app)
+        access2.add_interface(Interface('eth0', '9.%d.%d.6/30' % (second, third)))
+        access2.add_interface(Interface('eth1', '9.%d.%d.14/30' % (second, third)))
+        access2.add_interface(Interface('eth2', '9.%d.%d.22/30' % (second, third)))
+        access2.add_interface(Interface('eth3', '9.%d.%d.30/30' % (second, third)))
+        access2.add_static_route(Route('0.0.0.0/0', '9.%d.%d.5' % (second, third)))
+        access2.add_static_route(Route('0.0.0.0/0', '9.%d.%d.21' % (second, third)))
+        network.add_node(access1)
+        network.add_node(access2)
+        network.add_link(Link(access1.name, 'eth0', 'agg1-sink',   'eth%d' % (2 * app + 2)))
+        network.add_link(Link(access1.name, 'eth1', 'agg1-source', 'eth%d' % (2 * app + 2)))
+        network.add_link(Link(access1.name, 'eth2', 'agg2-sink',   'eth%d' % (2 * app + 2)))
+        network.add_link(Link(access1.name, 'eth3', 'agg2-source', 'eth%d' % (2 * app + 2)))
+        network.add_link(Link(access2.name, 'eth0', 'agg1-sink',   'eth%d' % (2 * app + 3)))
+        network.add_link(Link(access2.name, 'eth1', 'agg1-source', 'eth%d' % (2 * app + 3)))
+        network.add_link(Link(access2.name, 'eth2', 'agg2-sink',   'eth%d' % (2 * app + 3)))
+        network.add_link(Link(access2.name, 'eth3', 'agg2-source', 'eth%d' % (2 * app + 3)))
+
+        ## add application hosts and related nodes/links
         for host in range(hosts):
             node = Node('app%d-host%d' % (app, host))
-            second = (app // 256) % 256
-            third = app % 256
             last = 4 * (host // 2) + 2
-            acc_intf_num = 64 * app + host // 2 + 4
+            acc_intf_num = host // 2 + 4
             if host % 2 == 0:   # hosts under access1
-                access1.add_interface(Interface('eth%d' % acc_intf_num,
-                    '10.%d.%d.%d/30' % (second, third, last - 1)))
-                node.add_interface(Interface('eth0',
-                    '10.%d.%d.%d/30' % (second, third, last)))
-                node.add_static_route(Route('0.0.0.0/0',
-                    '10.%d.%d.%d' % (second, third, last - 1)))
-                network.add_link(Link(node.name, 'eth0', access1.name,
-                    'eth%d' % acc_intf_num))
+                access1.add_interface(Interface('eth%d' % acc_intf_num, '10.%d.%d.%d/30' % (second, third, last - 1)))
+                node.add_interface(Interface('eth0', '10.%d.%d.%d/30' % (second, third, last)))
+                node.add_static_route(Route('0.0.0.0/0', '10.%d.%d.%d' % (second, third, last - 1)))
+                network.add_link(Link(node.name, 'eth0', access1.name, 'eth%d' % acc_intf_num))
             elif host % 2 == 1: # hosts under access2
-                access2.add_interface(Interface('eth%d' % acc_intf_num,
-                    '11.%d.%d.%d/30' % (second, third, last - 1)))
-                node.add_interface(Interface('eth0',
-                    '11.%d.%d.%d/30' % (second, third, last)))
-                node.add_static_route(Route('0.0.0.0/0',
-                    '11.%d.%d.%d' % (second, third, last - 1)))
-                network.add_link(Link(node.name, 'eth0', access2.name,
-                    'eth%d' % acc_intf_num))
+                access2.add_interface(Interface('eth%d' % acc_intf_num, '11.%d.%d.%d/30' % (second, third, last - 1)))
+                node.add_interface(Interface('eth0', '11.%d.%d.%d/30' % (second, third, last)))
+                node.add_static_route(Route('0.0.0.0/0', '11.%d.%d.%d' % (second, third, last - 1)))
+                network.add_link(Link(node.name, 'eth0', access2.name, 'eth%d' % acc_intf_num))
             network.add_node(node)
 
     ## add policies
@@ -176,7 +164,7 @@ def confgen(apps, hosts):
             pkt_dst = '11.%d.%d.0/24' % (second, third),
             owned_dst_only = True,
             start_node = hosts_acc1,
-            final_node = '(' + hosts_acc2 + ')|access2',
+            final_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
             reachable = True))
         # In the same application, hosts under access2 can reach hosts under
         # access1
@@ -185,7 +173,7 @@ def confgen(apps, hosts):
             pkt_dst = '10.%d.%d.0/24' % (second, third),
             owned_dst_only = True,
             start_node = hosts_acc2,
-            final_node = '(' + hosts_acc1 + ')|access1',
+            final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
             reachable = True))
         # Hosts under an application cannot reach hosts under other applications
         policies.add_policy(ReachabilityPolicy(

@@ -40,16 +40,13 @@ COMMIT
     gw = Node('gw')
     gw.add_interface(Interface('eth0', '9.0.0.2/24'))
     for subnet in range(subnets):   # add "public"-connecting interfaces
-        intf = Interface('eth%d' % (subnet + 1),
-                         '12.%d.0.1/16' % subnet)
+        intf = Interface('eth%d' % (subnet + 1), '12.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     for subnet in range(subnets):   # add "private"-connecting interfaces
-        intf = Interface('eth%d' % (subnet + 1 + subnets),
-                         '11.%d.0.1/16' % subnet)
+        intf = Interface('eth%d' % (subnet + 1 + subnets), '11.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     for subnet in range(subnets):   # add "quarantined"-connecting interfaces
-        intf = Interface('eth%d' % (subnet + 1 + subnets * 2),
-                         '10.%d.0.1/16' % subnet)
+        intf = Interface('eth%d' % (subnet + 1 + subnets * 2), '10.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     gw.add_static_route(Route('0.0.0.0/0', '9.0.0.1'))
     network.add_node(gw)
@@ -66,10 +63,9 @@ COMMIT
         network.add_link(Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1)))
         for i in range(1, hosts + 1):
             host = Node('public%d-host%d' % (subnet, i))
-            second_last_octet = ((i + 1) // 256) % 256
-            last_octet = (i + 1) % 256
-            host.add_interface(Interface('eth0',
-                '12.%d.%d.%d/16' % (subnet, second_last_octet, last_octet)))
+            second_last = ((i + 1) // 256) % 256
+            last = (i + 1) % 256
+            host.add_interface(Interface('eth0', '12.%d.%d.%d/16' % (subnet, second_last, last)))
             host.add_static_route(Route('0.0.0.0/0', '12.%d.0.1' % subnet))
             network.add_node(host)
             network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
@@ -81,14 +77,12 @@ COMMIT
         for i in range(1, hosts + 1):
             sw.add_interface(Interface('eth%d' % i))
         network.add_node(sw)
-        network.add_link(Link(sw.name, 'eth0', 'gw',
-                              'eth%d' % (subnet + 1 + subnets)))
+        network.add_link(Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1 + subnets)))
         for i in range(1, hosts + 1):
             host = Node('private%d-host%d' % (subnet, i))
-            second_last_octet = ((i + 1) // 256) % 256
-            last_octet = (i + 1) % 256
-            host.add_interface(Interface('eth0',
-                '11.%d.%d.%d/16' % (subnet, second_last_octet, last_octet)))
+            second_last = ((i + 1) // 256) % 256
+            last = (i + 1) % 256
+            host.add_interface(Interface('eth0', '11.%d.%d.%d/16' % (subnet, second_last, last)))
             host.add_static_route(Route('0.0.0.0/0', '11.%d.0.1' % subnet))
             network.add_node(host)
             network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
@@ -104,10 +98,9 @@ COMMIT
                               'eth%d' % (subnet + 1 + subnets * 2)))
         for i in range(1, hosts + 1):
             host = Node('quarantined%d-host%d' % (subnet, i))
-            second_last_octet = ((i + 1) // 256) % 256
-            last_octet = (i + 1) % 256
-            host.add_interface(Interface('eth0',
-                '10.%d.%d.%d/16' % (subnet, second_last_octet, last_octet)))
+            second_last = ((i + 1) // 256) % 256
+            last = (i + 1) % 256
+            host.add_interface(Interface('eth0', '10.%d.%d.%d/16' % (subnet, second_last, last)))
             host.add_static_route(Route('0.0.0.0/0', '10.%d.0.1' % subnet))
             network.add_node(host)
             network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
