@@ -163,29 +163,6 @@ ipvsadm -a -t 207.175.44.110:80 -r 10.0.0.3:80 -m
     node2 = "s2"
     intf2 = "eth3"
 
-
-[[links]]
-    node1 = "fw"
-    intf1 = "eth2"
-    node2 = "r2"
-    intf2 = "eth0"
-[[links]]
-    node1 = "r1"
-    intf1 = "eth1"
-    node2 = "r3"
-    intf2 = "eth1"
-[[links]]
-    node1 = "r2"
-    intf1 = "eth1"
-    node2 = "r3"
-    intf2 = "eth2"
-[[links]]
-    node1 = "r3"
-    intf1 = "eth0"
-    node2 = "s1"
-    intf2 = "eth0"
-
-
 # Policy:
 #   1. Outgoing packets are always allowed. (This should fail due to the
 #      misconfiguration of fw.)

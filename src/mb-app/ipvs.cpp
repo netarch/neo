@@ -49,7 +49,7 @@ void IPVS::reset()
         Logger::get().err("ipvsadm -C");
     }
 
-    if (system((std::string("ipvsadm-restore ") + filename).c_str())) {
+    if (system((std::string("cat ") + filename + " | ipvsadm-restore").c_str())) {
         Logger::get().err("ipvsadm-restore");
     }
     fs::remove(filename);
