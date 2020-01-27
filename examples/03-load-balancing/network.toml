@@ -54,10 +54,10 @@
     env = "netns"
     app = "ipvs"
     config = """
--A -t 207.175.44.110:80 -s rr
--a -t 207.175.44.110:80 -r 10.0.0.1:80 -m
--a -t 207.175.44.110:80 -r 10.0.0.2:80 -m
--a -t 207.175.44.110:80 -r 10.0.0.3:80 -m
+-A -t 192.168.1.1:80 -s rr
+-a -t 192.168.1.1:80 -r 10.0.0.1:80 -m
+-a -t 192.168.1.1:80 -r 10.0.0.2:80 -m
+-a -t 192.168.1.1:80 -r 10.0.0.3:80 -m
 """
     [[nodes.interfaces]]
     name = "eth0"
@@ -162,7 +162,7 @@
 [[policies]]
     type = "reachability"
     protocol = "http"
-    pkt_dst = "207.175.44.110"
+    pkt_dst = "192.168.1.1"
     start_node = "h[123]"
     final_node = "server1"
     reachable = true
