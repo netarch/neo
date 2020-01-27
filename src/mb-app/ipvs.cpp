@@ -12,46 +12,61 @@ IPVS::IPVS(const std::shared_ptr<cpptoml::table>& config)
 {
     timeout = std::chrono::microseconds(100);
 
-    auto rules = config->get_as<std::string>("rules");
+    auto conf = config->get_as<std::string>("config");
 
-    if (!rules) {
-        Logger::get().err("Missing rules");
+    if (!conf) {
+        Logger::get().err("Missing config");
     }
 
-    this->rules = *rules;
-}
+    this->config = *conf;
 
-IPVS::~IPVS()
-{
+    forwarding_fn = "/proc/sys/net/ipv4/conf/all/forwarding";
+    rp_filter_fn = "/proc/sys/net/ipv4/conf/all/rp_filter";
 }
 
 void IPVS::init()
 {
+    // set forwarding
+    int fwd = open(forwarding_fn.c_str(), O_WRONLY);
+    if (fwd < 0) {
+        Logger::get().err("Failed to open " + forwarding_fn, errno);
+    }
+    if (write(fwd, "1", 1) < 0) {
+        Logger::get().err("Failed to set forwarding");
+    }
+    close(fwd);
+
+    // set rp_filter
+    int rpf = open(rp_filter_fn.c_str(), O_WRONLY);
+    if (rpf < 0) {
+        Logger::get().err("Failed to open " + rp_filter_fn, errno);
+    }
+    if (write(rpf, "0", 1) < 0) {
+        Logger::get().err("Failed to set rp_filter");
+    }
+    close(rpf);
+
+    // clear filtering states and rules
+    if (system("iptables -F")) {
+        Logger::get().err("iptables -F");
+    }
+    if (system("iptables -Z")) {
+        Logger::get().err("iptables -Z");
+    }
+    if (system("iptables-restore /etc/iptables/empty.rules")) {
+        Logger::get().err("iptables-restore");
+    }
+
     reset();
 }
 
 void IPVS::reset()
 {
-    // set rules
-    int fd;
-    char filename[] = "/tmp/ipvs-rules.XXXXXX";
-    if ((fd = mkstemp(filename)) < 0) {
-        Logger::get().err(filename, errno);
-    }
-    if (write(fd, rules.c_str(), rules.size()) < 0) {
-        Logger::get().err(filename, errno);
-    }
-    if (close(fd) < 0) {
-        Logger::get().err(filename, errno);
-    }
-
+    // set IPVS config
     if (system("ipvsadm -C")) {
         Logger::get().err("ipvsadm -C");
     }
-
-    if (system((std::string("cat ") + filename + " | ipvsadm-restore").c_str())) {
+    if (system(("echo '" + config + "' | ipvsadm-restore").c_str())) {
         Logger::get().err("ipvsadm-restore");
     }
-    fs::remove(filename);
 }
-

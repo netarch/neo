@@ -10,7 +10,8 @@
 class IPVS : public MB_App
 {
 private:
-    std::string rules;
+    std::string config;
+    std::string forwarding_fn, rp_filter_fn;
 
 public:
     /*
@@ -19,7 +20,6 @@ public:
      * emulation in init().
      */
     IPVS(const std::shared_ptr<cpptoml::table>&);
-    ~IPVS() override;
 
     void init() override;   // hard-reset, restart, start
     void reset() override;  // soft-reset, reload

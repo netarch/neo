@@ -32,16 +32,7 @@ NetFilter::NetFilter(const std::shared_ptr<cpptoml::table>& config)
     rp_filter_fn = "/proc/sys/net/ipv4/conf/all/rp_filter";
 }
 
-NetFilter::~NetFilter()
-{
-}
-
 void NetFilter::init()
-{
-    reset();
-}
-
-void NetFilter::reset()
 {
     // set forwarding
     int fwd = open(forwarding_fn.c_str(), O_WRONLY);
@@ -64,6 +55,11 @@ void NetFilter::reset()
     }
     close(rpf);
 
+    reset();
+}
+
+void NetFilter::reset()
+{
     // set rules
     int fd;
     char filename[] = "/tmp/netfilter-rules.XXXXXX";
@@ -87,12 +83,12 @@ void NetFilter::reset()
      * https://www.spinics.net/lists/netdev/msg497351.html
      */
     if (system("iptables -F")) {
-        Logger::get().err("iptables -F -w 10");
+        Logger::get().err("iptables -F");
     }
     if (system("iptables -Z")) {
-        Logger::get().err("iptables -Z -w 10");
+        Logger::get().err("iptables -Z");
     }
-    if (system((std::string("iptables-restore -w 10 ") + filename).c_str())) {
+    if (system((std::string("iptables-restore ") + filename).c_str())) {
         Logger::get().err("iptables-restore");
     }
     fs::remove(filename);

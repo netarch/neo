@@ -19,7 +19,6 @@ public:
      * emulation in init().
      */
     NetFilter(const std::shared_ptr<cpptoml::table>&);
-    ~NetFilter() override;
 
     void init() override;   // hard-reset, restart, start
     void reset() override;  // soft-reset, reload

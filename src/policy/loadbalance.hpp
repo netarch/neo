@@ -22,9 +22,9 @@ private:
 
 public:
     LoadBalancePolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
+    ~LoadBalancePolicy();
 
     std::string to_string() const override;
     void init(State *) const override;
     void check_violation(State *) override;
-    ~LoadBalancePolicy();
 };

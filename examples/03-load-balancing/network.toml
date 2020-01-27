@@ -36,6 +36,76 @@
     name = "eth2"
     [[nodes.interfaces]]
     name = "eth3"
+[[nodes]]
+    name = "r1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.254/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.254/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.1"
+[[nodes]]
+    name = "lb"
+    type = "middlebox"
+    env = "netns"
+    app = "ipvs"
+    config = """
+-A -t 207.175.44.110:80 -s rr
+-a -t 207.175.44.110:80 -r 10.0.0.1:80 -m
+-a -t 207.175.44.110:80 -r 10.0.0.2:80 -m
+-a -t 207.175.44.110:80 -r 10.0.0.3:80 -m
+"""
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.1/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "10.0.0.254/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/16"
+    next_hop = "192.168.1.254"
+[[nodes]]
+    name = "s2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+    [[nodes.interfaces]]
+    name = "eth3"
+[[nodes]]
+    name = "server1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/16"
+    next_hop = "10.0.0.254"
+[[nodes]]
+    name = "server2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/16"
+    next_hop = "10.0.0.254"
+[[nodes]]
+    name = "server3"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.3/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/16"
+    next_hop = "10.0.0.254"
 
 [[links]]
     node1 = "s1"
@@ -52,101 +122,21 @@
     intf1 = "eth3"
     node2 = "h3"
     intf2 = "eth0"
-
-[[nodes]]
-    name = "r1"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.0.254/24"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.1.254/24"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.1.1"
-
 [[links]]
     node1 = "s1"
     intf1 = "eth0"
     node2 = "r1"
     intf2 = "eth0"
-
-[[nodes]]
-    name = "lb"
-    type = "middlebox"
-    env = "netns"
-    app = "ipvs"
-    rules = """
-ipvsadm -A -t 207.175.44.110:80 -s rr
-ipvsadm -a -t 207.175.44.110:80 -r 10.0.0.1:80 -m
-ipvsadm -a -t 207.175.44.110:80 -r 10.0.0.2:80 -m
-ipvsadm -a -t 207.175.44.110:80 -r 10.0.0.3:80 -m
-"""
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.1.1/24"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "10.0.0.254/24"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/16"
-    next_hop = "192.168.1.2"
-
 [[links]]
     node1 = "lb"
     intf1 = "eth0"
     node2 = "r1"
     intf2 = "eth1"
-
-[[nodes]]
-    name = "s2"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    [[nodes.interfaces]]
-    name = "eth1"
-    [[nodes.interfaces]]
-    name = "eth2"
-    [[nodes.interfaces]]
-    name = "eth3"
-
 [[links]]
     node1 = "lb"
     intf1 = "eth1"
     node2 = "s2"
     intf2 = "eth0"
-
-[[nodes]]
-    name = "server1"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "10.0.0.1/24"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/16"
-    next_hop = "10.0.0.254"
-
-[[nodes]]
-    name = "server2"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "10.0.0.2/24"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/16"
-    next_hop = "10.0.0.254"
-
-[[nodes]]
-    name = "server3"
-    type = "generic"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "10.0.0.3/24"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/16"
-    next_hop = "10.0.0.254"
-
 [[links]]
     node1 = "server1"
     intf1 = "eth0"
