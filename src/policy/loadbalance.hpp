@@ -26,4 +26,5 @@ public:
     std::string to_string() const override;
     void init(State *) const override;
     void check_violation(State *) override;
+    ~LoadBalancePolicy();
 };

@@ -1,5 +1,6 @@
 #include "policy/loadbalance.hpp"
 
+#include <iostream>
 #include <regex>
 
 #include "process/forwarding.hpp"
@@ -56,13 +57,14 @@ void LoadBalancePolicy::init(State *state) const
     state->violated = false;
 }
 
+LoadBalancePolicy::~LoadBalancePolicy() {
+    if(visited.size() != final_nodes.size()) {
+        std::cerr<<"Violation";
+    }
+}
+
 void LoadBalancePolicy::check_violation(State *state)
 {
-    if(state->choice_count == 0) {
-        state->violated = (visited.size() != final_nodes.size());
-        return;
-    }
-
     state->violated = false;
     int mode = state->comm_state[state->comm].fwd_mode;
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
@@ -71,6 +73,7 @@ void LoadBalancePolicy::check_violation(State *state)
         (pkt_state == PS_HTTP_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
         if(final_nodes.count(comm_rx) && !visited.count(comm_rx)) {
             visited.insert(comm_rx);
+            state->choice_count = 0;
         }
     }
 }
