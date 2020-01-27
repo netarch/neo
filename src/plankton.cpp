@@ -276,8 +276,8 @@ void Plankton::exec_step(State *state)
     fwd.exec_step(state, network);
     policy->check_violation(state);
 
-    if (state->comm != comm) {
-        // communication changed, reinitialize the policy and forwarding process
+    if (state->comm != comm && state->choice_count > 0) {
+        // communication changed
         policy->init(state);
         fwd.init(state, network, policy);
     }

@@ -159,30 +159,36 @@ def confgen(apps, hosts):
                     ('|'.join([str(i) for i in other_apps])))
         # In the same application, hosts under access1 can reach hosts under
         # access2
-        policies.add_policy(ReachabilityPolicy(
-            protocol = 'http',
-            pkt_dst = '11.%d.%d.0/24' % (second, third),
-            owned_dst_only = True,
-            start_node = hosts_acc1,
-            final_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
-            reachable = True))
+        policies.add_policy(ConsistencyPolicy([
+            ReachabilityPolicy(
+                protocol = 'http',
+                pkt_dst = '11.%d.%d.0/24' % (second, third),
+                owned_dst_only = True,
+                start_node = hosts_acc1,
+                final_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
+                reachable = True)
+            ]))
         # In the same application, hosts under access2 can reach hosts under
         # access1
-        policies.add_policy(ReachabilityPolicy(
-            protocol = 'http',
-            pkt_dst = '10.%d.%d.0/24' % (second, third),
-            owned_dst_only = True,
-            start_node = hosts_acc2,
-            final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
-            reachable = True))
+        policies.add_policy(ConsistencyPolicy([
+            ReachabilityPolicy(
+                protocol = 'http',
+                pkt_dst = '10.%d.%d.0/24' % (second, third),
+                owned_dst_only = True,
+                start_node = hosts_acc2,
+                final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
+                reachable = True)
+            ]))
         # Hosts under an application cannot reach hosts under other applications
-        policies.add_policy(ReachabilityPolicy(
-            protocol = 'http',
-            pkt_dst = '10.0.0.0/7',
-            owned_dst_only = True,
-            start_node = 'app%d-host[0-9]+' % app,
-            final_node = hosts_other_apps,
-            reachable = False))
+        policies.add_policy(ConsistencyPolicy([
+            ReachabilityPolicy(
+                protocol = 'http',
+                pkt_dst = '10.0.0.0/7',
+                owned_dst_only = True,
+                start_node = 'app%d-host[0-9]+' % app,
+                final_node = hosts_other_apps,
+                reachable = False)
+            ]))
 
     ## output as TOML
     config = network.to_dict()
