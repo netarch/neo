@@ -116,11 +116,19 @@ void Plankton::verify_exit(int status)
     ec_t2 = high_resolution_clock::now();
     auto ec_time = duration_cast<microseconds>(ec_t2 - ec_t1);
 
+    // record the peak RSS (resident set size) for this EC
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru) < 0) {
+        Logger::get().err("getrusage()", errno);
+    }
+
     // flush the C file stream buffers and reopen the file in C++
     fflush(NULL);
     Logger::get().reopen();
     Logger::get().info("Finished in " + std::to_string(ec_time.count())
                        + " microseconds");
+    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss)
+                       + " kilobytes");
 
     exit(status);
 }
@@ -251,11 +259,10 @@ int Plankton::run()
     // record the peak RSS (resident set size)
     struct rusage ru;
     if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        fprintf(stderr, "getrusage() failed\\n");
-        exit(-1);
+        Logger::get().err("getrusage()", errno);
     }
-    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss) +
-                       " kilobytes");
+    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss)
+                       + " kilobytes");
 
     return 0;
 }
