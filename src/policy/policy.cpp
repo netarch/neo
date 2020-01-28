@@ -15,10 +15,15 @@
 #include "policy/waypoint.hpp"
 #include "model.h"
 
-Policy::Policy(): initial_ec(nullptr), comm_tx(nullptr), comm_rx(nullptr)
+Policy::Policy(bool correlated)
+    : initial_ec(nullptr), comm_tx(nullptr), comm_rx(nullptr)
 {
     static int next_id = 1;
-    id = next_id++;
+    if (correlated) {
+        id = 0;
+    } else {
+        id = next_id++;
+    }
 }
 
 Policy::~Policy()
@@ -119,11 +124,11 @@ void Policy::parse_correlated_policies(
         }
 
         if (*type == "reachability") {
-            policy = new ReachabilityPolicy(config, network);
+            policy = new ReachabilityPolicy(config, network, true);
         } else if (*type == "reply-reachability") {
-            policy = new ReplyReachabilityPolicy(config, network);
+            policy = new ReplyReachabilityPolicy(config, network, true);
         } else if (*type == "waypoint") {
-            policy = new WaypointPolicy(config, network);
+            policy = new WaypointPolicy(config, network, true);
         } else {
             Logger::get().err("Unsupported policy type: " + *type);
         }

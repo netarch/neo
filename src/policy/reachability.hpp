@@ -24,7 +24,8 @@ private:
     void parse_reachable(const std::shared_ptr<cpptoml::table>&);
 
 public:
-    ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
+    ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&,
+                       bool correlated = false);
 
     std::string to_string() const override;
     void init(State *) const override;
