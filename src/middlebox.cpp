@@ -6,6 +6,8 @@
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
 
+using namespace std::chrono;
+
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
       listener_end(false)
@@ -140,10 +142,19 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     Logger::get().info("Injecting packet " + pkt.to_string());
     env->inject_packet(pkt);
 
+    // measure the packet injection latency (t1)
+    auto t1 = high_resolution_clock::now();
+
     // wait for timeout
     cv.wait_for(lck, app->get_timeout());
 
+    // measure the packet injection latency (t2)
+    auto t2 = high_resolution_clock::now();
+    auto latency = duration_cast<nanoseconds>(t2 - t1);
+
     // logging
+    Logger::get().info("Injection latency: " + std::to_string(latency.count())
+                       + " nanoseconds");
     std::string nhops_str;
     nhops_str += to_string() + " -> [";
     for (auto nhop = next_hops.begin(); nhop != next_hops.end(); ++nhop) {
