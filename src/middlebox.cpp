@@ -1,12 +1,10 @@
 #include "middlebox.hpp"
 
 #include <libnet.h>
-#include <chrono>
 
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
-
-using namespace std::chrono;
+#include "stats.hpp"
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
@@ -109,23 +107,31 @@ void Middlebox::init()
     }
 }
 
-void Middlebox::rewind(NodePacketHistory *nph)
+int Middlebox::rewind(NodePacketHistory *nph)
 {
     if (node_pkt_hist == nph) {
-        return;
+        return 0;
     }
+
+    int rewind_injections = 0;
+
+    Logger::get().info("============== rewind starts ==============");
 
     // reset middlebox state
     env->run(mb_app_reset, app);
 
     // replay history
     if (nph) {
+        rewind_injections = nph->get_packets().size();
         for (Packet *packet : nph->get_packets()) {
             send_pkt(*packet);
         }
     }
-
     node_pkt_hist = nph;
+
+    Logger::get().info("==============  rewind ends  ==============");
+
+    return rewind_injections;
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
@@ -142,19 +148,10 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     Logger::get().info("Injecting packet " + pkt.to_string());
     env->inject_packet(pkt);
 
-    // measure the packet injection latency (t1)
-    auto t1 = high_resolution_clock::now();
-
     // wait for timeout
     cv.wait_for(lck, app->get_timeout());
 
-    // measure the packet injection latency (t2)
-    auto t2 = high_resolution_clock::now();
-    auto latency = duration_cast<nanoseconds>(t2 - t1);
-
     // logging
-    Logger::get().info("Injection latency: " + std::to_string(latency.count())
-                       + " nanoseconds");
     std::string nhops_str;
     nhops_str += to_string() + " -> [";
     for (auto nhop = next_hops.begin(); nhop != next_hops.end(); ++nhop) {

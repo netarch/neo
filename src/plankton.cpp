@@ -8,25 +8,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #include <set>
-#include <chrono>
 #include <cpptoml/cpptoml.hpp>
 
+#include "stats.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "model.h"
-
-using namespace std::chrono;
 
 namespace
 {
 bool verify_all_ECs = false;    // verify all ECs even if violation is found
 bool policy_violated = false;   // true if policy is violated
 std::set<int> tasks;
-high_resolution_clock::time_point ec_t1, ec_t2;
 const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
 void signal_handler(int sig, siginfo_t *siginfo,
@@ -78,7 +73,7 @@ Plankton::Plankton(): policy(nullptr)
 {
 }
 
-Plankton& Plankton::get_instance()
+Plankton& Plankton::get()
 {
     static Plankton instance;
     return instance;
@@ -112,23 +107,14 @@ extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify_exit(int status)
 {
-    // record time usage for this EC
-    ec_t2 = high_resolution_clock::now();
-    auto ec_time = duration_cast<microseconds>(ec_t2 - ec_t1);
+    Stats::get().set_verify_time();
+    Stats::get().set_verify_maxrss();
 
-    // record the peak RSS (resident set size) for this EC
-    struct rusage ru;
-    if (getrusage(RUSAGE_SELF, &ru) < 0) {
-        Logger::get().err("getrusage()", errno);
-    }
-
-    // flush the C file stream buffers and reopen the file in C++
+    // output per proecess stats
     fflush(NULL);
-    Logger::get().reopen();
-    Logger::get().info("Finished in " + std::to_string(ec_time.count())
-                       + " microseconds");
-    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss)
-                       + " kilobytes");
+    Logger::get().set_file(std::to_string(getpid()) + ".stats.csv");
+    Logger::get().set_verbose(false);
+    Stats::get().print_per_process_stats();
 
     exit(status);
 }
@@ -171,7 +157,7 @@ void Plankton::verify(Policy *policy)
     this->policy = policy;
 
     // record time usage for this EC
-    ec_t1 = high_resolution_clock::now();
+    Stats::get().set_verify_t1();
 
     // run SPIN verifier
     verify_exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
@@ -206,8 +192,7 @@ int Plankton::run()
         sigaction(sigs[i], &new_action, nullptr);
     }
 
-    // record the total time usage
-    auto total_t1 = high_resolution_clock::now();
+    Stats::get().set_total_t1();
 
     for (Policy *policy : policies) {
         // change working directory
@@ -218,8 +203,7 @@ int Plankton::run()
         }
         fs::chdir(working_dir);
 
-        // record time usage for this policy
-        auto policy_t1 = high_resolution_clock::now();
+        Stats::get().set_policy_t1();
 
         // verifying all combinations of ECs
         Logger::get().info("====================");
@@ -232,37 +216,27 @@ int Plankton::run()
                 break;
             }
         }
+        // wait until all tasks are done
+        while (!tasks.empty()) {
+            pause();
+        }
 
-        // record time usage for this policy
-        auto policy_t2 = high_resolution_clock::now();
-        auto policy_time = duration_cast<microseconds>(policy_t2 - policy_t1);
-        Logger::get().info("Finished in " + std::to_string(policy_time.count())
-                           + " microseconds");
+        Stats::get().set_policy_time();
 
         if (!verify_all_ECs && policy_violated) {
             break;
         }
     }
 
-    // wait until all tasks are done
-    while (!tasks.empty()) {
-        pause();
-    }
+    Stats::get().set_total_time();
+    Stats::get().set_total_maxrss();
 
-    // record the total time usage
-    auto total_t2 = high_resolution_clock::now();
-    auto total_time = duration_cast<microseconds>(total_t2 - total_t1);
-    Logger::get().info("====================");
-    Logger::get().info("Total time: " + std::to_string(total_time.count())
-                       + " microseconds");
-
-    // record the peak RSS (resident set size)
-    struct rusage ru;
-    if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        Logger::get().err("getrusage()", errno);
-    }
-    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss)
-                       + " kilobytes");
+    // output main process stats
+    Logger::get().set_file(fs::append(out_dir, "stats.csv"));
+    Logger::get().set_verbose(false);
+    Stats::get().print_main_stats(network.get_nodes().size(),
+                                  network.get_links().size(),
+                                  policies);
 
     return 0;
 }

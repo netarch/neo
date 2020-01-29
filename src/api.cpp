@@ -2,7 +2,7 @@
 
 #include "plankton.hpp"
 
-static Plankton& plankton = Plankton::get_instance();
+static Plankton& plankton = Plankton::get();
 
 void initialize(State *state)
 {

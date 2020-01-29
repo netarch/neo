@@ -35,7 +35,7 @@ public:
     Plankton(const Plankton&) = delete;
     Plankton& operator=(const Plankton&) = delete;
 
-    static Plankton& get_instance();
+    static Plankton& get();
 
     void init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
               const std::string& input_file, const std::string& output_dir);
