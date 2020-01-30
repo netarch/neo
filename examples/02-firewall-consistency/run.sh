@@ -17,7 +17,7 @@ type "$NEO" >/dev/null 2>&1 || \
 
 mkdir -p "$OUT_DIR"
 
-for num_apps in 5 10 15; do
+for num_apps in 4 8 12; do
     for num_hosts in 4 8 12; do
         for num_procs in 1; do
             echo "[+] Verifying $num_apps applications and $num_hosts hosts/app..."
