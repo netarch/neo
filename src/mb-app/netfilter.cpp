@@ -92,7 +92,7 @@ void NetFilter::reset()
     if (system("iptables -Z")) {
         Logger::get().err("iptables -Z -w 10");
     }
-    if (system((std::string("iptables-restore -w 10 ") + filename).c_str())) {
+    if (system((std::string("iptables-restore ") + filename).c_str())) {
         Logger::get().err("iptables-restore");
     }
     fs::remove(filename);
