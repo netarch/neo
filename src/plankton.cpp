@@ -17,15 +17,13 @@
 #include "lib/logger.hpp"
 #include "model.h"
 
-namespace
-{
-bool verify_all_ECs = false;    // verify all ECs even if violation is found
-bool policy_violated = false;   // true if policy is violated
-std::set<int> tasks;
-const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
+static bool verify_all_ECs = false;    // verify all ECs even if violation is found
+static bool policy_violated = false;   // true if policy is violated
+static std::set<int> tasks;
+static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
-void signal_handler(int sig, siginfo_t *siginfo,
-                    void *ctx __attribute__((unused)))
+static void signal_handler(int sig, siginfo_t *siginfo,
+                           void *ctx __attribute__((unused)))
 {
     int pid, status;
 
@@ -67,7 +65,6 @@ void signal_handler(int sig, siginfo_t *siginfo,
             exit(128 + sig);
     }
 }
-} // namespace
 
 Plankton::Plankton(): policy(nullptr)
 {
@@ -79,12 +76,13 @@ Plankton& Plankton::get()
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
-                    const std::string& input_file,
+void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
+                    bool verbose, const std::string& input_file,
                     const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = dop;
+    Stats::get().record_latencies(latency);
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
@@ -107,19 +105,19 @@ extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify_exit(int status)
 {
-    Stats::get().set_verify_time();
-    Stats::get().set_verify_maxrss();
+    Stats::get().set_ec_time();
+    Stats::get().set_ec_maxrss();
 
     // output per proecess stats
     fflush(NULL);
     Logger::get().set_file(std::to_string(getpid()) + ".stats.csv");
     Logger::get().set_verbose(false);
-    Stats::get().print_per_process_stats();
+    Stats::get().print_ec_stats();
 
     exit(status);
 }
 
-void Plankton::verify(Policy *policy)
+void Plankton::verify_ec(Policy *policy)
 {
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
@@ -128,7 +126,6 @@ void Plankton::verify(Policy *policy)
         "-n",   // suppress report for unreached states
         suffix.c_str(),
     };
-    const std::string logfile = std::to_string(getpid()) + ".log";
 
     // reset signal handlers
     struct sigaction default_action;
@@ -140,6 +137,7 @@ void Plankton::verify(Policy *policy)
     }
 
     // reset logger
+    const std::string logfile = std::to_string(getpid()) + ".log";
     Logger::get().set_file(logfile);
     Logger::get().set_verbose(false);
     Logger::get().info("Policy: " + policy->to_string());
@@ -157,86 +155,118 @@ void Plankton::verify(Policy *policy)
     this->policy = policy;
 
     // record time usage for this EC
-    Stats::get().set_verify_t1();
+    Stats::get().set_ec_t1();
 
     // run SPIN verifier
     verify_exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
 }
 
-void Plankton::dispatch(Policy *policy)
+void Plankton::verify_policy(Policy *policy)
 {
-    int childpid;
-    if ((childpid = fork()) < 0) {
-        Logger::get().err("Failed to spawn new process", errno);
-    } else if (childpid == 0) {
-        verify(policy);
-    }
+    Logger::get().info("====================");
+    Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
+                       + policy->to_string());
+    Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
 
-    tasks.insert(childpid);
-    while (tasks.size() >= max_jobs) {
-        pause();
-    }
-}
+    // reset static variables
+    policy_violated = false;
+    tasks.clear();
 
-int Plankton::run()
-{
     // register signal handlers
-    struct sigaction new_action;
-    new_action.sa_sigaction = signal_handler;
-    sigemptyset(&new_action.sa_mask);
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaddset(&new_action.sa_mask, sigs[i]);
+        sigaddset(&action.sa_mask, sigs[i]);
     }
-    new_action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaction(sigs[i], &new_action, nullptr);
+        sigaction(sigs[i], &action, nullptr);
     }
 
-    Stats::get().set_total_t1();
+    // change to the policy's working directory
+    const std::string working_dir
+        = fs::append(out_dir, std::to_string(policy->get_id()));
+    if (!fs::exists(working_dir)) {
+        fs::mkdir(working_dir);
+    }
+    fs::chdir(working_dir);
 
-    for (Policy *policy : policies) {
-        // change working directory
-        const std::string working_dir
-            = fs::append(out_dir, std::to_string(policy->get_id()));
-        if (!fs::exists(working_dir)) {
-            fs::mkdir(working_dir);
+    Stats::get().set_policy_t1();
+
+    // fork for each combination of ECs for concurrent execution
+    while (policy->set_initial_ec()) {
+        int childpid;
+        if ((childpid = fork()) < 0) {
+            Logger::get().err("fork()", errno);
+        } else if (childpid == 0) {
+            verify_ec(policy);
         }
-        fs::chdir(working_dir);
 
-        Stats::get().set_policy_t1();
-
-        // verifying all combinations of ECs
-        Logger::get().info("====================");
-        Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
-                           + policy->to_string());
-        Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
-        while (policy->set_initial_ec()) {
-            dispatch(policy);
-            if (!verify_all_ECs && policy_violated) {
-                break;
-            }
-        }
-        // wait until all tasks are done
-        while (!tasks.empty()) {
+        tasks.insert(childpid);
+        while (tasks.size() >= max_jobs) {
             pause();
         }
-
-        Stats::get().set_policy_time();
 
         if (!verify_all_ECs && policy_violated) {
             break;
         }
     }
 
+    // wait until all EC are verified or terminated
+    while (!tasks.empty()) {
+        pause();
+    }
+
+    Stats::get().set_policy_time();
+    Stats::get().set_policy_maxrss();
+
+    Logger::get().set_file("stats.csv");
+    Logger::get().set_verbose(false);
+    Stats::get().print_policy_stats(network.get_nodes().size(),
+                                    network.get_links().size(),
+                                    policy);
+
+    exit(0);
+}
+
+int Plankton::run()
+{
+    // register signal handlers
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, sigs[i]);
+    }
+    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaction(sigs[i], &action, nullptr);
+    }
+
+    Stats::get().set_total_t1();
+
+    for (Policy *policy : policies) {
+        int childpid;
+
+        // fork for each policy to get their memory usage measurements
+        if ((childpid = fork()) < 0) {
+            Logger::get().err("fork()", errno);
+        } else if (childpid == 0) {
+            verify_policy(policy);
+        }
+
+        tasks.insert(childpid);
+
+        // wait until the policy finishes
+        while (!tasks.empty()) {
+            pause();
+        }
+    }
+
     Stats::get().set_total_time();
     Stats::get().set_total_maxrss();
-
-    // output main process stats
-    Logger::get().set_file(fs::append(out_dir, "stats.csv"));
-    Logger::get().set_verbose(false);
-    Stats::get().print_main_stats(network.get_nodes().size(),
-                                  network.get_links().size(),
-                                  policies);
+    Stats::get().print_main_stats();
 
     return 0;
 }

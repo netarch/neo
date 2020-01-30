@@ -110,7 +110,7 @@ void Middlebox::init()
 int Middlebox::rewind(NodePacketHistory *nph)
 {
     if (node_pkt_hist == nph) {
-        return 0;
+        return -1;
     }
 
     int rewind_injections = 0;

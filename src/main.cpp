@@ -11,28 +11,30 @@ static void usage(const std::string& progname)
     std::cout <<
               "Usage: " + progname + " [OPTIONS] -i <file> -o <dir>\n"
               "Options:\n"
-              "    -h, --help             print this help message\n"
-              "    -a, --all              verify all ECs after violation\n"
-              "    -f, --force            remove the output directory\n"
-              "    -j, --jobs <nprocs>    number of parallel tasks\n"
-              "    -v, --verbose          print more debugging information\n"
+              "    -h, --help           print this help message\n"
+              "    -a, --all            verify all ECs after violation\n"
+              "    -f, --force          remove pre-existent output directory\n"
+              "    -j, --jobs <nprocs>  number of parallel tasks\n"
+              "    -l, --latency        measure packet injection latencies\n"
+              "    -v, --verbose        print more debugging information\n"
               "\n"
-              "    -i, --input <file>     network configuration file\n"
-              "    -o, --output <dir>     output directory\n";
+              "    -i, --input <file>   network configuration file\n"
+              "    -o, --output <dir>   output directory\n";
 }
 
 static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
-                       size_t& max_jobs, bool& verbose, std::string& input_file,
-                       std::string& output_dir)
+                       size_t& max_jobs, bool& latency, bool& verbose,
+                       std::string& input_file, std::string& output_dir)
 {
     int opt;
-    const char *optstring = "hafj:vi:o:";
+    const char *optstring = "hafj:lvi:o:";
 
     const struct option longopts[] = {
         {"help",    no_argument,       0, 'h'},
         {"all",     no_argument,       0, 'a'},
         {"force",   no_argument,       0, 'f'},
         {"jobs",    required_argument, 0, 'j'},
+        {"latency", no_argument,       0, 'l'},
         {"verbose", no_argument,       0, 'v'},
         {"input",   required_argument, 0, 'i'},
         {"output",  required_argument, 0, 'o'},
@@ -54,6 +56,9 @@ static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
                 if ((max_jobs = atoi(optarg)) < 1) {
                     max_jobs = 1;
                 }
+                break;
+            case 'l':
+                latency = true;
                 break;
             case 'v':
                 verbose = true;
@@ -86,14 +91,14 @@ static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
 
 int main(int argc, char **argv)
 {
-    bool all_ECs = false, rm_out_dir = false, verbose = false;
+    bool all_ECs = false, rm_out_dir = false, latency = false, verbose = false;
     size_t max_jobs = 1;
     std::string input_file, output_dir;
-    parse_args(argc, argv, all_ECs, rm_out_dir, max_jobs, verbose, input_file,
-               output_dir);
+    parse_args(argc, argv, all_ECs, rm_out_dir, max_jobs, latency, verbose,
+               input_file, output_dir);
 
     Plankton& plankton = Plankton::get();
-    plankton.init(all_ECs, rm_out_dir, max_jobs, verbose, input_file,
+    plankton.init(all_ECs, rm_out_dir, max_jobs, latency, verbose, input_file,
                   output_dir);
     return plankton.run();
 }

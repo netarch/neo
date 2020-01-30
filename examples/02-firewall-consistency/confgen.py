@@ -179,7 +179,7 @@ def confgen(apps, hosts):
                 final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
                 reachable = True)
             ]))
-        # Hosts under an application cannot reach hosts under other applications
+        # Hosts of an application cannot reach hosts of other applications
         policies.add_policy(ConsistencyPolicy([
             ReachabilityPolicy(
                 protocol = 'http',

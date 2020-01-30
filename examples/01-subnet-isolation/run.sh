@@ -25,6 +25,8 @@ for num_subnets in 5 10 15; do
                 > network.toml
             sudo "$NEO" -f -j $num_procs -i network.toml \
                 -o "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs"
+            sudo "$NEO" -l -f -j $num_procs -i network.toml \
+                -o "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs.latency"
         done
     done
 done
