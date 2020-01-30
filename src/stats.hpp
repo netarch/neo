@@ -13,6 +13,8 @@ private:
     std::chrono::high_resolution_clock::duration
     get_time(const std::chrono::high_resolution_clock::time_point&);
 
+    bool latencies;   // true if latencies should be recorded
+
     /*
      * main process measurements
      */
@@ -54,6 +56,7 @@ public:
 
     static Stats& get();
 
+    void record_latencies(bool);
     void print_ec_stats();
     void print_policy_stats(int nodes, int links, Policy *);
     void print_main_stats();

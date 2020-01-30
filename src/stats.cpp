@@ -13,21 +13,28 @@ Stats& Stats::get()
     return instance;
 }
 
+void Stats::record_latencies(bool l)
+{
+    latencies = l;
+}
+
 void Stats::print_ec_stats()
 {
     Logger::get().print("Time (microseconds), Memory (kilobytes)");
     Logger::get().print(std::to_string(ec_time.count()) + ", " +
                         std::to_string(ec_maxrss));
-    Logger::get().print("Overall latency (nanoseconds), "
-                        "Rewind latency (nanoseconds), "
-                        "Rewind injection count, "
-                        "Packet latency (nanoseconds)");
-    for (size_t i = 0; i < overall_latencies.size(); ++i) {
-        Logger::get().print(
-            std::to_string(overall_latencies[i].count()) + ", " +
-            std::to_string(rewind_latencies[i].count()) + ", " +
-            std::to_string(rewind_injection_count[i]) + ", " +
-            std::to_string(pkt_latencies[i].count()));
+    if (latencies) {
+        Logger::get().print("Overall latency (nanoseconds), "
+                            "Rewind latency (nanoseconds), "
+                            "Rewind injection count, "
+                            "Packet latency (nanoseconds)");
+        for (size_t i = 0; i < overall_latencies.size(); ++i) {
+            Logger::get().print(
+                std::to_string(overall_latencies[i].count()) + ", " +
+                std::to_string(rewind_latencies[i].count()) + ", " +
+                std::to_string(rewind_injection_count[i]) + ", " +
+                std::to_string(pkt_latencies[i].count()));
+        }
     }
 }
 
@@ -128,38 +135,52 @@ void Stats::set_ec_maxrss()
 
 void Stats::set_overall_lat_t1()
 {
-    overall_lat_t1 = high_resolution_clock::now();
+    if (latencies) {
+        overall_lat_t1 = high_resolution_clock::now();
+    }
 }
 
 void Stats::set_overall_latency()
 {
-    auto overall_latency = duration_cast<nanoseconds>(get_time(overall_lat_t1));
-    overall_latencies.push_back(overall_latency);
+    if (latencies) {
+        auto overall_latency = duration_cast<nanoseconds>(get_time(overall_lat_t1));
+        overall_latencies.push_back(overall_latency);
+    }
 }
 
 void Stats::set_rewind_lat_t1()
 {
-    rewind_lat_t1 = high_resolution_clock::now();
+    if (latencies) {
+        rewind_lat_t1 = high_resolution_clock::now();
+    }
 }
 
 void Stats::set_rewind_latency()
 {
-    auto rewind_latency = duration_cast<nanoseconds>(get_time(rewind_lat_t1));
-    rewind_latencies.push_back(rewind_latency);
+    if (latencies) {
+        auto rewind_latency = duration_cast<nanoseconds>(get_time(rewind_lat_t1));
+        rewind_latencies.push_back(rewind_latency);
+    }
 }
 
 void Stats::set_rewind_injection_count(int count)
 {
-    rewind_injection_count.push_back(count);
+    if (latencies) {
+        rewind_injection_count.push_back(count);
+    }
 }
 
 void Stats::set_pkt_lat_t1()
 {
-    pkt_lat_t1 = high_resolution_clock::now();
+    if (latencies) {
+        pkt_lat_t1 = high_resolution_clock::now();
+    }
 }
 
 void Stats::set_pkt_latency()
 {
-    auto pkt_latency = duration_cast<nanoseconds>(get_time(pkt_lat_t1));
-    pkt_latencies.push_back(pkt_latency);
+    if (latencies) {
+        auto pkt_latency = duration_cast<nanoseconds>(get_time(pkt_lat_t1));
+        pkt_latencies.push_back(pkt_latency);
+    }
 }

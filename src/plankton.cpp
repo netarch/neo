@@ -76,12 +76,13 @@ Plankton& Plankton::get()
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
-                    const std::string& input_file,
+void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
+                    bool verbose, const std::string& input_file,
                     const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = dop;
+    Stats::get().record_latencies(latency);
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
