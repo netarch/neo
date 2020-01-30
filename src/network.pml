@@ -39,6 +39,7 @@ typedef comm_state_t {
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
+    int path_choices[SIZEOF_VOID_P / SIZEOF_INT]    /* choices made in the dataplane when multipath is present */
 };
 
 /* policy */

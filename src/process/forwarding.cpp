@@ -6,6 +6,7 @@
 #include "stats.hpp"
 #include "lib/logger.hpp"
 #include "lib/hash.hpp"
+#include "choices.hpp"
 #include "model.h"
 
 ForwardingProcess::~ForwardingProcess()
@@ -176,10 +177,22 @@ void ForwardingProcess::collect_next_hops(State *state)
         dropped(state);
         return;
     }
+
     std::vector<FIB_IPNH> candidates;
-    for (const FIB_IPNH& next_hop : next_hops) {
-        candidates.push_back(next_hop);
+    if(next_hops.size() > 1) { //multipath
+        //first check if a choice was made previously
+        auto pastChoice = getChoiceIfPresent(state);
+        if(pastChoice) {
+            candidates.push_back(pastChoice.value());
+        }
     }
+
+    if(candidates.empty()) {
+        for (const FIB_IPNH &next_hop : next_hops) {
+            candidates.push_back(next_hop);
+        }
+    }
+
     update_candidates(state, candidates);
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FORWARD_PACKET);
 }
@@ -192,7 +205,7 @@ void ForwardingProcess::forward_packet(State *state) const
 
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
-
+    setChoice(state, (*candidates)[state->choice]);
     Node *next_hop = (*candidates)[state->choice].get_l3_node();
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
