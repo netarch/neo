@@ -137,6 +137,25 @@ void Policy::parse_correlated_policies(
     }
 }
 
+void Policy::compute_ecs(const EqClasses& all_ECs, const EqClasses& owned_ECs)
+{
+    if (correlated_policies.empty()) {
+        if (owned_dst_only) {
+            ECs.add_mask_range(pkt_dst, owned_ECs);
+        } else {
+            ECs.add_mask_range(pkt_dst, all_ECs);
+        }
+    } else {
+        for (Policy *p : correlated_policies) {
+            if (p->owned_dst_only) {
+                p->ECs.add_mask_range(p->pkt_dst, owned_ECs);
+            } else {
+                p->ECs.add_mask_range(p->pkt_dst, all_ECs);
+            }
+        }
+    }
+}
+
 int Policy::get_id() const
 {
     return id;
@@ -226,17 +245,6 @@ size_t Policy::num_ecs() const
         return num;
     } else {
         return ECs.size();
-    }
-}
-
-void Policy::compute_ecs(const EqClasses& all_ECs)
-{
-    if (correlated_policies.empty()) {
-        ECs.add_mask_range(pkt_dst, all_ECs);
-    } else {
-        for (Policy *p : correlated_policies) {
-            p->ECs.add_mask_range(p->pkt_dst, all_ECs);
-        }
     }
 }
 
@@ -392,11 +400,7 @@ void Policies::compute_ecs(const Network& network) const
     }
 
     for (Policy *policy : policies) {
-        if (policy->owned_dst_only) {
-            policy->compute_ecs(owned_ECs);
-        } else {
-            policy->compute_ecs(all_ECs);
-        }
+        policy->compute_ecs(all_ECs, owned_ECs);
     }
 }
 

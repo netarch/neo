@@ -45,6 +45,7 @@ protected:
     void parse_tcp_ports(const std::shared_ptr<cpptoml::table>&);
     void parse_correlated_policies(const std::shared_ptr<cpptoml::table>&,
                                    const Network&);
+    void compute_ecs(const EqClasses&, const EqClasses&);
 
 public:
     Policy(bool correlated = false);
@@ -59,7 +60,6 @@ public:
     void add_ec(State *, const IPv4Address&);
     const EqClasses& get_ecs(State *) const;
     size_t num_ecs() const;
-    void compute_ecs(const EqClasses&);
 
     bool set_initial_ec();
     EqClass *get_initial_ec(State *) const;
