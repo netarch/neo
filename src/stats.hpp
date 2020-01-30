@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <chrono>
+#include <string>
 
 #include "policy/policy.hpp"
 
@@ -15,18 +16,23 @@ private:
     /*
      * main process measurements
      */
-    std::chrono::high_resolution_clock::time_point policy_t1;
     std::chrono::high_resolution_clock::time_point total_t1;
-    std::vector<std::chrono::microseconds> policy_times;
     std::chrono::microseconds   total_time;
     long                        total_maxrss;   // kilobytes
 
     /*
-     * per process (per EC) measurements
+     * policy process measurements
      */
-    std::chrono::high_resolution_clock::time_point verify_t1;
-    std::chrono::microseconds   verify_time;
-    long                        verify_maxrss;  // kilobytes
+    std::chrono::high_resolution_clock::time_point policy_t1;
+    std::chrono::microseconds   policy_time;
+    long                        policy_maxrss;  // kilobytes
+
+    /*
+     * EC process measurements
+     */
+    std::chrono::high_resolution_clock::time_point ec_t1;
+    std::chrono::microseconds   ec_time;
+    long                        ec_maxrss;  // kilobytes
 
     std::chrono::high_resolution_clock::time_point overall_lat_t1;
     std::chrono::high_resolution_clock::time_point rewind_lat_t1;
@@ -36,7 +42,7 @@ private:
     std::vector<std::chrono::nanoseconds>   overall_latencies;
     // time for rewinding the middlebox state
     std::vector<std::chrono::nanoseconds>   rewind_latencies;
-    // number of packet injections when rewinding
+    // number of packet injections when rewinding (-1 means no rewind occured)
     std::vector<int>                        rewind_injection_count;
     // time for injecting the actual target packet
     std::vector<std::chrono::nanoseconds>   pkt_latencies;
@@ -48,24 +54,30 @@ public:
 
     static Stats& get();
 
-    void print_per_process_stats();
-    void print_main_stats(int nodes, int links, const Policies&);
+    void print_ec_stats();
+    void print_policy_stats(int nodes, int links, Policy *);
+    void print_main_stats();
 
     /*
      * main process measurements
      */
-    void set_policy_t1();
-    void set_policy_time();
     void set_total_t1();
     void set_total_time();
     void set_total_maxrss();
 
     /*
-     * per process (per EC) measurements
+     * policy process measurements
      */
-    void set_verify_t1();
-    void set_verify_time();
-    void set_verify_maxrss();
+    void set_policy_t1();
+    void set_policy_time();
+    void set_policy_maxrss();
+
+    /*
+     * EC process measurements
+     */
+    void set_ec_t1();
+    void set_ec_time();
+    void set_ec_maxrss();
 
     void set_overall_lat_t1();
     void set_overall_latency();

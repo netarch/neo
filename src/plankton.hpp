@@ -27,8 +27,8 @@ private:
      */
 
     Plankton();
-    void verify(Policy *);
-    void dispatch(Policy *);
+    void verify_ec(Policy *);
+    void verify_policy(Policy *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
