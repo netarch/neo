@@ -8,29 +8,22 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 
 #include <set>
-#include <chrono>
 #include <cpptoml/cpptoml.hpp>
 
+#include "stats.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "model.h"
 
-using namespace std::chrono;
+static bool verify_all_ECs = false;    // verify all ECs even if violation is found
+static bool policy_violated = false;   // true if policy is violated
+static std::set<int> tasks;
+static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
-namespace
-{
-bool verify_all_ECs = false;    // verify all ECs even if violation is found
-bool policy_violated = false;   // true if policy is violated
-std::set<int> tasks;
-high_resolution_clock::time_point ec_t1, ec_t2;
-const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
-
-void signal_handler(int sig, siginfo_t *siginfo,
-                    void *ctx __attribute__((unused)))
+static void signal_handler(int sig, siginfo_t *siginfo,
+                           void *ctx __attribute__((unused)))
 {
     int pid, status;
 
@@ -72,24 +65,24 @@ void signal_handler(int sig, siginfo_t *siginfo,
             exit(128 + sig);
     }
 }
-} // namespace
 
 Plankton::Plankton(): policy(nullptr)
 {
 }
 
-Plankton& Plankton::get_instance()
+Plankton& Plankton::get()
 {
     static Plankton instance;
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
-                    const std::string& input_file,
+void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
+                    bool verbose, const std::string& input_file,
                     const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = dop;
+    Stats::get().record_latencies(latency);
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
@@ -112,20 +105,19 @@ extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify_exit(int status)
 {
-    // record time usage for this EC
-    ec_t2 = high_resolution_clock::now();
-    auto ec_time = duration_cast<microseconds>(ec_t2 - ec_t1);
+    Stats::get().set_ec_time();
+    Stats::get().set_ec_maxrss();
 
-    // flush the C file stream buffers and reopen the file in C++
+    // output per proecess stats
     fflush(NULL);
-    Logger::get().reopen();
-    Logger::get().info("Finished in " + std::to_string(ec_time.count())
-                       + " microseconds");
+    Logger::get().set_file(std::to_string(getpid()) + ".stats.csv");
+    Logger::get().set_verbose(false);
+    Stats::get().print_ec_stats();
 
     exit(status);
 }
 
-void Plankton::verify(Policy *policy)
+void Plankton::verify_ec(Policy *policy)
 {
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
@@ -135,7 +127,6 @@ void Plankton::verify(Policy *policy)
         "-n",   // suppress report for unreached states
         suffix.c_str(),
     };
-    const std::string logfile = std::to_string(getpid()) + ".log";
 
     // reset signal handlers
     struct sigaction default_action;
@@ -147,6 +138,7 @@ void Plankton::verify(Policy *policy)
     }
 
     // reset logger
+    const std::string logfile = std::to_string(getpid()) + ".log";
     Logger::get().set_file(logfile);
     Logger::get().set_verbose(false);
     Logger::get().info("Policy: " + policy->to_string());
@@ -164,99 +156,118 @@ void Plankton::verify(Policy *policy)
     this->policy = policy;
 
     // record time usage for this EC
-    ec_t1 = high_resolution_clock::now();
+    Stats::get().set_ec_t1();
 
     // run SPIN verifier
     verify_exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
 }
 
-void Plankton::dispatch(Policy *policy)
+void Plankton::verify_policy(Policy *policy)
 {
-    int childpid;
-    if ((childpid = fork()) < 0) {
-        Logger::get().err("Failed to spawn new process", errno);
-    } else if (childpid == 0) {
-        verify(policy);
-    }
+    Logger::get().info("====================");
+    Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
+                       + policy->to_string());
+    Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
 
-    tasks.insert(childpid);
-    while (tasks.size() >= max_jobs) {
-        pause();
-    }
-}
+    // reset static variables
+    policy_violated = false;
+    tasks.clear();
 
-int Plankton::run()
-{
     // register signal handlers
-    struct sigaction new_action;
-    new_action.sa_sigaction = signal_handler;
-    sigemptyset(&new_action.sa_mask);
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaddset(&new_action.sa_mask, sigs[i]);
+        sigaddset(&action.sa_mask, sigs[i]);
     }
-    new_action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaction(sigs[i], &new_action, nullptr);
+        sigaction(sigs[i], &action, nullptr);
     }
 
-    // record the total time usage
-    auto total_t1 = high_resolution_clock::now();
+    // change to the policy's working directory
+    const std::string working_dir
+        = fs::append(out_dir, std::to_string(policy->get_id()));
+    if (!fs::exists(working_dir)) {
+        fs::mkdir(working_dir);
+    }
+    fs::chdir(working_dir);
 
-    for (Policy *policy : policies) {
-        // change working directory
-        const std::string working_dir
-            = fs::append(out_dir, std::to_string(policy->get_id()));
-        if (!fs::exists(working_dir)) {
-            fs::mkdir(working_dir);
-        }
-        fs::chdir(working_dir);
+    Stats::get().set_policy_t1();
 
-        // record time usage for this policy
-        auto policy_t1 = high_resolution_clock::now();
-
-        // verifying all combinations of ECs
-        Logger::get().info("====================");
-        Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
-                           + policy->to_string());
-        Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
-        while (policy->set_initial_ec()) {
-            dispatch(policy);
-            if (!verify_all_ECs && policy_violated) {
-                break;
-            }
+    // fork for each combination of ECs for concurrent execution
+    while (policy->set_initial_ec()) {
+        int childpid;
+        if ((childpid = fork()) < 0) {
+            Logger::get().err("fork()", errno);
+        } else if (childpid == 0) {
+            verify_ec(policy);
         }
 
-        // record time usage for this policy
-        auto policy_t2 = high_resolution_clock::now();
-        auto policy_time = duration_cast<microseconds>(policy_t2 - policy_t1);
-        Logger::get().info("Finished in " + std::to_string(policy_time.count())
-                           + " microseconds");
+        tasks.insert(childpid);
+        while (tasks.size() >= max_jobs) {
+            pause();
+        }
 
         if (!verify_all_ECs && policy_violated) {
             break;
         }
     }
 
-    // wait until all tasks are done
+    // wait until all EC are verified or terminated
     while (!tasks.empty()) {
         pause();
     }
 
-    // record the total time usage
-    auto total_t2 = high_resolution_clock::now();
-    auto total_time = duration_cast<microseconds>(total_t2 - total_t1);
-    Logger::get().info("====================");
-    Logger::get().info("Total time: " + std::to_string(total_time.count())
-                       + " microseconds");
+    Stats::get().set_policy_time();
+    Stats::get().set_policy_maxrss();
 
-    // record the peak RSS (resident set size)
-    struct rusage ru;
-    if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        fprintf(stderr, "getrusage() failed\\n");
-        exit(-1);
+    Logger::get().set_file("stats.csv");
+    Logger::get().set_verbose(false);
+    Stats::get().print_policy_stats(network.get_nodes().size(),
+                                    network.get_links().size(),
+                                    policy);
+
+    exit(0);
+}
+
+int Plankton::run()
+{
+    // register signal handlers
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, sigs[i]);
     }
-    Logger::get().info("Peak memory: " + std::to_string(ru.ru_maxrss) +
-                       " kilobytes");
+    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaction(sigs[i], &action, nullptr);
+    }
+
+    Stats::get().set_total_t1();
+
+    for (Policy *policy : policies) {
+        int childpid;
+
+        // fork for each policy to get their memory usage measurements
+        if ((childpid = fork()) < 0) {
+            Logger::get().err("fork()", errno);
+        } else if (childpid == 0) {
+            verify_policy(policy);
+        }
+
+        tasks.insert(childpid);
+
+        // wait until the policy finishes
+        while (!tasks.empty()) {
+            pause();
+        }
+    }
+
+    Stats::get().set_total_time();
+    Stats::get().set_total_maxrss();
+    Stats::get().print_main_stats();
 
     return 0;
 }
@@ -277,8 +288,8 @@ void Plankton::exec_step(State *state)
     fwd.exec_step(state, network);
     policy->check_violation(state);
 
-    if (state->comm != comm) {
-        // communication changed, reinitialize the policy and forwarding process
+    if (state->comm != comm && state->choice_count > 0) {
+        // communication changed
         policy->init(state);
         fwd.init(state, network, policy);
     }

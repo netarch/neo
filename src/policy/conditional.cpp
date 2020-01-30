@@ -8,8 +8,7 @@
 #include "model.h"
 
 ConditionalPolicy::ConditionalPolicy(
-    const std::shared_ptr<cpptoml::table>& config,
-    const Network& net)
+    const std::shared_ptr<cpptoml::table>& config, const Network& net)
     : Policy()
 {
     auto final_regex = config->get_as<std::string>("final_node");

@@ -6,9 +6,9 @@
 #include "model.h"
 
 ReplyReachabilityPolicy::ReplyReachabilityPolicy(
-    const std::shared_ptr<cpptoml::table>& config,
-    const Network& net)
-    : Policy()
+    const std::shared_ptr<cpptoml::table>& config, const Network& net,
+    bool correlated)
+    : Policy(correlated)
 {
     parse_protocol(config);
     parse_pkt_dst(config);

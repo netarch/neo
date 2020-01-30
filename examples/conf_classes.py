@@ -111,8 +111,14 @@ class Policy:
 
     def to_dict(self):
         data = self.__dict__
-        if self.owned_dst_only == None:
+        if self.protocol is None:
+            data.pop('protocol')
+        if self.pkt_dst is None:
+            data.pop('pkt_dst')
+        if self.owned_dst_only is None:
             data.pop('owned_dst_only')
+        if self.start_node is None:
+            data.pop('start_node')
         return data
 
 class ReachabilityPolicy(Policy):
@@ -130,6 +136,18 @@ class ReplyReachabilityPolicy(Policy):
                         owned_dst_only, start_node)
         self.query_node: str = query_node
         self.reachable: bool = reachable
+
+class ConsistencyPolicy(Policy):
+    def __init__(self, correlated_policies):
+        Policy.__init__(self, 'consistency')
+        self.correlated_policies: List[Policy] = correlated_policies
+
+    def to_dict(self):
+        data = Policy.to_dict(self)
+        if self.correlated_policies:
+            data['correlated_policies'] = [policy.to_dict()
+                    for policy in self.correlated_policies]
+        return data
 
 # TODO: add other policy classes
 

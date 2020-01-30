@@ -47,7 +47,7 @@ protected:
                                    const Network&);
 
 public:
-    Policy();
+    Policy(bool correlated = false);
     virtual ~Policy();
 
     int get_id() const;

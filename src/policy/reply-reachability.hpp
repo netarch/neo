@@ -29,7 +29,7 @@ private:
 
 public:
     ReplyReachabilityPolicy(const std::shared_ptr<cpptoml::table>&,
-                            const Network&);
+                            const Network&, bool correlated = false);
 
     std::string to_string() const override;
     void init(State *) const override;

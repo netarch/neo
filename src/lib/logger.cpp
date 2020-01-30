@@ -63,6 +63,13 @@ void Logger::set_verbose(bool v)
     verbose = v;
 }
 
+void Logger::print(const std::string& msg)
+{
+    if (logfile.is_open()) {
+        logfile << msg << std::endl;
+    }
+}
+
 void Logger::out(const std::string& msg)
 {
     std::cout << msg << std::endl;

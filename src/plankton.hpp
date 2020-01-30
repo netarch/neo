@@ -27,18 +27,19 @@ private:
      */
 
     Plankton();
-    void verify(Policy *);
-    void dispatch(Policy *);
+    void verify_ec(Policy *);
+    void verify_policy(Policy *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
     Plankton(const Plankton&) = delete;
     Plankton& operator=(const Plankton&) = delete;
 
-    static Plankton& get_instance();
+    static Plankton& get();
 
-    void init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
-              const std::string& input_file, const std::string& output_dir);
+    void init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
+              bool verbose, const std::string& input_file,
+              const std::string& output_dir);
     int run();
 
 

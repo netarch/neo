@@ -3,6 +3,7 @@
 #include <cstring>
 #include <typeinfo>
 
+#include "stats.hpp"
 #include "lib/logger.hpp"
 #include "lib/hash.hpp"
 #include "model.h"
@@ -351,12 +352,17 @@ void ForwardingProcess::dropped(State *state) const
 
 std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
 {
+    Stats::get().set_overall_lat_t1();
+
     // check state's pkt_hist and rewind the middlebox state
     PacketHistory *pkt_hist;
     memcpy(&pkt_hist, state->comm_state[state->comm].pkt_hist,
            sizeof(PacketHistory *));
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
-    mb->rewind(current_nph);
+    Stats::get().set_rewind_lat_t1();
+    int rewind_injections = mb->rewind(current_nph);
+    Stats::get().set_rewind_latency();
+    Stats::get().set_rewind_injection_count(rewind_injections);
 
     // construct new packet
     Packet *new_pkt = new Packet(state, policy);
@@ -387,7 +393,12 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
            sizeof(PacketHistory *));
 
     // inject packet
-    return mb->send_pkt(*new_pkt);
+    Stats::get().set_pkt_lat_t1();
+    std::set<FIB_IPNH> next_hops = mb->send_pkt(*new_pkt);
+    Stats::get().set_pkt_latency();
+
+    Stats::get().set_overall_latency();
+    return next_hops;
 }
 
 void ForwardingProcess::update_candidates(

@@ -1,11 +1,12 @@
 #include "middlebox.hpp"
 
 #include <libnet.h>
-#include <chrono>
 
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
 #include "mb-app/ipvs.hpp"
+#include "stats.hpp"
+
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
@@ -110,23 +111,31 @@ void Middlebox::init()
     }
 }
 
-void Middlebox::rewind(NodePacketHistory *nph)
+int Middlebox::rewind(NodePacketHistory *nph)
 {
     if (node_pkt_hist == nph) {
-        return;
+        return -1;
     }
+
+    int rewind_injections = 0;
+
+    Logger::get().info("============== rewind starts ==============");
 
     // reset middlebox state
     env->run(mb_app_reset, app);
 
     // replay history
     if (nph) {
+        rewind_injections = nph->get_packets().size();
         for (Packet *packet : nph->get_packets()) {
             send_pkt(*packet);
         }
     }
-
     node_pkt_hist = nph;
+
+    Logger::get().info("==============  rewind ends  ==============");
+
+    return rewind_injections;
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)

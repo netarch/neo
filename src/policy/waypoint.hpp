@@ -23,7 +23,8 @@ private:
     void parse_pass_through(const std::shared_ptr<cpptoml::table>&);
 
 public:
-    WaypointPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
+    WaypointPolicy(const std::shared_ptr<cpptoml::table>&, const Network&,
+                   bool correlated = false);
 
     std::string to_string() const override;
     void init(State *) const override;

@@ -7,7 +7,8 @@
 class ConsistencyPolicy : public Policy
 {
 private:
-    bool subpolicy_violated;
+    bool first_run;
+    bool result;
 
 public:
     ConsistencyPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);

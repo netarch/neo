@@ -25,6 +25,7 @@ public:
     void set_file(const std::string&);
     void set_verbose(bool);
 
+    void print(const std::string&);     // print directly to log file
     void out(const std::string&);       // print to stdout
     void debug(const std::string&);     // log debugging messages
     void info(const std::string&);      // log info
