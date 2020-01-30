@@ -13,6 +13,9 @@ ForwardingProcess::~ForwardingProcess()
     for (auto& candidates : candidates_hist) {
         delete candidates;
     }
+    for (auto& choices : choices_hist) {
+        delete choices;
+    }
     for (auto& packet : all_pkts) {
         delete packet;
     }
@@ -63,6 +66,9 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
                                       nullptr));
     }
     update_candidates(state, candidates);
+
+    // update choices as an empty map
+    update_choices(state, Choices());
 
     // initialize packet EC and update the FIB
     EqClass *ec = policy->get_initial_ec(state);
@@ -132,7 +138,7 @@ void ForwardingProcess::first_collect(State *state)
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FIRST_FORWARD);
 }
 
-void ForwardingProcess::first_forward(State *state) const
+void ForwardingProcess::first_forward(State *state)
 {
     int pkt_state = state->comm_state[state->comm].pkt_state;
     if (PS_IS_FIRST(pkt_state)) {
@@ -176,15 +182,24 @@ void ForwardingProcess::collect_next_hops(State *state)
         dropped(state);
         return;
     }
+
     std::vector<FIB_IPNH> candidates;
-    for (const FIB_IPNH& next_hop : next_hops) {
-        candidates.push_back(next_hop);
+    std::optional<FIB_IPNH> choice;
+
+    // in case of multipath, use the past choice if it's been made
+    if (next_hops.size() > 1 && (choice = get_choice(state))) {
+        candidates.push_back(choice.value());
+    } else {
+        for (const FIB_IPNH& next_hop : next_hops) {
+            candidates.push_back(next_hop);
+        }
     }
+
     update_candidates(state, candidates);
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FORWARD_PACKET);
 }
 
-void ForwardingProcess::forward_packet(State *state) const
+void ForwardingProcess::forward_packet(State *state)
 {
     Node *current_node;
     memcpy(&current_node, state->comm_state[state->comm].pkt_location,
@@ -192,6 +207,11 @@ void ForwardingProcess::forward_packet(State *state) const
 
     std::vector<FIB_IPNH> *candidates;
     memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
+
+    // in case of multipath, remember the path choice
+    if (candidates->size() > 1) {
+        add_choice(state, (*candidates)[state->choice]);
+    }
 
     Node *next_hop = (*candidates)[state->choice].get_l3_node();
     if (next_hop == current_node) {
@@ -414,6 +434,47 @@ void ForwardingProcess::update_candidates(
     }
     state->choice_count = candidates->size();
     memcpy(state->candidates, &candidates, sizeof(std::vector<FIB_IPNH> *));
+}
+
+void ForwardingProcess::update_choices(State *state, Choices&& new_choices)
+{
+    Choices *choices = new Choices(new_choices);
+    auto res = choices_hist.insert(choices);
+    if (!res.second) {
+        delete choices;
+        choices = *(res.first);
+    }
+    memcpy(state->comm_state[state->comm].path_choices, &choices,
+           sizeof(Choices *));
+}
+
+void ForwardingProcess::add_choice(State *state, const FIB_IPNH& next_hop)
+{
+    Choices *choices;
+    memcpy(&choices, state->comm_state[state->comm].path_choices,
+           sizeof(Choices *));
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+
+    Choices new_choices(*choices);
+    new_choices.add_choice(ec, current_node, next_hop);
+    update_choices(state, std::move(new_choices));
+}
+
+std::optional<FIB_IPNH> ForwardingProcess::get_choice(State *state)
+{
+    Choices *choices;
+    memcpy(&choices, state->comm_state[state->comm].path_choices,
+           sizeof(Choices *));
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+    return choices->get_choice(ec, current_node);
 }
 
 /******************************************************************************/

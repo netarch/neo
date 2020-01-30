@@ -2,10 +2,12 @@
 
 #include <vector>
 #include <unordered_set>
+#include <optional>
 
 #include "process/process.hpp"
 #include "policy/policy.hpp"
 #include "fib.hpp"
+#include "choices.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
 #include "network.hpp"
@@ -39,6 +41,7 @@ private:
 
     std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
+    std::unordered_set<Choices *> choices_hist;
 
     // all history packets
     std::unordered_set<Packet *, PacketHash, PacketEq> all_pkts;
@@ -51,9 +54,9 @@ private:
 
     void packet_entry(State *) const;
     void first_collect(State *);
-    void first_forward(State *) const;
+    void first_forward(State *);
     void collect_next_hops(State *);
-    void forward_packet(State *) const;
+    void forward_packet(State *);
     void accepted(State *, Network&);
     void dropped(State *) const;
 
@@ -62,6 +65,9 @@ private:
 
     std::set<FIB_IPNH> inject_packet(State *, Middlebox *);
     void update_candidates(State *, const std::vector<FIB_IPNH>&);
+    void update_choices(State *, Choices&&);
+    void add_choice(State *, const FIB_IPNH&);
+    std::optional<FIB_IPNH> get_choice(State *);
 
 public:
     ForwardingProcess() = default;
