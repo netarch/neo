@@ -179,16 +179,16 @@ void ForwardingProcess::collect_next_hops(State *state)
     }
 
     std::vector<FIB_IPNH> candidates;
-    if(next_hops.size() > 1) { //multipath
+    if (next_hops.size() > 1) { //multipath
         //first check if a choice was made previously
         auto pastChoice = getChoiceIfPresent(state);
-        if(pastChoice) {
+        if (pastChoice) {
             candidates.push_back(pastChoice.value());
         }
     }
 
-    if(candidates.empty()) {
-        for (const FIB_IPNH &next_hop : next_hops) {
+    if (candidates.empty()) {
+        for (const FIB_IPNH& next_hop : next_hops) {
             candidates.push_back(next_hop);
         }
     }
