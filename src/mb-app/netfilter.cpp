@@ -10,7 +10,7 @@
 
 NetFilter::NetFilter(const std::shared_ptr<cpptoml::table>& config)
 {
-    timeout = std::chrono::microseconds(100);
+    timeout = std::chrono::microseconds(200);
 
     auto rpf = config->get_as<int>("rp_filter");
     auto rules = config->get_as<std::string>("rules");

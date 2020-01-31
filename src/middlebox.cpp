@@ -7,7 +7,6 @@
 #include "mb-app/ipvs.hpp"
 #include "stats.hpp"
 
-
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
       listener_end(false)
@@ -152,8 +151,12 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     Logger::get().info("Injecting packet " + pkt.to_string());
     env->inject_packet(pkt);
 
+    Stats::get().set_pkt_lat_t1();
+
     // wait for timeout
-    cv.wait_for(lck, app->get_timeout());
+    std::cv_status status = cv.wait_for(lck, app->get_timeout());
+
+    Stats::get().set_pkt_latency();
 
     // logging
     std::string nhops_str;
@@ -162,6 +165,9 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
         nhops_str += " " + nhop->to_string();
     }
     nhops_str += " ]";
+    if (status == std::cv_status::timeout) {
+        nhops_str += " timeout!";
+    }
     Logger::get().info(nhops_str);
 
     // return next hop(s)

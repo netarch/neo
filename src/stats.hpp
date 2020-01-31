@@ -46,7 +46,7 @@ private:
     std::vector<std::chrono::nanoseconds>   rewind_latencies;
     // number of packet injections when rewinding (-1 means no rewind occured)
     std::vector<int>                        rewind_injection_count;
-    // time for injecting the actual target packet
+    // time between injecting the actual target packet and getting the result
     std::vector<std::chrono::nanoseconds>   pkt_latencies;
 
 public:

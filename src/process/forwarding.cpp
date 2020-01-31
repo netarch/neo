@@ -413,9 +413,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
            sizeof(PacketHistory *));
 
     // inject packet
-    Stats::get().set_pkt_lat_t1();
     std::set<FIB_IPNH> next_hops = mb->send_pkt(*new_pkt);
-    Stats::get().set_pkt_latency();
 
     Stats::get().set_overall_latency();
     return next_hops;
