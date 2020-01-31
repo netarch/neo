@@ -4,7 +4,9 @@
 
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
+#include "mb-app/ipvs.hpp"
 #include "stats.hpp"
+
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
     : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
@@ -28,6 +30,8 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
 
     if (*appliance == "netfilter") {
         app = new NetFilter(node_config);
+    } else if (*appliance == "ipvs") {
+        app = new IPVS(node_config);
     } else {
         Logger::get().err("Unknown appliance: " + *appliance);
     }

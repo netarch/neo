@@ -122,6 +122,7 @@ void Plankton::verify_ec(Policy *policy)
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
         "neo",
+        "-b",   // consider it error to exceed the depth limit
         "-E",   // suppress invalid end state errors
         "-n",   // suppress report for unreached states
         suffix.c_str(),
