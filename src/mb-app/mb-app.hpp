@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cpptoml/cpptoml.hpp>
 
 /*
  * Don't start emulation processes in the constructor.
@@ -13,6 +14,7 @@ protected:
     std::chrono::microseconds timeout;
 
 public:
+    MB_App(const std::shared_ptr<cpptoml::table>&);
     virtual ~MB_App() = default;
 
     std::chrono::microseconds get_timeout() const;

@@ -60,7 +60,11 @@ class Middlebox(Node):
         Node.__init__(self, name, 'middlebox')
         self.env: str = env
         self.app: str = app
+        self.timeout: int = None
         self.other_configs: Dict = dict()
+
+    def set_timeout(self, timeout):
+        self.timeout = timeout
 
     def add_config(self, key, value):
         self.other_configs[key] = value
@@ -68,6 +72,8 @@ class Middlebox(Node):
     def to_dict(self):
         data = Node.to_dict(self)
         data.update({'env': self.env, 'app': self.app})
+        if self.timeout is not None:
+            data.update({'timeout': self.timeout})
         data.update(self.other_configs)
         return data
 

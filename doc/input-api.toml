@@ -18,6 +18,7 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
+    timeout = 100               # microseconds
     rp_filter = 0               # optional (0..2), default: 0
     # 0 - No source validation.
     # 1 - Strict mode as defined in RFC3704 Strict Reverse Path

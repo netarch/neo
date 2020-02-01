@@ -24,6 +24,7 @@ def confgen(subnets, hosts):
     fw.add_static_route(Route('10.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('11.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('12.0.0.0/8', '9.0.0.2'))
+    fw.set_timeout(100)
     fw.add_config('rp_filter', 0)
     fw.add_config('rules', """
 *filter

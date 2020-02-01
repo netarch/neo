@@ -9,9 +9,8 @@
 #include "lib/fs.hpp"
 
 NetFilter::NetFilter(const std::shared_ptr<cpptoml::table>& config)
+    : MB_App(config)
 {
-    timeout = std::chrono::microseconds(200);
-
     auto rpf = config->get_as<int>("rp_filter");
     auto rules = config->get_as<std::string>("rules");
 
