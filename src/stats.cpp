@@ -41,12 +41,14 @@ void Stats::print_ec_stats()
 void Stats::print_policy_stats(int nodes, int links, Policy *policy)
 {
     Logger::get().print("# of nodes, # of links, Policy, # of ECs, "
-                        "Time (microseconds), Memory (kilobytes)");
+                        "# of communications, Time (microseconds), "
+                        "Memory (kilobytes)");
     Logger::get().print(
         std::to_string(nodes) + ", " +
         std::to_string(links) + ", " +
         std::to_string(policy->get_id()) + ", " +
         std::to_string(policy->num_ecs()) + ", " +
+        std::to_string(policy->num_comms()) + ", " +
         std::to_string(policy_time.count()) + ", " +
         std::to_string(policy_maxrss));
 }

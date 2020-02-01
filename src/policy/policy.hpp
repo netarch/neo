@@ -60,6 +60,7 @@ public:
     void add_ec(State *, const IPv4Address&);
     const EqClasses& get_ecs(State *) const;
     size_t num_ecs() const;
+    size_t num_comms() const;
 
     bool set_initial_ec();
     EqClass *get_initial_ec(State *) const;

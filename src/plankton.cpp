@@ -168,6 +168,8 @@ void Plankton::verify_policy(Policy *policy)
     Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
                        + policy->to_string());
     Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
+    Logger::get().info("Communications: "
+                       + std::to_string(policy->num_comms()));
 
     // reset static variables
     policy_violated = false;

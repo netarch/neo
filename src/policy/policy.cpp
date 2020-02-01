@@ -248,6 +248,23 @@ size_t Policy::num_ecs() const
     }
 }
 
+size_t Policy::num_comms() const
+{
+    if (!correlated_policies.empty()) {
+        // NOTE: we assume that the multiple communications are modelled
+        // sequencially (i.e. one starts after another ends), so the number of
+        // communications is the number of all EC combinations multiplied by the
+        // number of total start nodes of all correlated policies.
+        size_t num_start_nodes = 0;
+        for (Policy *p : correlated_policies) {
+            num_start_nodes += p->start_nodes.size();
+        }
+        return num_ecs() * num_start_nodes;
+    } else {
+        return num_ecs() * start_nodes.size();
+    }
+}
+
 bool Policy::set_initial_ec()
 {
     if (correlated_policies.empty()) {
