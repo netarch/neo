@@ -25,8 +25,8 @@ for num_apps in 4 8 12; do
                 > network.toml
             sudo "$NEO" -f -j $num_procs -i network.toml \
                 -o "$OUT_DIR/$num_apps-apps.$num_hosts-hosts.DOP-$num_procs"
-            sudo "$NEO" -l -f -j $num_procs -i network.toml \
-                -o "$OUT_DIR/$num_apps-apps.$num_hosts-hosts.DOP-$num_procs.latency"
+            #sudo "$NEO" -l -f -j $num_procs -i network.toml \
+            #    -o "$OUT_DIR/$num_apps-apps.$num_hosts-hosts.DOP-$num_procs.latency"
         done
     done
 done
