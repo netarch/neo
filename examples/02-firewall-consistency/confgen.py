@@ -5,11 +5,11 @@ import toml
 import argparse
 from conf_classes import *
 
-def confgen(apps, hosts):
+def confgen(apps, hosts, fault):
     network = Network()
     policies = Policies()
 
-    ## set firewall rules first
+    ## set firewall rules
     fw_rules = """
 *filter
 :INPUT DROP [0:0]
@@ -24,6 +24,15 @@ def confgen(apps, hosts):
         fw_rules += ('-A FORWARD -i eth0 -s 11.%d.%d.0/24 -d 10.%d.%d.0/24 -j ACCEPT\n'
                 % (second, third, second, third))
     fw_rules += 'COMMIT\n'
+
+    ## misconfigured firewall rules
+    wrong_fw_rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+"""
 
     ## add the core, aggregation, and firewall nodes/links
     core1 = Node('core1')
@@ -56,7 +65,10 @@ def confgen(apps, hosts):
     fw2.add_static_route(Route('0.0.0.0/0', '8.0.7.2'))
     fw2.set_timeout(1000)
     fw2.add_config('rp_filter', 0)
-    fw2.add_config('rules', fw_rules)
+    if fault:
+        fw2.add_config('rules', wrong_fw_rules)
+    else:
+        fw2.add_config('rules', fw_rules)
     agg2_source = Node('agg2-source')
     agg2_source.add_interface(Interface('eth0', '8.0.7.2/24'))
     agg2_source.add_interface(Interface('eth1', '8.0.5.2/24'))
@@ -136,7 +148,6 @@ def confgen(apps, hosts):
             network.add_node(node)
 
     ## add policies
-    ## TODO: change them to consistency policies of reachability
     for app in range(apps):
         second = (app // 256) % 256 # second octet
         third = app % 256           # third octet
@@ -203,6 +214,8 @@ def main():
                         help='Number of applications')
     parser.add_argument('-H', '--hosts', type=int,
                         help='Number of hosts in each application')
+    parser.add_argument('-f', '--fault', action='store_true', default=False,
+                        help='Use inconsistent rules')
     arg = parser.parse_args()
 
     if not arg.apps or arg.apps > 65536:
@@ -210,7 +223,7 @@ def main():
     if not arg.hosts or arg.hosts > 128:
         sys.exit('Invalid number of hosts: ' + str(arg.hosts))
 
-    confgen(arg.apps, arg.hosts)
+    confgen(arg.apps, arg.hosts, arg.fault)
 
 if __name__ == '__main__':
     main()
