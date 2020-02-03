@@ -147,76 +147,61 @@ COMMIT
                 network.add_link(Link(node.name, 'eth0', access2.name, 'eth%d' % acc_intf_num))
             network.add_node(node)
 
-#    ## add policies
-#    for app in range(apps):
-#        second = (app // 256) % 256 # second octet
-#        third = app % 256           # third octet
-#        hosts_acc1 = 'app%d-host(' % app
-#        hosts_acc2 = 'app%d-host(' % app
-#        for host in range(hosts):
-#            if host % 2 == 0:
-#                if host != 0:
-#                    hosts_acc1 += '|'
-#                hosts_acc1 += str(host)
-#            elif host % 2 == 1:
-#                if host != 1:
-#                    hosts_acc2 += '|'
-#                hosts_acc2 += str(host)
-#        hosts_acc1 += ')'
-#        hosts_acc2 += ')'
-#        other_apps = list(range(apps))
-#        other_apps.remove(app)
-#        hosts_other_apps = ''
-#        if other_apps:
-#            hosts_other_apps = ('app(%s)-host[0-9]+' %
-#                    ('|'.join([str(i) for i in other_apps])))
-#        # In the same application, hosts under access1 can reach hosts under
-#        # access2
-#        policies.add_policy(ConsistencyPolicy([
-#            ReachabilityPolicy(
-#                protocol = 'http',
-#                pkt_dst = '11.%d.%d.0/24' % (second, third),
-#                owned_dst_only = True,
-#                start_node = hosts_acc1,
-#                final_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
-#                reachable = True)
-#            ]))
-#        # In the same application, hosts under access2 can reach hosts under
-#        # access1
-#        policies.add_policy(ConsistencyPolicy([
-#            ReachabilityPolicy(
-#                protocol = 'http',
-#                pkt_dst = '10.%d.%d.0/24' % (second, third),
-#                owned_dst_only = True,
-#                start_node = hosts_acc2,
-#                final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
-#                reachable = True)
-#            ]))
-#        # Hosts of an application cannot reach hosts of other applications
-#        policies.add_policy(ConsistencyPolicy([
-#            ReachabilityPolicy(
-#                protocol = 'http',
-#                pkt_dst = '10.0.0.0/7',
-#                owned_dst_only = True,
-#                start_node = 'app%d-host[0-9]+' % app,
-#                final_node = hosts_other_apps,
-#                reachable = False)
-#            ]))
-
-    # check for consistency of all communications from all hosts destined to the
-    # owned applications subnet IPs
-    # NOTE: being reachable or not does not really matter, because after forking
-    # for each EC, the correctness of sub-policies does not matter as long as
-    # it's consistent across all starting nodes with that same EC.
-    policies.add_policy(ConsistencyPolicy([
-        ReachabilityPolicy(
-            protocol = 'http',
-            pkt_dst = '10.0.0.0/7',
-            owned_dst_only = True,
-            start_node = 'app.*-host.*',
-            final_node = '(app.*-host.*)|access[12]-app.*',
-            reachable = False)
-        ]))
+    ## add policies
+    for app in range(apps):
+        second = (app // 256) % 256 # second octet
+        third = app % 256           # third octet
+        hosts_acc1 = 'app%d-host(' % app
+        hosts_acc2 = 'app%d-host(' % app
+        for host in range(hosts):
+            if host % 2 == 0:
+                if host != 0:
+                    hosts_acc1 += '|'
+                hosts_acc1 += str(host)
+            elif host % 2 == 1:
+                if host != 1:
+                    hosts_acc2 += '|'
+                hosts_acc2 += str(host)
+        hosts_acc1 += ')'
+        hosts_acc2 += ')'
+        other_apps = list(range(apps))
+        other_apps.remove(app)
+        hosts_other_apps = ''
+        if other_apps:
+            hosts_other_apps = ('app(%s)-host[0-9]+' %
+                    ('|'.join([str(i) for i in other_apps])))
+        # In the same application, hosts under access1 can reach hosts under
+        # access2
+        policies.add_policy(ConsistencyPolicy([
+            ReachabilityPolicy(
+                protocol = 'http',
+                pkt_dst = '11.%d.%d.0/24' % (second, third),
+                owned_dst_only = True,
+                start_node = hosts_acc1,
+                final_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
+                reachable = True)
+            ]))
+        # In the same application, hosts under access2 can reach hosts under
+        # access1
+        policies.add_policy(ConsistencyPolicy([
+            ReachabilityPolicy(
+                protocol = 'http',
+                pkt_dst = '10.%d.%d.0/24' % (second, third),
+                owned_dst_only = True,
+                start_node = hosts_acc2,
+                final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
+                reachable = True)
+            ]))
+        # Hosts of an application cannot reach hosts of other applications
+        policies.add_policy(ConsistencyPolicy([
+            ReachabilityPolicy(
+                protocol = 'http',
+                pkt_dst = '10.0.0.0/7',
+                owned_dst_only = True,
+                start_node = 'app%d-host[0-9]+' % app,
+                final_node = hosts_other_apps,
+                reachable = False)
+            ]))
 
     ## output as TOML
     config = network.to_dict()
