@@ -11,6 +11,8 @@
 #include "mb-app/mb-app.hpp"
 #include "pkt-hist.hpp"
 
+typedef std::pair<FIB_IPNH, uint32_t> inject_result_t;
+
 class Middlebox : public Node
 {
 private:
@@ -20,7 +22,7 @@ private:
     NodePacketHistory *node_pkt_hist;
     std::thread *listener;
     std::atomic<bool> listener_end;
-    std::set<FIB_IPNH> next_hops;
+    std::set<inject_result_t> next_hops; //IP next hop and dst ip address (can be different from the injected packet due to NAT
     std::mutex mtx;                 // lock for accessing next_hops
     std::condition_variable cv;     // for reading next_hops
 
@@ -43,7 +45,7 @@ public:
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::set<FIB_IPNH> send_pkt(const Packet&); // send one L7 packet
+    std::set<inject_result_t> send_pkt(const Packet&); // send one L7 packet
 
     /*
      * Return an empty set. We don't model the forwarding behavior of

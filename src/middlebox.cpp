@@ -80,15 +80,15 @@ void Middlebox::listen_packets()
                 if (l2nh.first) { // if the interface is truly connected
                     if (!l2nh.second->is_l2()) { // L2 nhop == L3 nhop
                         std::unique_lock<std::mutex> lck(mtx);
-                        next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
-                                                  l2nh.first, l2nh.second));
+                        next_hops.emplace(FIB_IPNH(l2nh.first, l2nh.second,
+                                                  l2nh.first, l2nh.second), dst_ip);
                     } else {
                         L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
                         auto l3nh = l2_lan->find_l3_endpoint(dst_ip);
                         if (l3nh.first) {
                             std::unique_lock<std::mutex> lck(mtx);
-                            next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
-                                                      l2nh.first, l2nh.second));
+                            next_hops.emplace(FIB_IPNH(l3nh.first, l3nh.second,
+                                                      l2nh.first, l2nh.second), dst_ip);
                         }
                     }
                 }
@@ -142,7 +142,7 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
     node_pkt_hist = nph;
 }
 
-std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
+std::set<inject_result_t> Middlebox::send_pkt(const Packet& pkt)
 {
     std::unique_lock<std::mutex> lck(mtx);
     next_hops.clear();
@@ -162,7 +162,7 @@ std::set<FIB_IPNH> Middlebox::send_pkt(const Packet& pkt)
     std::string nhops_str;
     nhops_str += to_string() + " -> [";
     for (auto nhop = next_hops.begin(); nhop != next_hops.end(); ++nhop) {
-        nhops_str += " " + nhop->to_string();
+        nhops_str += " " + nhop->first.to_string();
     }
     nhops_str += " ]";
     if (status == std::cv_status::timeout) {

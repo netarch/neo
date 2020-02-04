@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "eqclass.hpp"
+#include "middlebox.hpp"
 #include "node.hpp"
 #include "fib.hpp"
 #include "lib/hash.hpp"
@@ -12,7 +13,7 @@
 class Choices
 {
 private:
-    std::map<std::pair<EqClass *, Node *>, FIB_IPNH> tbl;
+    std::map<std::pair<EqClass *, Node *>, inject_result_t> tbl;
 
     friend class std::hash<Choices>;
     friend bool operator==(const Choices&, const Choices&);
@@ -21,8 +22,8 @@ public:
     //Choices() = default;
     //Choices(Choices&&) = default;
 
-    void add_choice(EqClass *, Node *, const FIB_IPNH&);
-    std::optional<FIB_IPNH> get_choice(EqClass *, Node *) const;
+    void add_choice(EqClass *, Node *, const inject_result_t &);
+    std::optional<inject_result_t> get_choice(EqClass *, Node *) const;
 };
 
 bool operator==(const Choices&, const Choices&);
@@ -41,7 +42,7 @@ struct hash<Choices> {
         for (const auto& entry : c.tbl) {
             ::hash::hash_combine(value, ec_hf(entry.first.first));
             ::hash::hash_combine(value, node_hf(entry.first.second));
-            ::hash::hash_combine(value, ipnh_hf(entry.second));
+            ::hash::hash_combine(value, ipnh_hf(entry.second.first)); //ignore the next hop ip, since it will always be 0
         }
         return value;
     }
