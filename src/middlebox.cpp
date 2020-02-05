@@ -74,6 +74,7 @@ void Middlebox::listen_packets()
                 uint32_t dst_ip;
                 memcpy(&dst_ip, buffer + 30, 4);
                 dst_ip = ntohl(dst_ip);
+                Logger::get().debug("New DST IP " + IPv4Address(dst_ip).to_string());
 
                 // find the next hop
                 auto l2nh = get_peer(pb.get_intf()->get_name()); // L2 nhop
@@ -81,14 +82,14 @@ void Middlebox::listen_packets()
                     if (!l2nh.second->is_l2()) { // L2 nhop == L3 nhop
                         std::unique_lock<std::mutex> lck(mtx);
                         next_hops.emplace(FIB_IPNH(l2nh.first, l2nh.second,
-                                                  l2nh.first, l2nh.second), dst_ip);
+                                                   l2nh.first, l2nh.second), dst_ip);
                     } else {
                         L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
                         auto l3nh = l2_lan->find_l3_endpoint(dst_ip);
                         if (l3nh.first) {
                             std::unique_lock<std::mutex> lck(mtx);
                             next_hops.emplace(FIB_IPNH(l3nh.first, l3nh.second,
-                                                      l2nh.first, l2nh.second), dst_ip);
+                                                       l2nh.first, l2nh.second), dst_ip);
                         }
                     }
                 }

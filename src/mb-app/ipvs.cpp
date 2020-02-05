@@ -52,9 +52,6 @@ void IPVS::init()
     if (system("iptables -Z")) {
         Logger::get().err("iptables -Z");
     }
-    if (system("iptables-restore /etc/iptables/empty.rules")) {
-        Logger::get().err("iptables-restore");
-    }
 
     reset();
 }
