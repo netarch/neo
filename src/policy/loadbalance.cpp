@@ -21,9 +21,6 @@ LoadBalancePolicy::LoadBalancePolicy(
 
 LoadBalancePolicy::~LoadBalancePolicy()
 {
-    if (visited.size() != final_nodes.size()) {
-        std::cerr << "Violation";
-    }
 }
 
 void LoadBalancePolicy::parse_final_node(
@@ -67,6 +64,15 @@ void LoadBalancePolicy::init(State *state) const
 void LoadBalancePolicy::check_violation(State *state)
 {
     state->violated = false;
+    if(state->choice_count == 0) {
+        //this is the final invocation
+        if (visited.size() != final_nodes.size()) {
+            state->violated = true;
+        }
+        
+        return;
+    }
+
     int mode = state->comm_state[state->comm].fwd_mode;
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
 
