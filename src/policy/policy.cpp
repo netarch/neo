@@ -10,6 +10,7 @@
 #include "packet.hpp"
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
+#include "policy/loadbalance.hpp"
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
@@ -379,6 +380,8 @@ Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
                 policy = new ConditionalPolicy(config, network);
             } else if (*type == "consistency") {
                 policy = new ConsistencyPolicy(config, network);
+            } else if (*type == "loadbalance") {
+                policy = new LoadBalancePolicy(config, network);
             } else {
                 Logger::get().err("Unknown policy type: " + *type);
             }

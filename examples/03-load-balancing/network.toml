@@ -161,9 +161,9 @@
 #   3. Incoming replies to past requests are allowed.
 
 [[policies]]
-    type = "reachability"
+    type = "loadbalance"
     protocol = "http"
     pkt_dst = "192.168.1.1"
-    start_node = "h[123]"
+    start_node = "h[1]"
     final_node = "server3"
     reachable = true
