@@ -22,7 +22,7 @@ public:
     //Choices() = default;
     //Choices(Choices&&) = default;
 
-    void add_choice(EqClass *, Node *, const inject_result_t &);
+    void add_choice(EqClass *, Node *, const inject_result_t&);
     std::optional<inject_result_t> get_choice(EqClass *, Node *) const;
 };
 

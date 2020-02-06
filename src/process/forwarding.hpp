@@ -54,9 +54,9 @@ private:
 
     void packet_entry(State *) const;
     void first_collect(State *);
-    void first_forward(State *);
+    void first_forward(State *, Network&);
     void collect_next_hops(State *);
-    void forward_packet(State *);
+    void forward_packet(State *, Network&);
     void accepted(State *, Network&);
     void dropped(State *) const;
 

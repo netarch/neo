@@ -53,7 +53,7 @@
     type = "middlebox"
     env = "netns"
     app = "ipvs"
-    timeout = 100
+    timeout = 1000
     config = """
 -A -t 192.168.1.1:80 -s rr
 -a -t 192.168.1.1:80 -r 10.0.0.1:80 -m
@@ -165,5 +165,5 @@
     protocol = "http"
     pkt_dst = "192.168.1.1"
     start_node = "h[123]"
-    final_node = "server1"
+    final_node = "server3"
     reachable = true

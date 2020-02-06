@@ -63,7 +63,7 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     std::vector<inject_result_t> candidates;
     for (Node *start_node : policy->get_start_nodes(state)) {
         candidates.emplace_back(FIB_IPNH(start_node, nullptr, start_node,
-                                      nullptr), 0);
+                                         nullptr), 0);
     }
     update_candidates(state, candidates);
 
@@ -92,13 +92,13 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             first_collect(state);
             break;
         case fwd_mode::FIRST_FORWARD:
-            first_forward(state);
+            first_forward(state, network);
             break;
         case fwd_mode::COLLECT_NHOPS:
             collect_next_hops(state);
             break;
         case fwd_mode::FORWARD_PACKET:
-            forward_packet(state);
+            forward_packet(state, network);
             break;
         case fwd_mode::ACCEPTED:
             accepted(state, network);
@@ -138,7 +138,7 @@ void ForwardingProcess::first_collect(State *state)
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FIRST_FORWARD);
 }
 
-void ForwardingProcess::first_forward(State *state)
+void ForwardingProcess::first_forward(State *state, Network& network)
 {
     int pkt_state = state->comm_state[state->comm].pkt_state;
     if (PS_IS_FIRST(pkt_state)) {
@@ -158,7 +158,7 @@ void ForwardingProcess::first_forward(State *state)
         }
     }
 
-    forward_packet(state);
+    forward_packet(state, network);
 }
 
 void ForwardingProcess::collect_next_hops(State *state)
@@ -174,7 +174,7 @@ void ForwardingProcess::collect_next_hops(State *state)
         FIB *fib;
         memcpy(&fib, state->comm_state[state->comm].fib, sizeof(FIB *));
         std::set<FIB_IPNH> next_hops_without_packet = fib->lookup(current_node); // if current_node isn't a middlebox, just get next hop
-        for(auto &nh_without_pkt:next_hops_without_packet) {
+        for (auto& nh_without_pkt : next_hops_without_packet) {
             next_hops.emplace(std::move(nh_without_pkt), 0); //store 0 as the dummy transformed IP
         }
     } else {
@@ -203,7 +203,7 @@ void ForwardingProcess::collect_next_hops(State *state)
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FORWARD_PACKET);
 }
 
-void ForwardingProcess::forward_packet(State *state)
+void ForwardingProcess::forward_packet(State *state, Network& network)
 {
     Node *current_node;
     memcpy(&current_node, state->comm_state[state->comm].pkt_location,
@@ -218,8 +218,13 @@ void ForwardingProcess::forward_packet(State *state)
     }
 
     Node *next_hop = (*candidates)[state->choice].first.get_l3_node();
-    EqClass *next_ec = policy->get_ecs(state).find_ec((*candidates)[state->choice].second);
-    memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
+    auto next_dst_ip = (*candidates)[state->choice].second;
+    if (next_dst_ip != 0) {
+        policy->add_ec(state, next_dst_ip);
+        EqClass *next_ec = policy->get_ecs(state).find_ec((*candidates)[state->choice].second);
+        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
+        network.update_fib(state);
+    }
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
         int pkt_state = state->comm_state[state->comm].pkt_state;
