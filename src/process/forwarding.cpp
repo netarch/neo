@@ -77,6 +77,41 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     network.update_fib(state);
 }
 
+void ForwardingProcess::reset(State *state, Network& network, Policy *policy)
+{
+    uint8_t pkt_state = 0;
+    if (policy->get_protocol(state) == proto::PR_HTTP) {
+        pkt_state = PS_TCP_INIT_1;
+    } else if (policy->get_protocol(state) == proto::PR_ICMP_ECHO) {
+        pkt_state = PS_ICMP_ECHO_REQ;
+    } else {
+        Logger::get().err("Unknown protocol: "
+                          + std::to_string(policy->get_protocol(state)));
+    }
+    state->comm_state[state->comm].pkt_state = pkt_state;
+    state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
+    memset(state->comm_state[state->comm].seq, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].ack, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
+    memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].pkt_location, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
+
+    // update candidates as start nodes
+    std::vector<FIB_IPNH> candidates;
+    for (Node *start_node : policy->get_start_nodes(state)) {
+        candidates.push_back(FIB_IPNH(start_node, nullptr, start_node,
+                                      nullptr));
+    }
+    update_candidates(state, candidates);
+
+    // initialize packet EC and update the FIB
+    EqClass *ec = policy->get_initial_ec(state);
+    memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
+    Logger::get().info("EC: " + ec->to_string());
+    network.update_fib(state);
+}
+
 void ForwardingProcess::exec_step(State *state, Network& network)
 {
     if (!enabled) {

@@ -89,7 +89,6 @@ void LoadBalancePolicy::check_violation(State *state)
             return;
         }
         if (++state->comm_state[state->comm].repetition < repetition) {
-            // reinit the forwarding process and repeat again
             state->choice_count = 1;
         }
     }

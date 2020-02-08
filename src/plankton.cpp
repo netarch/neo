@@ -10,11 +10,14 @@
 #include <unistd.h>
 
 #include <set>
+#include <typeinfo>
 #include <cpptoml/cpptoml.hpp>
 
 #include "stats.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
+#include "policy/conditional.hpp"
+#include "policy/consistency.hpp"
 #include "model.h"
 
 static bool verify_all_ECs = false;    // verify all ECs even if violation is found
@@ -293,12 +296,19 @@ void Plankton::exec_step(State *state)
 
     if (state->comm != comm && state->choice_count > 0) {
         // communication changed
-        policy->init(state);
-        fwd.init(state, network, policy);
+        if (typeid(*policy) == typeid(ConsistencyPolicy)) {
+            policy->init(state);
+            fwd.init(state, network, policy);
+        } else if (typeid(*policy) == typeid(ConditionalPolicy)) {
+            policy->init(state);
+            fwd.reset(state, network, policy);
+        } else {
+            Logger::get().err("Unsupported policy changing communication");
+        }
     } else if (state->comm_state[state->comm].repetition != repetition
                && state->choice_count > 0) {
-        // repeat for load balance policy
-        fwd.init(state, network, policy);
+        // reset the forwarding process and repeat
+        fwd.reset(state, network, policy);
     }
 }
 

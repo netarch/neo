@@ -78,6 +78,9 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
+    // initialize fwd process when system starts
     void init(State *, Network&, Policy *);
+    // reset fwd process without changing pkt_hist and path_choices
+    void reset(State *, Network&, Policy *);
     void exec_step(State *, Network&) override;
 };
