@@ -84,12 +84,16 @@ void LoadBalancePolicy::check_violation(State *state)
     }
 
     if (state->choice_count == 0) {
+        ++state->comm_state[state->comm].repetition;
         if (visited.size() == final_nodes.size()) {
             state->violated = false;
+            Logger::get().info("LBPolicy: repeated " +
+                               std::to_string(state->comm_state[state->comm].repetition) +
+                               " times");
             return;
         }
-        if (++state->comm_state[state->comm].repetition < repetition) {
-            ++tx_port;  // each repetition as a different communication
+        if (state->comm_state[state->comm].repetition < repetition) {
+            ++tx_port;  // see each repetition as a different communication
             state->choice_count = 1;
         }
     }

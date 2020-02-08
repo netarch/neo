@@ -358,10 +358,10 @@ Node *Policy::get_comm_rx(State *state)
 void Policy::report(State *state) const
 {
     if (state->violated) {
-        Logger::get().info("Policy violated!");
+        Logger::get().info("*** Policy violated! ***");
         kill(getppid(), SIGUSR1);
     } else {
-        Logger::get().info("Policy holds!");
+        Logger::get().info("*** Policy holds! ***");
     }
 }
 

@@ -5,7 +5,7 @@ import toml
 import argparse
 from conf_classes import *
 
-def confgen(lbs, servers, algorithm, additional_repeat):
+def confgen(lbs, servers, algorithm, repeat):
     network = Network()
     policies = Policies()
 
@@ -29,8 +29,11 @@ def confgen(lbs, servers, algorithm, additional_repeat):
         load_balancer.add_interface(Interface('eth1', '9.%d.0.1/16' % lb))
         load_balancer.add_static_route(Route('0.0.0.0/0', '8.0.%d.1' % lb))
         load_balancer.set_timeout(100)
-        lb_config = ""
-        lb_config += "-A -t 8.0.%d.2:80 -s %s\n" % (lb, algorithm)
+        lb_config = ''
+        lb_config += '-A -t 8.0.%d.2:80 -s %s' % (lb, algorithm)
+        if algorithm == 'sh':
+            lb_config += ' -b sh-port'  # add source port into hash computation
+        lb_config += '\n'
         sw = Node('sw%d' % lb)
         sw.add_interface(Interface('eth0'))
         network.add_node(load_balancer)
@@ -44,19 +47,21 @@ def confgen(lbs, servers, algorithm, additional_repeat):
             last = (srv + 1) % 256
             server.add_interface(Interface('eth0', '9.%d.%d.%d/24' % (lb, third, last)))
             server.add_static_route(Route('0.0.0.0/0', '9.%d.0.1' % lb))
-            lb_config += "-a -t 8.0.%d.2:80 -r 9.%d.%d.%d:80 -m\n" % (lb, lb, third, last)
+            lb_config += '-a -t 8.0.%d.2:80 -r 9.%d.%d.%d:80 -m\n' % (lb, lb, third, last)
             network.add_node(server)
             network.add_link(Link(sw.name, 'eth%d' % srv, server.name, 'eth0'))
         load_balancer.add_config('config', lb_config)
 
     ## add policies
+    if repeat is None:
+        repeat = servers
     for lb in range(1, lbs + 1):
         policies.add_policy(LoadBalancePolicy(
                 protocol = 'http',
                 pkt_dst = '8.0.%d.2' % lb,
                 start_node = internet_node.name,
                 final_node = 'server%d\.[0-9]+' % lb,
-                repeat = servers + additional_repeat))
+                repeat = repeat))
 
     ## output as TOML
     config = network.to_dict()
@@ -72,7 +77,7 @@ def main():
     parser.add_argument('-a', '--algorithm', choices=['rr', 'sh', 'dh'],
                         help='Load balancing algorithm')
     parser.add_argument('-r', '--repeat', type=int,
-                        help='Repeat N more times than the number of servers')
+                        help='Repeat N times for each connection')
     #parser.add_argument('-f', '--fault', action='store_true', default=False,
     #                    help='Use inconsistent rules')
     arg = parser.parse_args()
@@ -81,8 +86,6 @@ def main():
         sys.exit('Invalid number of load balancers: ' + str(arg.lbs))
     if not arg.servers or arg.servers > 65533:
         sys.exit('Invalid number of servers: ' + str(arg.servers))
-    if not arg.repeat:
-        arg.repeat = 0
 
     confgen(arg.lbs, arg.servers, arg.algorithm, arg.repeat)
 
