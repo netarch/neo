@@ -5,7 +5,7 @@ import toml
 import argparse
 from conf_classes import *
 
-def confgen(lbs, servers, algorithm):
+def confgen(lbs, servers, algorithm, additional_repeat):
     network = Network()
     policies = Policies()
 
@@ -56,7 +56,7 @@ def confgen(lbs, servers, algorithm):
                 pkt_dst = '8.0.%d.2' % lb,
                 start_node = internet_node.name,
                 final_node = 'server%d\.[0-9]+' % lb,
-                repeat = servers))
+                repeat = servers + additional_repeat))
 
     ## output as TOML
     config = network.to_dict()
@@ -71,6 +71,8 @@ def main():
                         help='Number of servers behind each LB')
     parser.add_argument('-a', '--algorithm', choices=['rr', 'sh', 'dh'],
                         help='Load balancing algorithm')
+    parser.add_argument('-r', '--repeat', type=int,
+                        help='Repeat N more times than the number of servers')
     #parser.add_argument('-f', '--fault', action='store_true', default=False,
     #                    help='Use inconsistent rules')
     arg = parser.parse_args()
@@ -79,8 +81,10 @@ def main():
         sys.exit('Invalid number of load balancers: ' + str(arg.lbs))
     if not arg.servers or arg.servers > 65533:
         sys.exit('Invalid number of servers: ' + str(arg.servers))
+    if not arg.repeat:
+        arg.repeat = 0
 
-    confgen(arg.lbs, arg.servers, arg.algorithm)
+    confgen(arg.lbs, arg.servers, arg.algorithm, arg.repeat)
 
 if __name__ == '__main__':
     main()
