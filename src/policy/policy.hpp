@@ -25,7 +25,8 @@ protected:
     IPRange<IPv4Address>    pkt_dst;
     bool                    owned_dst_only;
     std::vector<Node *>     start_nodes;
-    uint16_t                src_port, dst_port;
+    uint16_t                tx_port;    // source of the communication
+    uint16_t                rx_port;    // target of the communication
 
     EqClasses               ECs;
     EqClasses::iterator     ECs_itr;

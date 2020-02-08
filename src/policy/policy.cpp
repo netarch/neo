@@ -103,8 +103,8 @@ void Policy::parse_tcp_ports(
     const std::shared_ptr<cpptoml::table>& config __attribute__((unused)))
 {
     // NOTE: fixed port numbers for now
-    src_port = 1234;
-    dst_port = 80;
+    tx_port = 1234;
+    rx_port = 80;
 }
 
 void Policy::parse_correlated_policies(
@@ -186,15 +186,15 @@ uint16_t Policy::get_src_port(State *state) const
 
     if (!correlated_policies.empty()) {
         if (is_reply) {
-            return correlated_policies[state->comm]->dst_port;
+            return correlated_policies[state->comm]->rx_port;
         } else {
-            return correlated_policies[state->comm]->src_port;
+            return correlated_policies[state->comm]->tx_port;
         }
     } else {
         if (is_reply) {
-            return dst_port;
+            return rx_port;
         } else {
-            return src_port;
+            return tx_port;
         }
     }
 }
@@ -205,15 +205,15 @@ uint16_t Policy::get_dst_port(State *state) const
 
     if (!correlated_policies.empty()) {
         if (is_reply) {
-            return correlated_policies[state->comm]->src_port;
+            return correlated_policies[state->comm]->tx_port;
         } else {
-            return correlated_policies[state->comm]->dst_port;
+            return correlated_policies[state->comm]->rx_port;
         }
     } else {
         if (is_reply) {
-            return src_port;
+            return tx_port;
         } else {
-            return dst_port;
+            return rx_port;
         }
     }
 }
