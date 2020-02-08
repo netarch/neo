@@ -143,6 +143,20 @@ class ReplyReachabilityPolicy(Policy):
         self.query_node: str = query_node
         self.reachable: bool = reachable
 
+class LoadBalancePolicy(Policy):
+    def __init__(self, protocol, pkt_dst, start_node, final_node, repeat,
+                 owned_dst_only=None):
+        Policy.__init__(self, 'loadbalance', protocol, pkt_dst, owned_dst_only,
+                        start_node)
+        self.final_node: str = final_node
+        self.repeat: int = repeat
+
+    def to_dict(self):
+        data = Policy.to_dict(self)
+        if self.repeat is None:
+            data.pop('repeat')
+        return data
+
 class ConsistencyPolicy(Policy):
     def __init__(self, correlated_policies):
         Policy.__init__(self, 'consistency')

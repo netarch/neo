@@ -70,7 +70,6 @@
     start_node = "node name regex"
     final_node = "node name regex"
     repeat = 0                      # optional, default: # of final nodes
-    #reachable = true
 [[policies]]
     type = "conditional"
     [[policies.correlated_policies]]
