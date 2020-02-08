@@ -30,6 +30,11 @@ bool ECRange::identical_to(const ECRange& rhs) const
     return (lb == rhs.lb && ub == rhs.ub);
 }
 
+bool ECRange::contains(const IPv4Address& addr) const
+{
+    return IPRange<IPv4Address>::contains(addr);
+}
+
 bool ECRange::contains(const ECRange& rhs) const
 {
     return (lb <= rhs.lb && rhs.ub <= ub);

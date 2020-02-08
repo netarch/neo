@@ -286,6 +286,7 @@ void Plankton::initialize(State *state)
 void Plankton::exec_step(State *state)
 {
     int comm = state->comm;
+    int repetition = state->comm_state[state->comm].repetition;
 
     fwd.exec_step(state, network);
     policy->check_violation(state);
@@ -293,6 +294,10 @@ void Plankton::exec_step(State *state)
     if (state->comm != comm && state->choice_count > 0) {
         // communication changed
         policy->init(state);
+        fwd.init(state, network, policy);
+    } else if (state->comm_state[state->comm].repetition != repetition
+               && state->choice_count > 0) {
+        // repeat for load balance policy
         fwd.init(state, network, policy);
     }
 }

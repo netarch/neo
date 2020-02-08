@@ -26,12 +26,12 @@ enum fwd_mode {
 };
 
 struct CandHash {
-    size_t operator()(const std::vector<inject_result_t> *const&) const;
+    size_t operator()(const std::vector<FIB_IPNH> *const&) const;
 };
 
 struct CandEq {
-    bool operator()(const std::vector<inject_result_t> *const&,
-                    const std::vector<inject_result_t> *const&) const;
+    bool operator()(const std::vector<FIB_IPNH> *const&,
+                    const std::vector<FIB_IPNH> *const&) const;
 };
 
 class ForwardingProcess : public Process
@@ -39,7 +39,7 @@ class ForwardingProcess : public Process
 private:
     Policy *policy;
 
-    std::unordered_set<std::vector<inject_result_t> *, CandHash, CandEq>
+    std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
     std::unordered_set<Choices *> choices_hist;
 
@@ -53,21 +53,21 @@ private:
     pkt_hist_hist;
 
     void packet_entry(State *) const;
-    void first_collect(State *);
-    void first_forward(State *, Network&);
-    void collect_next_hops(State *);
-    void forward_packet(State *, Network&);
+    void first_collect(State *, Network&);
+    void first_forward(State *);
+    void collect_next_hops(State *, Network&);
+    void forward_packet(State *);
     void accepted(State *, Network&);
     void dropped(State *) const;
 
     void phase_transition(State *, Network&, uint8_t next_pkt_state,
                           bool change_direction);
 
-    std::set<inject_result_t> inject_packet(State *, Middlebox *);
-    void update_candidates(State *, const std::vector<inject_result_t>&);
+    std::set<FIB_IPNH> inject_packet(State *, Middlebox *, Network&);
+    void update_candidates(State *, const std::vector<FIB_IPNH>&);
     void update_choices(State *, Choices&&);
-    void add_choice(State *, const inject_result_t&);
-    std::optional<inject_result_t> get_choice(State *);
+    void add_choice(State *, const FIB_IPNH&);
+    std::optional<FIB_IPNH> get_choice(State *);
 
 public:
     ForwardingProcess() = default;

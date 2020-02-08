@@ -78,7 +78,7 @@ void Policy::parse_owned_dst_only(const std::shared_ptr<cpptoml::table>& config)
     if (owned_only) {
         owned_dst_only = *owned_only;
     } else {
-        owned_dst_only = false;
+        owned_dst_only = true;
     }
 }
 
@@ -224,6 +224,15 @@ void Policy::add_ec(State *state, const IPv4Address& addr)
         correlated_policies[state->comm]->ECs.add_ec(addr);
     } else {
         ECs.add_ec(addr);
+    }
+}
+
+EqClass *Policy::find_ec(State *state, const IPv4Address& addr)
+{
+    if (!correlated_policies.empty()) {
+        return correlated_policies[state->comm]->ECs.find_ec(addr);
+    } else {
+        return ECs.find_ec(addr);
     }
 }
 

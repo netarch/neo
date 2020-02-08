@@ -105,6 +105,7 @@ check: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	sudo setcap 'cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe' $@
 
 installcheck: install
 	# TODO

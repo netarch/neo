@@ -42,7 +42,7 @@
     type = "reachability"
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: false
+    owned_dst_only = true or false  # optional, default: true
     start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
@@ -50,7 +50,7 @@
     type = "reply-reachability"
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: false
+    owned_dst_only = true or false  # optional, default: true
     start_node = "node name regex"
     query_node = "node name regex"
     reachable = true or false
@@ -58,10 +58,19 @@
     type = "waypoint"
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: false
+    owned_dst_only = true or false  # optional, default: true
     start_node = "node name regex"
     waypoint = "node name regex"
     pass_through = true or false
+[[policies]]
+    type = "loadbalance"
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+    final_node = "node name regex"
+    repeat = 0                      # optional, default: # of final nodes
+    #reachable = true
 [[policies]]
     type = "conditional"
     [[policies.correlated_policies]]

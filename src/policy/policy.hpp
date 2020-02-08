@@ -58,6 +58,7 @@ public:
     uint16_t get_dst_port(State *) const;
 
     void add_ec(State *, const IPv4Address&);
+    EqClass *find_ec(State *, const IPv4Address&);
     const EqClasses& get_ecs(State *) const;
     size_t num_ecs() const;
     size_t num_comms() const;

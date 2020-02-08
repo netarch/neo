@@ -38,12 +38,13 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
 
 Middlebox::~Middlebox()
 {
-    if (listener && listener->joinable()) {
+    if (listener) {
         listener_end = true;
-        Packet dummy(intfs.begin()->second, (uint32_t)0, (uint32_t)0,
-                     PS_ARP_REP);
+        Packet dummy(intfs.begin()->second);
         env->inject_packet(dummy);
-        listener->join();
+        if (listener->joinable()) {
+            listener->join();
+        }
     }
     delete listener;
     delete app;
@@ -56,48 +57,36 @@ void Middlebox::listen_packets()
     uint8_t id_mac[6] = ID_ETH_ADDR;
 
     while (!listener_end) {
-        // read output packet
+        // read output packet (block if no packet)
         pkts = env->read_packets();
 
         for (PktBuffer pb : pkts) {
             uint8_t *buffer = pb.get_buffer();
+
             uint8_t *dst_mac = buffer;
+            if (memcmp(dst_mac, id_mac, 6) != 0) {
+                continue;
+            }
+
             uint16_t ethertype;
             memcpy(&ethertype, buffer + 12, 2);
             ethertype = ntohs(ethertype);
-
             if (ethertype == ETHERTYPE_IP) {
-                if (memcmp(dst_mac, id_mac, 6) != 0) {
-                    continue;
-                }
-
                 uint32_t dst_ip;
                 memcpy(&dst_ip, buffer + 30, 4);
                 dst_ip = ntohl(dst_ip);
-                Logger::get().debug("New DST IP " + IPv4Address(dst_ip).to_string());
 
-                // find the next hop
-                auto l2nh = get_peer(pb.get_intf()->get_name()); // L2 nhop
-                if (l2nh.first) { // if the interface is truly connected
-                    if (!l2nh.second->is_l2()) { // L2 nhop == L3 nhop
-                        std::unique_lock<std::mutex> lck(mtx);
-                        next_hops.emplace(FIB_IPNH(l2nh.first, l2nh.second,
-                                                   l2nh.first, l2nh.second), dst_ip);
-                    } else {
-                        L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
-                        auto l3nh = l2_lan->find_l3_endpoint(dst_ip);
-                        if (l3nh.first) {
-                            std::unique_lock<std::mutex> lck(mtx);
-                            next_hops.emplace(FIB_IPNH(l3nh.first, l3nh.second,
-                                                       l2nh.first, l2nh.second), dst_ip);
-                        }
-                    }
-                }
+                // TODO: save src_ip, dst_ip, egress interface, to construct a
+                // Packet passed to the main thread to update packet related
+                // states in Spin state vector
+                // NOTE: not passing src_ip for now, unless it's need for source
+                // NAT
+                std::unique_lock<std::mutex> lck(mtx);
+                recv_pkt.set_intf(pb.get_intf());
+                recv_pkt.set_dst_ip(dst_ip);
+                cv.notify_all();
+                break;
             }
-        }
-        std::unique_lock<std::mutex> lck(mtx);
-        if (!next_hops.empty()) {
-            cv.notify_all();
         }
     }
 }
@@ -143,10 +132,10 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
     node_pkt_hist = nph;
 }
 
-std::set<inject_result_t> Middlebox::send_pkt(const Packet& pkt)
+Packet Middlebox::send_pkt(const Packet& pkt)
 {
     std::unique_lock<std::mutex> lck(mtx);
-    next_hops.clear();
+    recv_pkt.clear();
 
     // inject packet
     Logger::get().info("Injecting packet " + pkt.to_string());
@@ -160,19 +149,12 @@ std::set<inject_result_t> Middlebox::send_pkt(const Packet& pkt)
     Stats::get().set_pkt_latency();
 
     // logging
-    std::string nhops_str;
-    nhops_str += to_string() + " -> [";
-    for (auto nhop = next_hops.begin(); nhop != next_hops.end(); ++nhop) {
-        nhops_str += " " + nhop->first.to_string();
-    }
-    nhops_str += " ]";
     if (status == std::cv_status::timeout) {
-        nhops_str += " timeout!";
+        Logger::get().info("Timeout!");
     }
-    Logger::get().info(nhops_str);
 
-    // return next hop(s)
-    return next_hops;
+    // return the received packet
+    return recv_pkt;
 }
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(

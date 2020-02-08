@@ -155,15 +155,12 @@
     intf2 = "eth3"
 
 # Policy:
-#   1. Outgoing packets are always allowed. (This should fail due to the
-#      misconfiguration of fw.)
-#   2. Incoming packets are always denied, except for 3.
-#   3. Incoming replies to past requests are allowed.
 
 [[policies]]
     type = "loadbalance"
     protocol = "http"
     pkt_dst = "192.168.1.1"
-    start_node = "h[1]"
-    final_node = "server3"
-    reachable = true
+    start_node = "h1"
+    final_node = "server[123]"
+    repeat = 3
+    #reachable = true

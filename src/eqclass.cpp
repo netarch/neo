@@ -25,6 +25,16 @@ void EqClass::rm_range(const ECRange& range)
     while (ranges.erase(range) > 0);
 }
 
+bool EqClass::contains(const IPv4Address& addr) const
+{
+    for (const ECRange& range : ranges) {
+        if (range.contains(addr)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 IPv4Address EqClass::representative_addr() const
 {
     return ranges.begin()->get_lb();

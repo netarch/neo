@@ -26,8 +26,6 @@ class State;
 #define PS_TCP_TERM_3       9   // TCP termination ACK
 #define PS_ICMP_ECHO_REQ   10   // ICMP echo request
 #define PS_ICMP_ECHO_REP   11   // ICMP echo reply
-#define PS_ARP_REQ         12   // ARP request
-#define PS_ARP_REP         13   // ARP reply
 
 #define PS_IS_REQUEST(x) (      \
         (x) == PS_TCP_INIT_1 || \
@@ -51,7 +49,6 @@ class State;
 )
 #define PS_IS_TCP(x)       ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
 #define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
-#define PS_IS_ARP(x)       ((x) >= PS_ARP_REQ && (x) <= PS_ARP_REP)
 #define PS_HAS_SYN(x)      ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
 #define PS_HAS_FIN(x)      ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
 
@@ -71,11 +68,7 @@ private:
     // ingress interface
     Interface *interface;
     // IP
-    IPv4Address src_ip;
-    union {
-        EqClass *dst_ip_ec;
-        IPv4Address dst_ip;
-    };
+    IPv4Address src_ip, dst_ip;
     // TCP
     uint16_t src_port, dst_port;
     uint32_t seq, ack;
@@ -88,9 +81,9 @@ private:
     friend bool operator==(const Packet&, const Packet&);
 
 public:
+    Packet();
     Packet(State *, const Policy *);
-    Packet(Interface *, const IPv4Address& src_ip, const IPv4Address& dst_ip,
-           uint8_t pkt_state);  // used for ARP packet construction
+    Packet(Interface *);    // dummy packet, used unblocking listener thread
 
     std::string to_string() const;
     Interface *get_intf() const;
@@ -102,6 +95,9 @@ public:
     uint32_t get_ack() const;
     uint8_t get_pkt_state() const;
     Payload *get_payload() const;
+    void clear();
+    void set_intf(Interface *);
+    void set_dst_ip(const IPv4Address&);
 };
 
 bool operator==(const Packet&, const Packet&);

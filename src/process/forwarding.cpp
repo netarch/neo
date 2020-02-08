@@ -60,10 +60,10 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
            sizeof(PacketHistory *));
 
     // update candidates as start nodes
-    std::vector<inject_result_t> candidates;
+    std::vector<FIB_IPNH> candidates;
     for (Node *start_node : policy->get_start_nodes(state)) {
-        candidates.emplace_back(FIB_IPNH(start_node, nullptr, start_node,
-                                         nullptr), 0);
+        candidates.push_back(FIB_IPNH(start_node, nullptr, start_node,
+                                      nullptr));
     }
     update_candidates(state, candidates);
 
@@ -89,16 +89,16 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             packet_entry(state);
             break;
         case fwd_mode::FIRST_COLLECT:
-            first_collect(state);
+            first_collect(state, network);
             break;
         case fwd_mode::FIRST_FORWARD:
-            first_forward(state, network);
+            first_forward(state);
             break;
         case fwd_mode::COLLECT_NHOPS:
-            collect_next_hops(state);
+            collect_next_hops(state, network);
             break;
         case fwd_mode::FORWARD_PACKET:
-            forward_packet(state, network);
+            forward_packet(state);
             break;
         case fwd_mode::ACCEPTED:
             accepted(state, network);
@@ -114,9 +114,9 @@ void ForwardingProcess::exec_step(State *state, Network& network)
 
 void ForwardingProcess::packet_entry(State *state) const
 {
-    std::vector<inject_result_t> *candidates;
-    memcpy(&candidates, state->candidates, sizeof(std::vector<inject_result_t> *));
-    Node *entry = (*candidates)[state->choice].first.get_l3_node();
+    std::vector<FIB_IPNH> *candidates;
+    memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
+    Node *entry = (*candidates)[state->choice].get_l3_node();
     memcpy(state->comm_state[state->comm].src_node, &entry, sizeof(Node *));
     memcpy(state->comm_state[state->comm].pkt_location, &entry, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
@@ -132,25 +132,24 @@ void ForwardingProcess::packet_entry(State *state) const
     }
 }
 
-void ForwardingProcess::first_collect(State *state)
+void ForwardingProcess::first_collect(State *state, Network& network)
 {
-    collect_next_hops(state);
+    collect_next_hops(state, network);
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FIRST_FORWARD);
 }
 
-void ForwardingProcess::first_forward(State *state, Network& network)
+void ForwardingProcess::first_forward(State *state)
 {
     int pkt_state = state->comm_state[state->comm].pkt_state;
     if (PS_IS_FIRST(pkt_state)) {
         // update the source IP address according to the egress interface
-        std::vector<inject_result_t> *candidates;
-        memcpy(&candidates, state->candidates, sizeof(std::vector<inject_result_t> *));
-        inject_result_t next_hop = (*candidates)[state->choice];
-        assert(next_hop.second == 0);
-        if (next_hop.first.get_l2_intf()) {
+        std::vector<FIB_IPNH> *candidates;
+        memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
+        FIB_IPNH next_hop = (*candidates)[state->choice];
+        if (next_hop.get_l2_intf()) {
             const Interface *egress_intf
-                = next_hop.first.get_l2_node()->get_peer(
-                      next_hop.first.get_l2_intf()->get_name()
+                = next_hop.get_l2_node()->get_peer(
+                      next_hop.get_l2_intf()->get_name()
                   ).second;
             uint32_t src_ip = egress_intf->addr().get_value();
             memcpy(state->comm_state[state->comm].src_ip, &src_ip,
@@ -158,12 +157,13 @@ void ForwardingProcess::first_forward(State *state, Network& network)
         }
     }
 
-    forward_packet(state, network);
+    forward_packet(state);
 }
 
-void ForwardingProcess::collect_next_hops(State *state)
+void ForwardingProcess::collect_next_hops(State *state, Network& network)
 {
-    std::set<inject_result_t> next_hops;
+    // TODO: std::vector
+    std::set<FIB_IPNH> next_hops;
 
     Node *current_node;
     memcpy(&current_node, state->comm_state[state->comm].pkt_location,
@@ -173,13 +173,10 @@ void ForwardingProcess::collect_next_hops(State *state)
         // current_node is a Node; look up next hops from the fib
         FIB *fib;
         memcpy(&fib, state->comm_state[state->comm].fib, sizeof(FIB *));
-        std::set<FIB_IPNH> next_hops_without_packet = fib->lookup(current_node); // if current_node isn't a middlebox, just get next hop
-        for (auto& nh_without_pkt : next_hops_without_packet) {
-            next_hops.emplace(std::move(nh_without_pkt), 0); //store 0 as the dummy transformed IP
-        }
+        next_hops = fib->lookup(current_node);
     } else {
         // current_node is a Middlebox; inject packet to get next hops
-        next_hops = inject_packet(state, (Middlebox *)current_node);
+        next_hops = inject_packet(state, (Middlebox *)current_node, network);
     }
 
     if (next_hops.empty()) {
@@ -187,14 +184,14 @@ void ForwardingProcess::collect_next_hops(State *state)
         return;
     }
 
-    std::vector<inject_result_t> candidates;
-    std::optional<inject_result_t> choice;
+    std::vector<FIB_IPNH> candidates;
+    std::optional<FIB_IPNH> choice;
 
     // in case of multipath, use the past choice if it's been made
     if (next_hops.size() > 1 && (choice = get_choice(state))) {
         candidates.push_back(choice.value());
     } else {
-        for (const inject_result_t& next_hop : next_hops) {
+        for (const FIB_IPNH& next_hop : next_hops) {
             candidates.push_back(next_hop);
         }
     }
@@ -203,28 +200,21 @@ void ForwardingProcess::collect_next_hops(State *state)
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::FORWARD_PACKET);
 }
 
-void ForwardingProcess::forward_packet(State *state, Network& network)
+void ForwardingProcess::forward_packet(State *state)
 {
     Node *current_node;
     memcpy(&current_node, state->comm_state[state->comm].pkt_location,
            sizeof(Node *));
 
-    std::vector<inject_result_t> *candidates;
-    memcpy(&candidates, state->candidates, sizeof(std::vector<inject_result_t> *));
+    std::vector<FIB_IPNH> *candidates;
+    memcpy(&candidates, state->candidates, sizeof(std::vector<FIB_IPNH> *));
 
     // in case of multipath, remember the path choice
     if (candidates->size() > 1) {
         add_choice(state, (*candidates)[state->choice]);
     }
 
-    Node *next_hop = (*candidates)[state->choice].first.get_l3_node();
-    auto next_dst_ip = (*candidates)[state->choice].second;
-    if (next_dst_ip != 0) {
-        policy->add_ec(state, next_dst_ip);
-        EqClass *next_ec = policy->get_ecs(state).find_ec((*candidates)[state->choice].second);
-        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
-        network.update_fib(state);
-    }
+    Node *next_hop = (*candidates)[state->choice].get_l3_node();
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
         int pkt_state = state->comm_state[state->comm].pkt_state;
@@ -250,7 +240,7 @@ void ForwardingProcess::forward_packet(State *state, Network& network)
     memcpy(state->comm_state[state->comm].pkt_location, &next_hop,
            sizeof(Node *));
 
-    Interface *ingress_intf = (*candidates)[state->choice].first.get_l3_intf();
+    Interface *ingress_intf = (*candidates)[state->choice].get_l3_intf();
     memcpy(state->comm_state[state->comm].ingress_intf, &ingress_intf,
            sizeof(Interface *));
 
@@ -291,8 +281,8 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         memcpy(&start_node, state->comm_state[state->comm].src_node,
                sizeof(Node *));
     }
-    std::vector<inject_result_t> candidates(
-        1, std::make_pair(FIB_IPNH(start_node, nullptr, start_node, nullptr), 0));
+    std::vector<FIB_IPNH> candidates(
+        1, FIB_IPNH(start_node, nullptr, start_node, nullptr));
     update_candidates(state, candidates);
 
     // update src IP, packet EC and the FIB
@@ -311,7 +301,7 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         if (PS_IS_FIRST(pkt_state)) {
             policy->add_ec(state, src_ip);
         }
-        EqClass *next_ec = policy->get_ecs(state).find_ec(src_ip);
+        EqClass *next_ec = policy->find_ec(state, src_ip);
         memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
         Logger::get().info("EC: " + next_ec->to_string());
 
@@ -381,7 +371,8 @@ void ForwardingProcess::dropped(State *state) const
     state->choice_count = 0;
 }
 
-std::set<inject_result_t> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
+std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
+        Network& network)
 {
     Stats::get().set_overall_lat_t1();
 
@@ -424,25 +415,67 @@ std::set<inject_result_t> ForwardingProcess::inject_packet(State *state, Middleb
            sizeof(PacketHistory *));
 
     // inject packet
-    std::set<inject_result_t> next_hops = mb->send_pkt(*new_pkt);
+    Packet recv_pkt = mb->send_pkt(*new_pkt);
+
+    // find the next hop
+    std::set<FIB_IPNH> next_hops;
+    auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
+    if (l2nh.first) {   // if the interface is truly connected
+        if (!l2nh.second->is_l2()) {
+            // L2 nhop == L3 nhop
+            next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
+                                      l2nh.first, l2nh.second));
+        } else {
+            L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
+            auto l3nh = l2_lan->find_l3_endpoint(recv_pkt.get_dst_ip());
+            if (l3nh.first) {
+                next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+                                          l2nh.first, l2nh.second));
+            }
+        }
+    }
 
     Stats::get().set_overall_latency();
+
+    // logging
+    std::string nhops_str;
+    nhops_str += mb->to_string() + " -> [";
+    for (const FIB_IPNH& nhop : next_hops) {
+        nhops_str += " " + nhop.to_string();
+    }
+    nhops_str += " ]";
+    Logger::get().info(nhops_str);
+
+    // NAT (network address translation)
+    // NOTE: we only handle the destination IP rewriting for now.
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    if (!ec->contains(recv_pkt.get_dst_ip())) {
+        // set the next EC
+        policy->add_ec(state, recv_pkt.get_dst_ip());
+        EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
+        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
+        Logger::get().info("NAT EC: " + next_ec->to_string());
+        // update FIB according to the new EC
+        network.update_fib(state);
+    }
+
     return next_hops;
 }
 
 void ForwardingProcess::update_candidates(
     State *state,
-    const std::vector<inject_result_t>& new_candidates)
+    const std::vector<FIB_IPNH>& new_candidates)
 {
-    std::vector<inject_result_t> *candidates
-        = new std::vector<inject_result_t>(new_candidates);
+    std::vector<FIB_IPNH> *candidates
+        = new std::vector<FIB_IPNH>(new_candidates);
     auto res = candidates_hist.insert(candidates);
     if (!res.second) {
         delete candidates;
         candidates = *(res.first);
     }
     state->choice_count = candidates->size();
-    memcpy(state->candidates, &candidates, sizeof(std::vector<inject_result_t> *));
+    memcpy(state->candidates, &candidates, sizeof(std::vector<FIB_IPNH> *));
 }
 
 void ForwardingProcess::update_choices(State *state, Choices&& new_choices)
@@ -457,7 +490,7 @@ void ForwardingProcess::update_choices(State *state, Choices&& new_choices)
            sizeof(Choices *));
 }
 
-void ForwardingProcess::add_choice(State *state, const inject_result_t& next_hop)
+void ForwardingProcess::add_choice(State *state, const FIB_IPNH& next_hop)
 {
     Choices *choices;
     memcpy(&choices, state->comm_state[state->comm].path_choices,
@@ -473,7 +506,7 @@ void ForwardingProcess::add_choice(State *state, const inject_result_t& next_hop
     update_choices(state, std::move(new_choices));
 }
 
-std::optional<inject_result_t> ForwardingProcess::get_choice(State *state)
+std::optional<FIB_IPNH> ForwardingProcess::get_choice(State *state)
 {
     Choices *choices;
     memcpy(&choices, state->comm_state[state->comm].path_choices,
@@ -488,24 +521,16 @@ std::optional<inject_result_t> ForwardingProcess::get_choice(State *state)
 
 /******************************************************************************/
 
-size_t CandHash::operator()(const std::vector<inject_result_t> *const& c) const
+size_t CandHash::operator()(const std::vector<FIB_IPNH> *const& c) const
 {
-    size_t value = 0;
-    std::hash<uint32_t> ip_hasher;
-
-    for (const auto& entry : *c) {
-        ::hash::hash_combine(value, ::hash::hash(&entry.first, sizeof(entry.first)));
-        ::hash::hash_combine(value, ip_hasher(entry.second));
-    }
-
-    return value;
+    return hash::hash(c->data(), c->size() * sizeof(FIB_IPNH));
 }
 
-bool CandEq::operator()(const std::vector<inject_result_t> *const& a,
-                        const std::vector<inject_result_t> *const& b) const
+bool CandEq::operator()(const std::vector<FIB_IPNH> *const& a,
+                        const std::vector<FIB_IPNH> *const& b) const
 {
     if (a->size() != b->size()) {
         return false;
     }
-    return (*a == *b);
+    return memcmp(a->data(), b->data(), a->size() * sizeof(FIB_IPNH)) == 0;
 }
