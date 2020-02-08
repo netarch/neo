@@ -89,6 +89,7 @@ void LoadBalancePolicy::check_violation(State *state)
             return;
         }
         if (++state->comm_state[state->comm].repetition < repetition) {
+            ++tx_port;  // each repetition as a different communication
             state->choice_count = 1;
         }
     }
