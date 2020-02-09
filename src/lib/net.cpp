@@ -8,9 +8,6 @@
 #include "payload.hpp"
 #include "lib/logger.hpp"
 
-// make Net destroyed after all nodes
-Net& net = Net::get();
-
 Net::Net()
 {
     char errbuf[LIBNET_ERRBUF_SIZE];
@@ -18,6 +15,11 @@ Net::Net()
     if (!l) {
         Logger::get().err(std::string("libnet_init() failed: ") + errbuf);
     }
+}
+
+Net::~Net()
+{
+    libnet_destroy(l);
 }
 
 Net& Net::get()

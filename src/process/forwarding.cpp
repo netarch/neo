@@ -452,25 +452,42 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
     // inject packet
     Packet recv_pkt = mb->send_pkt(*new_pkt);
 
-    // find the next hop
     std::set<FIB_IPNH> next_hops;
-    auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
-    if (l2nh.first) {   // if the interface is truly connected
-        if (!l2nh.second->is_l2()) {
-            // L2 nhop == L3 nhop
-            next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
-                                      l2nh.first, l2nh.second));
-        } else {
-            L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
-            auto l3nh = l2_lan->find_l3_endpoint(recv_pkt.get_dst_ip());
-            if (l3nh.first) {
-                next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+
+    // if the packet is not dropped
+    if (recv_pkt.get_intf()) {
+        // find the next hop
+        auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
+        if (l2nh.first) {   // if the interface is truly connected
+            if (!l2nh.second->is_l2()) {
+                // L2 nhop == L3 nhop
+                next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
                                           l2nh.first, l2nh.second));
+            } else {
+                L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
+                auto l3nh = l2_lan->find_l3_endpoint(recv_pkt.get_dst_ip());
+                if (l3nh.first) {
+                    next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+                                              l2nh.first, l2nh.second));
+                }
             }
         }
-    }
 
-    Stats::get().set_overall_latency();
+        // NAT (network address translation)
+        // NOTE: we only handle the destination IP rewriting for now.
+        EqClass *ec;
+        memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+        if (!ec->contains(recv_pkt.get_dst_ip())) {
+            // set the next EC
+            policy->add_ec(state, recv_pkt.get_dst_ip());
+            EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
+            memcpy(state->comm_state[state->comm].ec, &next_ec,
+                   sizeof(EqClass *));
+            Logger::get().info("NAT EC: " + next_ec->to_string());
+            // update FIB according to the new EC
+            network.update_fib(state);
+        }
+    }
 
     // logging
     std::string nhops_str;
@@ -481,20 +498,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
     nhops_str += " ]";
     Logger::get().info(nhops_str);
 
-    // NAT (network address translation)
-    // NOTE: we only handle the destination IP rewriting for now.
-    EqClass *ec;
-    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-    if (!ec->contains(recv_pkt.get_dst_ip())) {
-        // set the next EC
-        policy->add_ec(state, recv_pkt.get_dst_ip());
-        EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
-        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
-        Logger::get().info("NAT EC: " + next_ec->to_string());
-        // update FIB according to the new EC
-        network.update_fib(state);
-    }
-
+    Stats::get().set_overall_latency();
     return next_hops;
 }
 

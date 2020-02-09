@@ -56,6 +56,8 @@ public:
 
     static Stats& get();
 
+    void print_timestamp(const std::string& s = "") const;
+
     void record_latencies(bool);
     void print_ec_stats();
     void print_policy_stats(int nodes, int links, Policy *);

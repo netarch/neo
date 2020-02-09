@@ -13,6 +13,21 @@ Stats& Stats::get()
     return instance;
 }
 
+void Stats::print_timestamp(const std::string& s) const
+{
+    if (s.empty()) {
+        Logger::get().info(
+            "Timestamp: " +
+            std::to_string(
+                high_resolution_clock::now().time_since_epoch().count()));
+    } else {
+        Logger::get().info(
+            s + ":\t" +
+            std::to_string(
+                high_resolution_clock::now().time_since_epoch().count()));
+    }
+}
+
 void Stats::record_latencies(bool l)
 {
     latencies = l;

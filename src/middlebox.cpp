@@ -38,14 +38,14 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
 
 Middlebox::~Middlebox()
 {
-    if (listener) {
-        listener_end = true;
-        Packet dummy(intfs.begin()->second);
-        env->inject_packet(dummy);
-        if (listener->joinable()) {
-            listener->join();
-        }
-    }
+    //if (listener) {
+    //    listener_end = true;
+    //    Packet dummy(intfs.begin()->second);
+    //    env->inject_packet(dummy);
+    //    if (listener->joinable()) {
+    //        listener->join();
+    //    }
+    //}
     delete listener;
     delete app;
     delete env;
