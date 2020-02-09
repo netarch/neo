@@ -5,9 +5,42 @@ import toml
 import argparse
 from conf_classes import *
 
-def confgen(subnets, hosts):
+def confgen(subnets, hosts, fault1, fault2):
     network = Network()
     policies = Policies()
+
+    ## firewall rules
+    fw_rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -i eth0 -d 12.0.0.0/8 -j ACCEPT
+-A FORWARD -i eth0 -d 11.0.0.0/8 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -i eth1 -s 12.0.0.0/8 -j ACCEPT
+-A FORWARD -i eth1 -s 11.0.0.0/8 -j ACCEPT
+COMMIT
+"""
+    fw_bad_rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -i eth0 -d 12.0.0.0/8 -j DROP
+-A FORWARD -i eth1 -s 12.0.0.0/8 -j DROP
+-A FORWARD -i eth1 -s 11.0.0.0/8 -m conntrack --ctstate NEW -j DROP
+COMMIT
+"""
+    fw_bad_reply_reachability_rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -i eth0 -d 12.0.0.0/8 -j DROP
+-A FORWARD -i eth0 -d 11.0.0.0/8 -p tcp --tcp-flags PSH,ACK PSH,ACK -j DROP
+-A FORWARD -i eth1 -s 12.0.0.0/8 -j DROP
+COMMIT
+"""
 
     ## add the Internet node, firewall, and gateway
     internet_node = Node('internet')
@@ -26,17 +59,12 @@ def confgen(subnets, hosts):
     fw.add_static_route(Route('12.0.0.0/8', '9.0.0.2'))
     fw.set_timeout(100)
     fw.add_config('rp_filter', 0)
-    fw.add_config('rules', """
-*filter
-:INPUT DROP [0:0]
-:FORWARD DROP [0:0]
-:OUTPUT ACCEPT [0:0]
--A FORWARD -i eth0 -d 12.0.0.0/8 -j ACCEPT
--A FORWARD -i eth0 -d 11.0.0.0/8 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
--A FORWARD -i eth1 -s 12.0.0.0/8 -j ACCEPT
--A FORWARD -i eth1 -s 11.0.0.0/8 -j ACCEPT
-COMMIT
-""")
+    if fault1:
+        fw.add_config('rules', fw_bad_rules)
+    elif fault2:
+        fw.add_config('rules', fw_bad_reply_reachability_rules)
+    else:
+        fw.add_config('rules', fw_rules)
     network.add_node(fw)
     gw = Node('gw')
     gw.add_interface(Interface('eth0', '9.0.0.2/24'))
@@ -118,7 +146,6 @@ COMMIT
     policies.add_policy(ReachabilityPolicy(
         protocol = 'http',
         pkt_dst = '12.0.0.0/8',
-        owned_dst_only = True,
         start_node = 'internet',
         final_node = '(public[0-9]+-host[0-9]+)|gw',
         reachable = True))
@@ -169,6 +196,10 @@ def main():
                         help='Number of subnets in each policy zone')
     parser.add_argument('-H', '--hosts', type=int,
                         help='Number of hosts in each subnet')
+    parser.add_argument('-f', '--fault1', action='store_true', default=False,
+                        help='Use inconsistent rules (except replyreachability)')
+    parser.add_argument('-F', '--fault2', action='store_true', default=False,
+                        help='Use inconsistent rules (for replyreachability)')
     arg = parser.parse_args()
 
     if not arg.subnets or arg.subnets > 256:
@@ -176,7 +207,7 @@ def main():
     if not arg.hosts or arg.hosts > 65533:
         sys.exit('Invalid number of hosts: ' + str(arg.hosts))
 
-    confgen(arg.subnets, arg.hosts)
+    confgen(arg.subnets, arg.hosts, arg.fault1, arg.fault2)
 
 if __name__ == '__main__':
     main()

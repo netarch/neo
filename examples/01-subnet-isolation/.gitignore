@@ -1,2 +1,2 @@
-network.toml
-results/
+*.toml
+results*

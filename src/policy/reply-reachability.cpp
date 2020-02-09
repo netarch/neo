@@ -103,8 +103,8 @@ void ReplyReachabilityPolicy::check_violation(State *state)
             reached = false;
         } else {
             /*
-             * If the reply hasn't been accepted or dropped, there is nothing to
-             * check.
+             * If the request (or session construction packets) hasn't been
+             * accepted or dropped, there is nothing to check.
              */
             return;
         }
