@@ -31,7 +31,7 @@ for num_subnets in 5 10 15; do
                 -o "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs.fault2"
 
             sudo rm -rf "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs/4"
-            sudo mv "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs.fault2/4" "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs/"
+            sudo mv "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs.fault2/1" "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs/4"
             sudo rm -rf "$OUT_DIR/$num_subnets-subnets.$num_hosts-hosts.DOP-$num_procs.fault2"
         done
     done

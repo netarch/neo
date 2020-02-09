@@ -135,55 +135,64 @@ COMMIT
             network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add policies
-    # public subnets can initiate connections to the outside world
-    policies.add_policy(ReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '8.0.0.1',
-        start_node = 'public[0-9]+-host[0-9]+',
-        final_node = 'internet',
-        reachable = True))
-    # public subnets can accept connections from the outside world
-    policies.add_policy(ReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '12.0.0.0/8',
-        start_node = 'internet',
-        final_node = '(public[0-9]+-host[0-9]+)|gw',
-        reachable = True))
-    # private subnets can initiate connections to the outside world
-    policies.add_policy(ReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '8.0.0.1',
-        start_node = 'private[0-9]+-host[0-9]+',
-        final_node = 'internet',
-        reachable = True))
-    # replies from the outside world can reach the private subnets
-    policies.add_policy(ReplyReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '8.0.0.1',
-        start_node = 'private[0-9]+-host[0-9]+',
-        query_node = 'internet',
-        reachable = True))
-    # private subnets can't accept connections from the outside world
-    policies.add_policy(ReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '11.0.0.0/8',
-        start_node = 'internet',
-        final_node = 'private[0-9]+-host[0-9]+',
-        reachable = False))
-    # quarantined subnets can't initiate connections to the outside world
-    policies.add_policy(ReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '8.0.0.1',
-        start_node = 'quarantined[0-9]+-host[0-9]+',
-        final_node = 'internet',
-        reachable = False))
-    # quarantined subnets can't accept connections from the outside world
-    policies.add_policy(ReachabilityPolicy(
-        protocol = 'http',
-        pkt_dst = '10.0.0.0/8',
-        start_node = 'internet',
-        final_node = 'quarantined[0-9]+-host[0-9]+',
-        reachable = False))
+    if fault2:
+        # replies from the outside world can reach the private subnets
+        policies.add_policy(ReplyReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '8.0.0.1',
+            start_node = 'private[0-9]+-host[0-9]+',
+            query_node = 'internet',
+            reachable = True))
+    else:
+        # public subnets can initiate connections to the outside world
+        policies.add_policy(ReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '8.0.0.1',
+            start_node = 'public[0-9]+-host[0-9]+',
+            final_node = 'internet',
+            reachable = True))
+        # public subnets can accept connections from the outside world
+        policies.add_policy(ReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '12.0.0.0/8',
+            start_node = 'internet',
+            final_node = '(public[0-9]+-host[0-9]+)|gw',
+            reachable = True))
+        # private subnets can initiate connections to the outside world
+        policies.add_policy(ReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '8.0.0.1',
+            start_node = 'private[0-9]+-host[0-9]+',
+            final_node = 'internet',
+            reachable = True))
+        # replies from the outside world can reach the private subnets
+        policies.add_policy(ReplyReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '8.0.0.1',
+            start_node = 'private[0-9]+-host[0-9]+',
+            query_node = 'internet',
+            reachable = True))
+        # private subnets can't accept connections from the outside world
+        policies.add_policy(ReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '11.0.0.0/8',
+            start_node = 'internet',
+            final_node = 'private[0-9]+-host[0-9]+',
+            reachable = False))
+        # quarantined subnets can't initiate connections to the outside world
+        policies.add_policy(ReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '8.0.0.1',
+            start_node = 'quarantined[0-9]+-host[0-9]+',
+            final_node = 'internet',
+            reachable = False))
+        # quarantined subnets can't accept connections from the outside world
+        policies.add_policy(ReachabilityPolicy(
+            protocol = 'http',
+            pkt_dst = '10.0.0.0/8',
+            start_node = 'internet',
+            final_node = 'quarantined[0-9]+-host[0-9]+',
+            reachable = False))
 
     ## output as TOML
     config = network.to_dict()
