@@ -177,7 +177,7 @@ COMMIT
             protocol = 'http',
             pkt_dst = '11.0.0.0/8',
             start_node = 'internet',
-            final_node = 'private[0-9]+-host[0-9]+',
+            final_node = '(private[0-9]+-host[0-9]+)|gw',
             reachable = False))
         # quarantined subnets can't initiate connections to the outside world
         policies.add_policy(ReachabilityPolicy(
@@ -191,7 +191,7 @@ COMMIT
             protocol = 'http',
             pkt_dst = '10.0.0.0/8',
             start_node = 'internet',
-            final_node = 'quarantined[0-9]+-host[0-9]+',
+            final_node = '(quarantined[0-9]+-host[0-9]+)|gw',
             reachable = False))
 
     ## output as TOML
