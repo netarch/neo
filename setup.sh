@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
     (echo '[!] Please run this script without root privilege' >&2; exit 1)
 
 # Dependencies needed for development
-depends=(autoconf make spin-git astyle libnet python-toml ipvsadm)
+depends=(autoconf make spin-git astyle libnet python-toml ipvsadm bc)
 
 
 get_distro() {

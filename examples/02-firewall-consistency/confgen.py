@@ -29,10 +29,17 @@ def confgen(apps, hosts, fault):
     wrong_fw_rules = """
 *filter
 :INPUT DROP [0:0]
-:FORWARD DROP [0:0]
+:FORWARD ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
-COMMIT
 """
+    for app in range(apps):
+        second = (app // 256) % 256
+        third = app % 256
+        wrong_fw_rules += ('-A FORWARD -i eth0 -s 10.%d.%d.0/24 -d 11.%d.%d.0/24 -j DROP\n'
+                % (second, third, second, third))
+        wrong_fw_rules += ('-A FORWARD -i eth0 -s 11.%d.%d.0/24 -d 10.%d.%d.0/24 -j DROP\n'
+                % (second, third, second, third))
+    wrong_fw_rules += 'COMMIT\n'
 
     ## add the core, aggregation, and firewall nodes/links
     core1 = Node('core1')
