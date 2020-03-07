@@ -12,6 +12,7 @@ matrix:
         - CC = 'gcc'
         - CXX = 'g++'
         - GCOV = 'gcov'
+        - MAKEFLAGS = '-j 2'
         - TRAVIS_JOB_NAME = 'GCC Test'
     - name: "Clang Test"
       os: linux
@@ -24,6 +25,7 @@ matrix:
         - CC = 'clang'
         - CXX = 'clang++'
         - GCOV = 'llvm-cov gcov'
+        - MAKEFLAGS = '-j 2'
         - TRAVIS_JOB_NAME = 'Clang Test'
 
 install:
