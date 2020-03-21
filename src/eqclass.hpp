@@ -16,6 +16,8 @@ class EqClass
 private:
     std::set<ECRange> ranges;
 
+    friend bool operator==(const EqClass&, const EqClass&);
+
 public:
     typedef std::set<ECRange>::iterator iterator;
     typedef std::set<ECRange>::const_iterator const_iterator;
@@ -26,6 +28,8 @@ public:
     bool empty() const;
     void add_range(const ECRange&);
     void rm_range(const ECRange&);
+    bool contains(const IPv4Address&) const;
+    IPv4Address representative_addr() const;
 
     iterator               begin();
     const_iterator         begin() const;
@@ -36,3 +40,5 @@ public:
     reverse_iterator       rend();
     const_reverse_iterator rend() const;
 };
+
+bool operator==(const EqClass&, const EqClass&);

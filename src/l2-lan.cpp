@@ -1,4 +1,5 @@
 #include "l2-lan.hpp"
+
 #include "lib/logger.hpp"
 
 void L2_LAN::collect_intfs(Node *node,
@@ -44,6 +45,12 @@ const std::set<std::pair<Node *, Interface *> >&
 L2_LAN::get_l2_endpoints() const
 {
     return l2_endpoints;
+}
+
+const std::map<IPv4Address, std::pair<Node *, Interface *> >&
+L2_LAN::get_l3_endpoints() const
+{
+    return l3_endpoints;
 }
 
 std::pair<Node *, Interface *>

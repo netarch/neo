@@ -1,10 +1,10 @@
+#include "lib/logger.hpp"
+
 #include <iostream>
 #include <string>
 #include <cstring>
 #include <clocale>
 #include <stdexcept>
-
-#include "lib/logger.hpp"
 
 Logger::Logger(): verbose(false)
 {
@@ -18,10 +18,30 @@ void Logger::log(const std::string& type, const std::string& msg)
     }
 }
 
+Logger::~Logger()
+{
+    if (logfile.is_open()) {
+        logfile.close();
+    }
+}
+
 Logger& Logger::get()
 {
     static Logger instance;
     return instance;
+}
+
+void Logger::reopen()
+{
+    if (logfile.is_open()) {
+        logfile.close();
+    }
+    if (!filename.empty()) {
+        logfile.open(filename, std::ios_base::app);
+        if (logfile.fail()) {
+            throw std::runtime_error("Failed to open log file: " + filename);
+        }
+    }
 }
 
 void Logger::set_file(const std::string& fn)
@@ -31,7 +51,7 @@ void Logger::set_file(const std::string& fn)
     }
     filename = fn;
     if (!filename.empty()) {
-        logfile.open(filename);
+        logfile.open(filename, std::ios_base::app);
         if (logfile.fail()) {
             throw std::runtime_error("Failed to open log file: " + filename);
         }
@@ -43,10 +63,31 @@ void Logger::set_verbose(bool v)
     verbose = v;
 }
 
+void Logger::print(const std::string& msg)
+{
+    if (logfile.is_open()) {
+        logfile << msg << std::endl;
+    }
+}
+
 void Logger::out(const std::string& msg)
 {
     std::cout << msg << std::endl;
 }
+
+#ifdef DEBUG
+void Logger::debug(const std::string& msg)
+{
+    log("DEBUG", msg);
+    if (verbose) {
+        std::cout << "[DEBUG] " << msg << std::endl;
+    }
+}
+#else
+void Logger::debug(const std::string& msg __attribute__((unused)))
+{
+}
+#endif
 
 void Logger::info(const std::string& msg)
 {

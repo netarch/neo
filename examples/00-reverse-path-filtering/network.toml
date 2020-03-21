@@ -89,28 +89,21 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
-    rp_filter = 1
-    config = """
-    *nat
-    :PREROUTING ACCEPT [0:0]
-    :INPUT ACCEPT [0:0]
-    :OUTPUT ACCEPT [0:0]
-    :POSTROUTING ACCEPT [0:0]
-    -A POSTROUTING -s 192.168.0.0/22 -o eth0 -j MASQUERADE
-    COMMIT
-
-    *filter
-    :INPUT DROP [0:0]
-    :FORWARD DROP [0:0]
-    :OUTPUT ACCEPT [0:0]
-    -A INPUT -i eth1 -j ACCEPT
-    -A INPUT -i eth2 -j ACCEPT
-    -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    -A FORWARD -i eth1 -j ACCEPT
-    -A FORWARD -i eth2 -j ACCEPT
-    -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    COMMIT
-    """
+    timeout = 100
+    rp_filter = 1   # misconfiguration, should be 0
+    rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -i eth1 -j ACCEPT
+-A INPUT -i eth2 -j ACCEPT
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -i eth1 -j ACCEPT
+-A FORWARD -i eth2 -j ACCEPT
+-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+"""
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.2/24"
@@ -180,25 +173,32 @@
     intf2 = "eth0"
 
 # Policy:
-#   1. Outgoing packets are always allowed.
+#   1. Outgoing packets are always allowed. (This should fail due to the
+#      misconfiguration of fw.)
 #   2. Incoming packets are always denied, except for 3.
 #   3. Incoming replies to past requests are allowed.
 
 [[policies]]
     type = "reachability"
-    pkt_dst = "10.0.0.1"
-    start_node = "h[123]"
     final_node = "server"
     reachable = true
-[[policies]]
-    type = "reachability"
-    pkt_dst = "192.168.0.0/22"
-    start_node = "server"
-    final_node = "h[123]|s1|r[123]|fw"
-    reachable = false
-[[policies]]
-    type = "reply-reachability"
+    [policies.communication]
+    protocol = "http"
     pkt_dst = "10.0.0.1"
     start_node = "h[123]"
+[[policies]]
+    type = "reachability"
+    final_node = "h[123]|s1|r[123]|fw"
+    reachable = false
+    [policies.communication]
+    protocol = "http"
+    pkt_dst = "192.168.0.0/22"
+    start_node = "server"
+[[policies]]
+    type = "reply-reachability"
     query_node = "server"
     reachable = true
+    [policies.communication]
+    protocol = "http"
+    pkt_dst = "10.0.0.1"
+    start_node = "h[123]"

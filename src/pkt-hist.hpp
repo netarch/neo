@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include <unordered_map>
 
 #include "packet.hpp"
@@ -24,6 +25,8 @@ private:
 
 public:
     NodePacketHistory(Packet *, NodePacketHistory *);
+
+    std::list<Packet *> get_packets() const;
 };
 
 bool operator==(const NodePacketHistory&, const NodePacketHistory&);
@@ -51,42 +54,17 @@ public:
 bool operator==(const PacketHistory&, const PacketHistory&);
 
 struct NodePacketHistoryHash {
-    size_t operator()(NodePacketHistory *const& nph) const
-    {
-        size_t value = 0;
-        std::hash<Packet *> pkt_hf;
-        std::hash<NodePacketHistory *> nph_hf;
-        ::hash::hash_combine(value, pkt_hf(nph->last_pkt));
-        ::hash::hash_combine(value, nph_hf(nph->past_hist));
-        return value;
-    }
+    size_t operator()(NodePacketHistory *const&) const;
 };
 
 struct NodePacketHistoryEq {
-    bool operator()(NodePacketHistory *const& a, NodePacketHistory *const& b)
-    const
-    {
-        return *a == *b;
-    }
+    bool operator()(NodePacketHistory *const&, NodePacketHistory *const&) const;
 };
 
 struct PacketHistoryHash {
-    size_t operator()(PacketHistory *const& ph) const
-    {
-        size_t value = 0;
-        std::hash<Node *> node_hf;
-        std::hash<NodePacketHistory *> nph_hf;
-        for (const auto& entry : ph->tbl) {
-            ::hash::hash_combine(value, node_hf(entry.first));
-            ::hash::hash_combine(value, nph_hf(entry.second));
-        }
-        return value;
-    }
+    size_t operator()(PacketHistory *const&) const;
 };
 
 struct PacketHistoryEq {
-    bool operator()(PacketHistory *const& a, PacketHistory *const& b) const
-    {
-        return *a == *b;
-    }
+    bool operator()(PacketHistory *const&, PacketHistory *const&) const;
 };

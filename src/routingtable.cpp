@@ -1,7 +1,7 @@
+#include "routingtable.hpp"
+
 #include <iterator>
 #include <utility>
-
-#include "routingtable.hpp"
 
 RoutingTable::iterator RoutingTable::insert(const Route& route)
 {

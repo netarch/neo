@@ -7,7 +7,6 @@
 
 class L2_LAN;
 #include "node.hpp"
-#include "lib/ip.hpp"
 #include "lib/hash.hpp"
 
 class L2_LAN
@@ -27,6 +26,8 @@ public:
 
     std::string to_string() const;
     const std::set<std::pair<Node *, Interface *> >& get_l2_endpoints() const;
+    const std::map<IPv4Address, std::pair<Node *, Interface *> >&
+    get_l3_endpoints() const;
     std::pair<Node *, Interface *> find_l3_endpoint(const IPv4Address&) const;
 };
 

@@ -1,3 +1,7 @@
+##
+## Network configuration
+##
+
 [[nodes]]
     name = "string"
     type = "generic" or "middlebox"
@@ -18,50 +22,99 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
-    rp_filter = 0               # optional (0..2?), default: 0
-    config = ".*"   # TODO
+    timeout = 100               # microseconds
+    rp_filter = 0               # optional (0..2), default: 0
+    # 0 - No source validation.
+    # 1 - Strict mode as defined in RFC3704 Strict Reverse Path
+    #     Each incoming packet is tested against the FIB and if the interface
+    #     is not the best reverse path the packet check will fail.
+    #     By default failed packets are discarded.
+    # 2 - Loose mode as defined in RFC3704 Loose Reverse Path
+    #     Each incoming packet's source address is also tested against the FIB
+    #     and if the source address is not reachable via any interface the
+    #     packet check will fail.
+    rules = ".*"
 
-# undirected (only need to specify once for each bidirectional link)
+# undirected (only need to specify once for each link)
 [[links]]
     node1 = "name"
     intf1 = "name"
     node2 = "name"
     intf2 = "name"
 
+
+##
+## Policies
+##
+
+#
+# Single-communication policies (independent communications):
+#   - loadbalance
+#   - reachability
+#   - reply-reachability
+#   - waypoint
+#
+[[policies]]
+    type = "loadbalance"
+    final_node = "node name regex"
+    repeat = 0                      # optional, default: # of final nodes
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
 [[policies]]
     type = "reachability"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
     final_node = "node name regex"
     reachable = true or false
-[[policies]]
-    type = "waypoint"
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
     start_node = "node name regex"
-    waypoint = "node name regex"
-    pass_through = true or false
 [[policies]]
     type = "reply-reachability"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
     query_node = "node name regex"
     reachable = true or false
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
 [[policies]]
-    type = "stateful-reachability"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
-    final_node = "node name regex"
-    reachable = true or false
-    [policies.prerequisite]
-    type = "reachability"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
-    final_node = "node name regex"
-    reachable = true or false
-    # or
-    [policies.prerequisite]
     type = "waypoint"
-    pkt_dst = "x.x.x.x(/x)"
-    start_node = "node name regex"
     waypoint = "node name regex"
     pass_through = true or false
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+
+#
+# Multi-communication policies (multiple, simultaneous communications):
+#   - one-request
+#
+[[policies]]
+    type = "one-request"
+    query_node = "node name regex"
+    [[policies.communications]]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+
+#
+# Policies with multiple single-communication correlated policies (multiple,
+# sequential communications with their own policies):
+#   - conditional
+#   - consistency
+#
+[[policies]]
+    type = "conditional"
+    [[policies.correlated_policies]]
+    # any single-communication policies
+[[policies]]
+    type = "consistency"
+    [[policies.correlated_policies]]
+    # any single-communication policies

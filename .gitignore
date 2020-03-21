@@ -18,9 +18,12 @@ config.log
 config.status
 configure
 pan.[bchmpt]
-pan.*.[ch]
+model.[ch]
 
 # Coverage files
 *.gcov
 *.gcda
 *.gcno
+
+# Python cache files
+__pycache__

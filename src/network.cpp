@@ -1,12 +1,13 @@
 #include "network.hpp"
 
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
-#include <cstring>
 
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
+#include "model.h"
 
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config)
@@ -46,10 +47,10 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             }
 
             // Add the new peer to the respective node structures
-            auto node1 = link->get_node1();
-            auto node2 = link->get_node2();
-            auto intf1 = link->get_intf1();
-            auto intf2 = link->get_intf2();
+            Node *node1 = link->get_node1();
+            Node *node2 = link->get_node2();
+            Interface *intf1 = link->get_intf1();
+            Interface *intf2 = link->get_intf2();
             node1->add_peer(intf1->get_name(), node2, intf2);
             node2->add_peer(intf2->get_name(), node1, intf1);
         }
@@ -101,15 +102,8 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-void Network::init(State *state, const EqClass *pre_ec, const EqClass *ec)
+void Network::init(State *state __attribute__((unused)))
 {
-    // initialize FIB
-    if (state->itr_ec == 0 && pre_ec) {
-        fib_init(state, pre_ec);
-    } else {
-        fib_init(state, ec);
-    }
-
     // initialize and start middlebox emulations
     for (const auto& pair : nodes) {
         Node *node = pair.second;
@@ -119,10 +113,13 @@ void Network::init(State *state, const EqClass *pre_ec, const EqClass *ec)
     // TODO: initialize update history if update agent is implemented
 }
 
-void Network::fib_init(State *state, const EqClass *ec)
+void Network::update_fib(State *state)
 {
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
     FIB *fib = new FIB();
-    IPv4Address addr = ec->begin()->get_lb();   // the representative address
+    IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops
     for (const auto& pair : nodes) {
@@ -130,12 +127,13 @@ void Network::fib_init(State *state, const EqClass *ec)
         fib->set_ipnhs(node, node->get_ipnhs(addr));
     }
 
+    // insert into the pool of history FIBs
     auto res = fibs.insert(fib);
     if (!res.second) {
         delete fib;
         fib = *(res.first);
     }
-    memcpy(state->network_state[state->itr_ec].fib, &fib, sizeof(FIB *));
+    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
 
-    Logger::get().info(fib->to_string());
+    Logger::get().debug(fib->to_string());
 }

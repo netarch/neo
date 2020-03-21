@@ -5,7 +5,7 @@
 #include "network.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
-#include "pan.h"
+class State;
 
 class Plankton
 {
@@ -18,35 +18,36 @@ private:
 
     /* per process variables */
     Policy    *policy;    // the policy being verified
-    EqClass   *pre_ec;    // EC of the prerequisite policy
-    EqClass   *ec;        // EC to be verified
 
     /* processes */
     ForwardingProcess   fwd;
     /*
-     * NOTE: if there are more than one process, they need to be chosen
+     * NOTE:
+     * If there are more than one process, they need to be chosen
      * non-deterministically.
      */
 
     Plankton();
-    void verify(Policy *, EqClass *, EqClass *);
-    void dispatch(Policy *, EqClass *, EqClass *);
+    void verify_ec(Policy *);
+    void verify_policy(Policy *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
     Plankton(const Plankton&) = delete;
     Plankton& operator=(const Plankton&) = delete;
 
-    static Plankton& get_instance();
+    static Plankton& get();
 
-    void init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
-              const std::string& input_file, const std::string& output_dir);
+    void init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
+              bool verbose, const std::string& input_file,
+              const std::string& output_dir);
     int run();
 
 
-    /***** functions called by the Promela network model *****/
+    /***** functions used by the Promela network model *****/
 
     void initialize(State *);
     void exec_step(State *);
     void report(State *);
+    void verify_exit(int);
 };

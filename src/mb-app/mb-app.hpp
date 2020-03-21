@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cpptoml/cpptoml.hpp>
 
 /*
@@ -9,8 +10,14 @@
  */
 class MB_App
 {
+protected:
+    std::chrono::microseconds timeout;
+
 public:
+    MB_App(const std::shared_ptr<cpptoml::table>&);
     virtual ~MB_App() = default;
+
+    std::chrono::microseconds get_timeout() const;
 
     /* Note that all internal states should be flushed/reset */
     virtual void init() = 0;    // hard-reset, restart, start

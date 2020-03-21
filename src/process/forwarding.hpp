@@ -2,11 +2,17 @@
 
 #include <vector>
 #include <unordered_set>
+#include <optional>
 
 #include "process/process.hpp"
-#include "node.hpp"
+#include "policy/policy.hpp"
+#include "fib.hpp"
+#include "choices.hpp"
+#include "packet.hpp"
 #include "pkt-hist.hpp"
+#include "network.hpp"
 #include "middlebox.hpp"
+class State;
 
 enum fwd_mode {
     // start from 1 to avoid execution before configuration
@@ -31,8 +37,11 @@ struct CandEq {
 class ForwardingProcess : public Process
 {
 private:
+    Policy *policy;
+
     std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
     candidates_hist;
+    std::unordered_set<Choices *> choices_hist;
 
     // all history packets
     std::unordered_set<Packet *, PacketHash, PacketEq> all_pkts;
@@ -44,14 +53,21 @@ private:
     pkt_hist_hist;
 
     void packet_entry(State *) const;
-    void first_collect(State *, const EqClass *);
-    void first_forward(State *) const;
-    void forward_packet(State *) const;
-    void collect_next_hops(State *, const EqClass *);
+    void first_collect(State *, Network&);
+    void first_forward(State *);
+    void collect_next_hops(State *, Network&);
+    void forward_packet(State *);
+    void accepted(State *, Network&);
+    void dropped(State *) const;
 
-    std::set<FIB_IPNH> inject_packet(State *, Middlebox *,
-                                     const IPv4Address& dst_ip);
+    void phase_transition(State *, Network&, uint8_t next_pkt_state,
+                          bool change_direction);
+
+    std::set<FIB_IPNH> inject_packet(State *, Middlebox *, Network&);
     void update_candidates(State *, const std::vector<FIB_IPNH>&);
+    void update_choices(State *, Choices&&);
+    void add_choice(State *, const FIB_IPNH&);
+    std::optional<FIB_IPNH> get_choice(State *);
 
 public:
     ForwardingProcess() = default;
@@ -62,6 +78,9 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
-    void config(State *, const Network&, const std::vector<Node *>&);
-    void exec_step(State *, const EqClass *) override;
+    // initialize fwd process when system starts
+    void init(State *, Network&, Policy *);
+    // reset fwd process without changing pkt_hist and path_choices
+    void reset(State *, Network&, Policy *);
+    void exec_step(State *, Network&) override;
 };

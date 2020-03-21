@@ -1,6 +1,7 @@
+#include "lib/ip.hpp"
+
 #include <cstdio>
 
-#include "lib/ip.hpp"
 #include "lib/logger.hpp"
 
 IPv4Address::IPv4Address(const std::string& ips)

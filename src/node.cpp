@@ -112,6 +112,11 @@ Interface *Node::get_interface(const IPv4Address& addr) const
     return intf->second;
 }
 
+const std::map<std::string, Interface *>& Node::get_intfs() const
+{
+    return intfs;
+}
+
 const std::map<IPv4Address, Interface *>& Node::get_intfs_l3() const
 {
     return intfs_l3;
@@ -155,6 +160,11 @@ bool Node::mapped_to_l2lan(Interface *intf) const
 void Node::set_l2lan(Interface *intf, L2_LAN *l2_lan)
 {
     l2_lans[intf] = l2_lan;
+}
+
+L2_LAN *Node::get_l2lan(Interface *intf) const
+{
+    return l2_lans.at(intf);
 }
 
 std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)

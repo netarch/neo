@@ -8,9 +8,7 @@
 class FIB_IPNH;
 class FIB;
 #include "node.hpp"
-#include "lib/ip.hpp"
 #include "lib/hash.hpp"
-
 
 class FIB_IPNH  // FIB entry for an IP next hop
 {
@@ -102,7 +100,7 @@ struct hash<FIB> {
             }
         }
         return value;
-    };
+    }
 };
 
 template <>

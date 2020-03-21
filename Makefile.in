@@ -14,9 +14,9 @@ TEST_TARGET        = test-$(TARGET)
 
 # Source files and directories
 srcdir      = @srcdir@
-SRCS        = $(shell find $(srcdir)/src $(srcdir)/third_party -type f | \
-	        grep -E '\.(c|cpp)$$')
-OBJS        = $(notdir $(patsubst %.c,%.o,$(SRCS:%.cpp=%.o))) pan.o
+SRCS        = $(shell find $(srcdir)/src $(srcdir)/third_party -type f \
+              | grep -E '\.(c|cpp)$$')
+OBJS        = $(notdir $(patsubst %.c,%.o,$(SRCS:%.cpp=%.o))) model.o
 VPATH       = $(shell find $(srcdir)/src $(srcdir)/third_party -type d) .
 
 # Install directories
@@ -58,27 +58,24 @@ all: $(TARGET) install-git-hooks #neo.1.gz
 
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	sudo setcap 'cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe' $@
+	sudo setcap 'cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe' $@
 
-$(OBJS) $(TEST_OBJS): pan.h
+$(OBJS) $(TEST_OBJS): model.h
 
-pan.h: pan.orig.h
+model.h: pan.h
 	sed $< \
 	    -e '1s/^/#ifdef __cplusplus\nextern "C" {\n#endif\n/' \
 	    -e '$$s/$$/\n#ifdef __cplusplus\n}\n#endif/' \
 		> $@
 
-pan.c: pan.orig.c
+model.c: pan.c
 	sed $< \
 	    -e '1s/^/#define main(...) spin_main(__VA_ARGS__)\n/' \
+	    -e '1s/^/#define exit(...) verify_exit(__VA_ARGS__)\n/' \
 		> $@
 
-pan.orig.h: pan.orig.c
-
-pan.orig.c: $(srcdir)/src/network.pml
+pan.h pan.c: $(srcdir)/src/network.pml
 	spin $(SPINFLAGS) $<
-	mv pan.h pan.orig.h
-	mv pan.c pan.orig.c
 
 neo.1.gz:
 	# TODO
@@ -97,7 +94,7 @@ uninstall:
 	-rm -rf "$(licensedir)"
 
 clean:
-	-@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.* *.gcov *.gcda *.gcno neo.1.gz
+	-@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.* model.* *.gcov *.gcda *.gcno neo.1.gz
 
 distclean: clean
 	-@rm -rf autom4te.cache codecov.sh config.log config.status configure \
@@ -108,6 +105,7 @@ check: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	sudo setcap 'cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe' $@
 
 installcheck: install
 	# TODO

@@ -1,10 +1,8 @@
-#include <cstring>
-
 #include "api.hpp"
-#include "plankton.hpp"
-#include "pan.h"
 
-static Plankton& plankton = Plankton::get_instance();
+#include "plankton.hpp"
+
+static Plankton& plankton = Plankton::get();
 
 void initialize(State *state)
 {
@@ -19,4 +17,9 @@ void exec_step(State *state)
 void report(State *state)
 {
     plankton.report(state);
+}
+
+void verify_exit(int status)
+{
+    plankton.verify_exit(status);
 }

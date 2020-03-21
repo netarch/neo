@@ -33,7 +33,8 @@ static inline void ltrim(std::string& str);
 // 1, get config in toml
 // 2, generate configuration file
 // 3, build up cmd & nat_cmd & proxy_config_path & nat_config_path
-CacheProxy::CacheProxy( const std::shared_ptr<cpptoml::table>& node)
+CacheProxy::CacheProxy(const std::shared_ptr<cpptoml::table>& node)
+    : MB_App(node)
 {
     server_pid = 0;
     curr_dir = fs::get_cwd();

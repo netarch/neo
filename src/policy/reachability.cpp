@@ -1,67 +1,50 @@
-#include <regex>
-
 #include "policy/reachability.hpp"
 
+#include <regex>
+
+#include "process/forwarding.hpp"
+#include "model.h"
+
 ReachabilityPolicy::ReachabilityPolicy(
-    const std::shared_ptr<cpptoml::table>& config,
-    const Network& net)
-    : Policy(config)
+    const std::shared_ptr<cpptoml::table>& config, const Network& net,
+    bool correlated)
+    : Policy(correlated)
 {
-    auto start_regex = config->get_as<std::string>("start_node");
     auto final_regex = config->get_as<std::string>("final_node");
     auto reachability = config->get_as<bool>("reachable");
+    auto comm_cfg = config->get_table("communication");
 
-    if (!start_regex) {
-        Logger::get().err("Missing start node");
-    }
     if (!final_regex) {
         Logger::get().err("Missing final node");
     }
     if (!reachability) {
         Logger::get().err("Missing reachability");
     }
+    if (!comm_cfg) {
+        Logger::get().err("Missing communication");
+    }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
     for (const auto& node : nodes) {
-        if (std::regex_match(node.first, std::regex(*start_regex))) {
-            start_nodes.push_back(node.second);
-        }
         if (std::regex_match(node.first, std::regex(*final_regex))) {
             final_nodes.insert(node.second);
         }
     }
 
     reachable = *reachability;
-}
 
-const EqClasses& ReachabilityPolicy::get_ecs() const
-{
-    return ECs;
-}
-
-size_t ReachabilityPolicy::num_ecs() const
-{
-    return ECs.size();
-}
-
-void ReachabilityPolicy::compute_ecs(const EqClasses& all_ECs)
-{
-    ECs.add_mask_range(pkt_dst, all_ECs);
+    Communication comm(comm_cfg, net);
+    comms.push_back(std::move(comm));
 }
 
 std::string ReachabilityPolicy::to_string() const
 {
-    std::string ret = "reachability [";
-    for (Node *node : start_nodes) {
-        ret += " " + node->to_string();
-    }
-    ret += " ] -";
+    std::string ret = "reachability " + comms[0].start_nodes_str();
     if (reachable) {
-        ret += "-";
+        ret += " ---> [";
     } else {
-        ret += "X";
+        ret += " -X-> [";
     }
-    ret += "-> [";
     for (Node *node : final_nodes) {
         ret += " " + node->to_string();
     }
@@ -69,43 +52,35 @@ std::string ReachabilityPolicy::to_string() const
     return ret;
 }
 
-std::string ReachabilityPolicy::get_type() const
-{
-    return "reachability";
-}
-
 void ReachabilityPolicy::init(State *state)
 {
-    state->network_state[state->itr_ec].violated = false;
+    state->violated = false;
 }
 
-void ReachabilityPolicy::config_procs(State *state, const Network& net,
-                                      ForwardingProcess& fwd) const
-{
-    fwd.config(state, net, start_nodes);
-    fwd.enable();
-}
-
-void ReachabilityPolicy::check_violation(State *state)
+int ReachabilityPolicy::check_violation(State *state)
 {
     bool reached;
-    auto& current_fwd_mode = state->network_state[state->itr_ec].fwd_mode;
+    int mode = state->comm_state[state->comm].fwd_mode;
+    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
 
-    if (current_fwd_mode == fwd_mode::ACCEPTED) {
-        Node *final_node;
-        memcpy(&final_node, state->network_state[state->itr_ec].pkt_location,
+    if (mode == fwd_mode::ACCEPTED &&
+            (pkt_state == PS_HTTP_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
+        Node *rx_node;
+        memcpy(&rx_node, state->comm_state[state->comm].rx_node,
                sizeof(Node *));
-        reached = (final_nodes.count(final_node) > 0);
-    } else if (current_fwd_mode == fwd_mode::DROPPED) {
+        reached = (final_nodes.count(rx_node) > 0);
+    } else if (mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
         /*
          * If the packet hasn't been accepted or dropped, there is nothing to
          * check.
          */
-        return;
+        return POL_NULL;
     }
 
-    state->network_state[state->itr_ec].violated = (reachable != reached);
+    state->violated = (reachable != reached);
     state->choice_count = 0;
+
+    return POL_NULL;
 }

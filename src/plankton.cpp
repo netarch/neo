@@ -1,24 +1,32 @@
+#include "plankton.hpp"
+
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <csignal>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+
 #include <set>
+#include <typeinfo>
 #include <cpptoml/cpptoml.hpp>
 
-#include "plankton.hpp"
+#include "stats.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
+#include "policy/conditional.hpp"
+#include "policy/consistency.hpp"
+#include "model.h"
 
-namespace
-{
-bool verify_all_ECs = false;    // verify all ECs even if violation is found
-std::set<int> tasks;
-const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
+static bool verify_all_ECs = false;    // verify all ECs even if violation is found
+static bool policy_violated = false;   // true if policy is violated
+static std::set<int> tasks;
+static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
-void signal_handler(int sig, siginfo_t *siginfo,
-                    void *ctx __attribute__((unused)))
+static void signal_handler(int sig, siginfo_t *siginfo,
+                           void *ctx __attribute__((unused)))
 {
     int pid, status;
 
@@ -32,8 +40,9 @@ void signal_handler(int sig, siginfo_t *siginfo,
                 }
             }
             break;
-        case SIGUSR1:   // policy violated; kill all the other siblings
+        case SIGUSR1:   // policy violated; kill all the other children
             pid = siginfo->si_pid;
+            policy_violated = true;
             if (!verify_all_ECs) {
                 for (int childpid : tasks) {
                     if (childpid != pid) {
@@ -56,27 +65,27 @@ void signal_handler(int sig, siginfo_t *siginfo,
                     break;
                 };
             };
-            exit(0);
+            exit(128 + sig);
     }
 }
-} // namespace
 
-Plankton::Plankton(): policy(nullptr), pre_ec(nullptr), ec(nullptr)
+Plankton::Plankton(): policy(nullptr)
 {
 }
 
-Plankton& Plankton::get_instance()
+Plankton& Plankton::get()
 {
     static Plankton instance;
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
-                    const std::string& input_file,
+void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
+                    bool verbose, const std::string& input_file,
                     const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = dop;
+    Stats::get().record_latencies(latency);
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
@@ -97,16 +106,30 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool verbose,
 
 extern "C" int spin_main(int argc, const char *argv[]);
 
-void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
+void Plankton::verify_exit(int status)
+{
+    Stats::get().set_ec_time();
+    Stats::get().set_ec_maxrss();
+
+    // output per proecess stats
+    fflush(NULL);
+    Logger::get().set_file(std::to_string(getpid()) + ".stats.csv");
+    Logger::get().set_verbose(false);
+    Stats::get().print_ec_stats();
+
+    exit(status);
+}
+
+void Plankton::verify_ec(Policy *policy)
 {
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
         "neo",
+        "-b",   // consider it error to exceed the depth limit
         "-E",   // suppress invalid end state errors
         "-n",   // suppress report for unreached states
         suffix.c_str(),
     };
-    const std::string logfile = std::to_string(getpid()) + ".log";
 
     // reset signal handlers
     struct sigaction default_action;
@@ -118,6 +141,7 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
     }
 
     // reset logger
+    const std::string logfile = std::to_string(getpid()) + ".log";
     Logger::get().set_file(logfile);
     Logger::get().set_verbose(false);
     Logger::get().info("Policy: " + policy->to_string());
@@ -133,95 +157,148 @@ void Plankton::verify(Policy *policy, EqClass *pre_ec, EqClass *ec)
 
     // configure per process variables
     this->policy = policy;
-    this->pre_ec = pre_ec;
-    this->ec = ec;
+
+    // record time usage for this EC
+    Stats::get().set_ec_t1();
 
     // run SPIN verifier
-    exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
+    verify_exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
 }
 
-void Plankton::dispatch(Policy *policy, EqClass *pre_ec, EqClass *ec)
+void Plankton::verify_policy(Policy *policy)
 {
-    int childpid;
-    if ((childpid = fork()) < 0) {
-        Logger::get().err("Failed to spawn new process", errno);
-    } else if (childpid == 0) {
-        verify(policy, pre_ec, ec);
+    Logger::get().info("====================");
+    Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
+                       + policy->to_string());
+    Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
+    Logger::get().info("Communications: "
+                       + std::to_string(policy->num_comms()));
+
+    // reset static variables
+    policy_violated = false;
+    tasks.clear();
+
+    // register signal handlers
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, sigs[i]);
+    }
+    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaction(sigs[i], &action, nullptr);
     }
 
-    tasks.insert(childpid);
-    while (tasks.size() >= max_jobs) {
+    // change to the policy's working directory
+    const std::string working_dir
+        = fs::append(out_dir, std::to_string(policy->get_id()));
+    if (!fs::exists(working_dir)) {
+        fs::mkdir(working_dir);
+    }
+    fs::chdir(working_dir);
+
+    Stats::get().set_policy_t1();
+
+    // fork for each combination of ECs for concurrent execution
+    while (policy->set_initial_ec()) {
+        int childpid;
+        if ((childpid = fork()) < 0) {
+            Logger::get().err("fork()", errno);
+        } else if (childpid == 0) {
+            verify_ec(policy);
+        }
+
+        tasks.insert(childpid);
+        while (tasks.size() >= max_jobs) {
+            pause();
+        }
+
+        if (!verify_all_ECs && policy_violated) {
+            break;
+        }
+    }
+
+    // wait until all EC are verified or terminated
+    while (!tasks.empty()) {
         pause();
     }
+
+    Stats::get().set_policy_time();
+    Stats::get().set_policy_maxrss();
+
+    Logger::get().set_file("stats.csv");
+    Logger::get().set_verbose(false);
+    Stats::get().print_policy_stats(network.get_nodes().size(),
+                                    network.get_links().size(),
+                                    policy);
+
+    exit(0);
 }
 
 int Plankton::run()
 {
     // register signal handlers
-    struct sigaction new_action;
-    new_action.sa_sigaction = signal_handler;
-    sigemptyset(&new_action.sa_mask);
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaddset(&new_action.sa_mask, sigs[i]);
+        sigaddset(&action.sa_mask, sigs[i]);
     }
-    new_action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
+    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaction(sigs[i], &new_action, nullptr);
+        sigaction(sigs[i], &action, nullptr);
     }
+
+    Stats::get().set_total_t1();
 
     for (Policy *policy : policies) {
-        // change working directory
-        const std::string working_dir
-            = fs::append(out_dir, std::to_string(policy->get_id()));
-        if (!fs::exists(working_dir)) {
-            fs::mkdir(working_dir);
-        }
-        fs::chdir(working_dir);
+        int childpid;
 
-        Logger::get().info("====================");
-        Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
-                           + policy->to_string());
-        Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
-        for (EqClass *ec : policy->get_ecs()) {
-            for (EqClass *pre_ec : policy->get_pre_ecs()) {
-                dispatch(policy, pre_ec, ec);
-            }
+        // fork for each policy to get their memory usage measurements
+        if ((childpid = fork()) < 0) {
+            Logger::get().err("fork()", errno);
+        } else if (childpid == 0) {
+            verify_policy(policy);
         }
-        // wait until all tasks are done
+
+        tasks.insert(childpid);
+
+        // wait until the policy finishes
         while (!tasks.empty()) {
             pause();
         }
     }
+
+    Stats::get().set_total_time();
+    Stats::get().set_total_maxrss();
+    Stats::get().print_main_stats();
 
     return 0;
 }
 
 void Plankton::initialize(State *state)
 {
-    if (state->itr_ec == 0 && pre_ec) {
-        Logger::get().info("EC: " + pre_ec->to_string());
-    } else {
-        Logger::get().info("EC: " + ec->to_string());
-    }
-
-    network.init(state, pre_ec, ec);
+    network.init(state);
     policy->init(state);
-    policy->config_procs(state, network, fwd);
+    fwd.init(state, network, policy);
+    fwd.enable();
+    //sleep(7);   // DEBUG: wait for wireshark to launch
 }
 
 void Plankton::exec_step(State *state)
 {
-    int old_itr_ec = state->itr_ec;
+    fwd.exec_step(state, network);
+    int pol_ret = policy->check_violation(state);
 
-    fwd.exec_step(state, ec);
-    policy->check_violation(state);
-
-    // when EC is changed and the verification process hasn't ended
-    if (state->itr_ec != old_itr_ec && state->choice_count > 0) {
-        if (policy->get_type() == "reply-reachability") {
-            ec = *(policy->get_ecs().begin());  // the only one "reply" EC
-        }
-        initialize(state);
+    if (pol_ret & POL_INIT_POL) {
+        policy->init(state);
+    }
+    if (pol_ret & POL_INIT_FWD) {
+        fwd.init(state, network, policy);
+    }
+    if (pol_ret & POL_RESET_FWD) {
+        fwd.reset(state, network, policy);
     }
 }
 

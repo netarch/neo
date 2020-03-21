@@ -1,12 +1,15 @@
 #pragma once
 
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 #include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
 #include "mb-env/mb-env.hpp"
 #include "mb-app/mb-app.hpp"
 #include "pkt-hist.hpp"
-#include "pan.h"
 
 class Middlebox : public Node
 {
@@ -15,6 +18,13 @@ private:
     MB_App *app;    // appliance
 
     NodePacketHistory *node_pkt_hist;
+    std::thread *listener;
+    std::atomic<bool> listener_end;
+    Packet recv_pkt;
+    std::mutex mtx;                 // lock for accessing recv_pkt
+    std::condition_variable cv;     // for reading recv_pkt
+
+    void listen_packets();
 
 public:
     Middlebox(const std::shared_ptr<cpptoml::table>&);
@@ -31,10 +41,9 @@ public:
      */
     void init() override;
 
-    void rewind(NodePacketHistory *);
-    NodePacketHistory *get_node_pkt_hist() const;
+    int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::set<FIB_IPNH> send_pkt(const Packet&);
+    Packet send_pkt(const Packet&); // send one L7 packet
 
     /*
      * Return an empty set. We don't model the forwarding behavior of

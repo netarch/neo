@@ -1,4 +1,5 @@
 #include "route.hpp"
+
 #include "lib/logger.hpp"
 
 Route::Route(const std::shared_ptr<cpptoml::table>& config): adm_dist(255)

@@ -35,6 +35,7 @@ public:
     void set_ec(EqClass *);
     EqClass *get_ec() const;
     bool identical_to(const ECRange&) const;    // having the same range
+    bool contains(const IPv4Address&) const;
     bool contains(const ECRange&) const;
     bool contains(const EqClass&) const;
 

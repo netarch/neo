@@ -26,7 +26,6 @@ public:
     EqClasses() = default;
     EqClasses(const EqClasses&) = delete;
     EqClasses(EqClasses&&) = default;
-    EqClasses(EqClass *);
     ~EqClasses();
 
     EqClasses& operator=(const EqClasses&) = delete;
@@ -40,6 +39,7 @@ public:
     std::string to_string() const;
     bool empty() const;
     size_type size() const;
+    EqClass *find_ec(const IPv4Address&) const;
     iterator erase(const_iterator);
     void clear();
 

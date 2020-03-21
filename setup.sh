@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
     (echo '[!] Please run this script without root privilege' >&2; exit 1)
 
 # Dependencies needed for development
-depends=(autoconf make spin-git astyle libnet)
+depends=(autoconf make spin-git astyle libnet python-toml ipvsadm bc)
 
 
 get_distro() {
@@ -173,9 +173,11 @@ main() {
 
     elif [ "$DISTRO" = "Ubuntu" ]; then
         sudo apt update -y -qq
-        deps=(build-essential)
+        deps=(build-essential libnet1-dev)
         for dep in ${depends[@]}; do
-            if [ "$dep" != "spin-git" ]; then
+            if [ "$dep" == "python-toml" ]; then
+                deps+=("python3-toml")
+            elif [ "$dep" != "spin-git" -a "$dep" != "libnet" ]; then
                 deps+=("$dep")
             fi
         done

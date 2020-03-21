@@ -11,7 +11,6 @@
 class Node;
 #include "l2-lan.hpp"
 #include "fib.hpp"
-#include "pan.h"
 
 class Node
 {
@@ -50,6 +49,7 @@ public:
     virtual Interface *get_interface(const std::string&) const;
     virtual Interface *get_interface(const char *) const;
     virtual Interface *get_interface(const IPv4Address&) const;
+    virtual const std::map<std::string, Interface *>& get_intfs() const;
     virtual const std::map<IPv4Address, Interface *>& get_intfs_l3() const;
     virtual const std::set<Interface *>& get_intfs_l2() const;
     virtual const RoutingTable& get_rib() const;
@@ -60,6 +60,7 @@ public:
 
     virtual bool mapped_to_l2lan(Interface *) const;
     virtual void set_l2lan(Interface *, L2_LAN *);
+    virtual L2_LAN *get_l2lan(Interface *) const;
 
     /*
      * Compute the IP next hops from this node for a given destination address

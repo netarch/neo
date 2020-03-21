@@ -6,26 +6,33 @@
 #include <fcntl.h>
 #include <sched.h>
 #include <unistd.h>
-#include <linux/if.h>
-#include <linux/if_tun.h>
 #include <sys/socket.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/route.h>
+//#include <sys/mount.h>
+#include <set>
 
 #include "lib/logger.hpp"
+#include "lib/net.hpp"
+//#include "lib/fs.hpp"
 
-void NetNS::set_interfaces(const Node *node)
+void NetNS::set_interfaces(const Node& node)
 {
     struct ifreq ifr;
     int tapfd, ctrl_sock;
 
     // open a ctrl_sock for setting up IP addresses
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket", errno);
+        Logger::get().err("socket()", errno);
     }
 
-    for (const auto& pair : node->get_intfs_l3()) {
+    // TODO: what about L2 interface?
+
+    for (const auto& pair : node.get_intfs_l3()) {
         Interface *intf = pair.second;
 
         // create a new tap device
@@ -33,15 +40,12 @@ void NetNS::set_interfaces(const Node *node)
             Logger::get().err("/dev/net/tun", errno);
         }
         memset(&ifr, 0, sizeof(ifr));
-        ifr.ifr_flags = IFF_TAP;
+        ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
         strncpy(ifr.ifr_name, intf->get_name().c_str(), IFNAMSIZ - 1);
         if (ioctl(tapfd, TUNSETIFF, &ifr) < 0) {
             close(tapfd);
             goto error;
         }
-        //if (ioctl(fd, TUNSETPERSIST, 1) == -1) {
-        //    Logger::get().warn(intf->get_name(), errno);
-        //}
         tapfds.emplace(intf, tapfd);
 
         // set up IP address
@@ -77,6 +81,9 @@ void NetNS::set_interfaces(const Node *node)
         if (ioctl(ctrl_sock, SIOCSIFFLAGS, &ifr) < 0) {
             goto error;
         }
+
+        // DEBUG: launch wireshark
+        //system(("wireshark -k -i " + intf->get_name() + " &").c_str());
     }
 
     close(ctrl_sock);
@@ -95,7 +102,7 @@ void NetNS::set_rttable(const RoutingTable& rib)
 
     // open a ctrl_sock for setting up routing entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket", errno);
+        Logger::get().err("socket()", errno);
     }
 
     for (const Route& route : rib) {
@@ -135,7 +142,89 @@ void NetNS::set_rttable(const RoutingTable& rib)
     close(ctrl_sock);
 }
 
-NetNS::NetNS(): old_net(-1), new_net(-1)
+void NetNS::set_arp_cache(const Node& node)
+{
+    int ctrl_sock;
+    struct arpreq arp = {
+        .arp_pa = {AF_INET, {0}},
+        .arp_ha = {ARPHRD_ETHER, {0}},
+        .arp_flags = ATF_COM | ATF_PERM,
+        .arp_netmask = {AF_UNSPEC, {0}},
+        .arp_dev = {0}
+    };
+    uint8_t id_mac[6] = ID_ETH_ADDR;
+    memcpy(arp.arp_ha.sa_data, id_mac, 6);
+
+    // open a ctrl_sock for setting up arp cache entries
+    if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
+        Logger::get().err("socket()", errno);
+    }
+
+    // collect L3 peer IP addresses and egress interface
+    std::set<std::pair<IPv4Address, Interface *>> arp_inputs;
+    for (auto intf : node.get_intfs()) {
+        // find L3 peer
+        auto l2peer = node.get_peer(intf.first);
+        if (l2peer.first) { // if the interface is truly connected
+            if (!l2peer.second->is_l2()) {
+                // L2 peer == L3 peer
+                arp_inputs.emplace(l2peer.second->addr(), intf.second);
+            } else {
+                // pure L2 peer, find all L3 peers in the L2 LAN
+                L2_LAN *l2_lan = l2peer.first->get_l2lan(l2peer.second);
+                for (auto l3_endpoint : l2_lan->get_l3_endpoints()) {
+                    const std::pair<Node *, Interface *>& l3peer
+                        = l3_endpoint.second;
+                    if (l3peer.second != intf.second) {
+                        arp_inputs.emplace(l3peer.second->addr(), intf.second);
+                    }
+                }
+            }
+        }
+    }
+
+    // set permanent arp cache entries
+    for (const auto& arp_input : arp_inputs) {
+        ((struct sockaddr_in *)&arp.arp_pa)->sin_addr.s_addr
+            = htonl(arp_input.first.get_value());
+        strncpy(arp.arp_dev, arp_input.second->get_name().c_str(), 15);
+        arp.arp_dev[15] = '\0';
+
+        if (ioctl(ctrl_sock, SIOCSARP, &arp) < 0) {
+            close(ctrl_sock);
+            Logger::get().err("Failed to set ARP cache for "
+                              + arp_input.first.to_string(), errno);
+        }
+    }
+
+    close(ctrl_sock);
+}
+
+//void NetNS::mntns_xtables_lock()
+//{
+//    // create and enter a new mntns
+//    if (unshare(CLONE_NEWNS) < 0) {
+//        Logger::get().err("Failed to create a new mntns", errno);
+//    }
+//
+//    // create a new xtables.lock for this network namespace
+//    int fd;
+//    if ((fd = mkstemp(xtables_lock)) < 0) {
+//        Logger::get().err(xtables_lock, errno);
+//    }
+//    if (close(fd) < 0) {
+//        Logger::get().err(xtables_lock, errno);
+//    }
+//
+//    // bind mount it to /run/xtables.lock
+//    if (mount(xtables_lock, xtables_lock_mnt, NULL, MS_BIND, NULL) < 0) {
+//        Logger::get().err("Failed to mount " + std::string(xtables_lock),
+//                          errno);
+//    }
+//}
+
+NetNS::NetNS()
+    : old_net(-1), new_net(-1) //, xtables_lock("/tmp/xtables.lock.XXXXXX")
 {
 }
 
@@ -151,13 +240,19 @@ NetNS::~NetNS()
     }
     // delete the allocated ethernet addresses
     for (const auto& mac : tapmacs) {
-        delete mac.second;
+        delete [] mac.second;
     }
-
+    // remove the new network namespace
     close(new_net);
+
+    // unmount the xtables lock and remove the actual lock file
+    //if (umount(xtables_lock_mnt) < 0) {
+    //    Logger::get().err(xtables_lock_mnt, errno);
+    //}
+    //fs::remove(xtables_lock);
 }
 
-void NetNS::init(const Node *node)
+void NetNS::init(const Node& node)
 {
     const char *netns_path = "/proc/self/ns/net";
 
@@ -176,10 +271,14 @@ void NetNS::init(const Node *node)
     // create tap interfaces and set IP addresses
     set_interfaces(node);
     // update routing table according to node->rib
-    set_rttable(node->get_rib());
+    set_rttable(node.get_rib());
+    // set ARP entries
+    set_arp_cache(node);
+    // create a new mount namespace for /run/xtables.lock
+    //mntns_xtables_lock();
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::get().err("setns()", errno);
     }
 }
 
@@ -187,30 +286,95 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
 {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::get().err("setns()", errno);
     }
 
     app_action(app);
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::get().err("setns()", errno);
     }
 }
 
-void NetNS::get_mac(Interface *intf, uint8_t *mac) const
+size_t NetNS::inject_packet(const Packet& pkt)
 {
-    memcpy(mac, tapmacs.at(intf), sizeof(uint8_t) * 6);
-}
+    // enter the isolated netns
+    if (setns(new_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("setns()", errno);
+    }
 
-size_t NetNS::inject_packet(Interface *intf, const uint8_t *buf, size_t len)
-{
-    int fd = tapfds.at(intf);
+    // serialize the packet
+    uint8_t *buf;
+    uint32_t len;
+    uint8_t src_mac[6] = ID_ETH_ADDR;
+    uint8_t dst_mac[6] = {0};
+    memcpy(dst_mac, tapmacs.at(pkt.get_intf()), sizeof(uint8_t) * 6);
+    Net::get().serialize(&buf, &len, pkt, src_mac, dst_mac);
+
+    // write to the tap device fd
+    int fd = tapfds.at(pkt.get_intf());
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
         Logger::get().err("Packet injection failed", errno);
     }
+
+    // free resources
+    Net::get().free(buf);
+
+    // return to the original netns
+    if (setns(old_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("setns()", errno);
+    }
+
     return nwrite;
+}
+
+std::list<PktBuffer> NetNS::read_packets() const
+{
+    std::list<PktBuffer> pkts;
+
+    // enter the isolated netns
+    if (setns(new_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("setns()", errno);
+    }
+
+    // set read fds
+    int nfds = 0;
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    for (const auto& tapfd : tapfds) {
+        FD_SET(tapfd.second, &readfds);
+        if (tapfd.second >= nfds) {
+            nfds = tapfd.second + 1;
+        }
+    }
+
+    // select among the tap fds
+    if (select(nfds, &readfds, NULL, NULL, NULL) < 0) {
+        Logger::get().err("select()", errno);
+    }
+
+    // read from tap fds if available
+    for (const auto& tapfd : tapfds) {
+        if (FD_ISSET(tapfd.second, &readfds)) {
+            PktBuffer pkt(tapfd.first);
+            ssize_t nread;
+            if ((nread = read(tapfd.second, pkt.get_buffer(),
+                              pkt.get_len())) < 0) {
+                Logger::get().err("Failed to read packet", errno);
+            }
+            pkt.set_len(nread);
+            pkts.push_back(pkt);
+        }
+    }
+
+    // return to the original netns
+    if (setns(old_net, CLONE_NEWNET) < 0) {
+        Logger::get().err("Failed to setns", errno);
+    }
+
+    return pkts;
 }
 
 /************* Code for creating a veth pair *************
