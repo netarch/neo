@@ -1,3 +1,7 @@
+##
+## Network configuration
+##
+
 [[nodes]]
     name = "string"
     type = "generic" or "middlebox"
@@ -31,50 +35,86 @@
     #     packet check will fail.
     rules = ".*"
 
-# undirected (only need to specify once for each bidirectional link)
+# undirected (only need to specify once for each link)
 [[links]]
     node1 = "name"
     intf1 = "name"
     node2 = "name"
     intf2 = "name"
 
-[[policies]]
-    type = "reachability"
-    protocol = "http" or "icmp-echo"
-    pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
-    start_node = "node name regex"
-    final_node = "node name regex"
-    reachable = true or false
-[[policies]]
-    type = "reply-reachability"
-    protocol = "http" or "icmp-echo"
-    pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
-    start_node = "node name regex"
-    query_node = "node name regex"
-    reachable = true or false
-[[policies]]
-    type = "waypoint"
-    protocol = "http" or "icmp-echo"
-    pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
-    start_node = "node name regex"
-    waypoint = "node name regex"
-    pass_through = true or false
+
+##
+## Policies
+##
+
+#
+# Single-communication policies (independent communications):
+#   - loadbalance
+#   - reachability
+#   - reply-reachability
+#   - waypoint
+#
 [[policies]]
     type = "loadbalance"
+    final_node = "node name regex"
+    repeat = 0                      # optional, default: # of final nodes
+    [policies.communication]
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
     owned_dst_only = true or false  # optional, default: true
     start_node = "node name regex"
+[[policies]]
+    type = "reachability"
     final_node = "node name regex"
-    repeat = 0                      # optional, default: # of final nodes
+    reachable = true or false
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+[[policies]]
+    type = "reply-reachability"
+    query_node = "node name regex"
+    reachable = true or false
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+[[policies]]
+    type = "waypoint"
+    waypoint = "node name regex"
+    pass_through = true or false
+    [policies.communication]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+
+#
+# Multi-communication policies (multiple, simultaneous communications):
+#   - one-request
+#
+[[policies]]
+    type = "one-request"
+    query_node = "node name regex"
+    [[policies.communications]]
+    protocol = "http" or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    owned_dst_only = true or false  # optional, default: true
+    start_node = "node name regex"
+
+#
+# Policies with multiple single-communication correlated policies (multiple,
+# sequential communications with their own policies):
+#   - conditional
+#   - consistency
+#
 [[policies]]
     type = "conditional"
     [[policies.correlated_policies]]
-    # <reachability>, <reply-reachability>, or <waypoint>
+    # any single-communication policies
 [[policies]]
     type = "consistency"
     [[policies.correlated_policies]]
-    # <reachability>, <reply-reachability>, or <waypoint>
+    # any single-communication policies

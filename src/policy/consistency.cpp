@@ -5,7 +5,7 @@
 
 ConsistencyPolicy::ConsistencyPolicy(
     const std::shared_ptr<cpptoml::table>& config, const Network& net)
-    : Policy(), first_run(true)
+    : Policy()
 {
     parse_correlated_policies(config, net);
 }
@@ -21,12 +21,13 @@ std::string ConsistencyPolicy::to_string() const
     return ret;
 }
 
-void ConsistencyPolicy::init(State *state) const
+void ConsistencyPolicy::init(State *state)
 {
+    first_run = true;
     correlated_policies[state->comm]->init(state);
 }
 
-void ConsistencyPolicy::check_violation(State *state)
+int ConsistencyPolicy::check_violation(State *state)
 {
     correlated_policies[state->comm]->check_violation(state);
 
@@ -41,16 +42,19 @@ void ConsistencyPolicy::check_violation(State *state)
         if (state->violated != result) {
             state->violated = true;
             state->choice_count = 0;
-            return;
+            return POL_NULL;
         }
 
         // next subpolicy
         if ((size_t)state->comm + 1 < correlated_policies.size()) {
             ++state->comm;
             state->choice_count = 1;
+            return POL_INIT_POL | POL_INIT_FWD;
         } else {
             state->violated = false;
             state->choice_count = 0;
         }
     }
+
+    return POL_NULL;
 }

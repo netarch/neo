@@ -79,3 +79,20 @@ EqClass::const_reverse_iterator EqClass::rend() const
 {
     return ranges.rend();
 }
+
+bool operator==(const EqClass& a, const EqClass& b)
+{
+    if (a.ranges.size() != b.ranges.size()) {
+        return false;
+    }
+
+    std::set<ECRange>::const_iterator a_i = a.begin(), b_i = b.begin();
+    while (a_i != a.end()) {
+        if (!a_i->identical_to(*b_i)) {
+            return false;
+        }
+        ++a_i;
+        ++b_i;
+    }
+    return true;
+}

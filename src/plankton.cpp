@@ -288,26 +288,16 @@ void Plankton::initialize(State *state)
 
 void Plankton::exec_step(State *state)
 {
-    int comm = state->comm;
-    int repetition = state->comm_state[state->comm].repetition;
-
     fwd.exec_step(state, network);
-    policy->check_violation(state);
+    int pol_ret = policy->check_violation(state);
 
-    if (state->comm != comm && state->choice_count > 0) {
-        // communication changed
-        if (typeid(*policy) == typeid(ConsistencyPolicy)) {
-            policy->init(state);
-            fwd.init(state, network, policy);
-        } else if (typeid(*policy) == typeid(ConditionalPolicy)) {
-            policy->init(state);
-            fwd.reset(state, network, policy);
-        } else {
-            Logger::get().err("Unsupported policy changing communication");
-        }
-    } else if (state->comm_state[state->comm].repetition != repetition
-               && state->choice_count > 0) {
-        // reset the forwarding process and repeat
+    if (pol_ret & POL_INIT_POL) {
+        policy->init(state);
+    }
+    if (pol_ret & POL_INIT_FWD) {
+        fwd.init(state, network, policy);
+    }
+    if (pol_ret & POL_RESET_FWD) {
         fwd.reset(state, network, policy);
     }
 }

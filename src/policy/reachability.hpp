@@ -19,15 +19,11 @@ private:
     std::unordered_set<Node *> final_nodes;
     bool reachable;
 
-    void parse_final_node(const std::shared_ptr<cpptoml::table>&,
-                          const Network&);
-    void parse_reachable(const std::shared_ptr<cpptoml::table>&);
-
 public:
     ReachabilityPolicy(const std::shared_ptr<cpptoml::table>&, const Network&,
                        bool correlated = false);
 
     std::string to_string() const override;
-    void init(State *) const override;
-    void check_violation(State *) override;
+    void init(State *) override;
+    int check_violation(State *) override;
 };

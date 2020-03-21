@@ -30,12 +30,14 @@ typedef comm_state_t {
 
     /* forwarding process */
     unsigned pkt_state : 4;                         /* packet state */
-    unsigned fwd_mode : 3;                          /* execution mode */
+    unsigned fwd_mode : 3;                          /* forwarding mode */
     int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
     int seq[4 / SIZEOF_INT];                        /* (uint32_t) */
     int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
     int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
+    int tx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
+    int rx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
@@ -48,11 +50,22 @@ typedef comm_state_t {
 /* policy */
 bool violated;
 
+/* forwarding process */
+unsigned picking_comm : 1;
+
 comm_state_t comm_state[MAX_COMM_COUNT];
 unsigned comm : 1;  /* index of the executing communication */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
-int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<FIB_IPNH> *) */
+/*
+ * if picking_comm == 0
+ *      candidate: (std::vector<FIB_IPNH> *)
+ * else if picking_comm == 1
+ *      candidate: (nullptr)
+ *      choice: comm
+ *      choice_count: MAX_COMM_COUNT
+ */
+int candidates[SIZEOF_VOID_P / SIZEOF_INT];
 
 /* reserved extended state for later use */
 int ext_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (void *) */

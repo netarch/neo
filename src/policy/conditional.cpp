@@ -51,25 +51,26 @@ ConditionalPolicy::ConditionalPolicy(
 
 std::string ConditionalPolicy::to_string() const
 {
-    std::string ret = "stateful-reachability [";
-    for (Node *node : start_nodes) {
-        ret += " " + node->to_string();
-    }
-    ret += " ] -";
-    if (reachable) {
-        ret += "-";
-    } else {
-        ret += "X";
-    }
-    ret += "-> [";
-    for (Node *node : final_nodes) {
-        ret += " " + node->to_string();
-    }
-    ret += " ], with prerequisite: " + prerequisite->to_string();
-    return ret;
+    return std::string();
+    //std::string ret = "stateful-reachability [";
+    //for (Node *node : start_nodes) {
+    //    ret += " " + node->to_string();
+    //}
+    //ret += " ] -";
+    //if (reachable) {
+    //    ret += "-";
+    //} else {
+    //    ret += "X";
+    //}
+    //ret += "-> [";
+    //for (Node *node : final_nodes) {
+    //    ret += " " + node->to_string();
+    //}
+    //ret += " ], with prerequisite: " + prerequisite->to_string();
+    //return ret;
 }
 
-void ConditionalPolicy::init(State *state) const
+void ConditionalPolicy::init(State *state)
 {
     if (state->comm == 0) {
         prerequisite->init(state);
@@ -79,7 +80,7 @@ void ConditionalPolicy::init(State *state) const
     state->violated = false;
 }
 
-void ConditionalPolicy::check_violation(State *state)
+int ConditionalPolicy::check_violation(State *state)
 {
     if (state->comm == 0) {
         prerequisite->check_violation(state);
@@ -93,9 +94,10 @@ void ConditionalPolicy::check_violation(State *state)
                 // prerequisite policy holds
                 ++state->comm;
                 state->choice_count = 1;
+                return POL_INIT_POL | POL_RESET_FWD;
             }
         }
-        return;
+        return POL_NULL;
     }
 
     bool reached;
@@ -113,9 +115,11 @@ void ConditionalPolicy::check_violation(State *state)
          * If the packet hasn't been accepted or dropped, there is nothing to
          * check.
          */
-        return;
+        return POL_NULL;
     }
 
     state->violated = (reachable != reached);
     state->choice_count = 0;
+
+    return POL_NULL;
 }

@@ -5,6 +5,7 @@
 #include <list>
 #include <cpptoml/cpptoml.hpp>
 
+#include "comm.hpp"
 #include "lib/ip.hpp"
 #include "node.hpp"
 #include "network.hpp"
@@ -12,38 +13,28 @@
 #include "eqclass.hpp"
 class State;
 
-enum proto {
-    PR_HTTP = 0,
-    PR_ICMP_ECHO = 1
-};
+#define POL_NULL        0
+#define POL_INIT_POL    1
+#define POL_INIT_FWD    2
+#define POL_RESET_FWD   4
 
 class Policy
 {
 protected:
-    int                     id;
-    int                     protocol;
-    IPRange<IPv4Address>    pkt_dst;
-    bool                    owned_dst_only;
-    std::vector<Node *>     start_nodes;
-    uint16_t                tx_port;    // source of the communication
-    uint16_t                rx_port;    // target of the communication
+    int id;
 
-    EqClasses               ECs;
-    EqClasses::iterator     ECs_itr;
-    EqClass                 *initial_ec;
-    Node                    *comm_tx;  // node that initiated the communication
-    Node                    *comm_rx;  // node that received the communication
+    /* Simultaneously modelled communications. */
+    std::vector<Communication> comms;
 
-    std::vector<Policy *>   correlated_policies;
+    /*
+     * If there is any correlated policy, all of them would be
+     * single-communication policies, and the number of communications of the
+     * main policy (comms) would be zero.
+     */
+    std::vector<Policy *> correlated_policies;
 
     friend class Policies;
 
-    void parse_protocol(const std::shared_ptr<cpptoml::table>&);
-    void parse_pkt_dst(const std::shared_ptr<cpptoml::table>&);
-    void parse_owned_dst_only(const std::shared_ptr<cpptoml::table>&);
-    void parse_start_node(const std::shared_ptr<cpptoml::table>&,
-                          const Network&);
-    void parse_tcp_ports(const std::shared_ptr<cpptoml::table>&);
     void parse_correlated_policies(const std::shared_ptr<cpptoml::table>&,
                                    const Network&);
     void compute_ecs(const EqClasses&, const EqClasses&);
@@ -53,30 +44,25 @@ public:
     virtual ~Policy();
 
     int get_id() const;
+
     int get_protocol(State *) const;
     const std::vector<Node *>& get_start_nodes(State *) const;
     uint16_t get_src_port(State *) const;
     uint16_t get_dst_port(State *) const;
 
     void add_ec(State *, const IPv4Address&);
-    EqClass *find_ec(State *, const IPv4Address&);
-    const EqClasses& get_ecs(State *) const;
+    EqClass *find_ec(State *, const IPv4Address&) const;
     size_t num_ecs() const;
     size_t num_comms() const;
 
     bool set_initial_ec();
     EqClass *get_initial_ec(State *) const;
 
-    void set_comm_tx(State *, Node *);
-    void set_comm_rx(State *, Node *);
-    Node *get_comm_tx(State *);
-    Node *get_comm_rx(State *);
-
     void report(State *) const;
 
     virtual std::string to_string() const = 0;
-    virtual void init(State *) const = 0;
-    virtual void check_violation(State *) = 0;
+    virtual void init(State *) = 0;
+    virtual int check_violation(State *) = 0;
 };
 
 class Policies

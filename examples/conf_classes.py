@@ -106,10 +106,9 @@ class Network:
             data['links'] = [link.to_dict() for link in self.links]
         return data
 
-class Policy:
-    def __init__(self, type, protocol=None, pkt_dst=None, owned_dst_only=None,
+class Communication:
+    def __init__(self, protocol=None, pkt_dst=None, owned_dst_only=None,
                  start_node=None):
-        self.type: str            = type
         self.protocol: str        = protocol
         self.pkt_dst: str         = pkt_dst
         self.owned_dst_only: bool = owned_dst_only
@@ -127,34 +126,52 @@ class Policy:
             data.pop('start_node')
         return data
 
-class ReachabilityPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, final_node, reachable,
-                 owned_dst_only=None):
-        Policy.__init__(self, 'reachability', protocol, pkt_dst, owned_dst_only,
-                        start_node)
-        self.final_node: str = final_node
-        self.reachable: bool = reachable
-
-class ReplyReachabilityPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, query_node, reachable,
-                 owned_dst_only=None):
-        Policy.__init__(self, 'reply-reachability', protocol, pkt_dst,
-                        owned_dst_only, start_node)
-        self.query_node: str = query_node
-        self.reachable: bool = reachable
+class Policy:
+    def __init__(self, type):
+        self.type: str = type
 
 class LoadBalancePolicy(Policy):
     def __init__(self, protocol, pkt_dst, start_node, final_node, repeat,
                  owned_dst_only=None):
-        Policy.__init__(self, 'loadbalance', protocol, pkt_dst, owned_dst_only,
-                        start_node)
+        Policy.__init__(self, 'loadbalance')
         self.final_node: str = final_node
         self.repeat: int = repeat
+        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
+                                           start_node)
 
     def to_dict(self):
-        data = Policy.to_dict(self)
+        data = self.__dict__
         if self.repeat is None:
             data.pop('repeat')
+        data['communication'] = self.communication.to_dict()
+        return data
+
+class ReachabilityPolicy(Policy):
+    def __init__(self, protocol, pkt_dst, start_node, final_node, reachable,
+                 owned_dst_only=None):
+        Policy.__init__(self, 'reachability')
+        self.final_node: str = final_node
+        self.reachable: bool = reachable
+        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
+                                           start_node)
+
+    def to_dict(self):
+        data = self.__dict__
+        data['communication'] = self.communication.to_dict()
+        return data
+
+class ReplyReachabilityPolicy(Policy):
+    def __init__(self, protocol, pkt_dst, start_node, query_node, reachable,
+                 owned_dst_only=None):
+        Policy.__init__(self, 'reply-reachability')
+        self.query_node: str = query_node
+        self.reachable: bool = reachable
+        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
+                                           start_node)
+
+    def to_dict(self):
+        data = self.__dict__
+        data['communication'] = self.communication.to_dict()
         return data
 
 class ConsistencyPolicy(Policy):
@@ -163,7 +180,7 @@ class ConsistencyPolicy(Policy):
         self.correlated_policies: List[Policy] = correlated_policies
 
     def to_dict(self):
-        data = Policy.to_dict(self)
+        data = self.__dict__
         if self.correlated_policies:
             data['correlated_policies'] = [policy.to_dict()
                     for policy in self.correlated_policies]
