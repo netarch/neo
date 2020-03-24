@@ -16,6 +16,7 @@
 //#include <sys/mount.h>
 #include <set>
 
+#include "pktbuffer.hpp"
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
 //#include "lib/fs.hpp"
@@ -330,9 +331,9 @@ size_t NetNS::inject_packet(const Packet& pkt)
     return nwrite;
 }
 
-std::list<PktBuffer> NetNS::read_packets() const
+Packet NetNS::read_packet() const
 {
-    std::list<PktBuffer> pkts;
+    std::list<PktBuffer> pktbuffs;
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
@@ -358,14 +359,14 @@ std::list<PktBuffer> NetNS::read_packets() const
     // read from tap fds if available
     for (const auto& tapfd : tapfds) {
         if (FD_ISSET(tapfd.second, &readfds)) {
-            PktBuffer pkt(tapfd.first);
+            PktBuffer pktbuff(tapfd.first);
             ssize_t nread;
-            if ((nread = read(tapfd.second, pkt.get_buffer(),
-                              pkt.get_len())) < 0) {
+            if ((nread = read(tapfd.second, pktbuff.get_buffer(),
+                              pktbuff.get_len())) < 0) {
                 Logger::get().err("Failed to read packet", errno);
             }
-            pkt.set_len(nread);
-            pkts.push_back(pkt);
+            pktbuff.set_len(nread);
+            pktbuffs.push_back(pktbuff);
         }
     }
 
@@ -374,7 +375,16 @@ std::list<PktBuffer> NetNS::read_packets() const
         Logger::get().err("Failed to setns", errno);
     }
 
-    return pkts;
+    // deserialize the packets
+    Packet pkt;
+    for (const PktBuffer& pb : pktbuffs) {
+        Net::get().deserialize(pkt, pb);
+        if (!pkt.empty()) {
+            break;
+        }
+    }
+
+    return pkt;
 }
 
 /************* Code for creating a veth pair *************

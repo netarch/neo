@@ -1,6 +1,6 @@
 #pragma once
 
-#define MAX_COMM_COUNT 2
+#define MAX_COMMS 2
 
 #ifdef __cplusplus
 

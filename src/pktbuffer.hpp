@@ -21,6 +21,7 @@ public:
 
     Interface *get_intf() const;
     uint8_t *get_buffer();
+    const uint8_t *get_buffer() const;
     size_t get_len() const;
 
     void set_intf(Interface *);

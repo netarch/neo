@@ -11,7 +11,7 @@ class NetNS : public MB_Env
 {
 private:
     int old_net, new_net;
-    std::unordered_map<Interface *, int> tapfds;    // intf --> tapfd
+    std::unordered_map<Interface *, int> tapfds;        // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> tapmacs; // intf --> mac addr
     //const char *xtables_lock_mnt = "/run/xtables.lock";
     //char xtables_lock[25];  // "/tmp/xtables.lock.XXXXXX"
@@ -28,5 +28,5 @@ public:
     void init(const Node&) override;
     void run(void (*)(MB_App *), MB_App *) override;
     size_t inject_packet(const Packet&) override;
-    std::list<PktBuffer> read_packets() const override;
+    Packet read_packet() const override;
 };

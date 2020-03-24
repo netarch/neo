@@ -14,6 +14,11 @@ uint8_t *PktBuffer::get_buffer()
     return buffer;
 }
 
+const uint8_t *PktBuffer::get_buffer() const
+{
+    return buffer;
+}
+
 size_t PktBuffer::get_len() const
 {
     return len;

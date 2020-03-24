@@ -57,42 +57,16 @@ Middlebox::~Middlebox()
 
 void Middlebox::listen_packets()
 {
-    std::list<PktBuffer> pkts;
-    uint8_t id_mac[6] = ID_ETH_ADDR;
+    Packet pkt;
 
     while (!listener_end) {
-        // read output packet (it will block if there is no packet)
-        pkts = env->read_packets();
+        // read the output packet (it will block if there is no packet)
+        pkt = env->read_packet();
 
-        for (PktBuffer pb : pkts) {
-            uint8_t *buffer = pb.get_buffer();
-
-            // filter out irrelevant frames
-            uint8_t *dst_mac = buffer;
-            if (memcmp(dst_mac, id_mac, 6) != 0) {
-                continue;
-            }
-
-            uint16_t ethertype;
-            memcpy(&ethertype, buffer + 12, 2);
-            ethertype = ntohs(ethertype);
-            if (ethertype == ETHERTYPE_IP) {    // IPv4 packets
-                // destination IP address
-                uint32_t dst_ip;
-                memcpy(&dst_ip, buffer + 30, 4);
-                dst_ip = ntohl(dst_ip);
-
-                // TODO: save src_ip, dst_ip, egress interface, to construct a
-                // Packet passed to the main thread to update packet related
-                // states in Spin state vector
-                // NOTE: not passing src_ip for now, unless it's need for source
-                // NAT
-                std::unique_lock<std::mutex> lck(mtx);
-                recv_pkt.set_intf(pb.get_intf());
-                recv_pkt.set_dst_ip(dst_ip);
-                cv.notify_all();
-                break;
-            }
+        if (!pkt.empty()) {
+            std::unique_lock<std::mutex> lck(mtx);
+            recv_pkt = pkt;
+            cv.notify_all();
         }
     }
 }

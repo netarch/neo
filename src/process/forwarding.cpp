@@ -462,7 +462,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
     std::set<FIB_IPNH> next_hops;
 
     // if the packet is not dropped
-    if (recv_pkt.get_intf()) {
+    if (!recv_pkt.empty()) {
         // find the next hop
         auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
         if (l2nh.first) {   // if the interface is truly connected

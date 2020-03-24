@@ -84,6 +84,11 @@ public:
     Packet();
     Packet(State *, const Policy *);
     Packet(Interface *);    // dummy packet, used unblocking listener thread
+    Packet(const Packet&) = default;
+    Packet(Packet&&) = default;
+
+    Packet& operator=(const Packet&) = default;
+    Packet& operator=(Packet&&) = default;
 
     std::string to_string() const;
     Interface *get_intf() const;
@@ -96,8 +101,15 @@ public:
     uint8_t get_pkt_state() const;
     Payload *get_payload() const;
     void clear();
+    bool empty() const;
     void set_intf(Interface *);
+    void set_src_ip(const IPv4Address&);
     void set_dst_ip(const IPv4Address&);
+    void set_src_port(uint16_t);
+    void set_dst_port(uint16_t);
+    void set_seq_no(uint32_t);
+    void set_ack_no(uint32_t);
+    void set_pkt_state(uint8_t);
 };
 
 bool operator==(const Packet&, const Packet&);

@@ -28,33 +28,6 @@ Squid::~Squid()
     stop();
 }
 
-void Squid::stop()
-{
-    if (pid == 0) {
-        return;
-    }
-
-    if (kill(pid, SIGTERM) < 0) {
-        Logger::get().err("SIGTERM squid process", errno);
-    }
-
-    int waited_pid;
-
-    if ((waited_pid = wait(NULL)) < 0) {
-        if (errno == ECHILD) {
-            goto stopped;
-        }
-        Logger::get().err("Failed to wait for squid", errno);
-    }
-
-    if (waited_pid != pid) {
-        Logger::get().err("Squid PID mismatch");
-    }
-
-stopped:
-    pid = 0;
-}
-
 void Squid::init()
 {
     // set forwarding
@@ -147,4 +120,31 @@ void Squid::reset()
     // should the completeness of the reconfigure. check that by location
     // "reconfigure" in cache.0.log file
     usleep(1000000);    // 1 sec
+}
+
+void Squid::stop()
+{
+    if (pid == 0) {
+        return;
+    }
+
+    if (kill(pid, SIGTERM) < 0) {
+        Logger::get().err("SIGTERM squid process", errno);
+    }
+
+    int waited_pid;
+
+    if ((waited_pid = wait(NULL)) < 0) {
+        if (errno == ECHILD) {
+            goto stopped;
+        }
+        Logger::get().err("Failed to wait for squid", errno);
+    }
+
+    if (waited_pid != pid) {
+        Logger::get().err("Squid PID mismatch");
+    }
+
+stopped:
+    pid = 0;
 }
