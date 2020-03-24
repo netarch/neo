@@ -34,6 +34,20 @@
     #     and if the source address is not reachable via any interface the
     #     packet check will fail.
     rules = ".*"
+[[nodes]]
+    name = "string"
+    type = "middlebox"
+    env = "netns"
+    app = "ipvs"
+    timeout = 100               # microseconds
+    config = ".*"
+[[nodes]]
+    name = "string"
+    type = "middlebox"
+    env = "netns"
+    app = "squid"
+    timeout = 100               # microseconds
+    config = ".*"
 
 # undirected (only need to specify once for each link)
 [[links]]

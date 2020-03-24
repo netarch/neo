@@ -120,6 +120,21 @@ void Plankton::verify_exit(int status)
     exit(status);
 }
 
+static const int mb_sigs[] = {SIGCHLD};
+
+static void mb_sig_handler(int sig)
+{
+    int pid, status;
+    if (sig == SIGCHLD) {
+        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+            if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+                Logger::get().warn("Process " + std::to_string(pid)
+                                   + " failed");
+            }
+        }
+    }
+}
+
 void Plankton::verify_ec(Policy *policy)
 {
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
@@ -131,13 +146,16 @@ void Plankton::verify_ec(Policy *policy)
         suffix.c_str(),
     };
 
-    // reset signal handlers
-    struct sigaction default_action;
-    default_action.sa_handler = SIG_DFL;
-    sigemptyset(&default_action.sa_mask);
-    default_action.sa_flags = 0;
-    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaction(sigs[i], &default_action, nullptr);
+    // register signal handlers for middleboxes
+    struct sigaction action;
+    action.sa_handler = mb_sig_handler;
+    sigemptyset(&action.sa_mask);
+    for (size_t i = 0; i < sizeof(mb_sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, mb_sigs[i]);
+    }
+    action.sa_flags = SA_NOCLDSTOP;
+    for (size_t i = 0; i < sizeof(mb_sigs) / sizeof(int); ++i) {
+        sigaction(mb_sigs[i], &action, nullptr);
     }
 
     // reset logger
@@ -204,7 +222,7 @@ void Plankton::verify_policy(Policy *policy)
     while (policy->set_initial_ec()) {
         int childpid;
         if ((childpid = fork()) < 0) {
-            Logger::get().err("fork()", errno);
+            Logger::get().err("fork for verifying EC", errno);
         } else if (childpid == 0) {
             verify_ec(policy);
         }

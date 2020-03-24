@@ -5,7 +5,7 @@
 #include "mb-env/netns.hpp"
 #include "mb-app/netfilter.hpp"
 #include "mb-app/ipvs.hpp"
-#include "mb-app/cache-proxy.hpp"
+#include "mb-app/squid.hpp"
 #include "stats.hpp"
 
 Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
@@ -32,8 +32,8 @@ Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
         app = new NetFilter(node_config);
     } else if (*appliance == "ipvs") {
         app = new IPVS(node_config);
-    } else if (*appliance == "squid-proxy") {
-        app = new CacheProxy(node_config);
+    } else if (*appliance == "squid") {
+        app = new Squid(node_config);
     } else {
         Logger::get().err("Unknown appliance: " + *appliance);
     }
@@ -61,12 +61,13 @@ void Middlebox::listen_packets()
     uint8_t id_mac[6] = ID_ETH_ADDR;
 
     while (!listener_end) {
-        // read output packet (block if no packet)
+        // read output packet (it will block if there is no packet)
         pkts = env->read_packets();
 
         for (PktBuffer pb : pkts) {
             uint8_t *buffer = pb.get_buffer();
 
+            // filter out irrelevant frames
             uint8_t *dst_mac = buffer;
             if (memcmp(dst_mac, id_mac, 6) != 0) {
                 continue;
@@ -75,7 +76,8 @@ void Middlebox::listen_packets()
             uint16_t ethertype;
             memcpy(&ethertype, buffer + 12, 2);
             ethertype = ntohs(ethertype);
-            if (ethertype == ETHERTYPE_IP) {
+            if (ethertype == ETHERTYPE_IP) {    // IPv4 packets
+                // destination IP address
                 uint32_t dst_ip;
                 memcpy(&dst_ip, buffer + 30, 4);
                 dst_ip = ntohl(dst_ip);

@@ -3,6 +3,9 @@
 #include <chrono>
 #include <cpptoml/cpptoml.hpp>
 
+#define IPV4_FWD "/proc/sys/net/ipv4/conf/all/forwarding"
+#define IPV4_RPF "/proc/sys/net/ipv4/conf/all/rp_filter"
+
 /*
  * Don't start emulation processes in the constructor.
  * Only read the configurations in constructors and later start the emulation in

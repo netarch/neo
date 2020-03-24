@@ -480,6 +480,10 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
             }
         }
 
+        // TODO:
+        // Check if it's a different communication or the same communication but
+        // with different direction (check seq/ack, src/dst IPs and ports, etc.)
+
         // NAT (network address translation)
         // NOTE: we only handle the destination IP rewriting for now.
         EqClass *ec;

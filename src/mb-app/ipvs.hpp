@@ -9,7 +9,6 @@ class IPVS : public MB_App
 {
 private:
     std::string config;
-    std::string forwarding_fn, rp_filter_fn;
 
 public:
     /*

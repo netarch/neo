@@ -1,7 +1,8 @@
 #include "comm.hpp"
 
-#include <algorithm>
 #include <cctype>
+
+#include <algorithm>
 #include <regex>
 
 #include "lib/logger.hpp"

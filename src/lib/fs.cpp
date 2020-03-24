@@ -1,13 +1,14 @@
 #include "lib/fs.hpp"
 
+#include <unistd.h>
+#include <sys/stat.h>
+#include <ftw.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cerrno>
 #include <climits>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <ftw.h>
-#include <cstddef>
+#include <fstream>
 
 #include "lib/logger.hpp"
 
@@ -63,6 +64,45 @@ void remove(const std::string& p)
     }
 }
 
+void copy(const std::string& src, const std::string& dst)
+{
+    std::string src_path = realpath(src);
+    std::string dst_path = realpath(dst);
+
+    if (src_path == dst_path) {
+        return;
+    }
+
+    std::ifstream src_f(src_path, std::ios::binary);
+    std::ofstream dst_f(dst_path, std::ios::binary);
+
+    dst_f << src_f.rdbuf();
+
+    src_f.close();
+    dst_f.close();
+}
+
+bool is_regular(const std::string& path)
+{
+    struct stat buffer;
+    int ret = stat(path.c_str(), &buffer);
+    if (ret == -1) {
+        Logger::get().err(path, errno);
+    }
+    return S_ISREG(buffer.st_mode);
+}
+
+std::string getcwd()
+{
+    char p[PATH_MAX];
+
+    if (::getcwd(p, sizeof(p)) == NULL) {
+        Logger::get().err("getcwd", errno);
+    }
+
+    return std::string(p);
+}
+
 std::string realpath(const std::string& rel_p)
 {
     char p[PATH_MAX];
@@ -106,64 +146,6 @@ std::shared_ptr<cpptoml::table> get_toml_config(
     config = cpptoml::parse_file(filename);
     remove(filename);
     return config;
-}
-
-bool copy(const std::string src_path, const std::string dest_path)
-{
-    if (is_regular_file(src_path)) {
-        struct stat buffer;
-        std::size_t rindex = dest_path.find_last_of("/");
-        if (rindex == std::string::npos) {
-            return false;
-        }
-        std::string dir = dest_path.substr(0, rindex);
-
-        int status = stat(dir.c_str(), &buffer);
-        if (status == -1) {
-            Logger::get().err(dest_path, errno);
-        } else {
-            if (S_ISDIR(buffer.st_mode) != 0) {
-                std::string command = "cp " + src_path + " " + dest_path;
-                int task_status = system(command.c_str());
-                if (!task_status) {
-                    return true;
-                } else {
-                    Logger::get().err(command, errno);
-                }
-            } else {
-                Logger::get().err("Destination file has already existed");
-            }
-        }
-    }
-    return false;
-}
-
-bool is_regular_file(const std::string file_path)
-{
-    struct stat buffer;
-    int ret = stat(file_path.c_str(), &buffer);
-    if (ret == -1) {
-        if (errno == ENOENT) {
-            return false;
-        }
-    } else {
-        if (!S_ISREG(buffer.st_mode)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-std::string get_cwd(void)
-{
-    char path[PATH_MAX];
-    std::string retval;
-    if (getcwd(path, sizeof(path)) != NULL) {
-        retval = std::string(path);
-    } else {
-        Logger::get().err("current_path", errno);
-    }
-    return retval;
 }
 
 } // namespace fs

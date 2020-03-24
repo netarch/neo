@@ -63,6 +63,11 @@ void Logger::set_verbose(bool v)
     verbose = v;
 }
 
+std::string Logger::get_file() const
+{
+    return filename;
+}
+
 void Logger::print(const std::string& msg)
 {
     if (logfile.is_open()) {

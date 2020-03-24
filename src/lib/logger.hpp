@@ -24,6 +24,7 @@ public:
     void reopen();
     void set_file(const std::string&);
     void set_verbose(bool);
+    std::string get_file() const;
 
     void print(const std::string&);     // print directly to log file
     void out(const std::string&);       // print to stdout

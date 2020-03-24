@@ -5,11 +5,13 @@
 
 #include "mb-app/mb-app.hpp"
 
-class NetFilter : public MB_App
+class Squid : public MB_App
 {
 private:
-    int rp_filter;
-    std::string rules;
+    std::string config;
+    pid_t pid;
+
+    void stop();
 
 public:
     /*
@@ -17,8 +19,9 @@ public:
      * Only read the configurations in constructors and later start the
      * emulation in init().
      */
-    NetFilter(const std::shared_ptr<cpptoml::table>&);
+    Squid(const std::shared_ptr<cpptoml::table>&);
+    ~Squid() override;
 
-    void init() override;   // hard-reset, restart, start
-    void reset() override;  // soft-reset, reload
+    void init() override;
+    void reset() override;
 };

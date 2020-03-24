@@ -1,0 +1,147 @@
+[[nodes]]
+    name = "h1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "9.0.0.1/8"
+    [[nodes.static_routes]]
+    network = "10.0.0.0/8"
+    next_hop = "9.0.1.1"
+[[nodes]]
+    name = "h2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "9.0.0.2/8"
+    [[nodes.static_routes]]
+    network = "10.0.0.0/8"
+    next_hop = "9.0.1.1"
+[[nodes]]
+    name = "s1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+[[nodes]]
+    name = "r1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "9.0.1.1/8"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "10.0.1.1/24"
+    [[nodes.static_routes]]
+    network = "10.0.0.0/8"
+    next_hop = "10.0.1.2"
+# use transparent proxy here
+# the intercept router is combined into the squid proxy, and the intercept functionality should be enabled
+# to route the packet and change the dest address
+# 1. kernel functionality for forwarding the packet: net.ipv4.ip_forward = 1(should be defaultly true)
+# 2. add redirect packet to squid server:
+#   iptables -t nat -A PERROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 9999
+[[nodes]]
+    name = "p1"
+    type = "middlebox"
+    env = "netns"
+    app = "squid"
+    timeout = 100
+    config = """
+http_port 80 accel
+visible_hostname p1
+#prefer_direct on
+pid_filename none
+
+acl http_port port 80
+acl ip_acl src 9.0.0.0/8
+http_access deny !http_port
+http_access allow ip_acl
+http_access deny all
+
+cache_peer 10.0.3.1 parent 80 0 no-query originserver name=server
+#cache_peer_access server allow all
+
+logfile_rotate 0
+access_log stdio:/dev/stdout
+#cache_log stdio:/dev/stdout
+cache_store_log stdio:/dev/stdout
+"""
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.1.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "10.0.2.1/24"
+    [[nodes.static_routes]]
+    network = "10.0.3.0/24"
+    next_hop = "10.0.2.2"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "10.0.1.1"
+[[nodes]]
+    name = "r2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.2.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "10.0.3.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "10.0.2.1"
+[[nodes]]
+    name = "server"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.3.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "10.0.3.2"
+
+[[links]]
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "r2"
+    intf2 = "eth1"
+[[links]]
+    node1 = "r2"
+    intf1 = "eth0"
+    node2 = "p1"
+    intf2 = "eth1"
+[[links]]
+    node1 = "p1"
+    intf1 = "eth0"
+    node2 = "r1"
+    intf2 = "eth1"
+[[links]]
+    node1 = "r1"
+    intf1 = "eth0"
+    node2 = "s1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth1"
+    node2 = "h1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth2"
+    node2 = "h2"
+    intf2 = "eth0"
+
+# Policy:
+#   1. Requested host should always be hit in cache among the proxies
+
+[[policies]]
+    type = "reachability"
+    final_node = "server"
+    reachable = true
+    [policies.communication]
+    protocol = "http"
+    pkt_dst = "10.0.1.2"
+    start_node = "h[12]"
