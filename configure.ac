@@ -45,6 +45,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 : ${LDFLAGS=""}
 : ${LIBS=""}
 : ${SPINFLAGS=""}
+: ${MAX_COMMS=2}
 
 
 ##
@@ -81,6 +82,7 @@ AS_IF([test "$enable_asan" = "yes" -a "$enable_tsan" = "yes"], [
 ])
 AC_ARG_ENABLE([debug],
     AS_HELP_STRING([--enable-debug], [Enable debugging options]))
+AC_ARG_VAR([MAX_COMMS], [Maximum number of communications (default: 2)])
 
 
 ###
@@ -183,6 +185,7 @@ ADD_CFLAG([-std=c11])
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
 ADD_CPPFLAG([-iquote ${srcdir}/src -iquote .])
 ADD_CPPFLAG([-isystem ${srcdir}/third_party])
+ADD_CPPFLAG([-DMAX_COMMS=$MAX_COMMS])
 ADD_SPINFLAG([-a])
 ADD_SPINFLAG([-DNOBOUNDCHECK])
 ADD_SPINFLAG([-DNOCOMP])
@@ -190,6 +193,7 @@ ADD_SPINFLAG([-DNOFAIR])
 ADD_SPINFLAG([-DSAFETY])
 ADD_SPINFLAG([-DSFH])
 ADD_SPINFLAG([-DVECTORSZ=100])
+ADD_SPINFLAG([-DMAX_COMMS=$MAX_COMMS])
 ADD_SPINFLAG([-DSIZEOF_VOID_P="$ac_cv_sizeof_void_p"])
 ADD_SPINFLAG([-DSIZEOF_INT="$ac_cv_sizeof_int"])
 AS_IF([test "$enable_coverage" = "yes"], [

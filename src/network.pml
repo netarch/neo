@@ -21,9 +21,6 @@
  * ability of the OS isn't enough for accessing all state-related data.
  */
 
-/* maximum number of communications modelled simultaneously */
-#define MAX_COMM_COUNT 2
-
 typedef comm_state_t {
     /* network */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
@@ -53,7 +50,7 @@ bool violated;
 /* forwarding process */
 unsigned picking_comm : 1;
 
-comm_state_t comm_state[MAX_COMM_COUNT];
+comm_state_t comm_state[MAX_COMMS];
 unsigned comm : 1;  /* index of the executing communication */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
@@ -63,7 +60,7 @@ int choice_count;   /* non-determinisic selection range [0, choice_count) */
  * else if picking_comm == 1
  *      candidate: (nullptr)
  *      choice: comm
- *      choice_count: MAX_COMM_COUNT
+ *      choice_count: MAX_COMMS
  */
 int candidates[SIZEOF_VOID_P / SIZEOF_INT];
 
