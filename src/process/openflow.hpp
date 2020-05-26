@@ -131,4 +131,12 @@ public:
     {
         return Openflow::get_update_size(node, state) > 0;
     }
+
+    static void init(State *state)
+    {
+        std::vector<size_t> *new_offsets = new std::vector<size_t>(Openflow::updates.size(), 0);
+        auto insert_result = offsets_map.insert(new_offsets);
+        assert(insert_result.second);
+        memccpy(state->comm_state[state->comm].openflow_update_offsets, &(*(insert_result.first)), sizeof(std::vector<size_t> *), 1);
+    }
 };

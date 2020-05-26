@@ -78,6 +78,7 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
     Logger::get().info("EC: " + ec->to_string());
     network.update_fib(state);
+    Openflow::init(state);
 }
 
 void ForwardingProcess::reset(State *state, Network& network, Policy *policy)
