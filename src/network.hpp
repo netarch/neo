@@ -5,10 +5,13 @@
 #include <unordered_set>
 #include <string>
 #include <cpptoml/cpptoml.hpp>
+#include <vector>
 
 #include "node.hpp"
 #include "link.hpp"
 #include "fib.hpp"
+#include "route.hpp"
+
 class State;
 
 /*
@@ -32,7 +35,8 @@ private:
 public:
     Network() = default;
     Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
-            const std::shared_ptr<cpptoml::table_array>& links_config);
+            const std::shared_ptr<cpptoml::table_array>& links_config,
+            const std::shared_ptr<cpptoml::table_array>& of_config);
     Network(const Network&) = delete;
     Network(Network&&) = default;
     ~Network();

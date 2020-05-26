@@ -132,6 +132,11 @@ const RoutingTable& Node::get_rib() const
     return rib;
 }
 
+RoutingTable& Node::get_rib()
+{
+    return rib;
+}
+
 std::pair<Node *, Interface *>
 Node::get_peer(const std::string& intf_name) const
 {

@@ -19,10 +19,11 @@ enum fwd_mode {
     PACKET_ENTRY = 1,
     FIRST_COLLECT = 2,
     FIRST_FORWARD = 3,
-    COLLECT_NHOPS = 4,
-    FORWARD_PACKET = 5,
-    ACCEPTED = 6,
-    DROPPED = 7
+    CHECK_UPDATES = 4,
+    COLLECT_NHOPS = 5,
+    FORWARD_PACKET = 6,
+    ACCEPTED = 7,
+    DROPPED = 8
 };
 
 struct CandHash {

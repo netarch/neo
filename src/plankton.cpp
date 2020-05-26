@@ -98,9 +98,10 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
     auto config = cpptoml::parse_file(in_file);
     auto nodes_config = config->get_table_array("nodes");
     auto links_config = config->get_table_array("links");
+    auto of_config = config->get_table_array("openflow");
     auto policies_config = config->get_table_array("policies");
 
-    network = Network(nodes_config, links_config);
+    network = Network(nodes_config, links_config, of_config);
     policies = Policies(policies_config, network);
 }
 

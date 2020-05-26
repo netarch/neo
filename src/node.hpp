@@ -53,6 +53,7 @@ public:
     virtual const std::map<IPv4Address, Interface *>& get_intfs_l3() const;
     virtual const std::set<Interface *>& get_intfs_l2() const;
     virtual const RoutingTable& get_rib() const;
+    virtual RoutingTable& get_rib();
 
     virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;

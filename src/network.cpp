@@ -8,9 +8,11 @@
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
 #include "model.h"
+#include "process/openflow.hpp"
 
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
-                 const std::shared_ptr<cpptoml::table_array>& links_config)
+                 const std::shared_ptr<cpptoml::table_array>& links_config,
+                 const std::shared_ptr<cpptoml::table_array>& of_config)
 {
     if (nodes_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
@@ -55,6 +57,9 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
             node2->add_peer(intf2->get_name(), node1, intf1);
         }
     }
+
+    Openflow::parse_config(of_config);
+
     Logger::get().info("Loaded " + std::to_string(links.size()) + " links");
 
     // collect L2 LANs
