@@ -109,7 +109,7 @@ TEST_CASE("node")
         auto nodes_config = config->get_table_array("nodes");
         auto links_config = config->get_table_array("links");
         REQUIRE_NOTHROW(net = std::make_shared<Network>
-                              (nodes_config, links_config));
+                              (nodes_config, links_config, nullptr));
 
         REQUIRE_NOTHROW(node = net->get_nodes().at("r1"));
         CHECK(node->to_string() == "r1");
