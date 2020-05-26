@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cerrno>
 #include <climits>
+#include <fstream>
 
 #include "lib/logger.hpp"
 
@@ -61,6 +62,45 @@ void remove(const std::string& p)
     if (nftw(p.c_str(), &rm, 10000, FTW_DEPTH | FTW_PHYS) < 0) {
         Logger::get().err(p, errno);
     }
+}
+
+void copy(const std::string& src, const std::string& dst)
+{
+    std::string src_path = realpath(src);
+    std::string dst_path = realpath(dst);
+
+    if (src_path == dst_path) {
+        return;
+    }
+
+    std::ifstream src_f(src_path, std::ios::binary);
+    std::ofstream dst_f(dst_path, std::ios::binary);
+
+    dst_f << src_f.rdbuf();
+
+    src_f.close();
+    dst_f.close();
+}
+
+bool is_regular(const std::string& path)
+{
+    struct stat buffer;
+    int ret = stat(path.c_str(), &buffer);
+    if (ret == -1) {
+        Logger::get().err(path, errno);
+    }
+    return S_ISREG(buffer.st_mode);
+}
+
+std::string getcwd()
+{
+    char p[PATH_MAX];
+
+    if (::getcwd(p, sizeof(p)) == NULL) {
+        Logger::get().err("getcwd", errno);
+    }
+
+    return std::string(p);
 }
 
 std::string realpath(const std::string& rel_p)

@@ -3,6 +3,7 @@
 #include <libnet.h>
 
 #include "packet.hpp"
+#include "pktbuffer.hpp"
 
 class Net
 {
@@ -34,6 +35,8 @@ public:
                    const uint8_t *src_mac,
                    const uint8_t *dst_mac) const;
     void free(uint8_t *) const;
+
+    void deserialize(Packet&, const PktBuffer&) const;
 
     std::string mac_to_str(const uint8_t *) const;
 };

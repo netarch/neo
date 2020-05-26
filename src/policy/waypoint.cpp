@@ -10,23 +10,18 @@ WaypointPolicy::WaypointPolicy(
     bool correlated)
     : Policy(correlated)
 {
-    parse_protocol(config);
-    parse_pkt_dst(config);
-    parse_owned_dst_only(config);
-    parse_start_node(config, net);
-    parse_tcp_ports(config);
-    parse_waypoint(config, net);
-    parse_pass_through(config);
-}
-
-void WaypointPolicy::parse_waypoint(
-    const std::shared_ptr<cpptoml::table>& config,
-    const Network& net)
-{
     auto wp_regex = config->get_as<std::string>("waypoint");
+    auto through = config->get_as<bool>("pass_through");
+    auto comm_cfg = config->get_table("communication");
 
     if (!wp_regex) {
         Logger::get().err("Missing waypoint");
+    }
+    if (!through) {
+        Logger::get().err("Missing pass_through");
+    }
+    if (!comm_cfg) {
+        Logger::get().err("Missing communication");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
@@ -35,33 +30,21 @@ void WaypointPolicy::parse_waypoint(
             waypoints.insert(node.second);
         }
     }
-}
-
-void WaypointPolicy::parse_pass_through(
-    const std::shared_ptr<cpptoml::table>& config)
-{
-    auto through = config->get_as<bool>("pass_through");
-
-    if (!through) {
-        Logger::get().err("Missing pass_through");
-    }
 
     pass_through = *through;
+
+    Communication comm(comm_cfg, net);
+    comms.push_back(std::move(comm));
 }
 
 std::string WaypointPolicy::to_string() const
 {
-    std::string ret = "waypoint [";
-    for (Node *node : start_nodes) {
-        ret += " " + node->to_string();
-    }
-    ret += " ] -";
+    std::string ret = "waypoint " + comms[0].start_nodes_str();
     if (pass_through) {
-        ret += "-";
+        ret += " ---> [";
     } else {
-        ret += "X";
+        ret += " -X-> [";
     }
-    ret += "-> [";
     for (Node *node : waypoints) {
         ret += " " + node->to_string();
     }
@@ -69,12 +52,12 @@ std::string WaypointPolicy::to_string() const
     return ret;
 }
 
-void WaypointPolicy::init(State *state) const
+void WaypointPolicy::init(State *state)
 {
     state->violated = pass_through;
 }
 
-void WaypointPolicy::check_violation(State *state)
+int WaypointPolicy::check_violation(State *state)
 {
     int mode = state->comm_state[state->comm].fwd_mode;
 
@@ -88,4 +71,6 @@ void WaypointPolicy::check_violation(State *state)
             state->choice_count = 0;
         }
     }
+
+    return POL_NULL;
 }

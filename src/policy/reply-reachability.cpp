@@ -10,22 +10,18 @@ ReplyReachabilityPolicy::ReplyReachabilityPolicy(
     bool correlated)
     : Policy(correlated)
 {
-    parse_protocol(config);
-    parse_pkt_dst(config);
-    parse_owned_dst_only(config);
-    parse_start_node(config, net);
-    parse_tcp_ports(config);
-    parse_query_node(config, net);
-    parse_reachable(config);
-}
-
-void ReplyReachabilityPolicy::parse_query_node(
-    const std::shared_ptr<cpptoml::table>& config, const Network& net)
-{
     auto query_regex = config->get_as<std::string>("query_node");
+    auto reachability = config->get_as<bool>("reachable");
+    auto comm_cfg = config->get_table("communication");
 
     if (!query_regex) {
         Logger::get().err("Missing query node");
+    }
+    if (!reachability) {
+        Logger::get().err("Missing reachability");
+    }
+    if (!comm_cfg) {
+        Logger::get().err("Missing communication");
     }
 
     const std::map<std::string, Node *>& nodes = net.get_nodes();
@@ -34,46 +30,34 @@ void ReplyReachabilityPolicy::parse_query_node(
             query_nodes.insert(node.second);
         }
     }
-}
-
-void ReplyReachabilityPolicy::parse_reachable(
-    const std::shared_ptr<cpptoml::table>& config)
-{
-    auto reachability = config->get_as<bool>("reachable");
-
-    if (!reachability) {
-        Logger::get().err("Missing reachability");
-    }
 
     reachable = *reachability;
+
+    Communication comm(comm_cfg, net);
+    comms.push_back(std::move(comm));
 }
 
 std::string ReplyReachabilityPolicy::to_string() const
 {
-    std::string ret = "reply-reachability [";
-    for (Node *node : start_nodes) {
-        ret += " " + node->to_string();
-    }
-    ret += " ] -> [";
+    std::string ret = "reply-reachability " + comms[0].start_nodes_str();
+    ret += " -> [";
     for (Node *node : query_nodes) {
         ret += " " + node->to_string();
     }
-    ret += " ] -";
     if (reachable) {
-        ret += "-";
+        ret += " ] ---> original sender";
     } else {
-        ret += "X";
+        ret += " ] -X-> original sender";
     }
-    ret += "-> original sender";
     return ret;
 }
 
-void ReplyReachabilityPolicy::init(State *state) const
+void ReplyReachabilityPolicy::init(State *state)
 {
     state->violated = false;
 }
 
-void ReplyReachabilityPolicy::check_violation(State *state)
+int ReplyReachabilityPolicy::check_violation(State *state)
 {
     bool reached;
     int mode = state->comm_state[state->comm].fwd_mode;
@@ -81,10 +65,12 @@ void ReplyReachabilityPolicy::check_violation(State *state)
 
     if (pkt_state == PS_HTTP_REP || pkt_state == PS_ICMP_ECHO_REP) {
         if (mode == fwd_mode::ACCEPTED) {
-            Node *final_node;
+            Node *final_node, *tx_node;
             memcpy(&final_node, state->comm_state[state->comm].pkt_location,
                    sizeof(Node *));
-            reached = (final_node == comm_tx);
+            memcpy(&tx_node, state->comm_state[state->comm].tx_node,
+                   sizeof(Node *));
+            reached = (final_node == tx_node);
         } else if (mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
@@ -92,13 +78,15 @@ void ReplyReachabilityPolicy::check_violation(State *state)
              * If the reply hasn't been accepted or dropped, there is nothing to
              * check.
              */
-            return;
+            return POL_NULL;
         }
         state->violated = (reachable != reached);
         state->choice_count = 0;
     } else {    // previous phases
-        if ((mode == fwd_mode::ACCEPTED
-                && query_nodes.count(comm_rx) == 0)
+        Node *rx_node;
+        memcpy(&rx_node, state->comm_state[state->comm].rx_node,
+               sizeof(Node *));
+        if ((mode == fwd_mode::ACCEPTED && query_nodes.count(rx_node) == 0)
                 || mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
@@ -106,7 +94,7 @@ void ReplyReachabilityPolicy::check_violation(State *state)
              * If the request (or session construction packets) hasn't been
              * accepted or dropped, there is nothing to check.
              */
-            return;
+            return POL_NULL;
         }
         if (!reached) {
             // precondition is false (request not received)
@@ -114,4 +102,6 @@ void ReplyReachabilityPolicy::check_violation(State *state)
             state->choice_count = 0;
         }
     }
+
+    return POL_NULL;
 }

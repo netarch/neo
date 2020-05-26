@@ -47,6 +47,8 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     memset(state->comm_state[state->comm].ack, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].tx_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].rx_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].pkt_location, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
 
@@ -95,6 +97,8 @@ void ForwardingProcess::reset(State *state, Network& network, Policy *policy)
     memset(state->comm_state[state->comm].ack, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_ip, 0, sizeof(uint32_t));
     memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].tx_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].rx_node, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].pkt_location, 0, sizeof(Node *));
     memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
 
@@ -167,7 +171,7 @@ void ForwardingProcess::packet_entry(State *state) const
     Logger::get().info("Packet (state: " + std::to_string(pkt_state)
                        + ") started at " + entry->to_string());
     if (PS_IS_FIRST(pkt_state)) {
-        policy->set_comm_tx(state, entry);
+        memcpy(state->comm_state[state->comm].tx_node, &entry, sizeof(Node *));
     }
 }
 
@@ -257,16 +261,19 @@ void ForwardingProcess::forward_packet(State *state)
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
         int pkt_state = state->comm_state[state->comm].pkt_state;
-        Node *current_node;
+        Node *current_node, *tx_node, *rx_node;
         memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+               sizeof(Node *));
+        memcpy(&tx_node, state->comm_state[state->comm].tx_node,
+               sizeof(Node *));
+        memcpy(&rx_node, state->comm_state[state->comm].rx_node,
                sizeof(Node *));
         if (PS_IS_FIRST(pkt_state)) {
             // store the original receiving endpoint of the communication
-            policy->set_comm_rx(state, current_node);
-        } else if ((PS_IS_REQUEST(pkt_state)
-                    && current_node != policy->get_comm_rx(state))
-                   || (PS_IS_REPLY(pkt_state)
-                       && current_node != policy->get_comm_tx(state))) {
+            memcpy(state->comm_state[state->comm].rx_node, &current_node,
+                   sizeof(Node *));
+        } else if ((PS_IS_REQUEST(pkt_state) && current_node != rx_node)
+                   || (PS_IS_REPLY(pkt_state) && current_node != tx_node)) {
             dropped(state);
             return;
         }
@@ -465,7 +472,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
     std::set<FIB_IPNH> next_hops;
 
     // if the packet is not dropped
-    if (recv_pkt.get_intf()) {
+    if (!recv_pkt.empty()) {
         // find the next hop
         auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
         if (l2nh.first) {   // if the interface is truly connected
@@ -482,6 +489,10 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
                 }
             }
         }
+
+        // TODO:
+        // Check if it's a different communication or the same communication but
+        // with different direction (check seq/ack, src/dst IPs and ports, etc.)
 
         // NAT (network address translation)
         // NOTE: we only handle the destination IP rewriting for now.

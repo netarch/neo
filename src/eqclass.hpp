@@ -16,6 +16,8 @@ class EqClass
 private:
     std::set<ECRange> ranges;
 
+    friend bool operator==(const EqClass&, const EqClass&);
+
 public:
     typedef std::set<ECRange>::iterator iterator;
     typedef std::set<ECRange>::const_iterator const_iterator;
@@ -38,3 +40,5 @@ public:
     reverse_iterator       rend();
     const_reverse_iterator rend() const;
 };
+
+bool operator==(const EqClass&, const EqClass&);

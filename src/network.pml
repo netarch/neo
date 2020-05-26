@@ -21,9 +21,6 @@
  * ability of the OS isn't enough for accessing all state-related data.
  */
 
-/* maximum number of communications modelled simultaneously */
-#define MAX_COMM_COUNT 2
-
 typedef comm_state_t {
     /* network */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
@@ -36,6 +33,8 @@ typedef comm_state_t {
     int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
     int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
+    int tx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
+    int rx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
     int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *) */
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
@@ -51,11 +50,22 @@ typedef comm_state_t {
 /* policy */
 bool violated;
 
-comm_state_t comm_state[MAX_COMM_COUNT];
+/* forwarding process */
+unsigned picking_comm : 1;
+
+comm_state_t comm_state[MAX_COMMS];
 unsigned comm : 1;  /* index of the executing communication */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
-int candidates[SIZEOF_VOID_P / SIZEOF_INT]; /* (std::vector<FIB_IPNH> *) */
+/*
+ * if picking_comm == 0
+ *      candidate: (std::vector<FIB_IPNH> *)
+ * else if picking_comm == 1
+ *      candidate: (nullptr)
+ *      choice: comm
+ *      choice_count: MAX_COMMS
+ */
+int candidates[SIZEOF_VOID_P / SIZEOF_INT];
 
 /* reserved extended state for later use */
 int ext_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (void *) */

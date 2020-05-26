@@ -18,17 +18,14 @@ IPVS::IPVS(const std::shared_ptr<cpptoml::table>& config)
     }
 
     this->config = *conf;
-
-    forwarding_fn = "/proc/sys/net/ipv4/conf/all/forwarding";
-    rp_filter_fn = "/proc/sys/net/ipv4/conf/all/rp_filter";
 }
 
 void IPVS::init()
 {
     // set forwarding
-    int fwd = open(forwarding_fn.c_str(), O_WRONLY);
+    int fwd = open(IPV4_FWD, O_WRONLY);
     if (fwd < 0) {
-        Logger::get().err("Failed to open " + forwarding_fn, errno);
+        Logger::get().err("Failed to open " IPV4_FWD, errno);
     }
     if (write(fwd, "1", 1) < 0) {
         Logger::get().err("Failed to set forwarding");
@@ -36,9 +33,9 @@ void IPVS::init()
     close(fwd);
 
     // set rp_filter
-    int rpf = open(rp_filter_fn.c_str(), O_WRONLY);
+    int rpf = open(IPV4_RPF, O_WRONLY);
     if (rpf < 0) {
-        Logger::get().err("Failed to open " + rp_filter_fn, errno);
+        Logger::get().err("Failed to open " IPV4_RPF, errno);
     }
     if (write(rpf, "0", 1) < 0) {
         Logger::get().err("Failed to set rp_filter");

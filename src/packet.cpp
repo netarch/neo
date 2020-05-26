@@ -128,14 +128,49 @@ void Packet::clear()
     payload = nullptr;
 }
 
+bool Packet::empty() const
+{
+    return interface == nullptr;
+}
+
 void Packet::set_intf(Interface *intf)
 {
     interface = intf;
 }
 
+void Packet::set_src_ip(const IPv4Address& ip)
+{
+    src_ip = ip;
+}
+
 void Packet::set_dst_ip(const IPv4Address& ip)
 {
     dst_ip = ip;
+}
+
+void Packet::set_src_port(uint16_t port)
+{
+    src_port = port;
+}
+
+void Packet::set_dst_port(uint16_t port)
+{
+    dst_port = port;
+}
+
+void Packet::set_seq_no(uint32_t n)
+{
+    seq = n;
+}
+
+void Packet::set_ack_no(uint32_t n)
+{
+    ack = n;
+}
+
+void Packet::set_pkt_state(uint8_t s)
+{
+    pkt_state = s;
 }
 
 bool operator==(const Packet& a, const Packet& b)

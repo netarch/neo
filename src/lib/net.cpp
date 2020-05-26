@@ -201,6 +201,70 @@ void Net::free(uint8_t *buffer) const
     libnet_adv_free_packet(l, buffer);
 }
 
+void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
+{
+    const uint8_t *buffer = pb.get_buffer();
+
+    // filter out irrelevant frames
+    const uint8_t *dst_mac = buffer;
+    uint8_t id_mac[6] = ID_ETH_ADDR;
+    if (memcmp(dst_mac, id_mac, 6) != 0) {
+        goto bad_packet;
+    }
+
+    uint16_t ethertype;
+    memcpy(&ethertype, buffer + 12, 2);
+    ethertype = ntohs(ethertype);
+    if (ethertype == ETHERTYPE_IP) {    // IPv4 packets
+        // source and destination IP addresses
+        uint32_t src_ip, dst_ip;
+        memcpy(&src_ip, buffer + 26, 4);
+        memcpy(&dst_ip, buffer + 30, 4);
+        src_ip = ntohl(src_ip);
+        dst_ip = ntohl(dst_ip);
+        pkt.set_src_ip(src_ip);
+        pkt.set_dst_ip(dst_ip);
+
+        uint8_t ip_proto;
+        memcpy(&ip_proto, buffer + 23, 1);
+        if (ip_proto == IPPROTO_TCP) {          // TCP packets
+            // source and destination TCP port
+            uint16_t src_port, dst_port;
+            memcpy(&src_port, buffer + 34, 2);
+            memcpy(&dst_port, buffer + 36, 2);
+            src_port = ntohs(src_port);
+            dst_port = ntohs(dst_port);
+            pkt.set_src_port(src_port);
+            pkt.set_dst_port(dst_port);
+            // seq and ack numbers
+            uint32_t seq, ack;
+            memcpy(&seq, buffer + 38, 4);
+            memcpy(&ack, buffer + 42, 4);
+            seq = ntohl(seq);
+            ack = ntohl(ack);
+            pkt.set_seq_no(seq);
+            pkt.set_ack_no(ack);
+            // TCP flags
+            uint8_t flags;
+            memcpy(&flags, buffer + 47, 1);
+            pkt.set_pkt_state(flags);
+        } else if (ip_proto == IPPROTO_ICMP) {  // ICMP packets
+            // TODO
+            // set pkt_state according to it being a ping request or reply
+        } else {    // unsupported L4 (or L3.5) protocols
+            goto bad_packet;
+        }
+    } else {    // unsupported L3 protocol
+        goto bad_packet;
+    }
+
+    pkt.set_intf(pb.get_intf());
+    return;
+
+bad_packet:
+    pkt.clear();
+}
+
 std::string Net::mac_to_str(const uint8_t *mac) const
 {
     std::stringstream ss;

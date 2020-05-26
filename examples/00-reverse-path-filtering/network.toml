@@ -180,22 +180,25 @@ COMMIT
 
 [[policies]]
     type = "reachability"
+    final_node = "server"
+    reachable = true
+    [policies.communication]
     protocol = "http"
     pkt_dst = "10.0.0.1"
     start_node = "h[123]"
-    final_node = "server"
-    reachable = true
 [[policies]]
     type = "reachability"
+    final_node = "h[123]|s1|r[123]|fw"
+    reachable = false
+    [policies.communication]
     protocol = "http"
     pkt_dst = "192.168.0.0/22"
     start_node = "server"
-    final_node = "h[123]|s1|r[123]|fw"
-    reachable = false
 [[policies]]
     type = "reply-reachability"
+    query_node = "server"
+    reachable = true
+    [policies.communication]
     protocol = "http"
     pkt_dst = "10.0.0.1"
     start_node = "h[123]"
-    query_node = "server"
-    reachable = true

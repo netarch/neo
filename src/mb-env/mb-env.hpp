@@ -5,7 +5,6 @@
 #include "node.hpp"
 #include "interface.hpp"
 #include "packet.hpp"
-#include "pktbuffer.hpp"
 #include "mb-app/mb-app.hpp"
 
 class MB_Env
@@ -16,5 +15,5 @@ public:
     virtual void init(const Node&) = 0;
     virtual void run(void (*)(MB_App *), MB_App *) = 0;
     virtual size_t inject_packet(const Packet&) = 0;
-    virtual std::list<PktBuffer> read_packets() const = 0;
+    virtual Packet read_packet() const = 0;
 };

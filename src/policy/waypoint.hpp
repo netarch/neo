@@ -27,6 +27,6 @@ public:
                    bool correlated = false);
 
     std::string to_string() const override;
-    void init(State *) const override;
-    void check_violation(State *) override;
+    void init(State *) override;
+    int check_violation(State *) override;
 };

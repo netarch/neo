@@ -22,7 +22,8 @@ private:
     /* processes */
     ForwardingProcess   fwd;
     /*
-     * NOTE: if there are more than one process, they need to be chosen
+     * NOTE:
+     * If there are more than one process, they need to be chosen
      * non-deterministically.
      */
 
