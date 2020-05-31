@@ -1,6 +1,7 @@
 #include "network.hpp"
 
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -14,6 +15,7 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config,
                  const std::shared_ptr<cpptoml::table_array>& of_config)
 {
+    std::cout<<"1"<<std::endl;
     if (nodes_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
             Node *node = nullptr;

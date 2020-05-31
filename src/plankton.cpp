@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <iostream>
 #include <unistd.h>
 
 #include <set>
@@ -257,6 +258,7 @@ void Plankton::verify_policy(Policy *policy)
 
 int Plankton::run()
 {
+    std::cout<<"step1"<<std::endl;
     // register signal handlers
     struct sigaction action;
     action.sa_sigaction = signal_handler;
@@ -269,6 +271,7 @@ int Plankton::run()
         sigaction(sigs[i], &action, nullptr);
     }
 
+    std::cout<<"step2"<<std::endl;
     Stats::get().set_total_t1();
 
     for (Policy *policy : policies) {
@@ -278,6 +281,7 @@ int Plankton::run()
         if ((childpid = fork()) < 0) {
             Logger::get().err("fork()", errno);
         } else if (childpid == 0) {
+            std::cout<<"step3"<<std::endl;
             verify_policy(policy);
         }
 
