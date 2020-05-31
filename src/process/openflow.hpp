@@ -83,6 +83,10 @@ class Openflow
     }
 
 public:
+    static const decltype(updates) &get_updates() {
+        return updates;
+    }
+
     static void parse_config(const std::shared_ptr<cpptoml::table_array>& of_config)
     {
         if (of_config) {

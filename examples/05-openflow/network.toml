@@ -1,0 +1,86 @@
+[[nodes]]
+    name = "h0"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.1/30"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.2"
+[[nodes]]
+    name = "h1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.1/30"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.2"
+[[nodes]]
+    name = "h2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.2.1/30"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.2.2"
+[[nodes]]
+    name = "r0"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.2/30"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.2/30"
+    [[nodes.interfaces]]
+    name = "eth2"
+    ipv4 = "192.168.2.2/30"
+[[links]]
+    node1 = "h0"
+    intf1 = "eth0"
+    node2 = "r0"
+    intf2 = "eth0"
+[[links]]
+    node1 = "h1"
+    intf1 = "eth0"
+    node2 = "r0"
+    intf2 = "eth1"
+[[links]]
+    node1 = "h2"
+    intf1 = "eth0"
+    node2 = "r0"
+    intf2 = "eth2"
+
+[[openflow]]
+    node = "r0"
+    [[openflow.updates]]
+    network = "8.8.8.0/24"
+    next_hop = "192.168.1.1"
+    [[openflow.updates]]
+    network = "8.8.8.8/32"
+    next_hop = "192.168.2.1"
+
+# Policy:
+#   1. Outgoing packets are always allowed. (This should fail due to the
+#      misconfiguration of fw.)
+#   2. Incoming packets are always denied, except for 3.
+#   3. Incoming replies to past requests are allowed.
+
+[[policies]]
+    type = "reachability"
+    final_node = "h1"
+    reachable = false
+    [policies.communication]
+    protocol = "http"
+    pkt_dst = "8.8.8.8"
+    start_node = "h0"
+[[policies]]
+    type = "reachability"
+    final_node = "h2"
+    reachable = false
+    [policies.communication]
+    protocol = "http"
+    pkt_dst = "8.8.8.8"
+    start_node = "h0"
