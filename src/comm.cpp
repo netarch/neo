@@ -3,6 +3,7 @@
 #include <cctype>
 
 #include <algorithm>
+#include <iostream>
 #include <regex>
 
 #include "lib/logger.hpp"
@@ -163,9 +164,11 @@ bool Communication::set_initial_ec()
     if (!initial_ec || ++ECs_itr == ECs.end()) {
         ECs_itr = ECs.begin();
         initial_ec = *ECs_itr;
+        assert(initial_ec != nullptr);
         return false;
     }
     initial_ec = *ECs_itr;
+    assert(initial_ec != nullptr);
     return true;
 }
 

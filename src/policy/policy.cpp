@@ -1,6 +1,7 @@
 #include "policy/policy.hpp"
 
 #include <csignal>
+#include <iostream>
 #include <unistd.h>
 
 #include "lib/logger.hpp"
@@ -281,8 +282,8 @@ void Policies::compute_ecs(const Network& network) const
         }
     }
 
-    for (const auto &update_entry : Openflow::get_updates()) {
-        for (const auto &update_route : update_entry.second) {
+    for (const auto& update_entry : Openflow::get_updates()) {
+        for (const auto& update_route : update_entry.second) {
             all_ECs.add_ec(update_route.get_network());
         }
     }

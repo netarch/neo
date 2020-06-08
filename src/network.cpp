@@ -15,7 +15,7 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
                  const std::shared_ptr<cpptoml::table_array>& links_config,
                  const std::shared_ptr<cpptoml::table_array>& of_config)
 {
-    std::cout<<"1"<<std::endl;
+    std::cout << "1" << std::endl;
     if (nodes_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
             Node *node = nullptr;
@@ -118,6 +118,32 @@ void Network::init(State *state __attribute__((unused)))
     }
 
     // TODO: initialize update history if update agent is implemented
+}
+
+void Network::update_node_fib(State *state, Node *update_node, const RoutingTable& rib)
+{
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
+    FIB *currentFib;
+    memcpy(&currentFib, state->comm_state[state->comm].fib, sizeof(FIB *));
+
+    FIB *fib = new FIB(*currentFib);
+    IPv4Address addr = ec->representative_addr();
+
+    // collect IP next hops
+    fib->set_ipnhs(update_node, update_node->get_ipnhs(addr, rib));
+
+    // insert into the pool of history FIBs
+    auto res = fibs.insert(fib);
+
+    if (!res.second) {
+        delete fib;
+        fib = *(res.first);
+    }
+
+    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
+    Logger::get().debug(fib->to_string());
 }
 
 void Network::update_fib(State *state)

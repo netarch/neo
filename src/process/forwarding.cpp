@@ -1,6 +1,7 @@
 #include "process/forwarding.hpp"
 
 #include <cstring>
+#include <iostream>
 #include <typeinfo>
 
 #include "stats.hpp"
@@ -69,10 +70,8 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
                                       nullptr));
     }
     update_candidates(state, candidates);
-
     // update choices as an empty map
     update_choices(state, Choices());
-
     // initialize packet EC and update the FIB
     EqClass *ec = policy->get_initial_ec(state);
     memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
@@ -218,6 +217,11 @@ void ForwardingProcess::collect_next_hops(State *state, Network& network)
         FIB *fib;
         memcpy(&fib, state->comm_state[state->comm].fib, sizeof(FIB *));
         next_hops = fib->lookup(current_node);
+        std::cout << "next hops of " << current_node->get_name() << std::endl;
+        for ( const auto& nh : next_hops) {
+            std::cout << nh.get_l3_node()->get_name() << std::endl;
+        }
+        std::cout << "========" << std::endl;
     } else {
         // current_node is a Middlebox; inject packet to get next hops
         next_hops = inject_packet(state, (Middlebox *)current_node, network);
@@ -294,13 +298,17 @@ void ForwardingProcess::forward_packet(State *state)
     Logger::get().info("Packet forwarded to " + next_hop->to_string() + ", "
                        + ingress_intf->to_string());
 
-    if (typeid(*current_node) == typeid(Node) && Openflow::has_updates(current_node->get_name(), state)) {
-        state->comm_state[state->comm].fwd_mode = int(fwd_mode::CHECK_UPDATES);
-        state->choice_count = 2;    // non-deterministic choice to decide whether to install an update or not
-    } else {
-        state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
-        state->choice_count = 1;    // deterministic choice
+    if (typeid(*current_node) == typeid(Node)) {
+        if (Openflow::has_updates(next_hop->get_name(), state)) {
+            state->comm_state[state->comm].fwd_mode = int(fwd_mode::CHECK_UPDATES);
+            state->choice_count = 2;    // non-deterministic choice to decide whether to install an update or not
+            return;
+        }
     }
+
+    state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
+    state->choice_count = 1;    // deterministic choice
+
 }
 
 void ForwardingProcess::phase_transition(State *state, Network& network,

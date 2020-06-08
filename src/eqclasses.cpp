@@ -1,6 +1,7 @@
 #include "eqclasses.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 #include "lib/logger.hpp"
 
@@ -13,6 +14,11 @@ EqClasses::~EqClasses()
 
 std::set<EqClass *> EqClasses::get_overlapped_ecs(const ECRange& range) const
 {
+    std::cout << "Ranges are " << std::endl;
+    for (const auto& ecrange : allranges) {
+        std::cout << ecrange.to_string() << std::endl;
+    }
+    std::cout << "=================" << std::endl;
     std::set<EqClass *> overlapped_ecs;
     auto ecrange = allranges.find(range);
     if (ecrange != allranges.end()) {
@@ -124,6 +130,7 @@ void EqClasses::add_mask_range(const ECRange& mask_range,
 {
     clear();
     std::set<EqClass *> overlapped_ecs = all_ECs.get_overlapped_ecs(mask_range);
+    std::cout << overlapped_ecs.size() << " entries overallping with " << mask_range.to_string() << std::endl;
 
     for (const EqClass *ec : overlapped_ecs) {
         EqClass *new_ec = new EqClass();

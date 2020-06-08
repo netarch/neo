@@ -76,6 +76,7 @@
     protocol = "http"
     pkt_dst = "8.8.8.8"
     start_node = "h0"
+    owned_dst_only = false
 [[policies]]
     type = "reachability"
     final_node = "h2"
@@ -84,3 +85,4 @@
     protocol = "http"
     pkt_dst = "8.8.8.8"
     start_node = "h0"
+    owned_dst_only = false
