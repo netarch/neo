@@ -29,6 +29,6 @@ matrix:
         - TRAVIS_JOB_NAME = 'Clang Test'
 
 install:
-  - ./setup.sh
+  - ./depends/setup.sh
 script:
   - ./test/all.sh
