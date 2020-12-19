@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <vector>
 
 #include "mb-env/mb-env.hpp"
 #include "interface.hpp"
@@ -28,5 +29,5 @@ public:
     void init(const Node&) override;
     void run(void (*)(MB_App *), MB_App *) override;
     size_t inject_packet(const Packet&) override;
-    Packet read_packet() const override;
+    std::vector<Packet> read_packets() const override;
 };

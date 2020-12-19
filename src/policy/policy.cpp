@@ -169,6 +169,15 @@ size_t Policy::num_comms() const
     }
 }
 
+size_t Policy::num_simul_comms() const
+{
+    if (correlated_policies.empty()) {
+        return comms.size();
+    } else {
+        return 1;
+    }
+}
+
 bool Policy::set_initial_ec()
 {
     if (correlated_policies.empty()) {

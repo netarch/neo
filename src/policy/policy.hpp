@@ -53,7 +53,9 @@ public:
     void add_ec(State *, const IPv4Address&);
     EqClass *find_ec(State *, const IPv4Address&) const;
     size_t num_ecs() const;
-    size_t num_comms() const;
+    size_t num_comms() const;       // total number of communications
+    size_t num_simul_comms() const; // number of simultaneous communications
+    // TODO: change the name from simultaneous to active?
 
     bool set_initial_ec();
     EqClass *get_initial_ec(State *) const;

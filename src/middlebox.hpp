@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <atomic>
+#include <vector>
 #include <mutex>
 #include <condition_variable>
 #include <cpptoml/cpptoml.hpp>
@@ -20,9 +21,9 @@ private:
     NodePacketHistory *node_pkt_hist;
     std::thread *listener;
     std::atomic<bool> listener_end;
-    Packet recv_pkt;
-    std::mutex mtx;                 // lock for accessing recv_pkt
-    std::condition_variable cv;     // for reading recv_pkt
+    std::vector<Packet> recv_pkts;  // received packets
+    std::mutex mtx;                 // lock for accessing recv_pkts
+    std::condition_variable cv;     // for reading recv_pkts
 
     void listen_packets();
 
@@ -43,7 +44,7 @@ public:
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    Packet send_pkt(const Packet&); // send one L7 packet
+    std::vector<Packet> send_pkt(const Packet&); // send one L7 packet
 
     /*
      * Return an empty set. We don't model the forwarding behavior of

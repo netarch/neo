@@ -1,5 +1,6 @@
 #include "process/forwarding.hpp"
 
+#include <libnet.h>
 #include <cstring>
 #include <typeinfo>
 
@@ -268,8 +269,16 @@ void ForwardingProcess::forward_packet(State *state)
             // store the original receiving endpoint of the communication
             memcpy(state->comm_state[state->comm].rx_node, &current_node,
                    sizeof(Node *));
-        } else if ((PS_IS_REQUEST(pkt_state) && current_node != rx_node)
-                   || (PS_IS_REPLY(pkt_state) && current_node != tx_node)) {
+        } else if (PS_IS_REQUEST(pkt_state) && current_node != rx_node) {
+            Logger::get().info("current_node: " + current_node->to_string());
+            Logger::get().info("rx_node: " + rx_node->to_string());
+            Logger::get().warn("Inconsistent endpoints");
+            dropped(state);
+            return;
+        } else if (PS_IS_REPLY(pkt_state) && current_node != tx_node) {
+            Logger::get().info("current_node: " + current_node->to_string());
+            Logger::get().info("tx_node: " + tx_node->to_string());
+            Logger::get().warn("Inconsistent endpoints");
             dropped(state);
             return;
         }
@@ -290,71 +299,6 @@ void ForwardingProcess::forward_packet(State *state)
                        + ingress_intf->to_string());
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
     state->choice_count = 1;    // deterministic choice
-}
-
-void ForwardingProcess::phase_transition(State *state, Network& network,
-        uint8_t next_pkt_state, bool change_direction)
-{
-    int pkt_state = state->comm_state[state->comm].pkt_state;
-
-    // compute seq and ack numbers
-    if (PS_IS_TCP(pkt_state)) {
-        uint32_t seq, ack;
-        memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
-        memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
-        uint32_t payload_size = PayloadMgr::get().get_payload(state,
-                                policy->get_dst_port(state))->get_size();
-        if (payload_size > 0) {
-            seq += payload_size;
-        } else if (PS_HAS_SYN(pkt_state) || PS_HAS_FIN(pkt_state)) {
-            seq += 1;
-        }
-        seq ^= ack ^= seq ^= ack;   // swap
-        memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
-        memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
-    }
-
-    // update candidates as the start node
-    Node *start_node;
-    if (change_direction) {
-        memcpy(&start_node, state->comm_state[state->comm].pkt_location,
-               sizeof(Node *));
-    } else {
-        memcpy(&start_node, state->comm_state[state->comm].src_node,
-               sizeof(Node *));
-    }
-    std::vector<FIB_IPNH> candidates(
-        1, FIB_IPNH(start_node, nullptr, start_node, nullptr));
-    update_candidates(state, candidates);
-
-    // update src IP, packet EC and the FIB
-    if (change_direction) {
-        uint32_t src_ip;
-        memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
-        EqClass *old_ec;
-        memcpy(&old_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-
-        // set the next src IP
-        uint32_t next_src_ip = old_ec->representative_addr().get_value();
-        memcpy(state->comm_state[state->comm].src_ip, &next_src_ip,
-               sizeof(uint32_t));
-
-        // set the next EC
-        if (PS_IS_FIRST(pkt_state)) {
-            policy->add_ec(state, src_ip);
-        }
-        EqClass *next_ec = policy->find_ec(state, src_ip);
-        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
-        Logger::get().info("EC: " + next_ec->to_string());
-
-        // update FIB according to the new EC
-        network.update_fib(state);
-    }
-
-    state->comm_state[state->comm].pkt_state = next_pkt_state;
-    state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
-    memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
-    memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
 }
 
 void ForwardingProcess::accepted(State *state, Network& network)
@@ -413,6 +357,182 @@ void ForwardingProcess::dropped(State *state) const
     state->choice_count = 0;
 }
 
+void ForwardingProcess::phase_transition(State *state, Network& network,
+        uint8_t next_pkt_state, bool change_direction)
+{
+    int pkt_state = state->comm_state[state->comm].pkt_state;
+
+    // compute seq and ack numbers
+    if (PS_IS_TCP(pkt_state)) {
+        uint32_t seq, ack;
+        memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
+        memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
+        uint32_t payload_size = PayloadMgr::get().get_payload(state,
+                                policy->get_dst_port(state))->get_size();
+        if (payload_size > 0) {
+            seq += payload_size;
+        } else if (PS_HAS_SYN(pkt_state) || PS_HAS_FIN(pkt_state)) {
+            seq += 1;
+        }
+        if (change_direction) {
+            seq ^= ack ^= seq ^= ack;   // swap
+        }
+        memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
+        memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
+    }
+
+    // update candidates as the start node
+    Node *start_node;
+    if (change_direction) {
+        memcpy(&start_node, state->comm_state[state->comm].pkt_location,
+               sizeof(Node *));
+    } else {
+        memcpy(&start_node, state->comm_state[state->comm].src_node,
+               sizeof(Node *));
+    }
+    std::vector<FIB_IPNH> candidates(
+        1, FIB_IPNH(start_node, nullptr, start_node, nullptr));
+    update_candidates(state, candidates);
+
+    // update src IP, packet EC and the FIB
+    if (change_direction) {
+        uint32_t src_ip;
+        memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
+        EqClass *old_ec;
+        memcpy(&old_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
+        // set the next src IP
+        uint32_t next_src_ip = old_ec->representative_addr().get_value();
+        memcpy(state->comm_state[state->comm].src_ip, &next_src_ip,
+               sizeof(uint32_t));
+
+        // set the next EC
+        if (PS_IS_FIRST(pkt_state)) {
+            policy->add_ec(state, src_ip);
+        }
+        EqClass *next_ec = policy->find_ec(state, src_ip);
+        memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
+        Logger::get().info("EC: " + next_ec->to_string());
+
+        // update FIB according to the new EC
+        network.update_fib(state);
+    }
+
+    state->comm_state[state->comm].pkt_state = next_pkt_state;
+    state->comm_state[state->comm].fwd_mode = fwd_mode::PACKET_ENTRY;
+    memset(state->comm_state[state->comm].src_node, 0, sizeof(Node *));
+    memset(state->comm_state[state->comm].ingress_intf, 0, sizeof(Interface *));
+}
+
+bool ForwardingProcess::same_dir_comm(State *state, int comm,
+                                      const Packet& pkt) const
+{
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[comm].ec, sizeof(EqClass *));
+    uint32_t src_ip;
+    memcpy(&src_ip, state->comm_state[comm].src_ip, sizeof(uint32_t));
+
+    if (ec->contains(pkt.get_dst_ip()) && pkt.get_src_ip() == src_ip &&
+            pkt.get_src_port() == policy->get_src_port(state) &&
+            pkt.get_dst_port() == policy->get_dst_port(state)) {
+        return true;
+    }
+    return false;
+}
+
+bool ForwardingProcess::opposite_dir_comm(State *state, int comm,
+        const Packet& pkt) const
+{
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[comm].ec, sizeof(EqClass *));
+    uint32_t src_ip;
+    memcpy(&src_ip, state->comm_state[comm].src_ip, sizeof(uint32_t));
+
+    if (ec->contains(pkt.get_src_ip()) && pkt.get_dst_ip() == src_ip &&
+            pkt.get_dst_port() == policy->get_src_port(state) &&
+            pkt.get_src_port() == policy->get_dst_port(state)) {
+        return true;
+    }
+    return false;
+}
+
+int ForwardingProcess::find_comm(State *state, const Packet& pkt) const
+{
+    for (size_t comm = 0; comm < policy->num_simul_comms(); ++comm) {
+        if (same_dir_comm(state, comm, pkt) ||
+                opposite_dir_comm(state, comm, pkt)) {
+            return comm;
+        }
+    }
+    return -1;  // not found
+}
+
+void ForwardingProcess::convert_tcp_flags(State *state, int comm, Packet& pkt)
+const
+{
+    if (pkt.get_pkt_state() & 0x80U) {
+        uint8_t pkt_state = 0, flags = pkt.get_pkt_state() & (~0x80U);
+        uint8_t old_pkt_state = state->comm_state[comm].pkt_state;
+        if (flags == TH_SYN) {
+            pkt_state = PS_TCP_INIT_1;
+        } else if (flags == (TH_SYN | TH_ACK)) {
+            pkt_state = PS_TCP_INIT_2;
+        } else if (flags == TH_ACK) {
+            switch (old_pkt_state) {
+                case PS_TCP_INIT_2:
+                case PS_HTTP_REQ:
+                case PS_HTTP_REP:
+                case PS_TCP_TERM_2:
+                    pkt_state = old_pkt_state + 1;
+                    break;
+                case PS_TCP_INIT_3:
+                case PS_HTTP_REQ_A:
+                case PS_HTTP_REP_A:
+                case PS_TCP_TERM_3:
+                    pkt_state = old_pkt_state;
+                    break;
+                default:
+                    Logger::get().err("Invalid TCP flags: " +
+                                      std::to_string(flags));
+            }
+        } else if (flags == (TH_PUSH | TH_ACK)) {
+            switch (old_pkt_state) {
+                case PS_TCP_INIT_3:
+                case PS_HTTP_REQ_A:
+                    pkt_state = old_pkt_state + 1;
+                    break;
+                case PS_HTTP_REQ:
+                case PS_HTTP_REP:
+                    pkt_state = old_pkt_state;
+                    break;
+                default:
+                    Logger::get().err("Invalid TCP flags: " +
+                                      std::to_string(flags));
+            }
+        } else if (flags == (TH_FIN | TH_ACK)) {
+            bool same_direction = same_dir_comm(state, comm, pkt);
+            if (same_direction) {
+                pkt_state = old_pkt_state;
+            } else {
+                pkt_state = old_pkt_state + 1;
+            }
+            switch (old_pkt_state) {
+                case PS_HTTP_REP_A:
+                case PS_TCP_TERM_1:
+                case PS_TCP_TERM_2:
+                case PS_TCP_TERM_3:
+                    break;
+                default:
+                    Logger::get().err("Invalid TCP flags: " +
+                                      std::to_string(flags));
+            }
+        } else {
+            Logger::get().err("Invalid TCP flags: " + std::to_string(flags));
+        }
+        pkt.set_pkt_state(pkt_state);
+    }
+}
+
 std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
         Network& network)
 {
@@ -457,46 +577,134 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
            sizeof(PacketHistory *));
 
     // inject packet
-    Packet recv_pkt = mb->send_pkt(*new_pkt);
+    std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
+    //Logger::get().info("Received packet " + recv_pkt.to_string());
 
     std::set<FIB_IPNH> next_hops;
 
-    // if the packet is not dropped
-    if (!recv_pkt.empty()) {
-        // find the next hop
-        auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
-        if (l2nh.first) {   // if the interface is truly connected
-            if (!l2nh.second->is_l2()) {
-                // L2 nhop == L3 nhop
-                next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
-                                          l2nh.first, l2nh.second));
-            } else {
-                L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
-                auto l3nh = l2_lan->find_l3_endpoint(recv_pkt.get_dst_ip());
-                if (l3nh.first) {
-                    next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+    // TODO: how to handle multiple packets
+    // DEBUG
+    for (Packet& recv_pkt : recv_pkts) {
+        Logger::get().info("Received packets:");
+        Logger::get().info("recv_pkt: " + recv_pkt.to_string());
+        Logger::get().info("");
+    }
+
+    for (Packet& recv_pkt : recv_pkts) {
+
+        // if the packet is not dropped, process it and continue
+        if (!recv_pkt.empty()) {
+            // find the next hop
+            auto l2nh = mb->get_peer(recv_pkt.get_intf()->get_name());  // L2 nhop
+            if (l2nh.first) {   // if the interface is truly connected
+                if (!l2nh.second->is_l2()) {
+                    // L2 nhop == L3 nhop
+                    next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
                                               l2nh.first, l2nh.second));
+                } else {
+                    L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
+                    auto l3nh = l2_lan->find_l3_endpoint(recv_pkt.get_dst_ip());
+                    if (l3nh.first) {
+                        next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
+                                                  l2nh.first, l2nh.second));
+                    }
                 }
             }
-        }
 
-        // TODO:
-        // Check if it's a different communication or the same communication but
-        // with different direction (check seq/ack, src/dst IPs and ports, etc.)
+            int comm = find_comm(state, recv_pkt);
+            if (comm == -1) {
+                /* create a new communication (and then update comm) */
 
-        // NAT (network address translation)
-        // NOTE: we only handle the destination IP rewriting for now.
-        EqClass *ec;
-        memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-        if (!ec->contains(recv_pkt.get_dst_ip())) {
-            // set the next EC
-            policy->add_ec(state, recv_pkt.get_dst_ip());
-            EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
-            memcpy(state->comm_state[state->comm].ec, &next_ec,
-                   sizeof(EqClass *));
-            Logger::get().info("NAT EC: " + next_ec->to_string());
-            // update FIB according to the new EC
-            network.update_fib(state);
+                // convert the TCP flags to real pkt_state
+                if (recv_pkt.get_pkt_state() & 0x80U) {
+                    uint8_t flags = recv_pkt.get_pkt_state() & (~0x80U);
+                    if (flags != TH_SYN) {
+                        // it has to be a SYN packet for TCP
+                        Logger::get().err("Unrecognized packet: " +
+                                          recv_pkt.to_string());
+                    }
+                    recv_pkt.set_pkt_state(PS_TCP_INIT_1);
+                }
+
+                if (!PS_IS_FIRST(recv_pkt.get_pkt_state())) {
+                    Logger::get().err("Unrecognized packet: " +
+                                      recv_pkt.to_string());
+                }
+
+                // TODO (create a new communication)
+                Logger::get().info("new communication");
+            }
+
+            // convert the TCP flags to real pkt_state if needed
+            convert_tcp_flags(state, comm, recv_pkt);
+            Logger::get().info("Received packet " + recv_pkt.to_string());
+
+            if (comm == state->comm) {
+                // same communication
+
+                // next phase
+                if (PS_IS_NEXT(recv_pkt.get_pkt_state(),
+                               new_pkt->get_pkt_state())) {
+                    Logger::get().info("ZZZZZZZZZZZZZZ");
+
+                    std::vector<FIB_IPNH> candidates(
+                        1, FIB_IPNH(mb, nullptr, mb, nullptr));
+                    update_candidates(state, candidates);
+                    if (state->comm_state[state->comm].fwd_mode
+                            == fwd_mode::FIRST_COLLECT) {
+                        state->comm_state[state->comm].fwd_mode
+                            = int(fwd_mode::FIRST_FORWARD);
+                    } else {
+                        state->comm_state[state->comm].fwd_mode
+                            = int(fwd_mode::FORWARD_PACKET);
+                    }
+                    exec_step(state, network);
+                    exec_step(state, network);  /* should be accepted by now */
+
+                    // update seq and ack according to the received packet
+                    if (PS_HAS_SYN(recv_pkt.get_pkt_state())) {
+                        uint32_t seq = recv_pkt.get_seq(), ack = recv_pkt.get_ack();
+                        memcpy(state->comm_state[state->comm].seq, &seq,
+                               sizeof(uint32_t));
+                        memcpy(state->comm_state[state->comm].ack, &ack,
+                               sizeof(uint32_t));
+                    }
+
+                    // update src_node and ingress_intf (as in packet_entry)
+                    memcpy(state->comm_state[state->comm].src_node, mb,
+                           sizeof(Node *));
+                    Interface *ingress_intf = recv_pkt.get_intf();
+                    memcpy(state->comm_state[state->comm].ingress_intf,
+                           &ingress_intf, sizeof(Interface *));
+
+                } else if (!eq_except_intf(recv_pkt, *new_pkt)) { // DEBUG/TEST
+                    Logger::get().err("Different packet");
+                }
+            } else {
+                // existing communication; change state->comm?
+
+                /*
+                // NAT (network address translation)
+                // NOTE: we only handle the destination IP rewriting for now.
+                EqClass *ec;
+                memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+                if (!ec->contains(recv_pkt.get_dst_ip())) {
+                    // set the next EC
+                    policy->add_ec(state, recv_pkt.get_dst_ip());
+                    EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
+                    memcpy(state->comm_state[state->comm].ec, &next_ec,
+                           sizeof(EqClass *));
+                    Logger::get().info("NAT EC: " + next_ec->to_string());
+                    // update FIB according to the new EC
+                    network.update_fib(state);
+                }
+                */
+            }
+        } else {
+            // if the received packet is empty, assume it's accepted if it's ACK
+            if (new_pkt->get_pkt_state() == PS_TCP_INIT_3) {
+                next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
+            }
         }
     }
 

@@ -52,6 +52,7 @@ unsigned picking_comm : 1;
 
 comm_state_t comm_state[MAX_COMMS];
 unsigned comm : 1;  /* index of the executing communication */
+int num_comms;      /* number of current communications */
 int choice;         /* non-determinisic selection result */
 int choice_count;   /* non-determinisic selection range [0, choice_count) */
 /*
@@ -74,7 +75,6 @@ c_code {
 
 init {
     c_code {
-        now.comm = 0;
         initialize(&now);
     };
 

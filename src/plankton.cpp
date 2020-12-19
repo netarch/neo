@@ -20,7 +20,7 @@
 #include "policy/consistency.hpp"
 #include "model.h"
 
-static bool verify_all_ECs = false;    // verify all ECs even if violation is found
+static bool verify_all_ECs = false;    // verify all ECs even if a violation is found
 static bool policy_violated = false;   // true if policy is violated
 static std::set<int> tasks;
 static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
@@ -295,8 +295,14 @@ int Plankton::run()
     return 0;
 }
 
+
+/***** functions used by the Promela network model *****/
+
+
 void Plankton::initialize(State *state)
 {
+    state->comm = 0;
+
     network.init(state);
     policy->init(state);
     fwd.init(state, network, policy);

@@ -51,6 +51,14 @@ class State;
 #define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
 #define PS_HAS_SYN(x)      ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
 #define PS_HAS_FIN(x)      ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
+#define PS_SAME_PROTO(x, y) (                       \
+        (PS_IS_TCP(x) && PS_IS_TCP(y)) ||           \
+        (PS_IS_ICMP_ECHO(x) && PS_IS_ICMP_ECHO(y))  \
+)
+#define PS_IS_NEXT(x, y) (  \
+        (x) == (y) + 1 &&   \
+        PS_SAME_PROTO(x, y) \
+)
 
 /*
  * ID ethernet address.
@@ -79,6 +87,10 @@ private:
 
     friend class PacketHash;
     friend bool operator==(const Packet&, const Packet&);
+    friend bool eq_except_intf(const Packet&, const Packet&);
+    friend bool same_ips_ports(const Packet&, const Packet&);
+    friend bool reversed_ips_ports(const Packet&, const Packet&);
+    friend bool same_comm(const Packet&, const Packet&);
 
 public:
     Packet();
@@ -113,6 +125,10 @@ public:
 };
 
 bool operator==(const Packet&, const Packet&);
+bool eq_except_intf(const Packet&, const Packet&);
+bool same_ips_ports(const Packet&, const Packet&);
+bool reversed_ips_ports(const Packet&, const Packet&);
+bool same_comm(const Packet&, const Packet&);
 
 struct PacketHash {
     size_t operator()(Packet *const&) const;

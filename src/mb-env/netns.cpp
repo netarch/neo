@@ -15,6 +15,7 @@
 #include <net/route.h>
 //#include <sys/mount.h>
 #include <set>
+#include <list>
 
 #include "pktbuffer.hpp"
 #include "lib/logger.hpp"
@@ -331,7 +332,13 @@ size_t NetNS::inject_packet(const Packet& pkt)
     return nwrite;
 }
 
-Packet NetNS::read_packet() const
+/*
+ * TODO what?
+ * Read packets blockingly for the first time, and if there are packets,
+ * continue to read packets in a loop unblockingly, until there is no packet to
+ * read.
+ */
+std::vector<Packet> NetNS::read_packets() const
 {
     std::list<PktBuffer> pktbuffs;
 
@@ -376,15 +383,16 @@ Packet NetNS::read_packet() const
     }
 
     // deserialize the packets
-    Packet pkt;
+    std::vector<Packet> pkts;
     for (const PktBuffer& pb : pktbuffs) {
+        Packet pkt;
         Net::get().deserialize(pkt, pb);
         if (!pkt.empty()) {
-            break;
+            pkts.push_back(pkt);
         }
     }
 
-    return pkt;
+    return pkts;
 }
 
 /************* Code for creating a veth pair *************

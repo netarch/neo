@@ -53,8 +53,12 @@ Packet::Packet(Interface *intf)
 std::string Packet::to_string() const
 {
     int pkt_state = this->pkt_state;
+    std::string ret;
 
-    std::string ret = "{ " + src_ip.to_string();
+    if (interface) {
+        ret += interface->to_string() + ": ";
+    }
+    ret += "{ " + src_ip.to_string();
     if (PS_IS_TCP(pkt_state)) {
         ret += ":" + std::to_string(src_port);
     }
@@ -184,6 +188,39 @@ bool operator==(const Packet& a, const Packet& b)
             a.ack == b.ack &&
             a.pkt_state == b.pkt_state &&
             a.payload == b.payload);
+}
+
+bool eq_except_intf(const Packet& a, const Packet& b)
+{
+    return (a.src_ip == b.src_ip &&
+            a.dst_ip == b.dst_ip &&
+            a.src_port == b.src_port &&
+            a.dst_port == b.dst_port &&
+            a.seq == b.seq &&
+            a.ack == b.ack &&
+            a.pkt_state == b.pkt_state &&
+            a.payload == b.payload);
+}
+
+bool same_ips_ports(const Packet& a, const Packet& b)
+{
+    return (a.src_ip == b.src_ip &&
+            a.dst_ip == b.dst_ip &&
+            a.src_port == b.src_port &&
+            a.dst_port == b.dst_port);
+}
+
+bool reversed_ips_ports(const Packet& a, const Packet& b)
+{
+    return (a.src_ip == b.dst_ip &&
+            a.dst_ip == b.src_ip &&
+            a.src_port == b.dst_port &&
+            a.dst_port == b.src_port);
+}
+
+bool same_comm(const Packet& a, const Packet& b)
+{
+    return same_ips_ports(a, b) || reversed_ips_ports(a, b);
 }
 
 size_t PacketHash::operator()(Packet *const& p) const

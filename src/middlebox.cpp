@@ -57,15 +57,15 @@ Middlebox::~Middlebox()
 
 void Middlebox::listen_packets()
 {
-    Packet pkt;
+    std::vector<Packet> pkts;
 
     while (!listener_end) {
-        // read the output packet (it will block if there is no packet)
-        pkt = env->read_packet();
+        // read the output packets (it will block if there is no packet)
+        pkts = env->read_packets();
 
-        if (!pkt.empty()) {
+        if (!pkts.empty()) {
             std::unique_lock<std::mutex> lck(mtx);
-            recv_pkt = pkt;
+            recv_pkts = pkts;
             cv.notify_all();
         }
     }
@@ -112,10 +112,10 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
     node_pkt_hist = nph;
 }
 
-Packet Middlebox::send_pkt(const Packet& pkt)
+std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
 {
     std::unique_lock<std::mutex> lck(mtx);
-    recv_pkt.clear();
+    recv_pkts.clear();
 
     // inject packet
     Logger::get().info("Injecting packet " + pkt.to_string());
@@ -133,8 +133,8 @@ Packet Middlebox::send_pkt(const Packet& pkt)
         Logger::get().info("Timeout!");
     }
 
-    // return the received packet
-    return recv_pkt;
+    // return the received packets
+    return recv_pkts;
 }
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(

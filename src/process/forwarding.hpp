@@ -62,6 +62,10 @@ private:
 
     void phase_transition(State *, Network&, uint8_t next_pkt_state,
                           bool change_direction);
+    bool same_dir_comm(State *, int comm, const Packet&) const;
+    bool opposite_dir_comm(State *, int comm, const Packet&) const;
+    int find_comm(State *, const Packet&) const;
+    void convert_tcp_flags(State *, int comm, Packet&) const;
 
     std::set<FIB_IPNH> inject_packet(State *, Middlebox *, Network&);
     void update_candidates(State *, const std::vector<FIB_IPNH>&);

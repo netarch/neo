@@ -247,7 +247,10 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
             // TCP flags
             uint8_t flags;
             memcpy(&flags, buffer + 47, 1);
-            pkt.set_pkt_state(flags);
+            pkt.set_pkt_state(flags | 0x80U);
+            // NOTE: store the TCP flags for now, which will be converted to
+            // real pkt_state in ForwardingProcess::inject_packet(). The highest
+            // bit is used to indicate unconverted TCP flags
         } else if (ip_proto == IPPROTO_ICMP) {  // ICMP packets
             // TODO
             // set pkt_state according to it being a ping request or reply
