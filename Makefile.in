@@ -74,7 +74,8 @@ model.c: pan.c
 	    -e '1s/^/#define exit(...) verify_exit(__VA_ARGS__)\n/' \
 		> $@
 
-pan.h pan.c: $(srcdir)/src/network.pml
+pan.h: pan.c
+pan.c: $(srcdir)/src/network.pml
 	spin $(SPINFLAGS) $<
 
 neo.1.gz:
