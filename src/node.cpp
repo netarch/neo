@@ -132,6 +132,11 @@ const RoutingTable& Node::get_rib() const
     return rib;
 }
 
+RoutingTable& Node::get_rib()
+{
+    return rib;
+}
+
 std::pair<Node *, Interface *>
 Node::get_peer(const std::string& intf_name) const
 {
@@ -167,11 +172,11 @@ L2_LAN *Node::get_l2lan(Interface *intf) const
     return l2_lans.at(intf);
 }
 
-std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
+std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst, const RoutingTable& ribToUse)
 {
     std::set<FIB_IPNH> next_hops;
 
-    auto r = rib.lookup(dst);
+    auto r = ribToUse.lookup(dst);
     for (RoutingTable::const_iterator it = r.first; it != r.second; ++it) {
         if (it->get_intf().empty()) {
             // non-connected route; look it up recursively
@@ -201,4 +206,9 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
     }
 
     return next_hops;
+}
+
+std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
+{
+    return get_ipnhs(dst, rib);
 }

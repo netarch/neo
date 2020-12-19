@@ -1,6 +1,7 @@
 #include "network.hpp"
 
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -8,9 +9,11 @@
 #include "middlebox.hpp"
 #include "lib/logger.hpp"
 #include "model.h"
+#include "process/openflow.hpp"
 
 Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
-                 const std::shared_ptr<cpptoml::table_array>& links_config)
+                 const std::shared_ptr<cpptoml::table_array>& links_config,
+                 const std::shared_ptr<cpptoml::table_array>& of_config)
 {
     if (nodes_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
@@ -35,6 +38,7 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
         }
     }
     Logger::get().info("Loaded " + std::to_string(nodes.size()) + " nodes");
+
     if (links_config) {
         for (const std::shared_ptr<cpptoml::table>& cfg : *links_config) {
             Link *link = new Link(cfg, nodes);
@@ -56,6 +60,8 @@ Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
         }
     }
     Logger::get().info("Loaded " + std::to_string(links.size()) + " links");
+
+    Openflow::parse_config(of_config);
 
     // collect L2 LANs
     for (const auto& pair : nodes) {
@@ -111,6 +117,32 @@ void Network::init(State *state __attribute__((unused)))
     }
 
     // TODO: initialize update history if update agent is implemented
+}
+
+void Network::update_node_fib(State *state, Node *update_node, const RoutingTable& rib)
+{
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
+    FIB *currentFib;
+    memcpy(&currentFib, state->comm_state[state->comm].fib, sizeof(FIB *));
+
+    FIB *fib = new FIB(*currentFib);
+    IPv4Address addr = ec->representative_addr();
+
+    // collect IP next hops
+    fib->set_ipnhs(update_node, update_node->get_ipnhs(addr, rib));
+
+    // insert into the pool of history FIBs
+    auto res = fibs.insert(fib);
+
+    if (!res.second) {
+        delete fib;
+        fib = *(res.first);
+    }
+
+    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
+    Logger::get().debug(fib->to_string());
 }
 
 void Network::update_fib(State *state)

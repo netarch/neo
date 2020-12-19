@@ -27,7 +27,7 @@ typedef comm_state_t {
 
     /* forwarding process */
     unsigned pkt_state : 4;                         /* packet state */
-    unsigned fwd_mode : 3;                          /* forwarding mode */
+    unsigned fwd_mode : 4;                          /* execution mode */
     int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
     int seq[4 / SIZEOF_INT];                        /* (uint32_t) */
     int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
@@ -42,6 +42,9 @@ typedef comm_state_t {
 
     /* load balance policy */
     int repetition; /* number of repeated communications */
+
+    /* openflow updates offsets */
+    int openflow_update_offsets[SIZEOF_VOID_P / SIZEOF_INT];
 };
 
 /* policy */

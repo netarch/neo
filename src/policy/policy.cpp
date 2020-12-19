@@ -11,6 +11,7 @@
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
+#include "process/openflow.hpp"
 #include "model.h"
 
 Policy::Policy(bool correlated)
@@ -286,6 +287,12 @@ void Policies::compute_ecs(const Network& network) const
         }
         for (const Route& route : node.second->get_rib()) {
             all_ECs.add_ec(route.get_network());
+        }
+    }
+
+    for (const auto& update_entry : Openflow::get_updates()) {
+        for (const auto& update_route : update_entry.second) {
+            all_ECs.add_ec(update_route.get_network());
         }
     }
 

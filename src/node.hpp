@@ -22,7 +22,7 @@ protected:
     std::map<IPv4Address, Interface *> intfs_l3;    // L3 interfaces
     std::set<Interface *> intfs_l2;                 // L2 interfaces/switchport
 
-    RoutingTable rib;   // global RIB for this node
+    RoutingTable rib;   // global RIB for this node - TODO: DONOT MERGE WITHOUT MOVING THIS TO THE STATE VECTOR - RIB CHANGES WITH UPDATE INSTALL
 
     // active connected L2 peers indexed by interface name
     std::map<std::string, std::pair<Node *, Interface *> > l2_peers;
@@ -53,6 +53,7 @@ public:
     virtual const std::map<IPv4Address, Interface *>& get_intfs_l3() const;
     virtual const std::set<Interface *>& get_intfs_l2() const;
     virtual const RoutingTable& get_rib() const;
+    virtual RoutingTable& get_rib();
 
     virtual std::pair<Node *, Interface *>
     get_peer(const std::string& intf_name) const;
@@ -64,7 +65,8 @@ public:
 
     /*
      * Compute the IP next hops from this node for a given destination address
-     * by recursively looking up in the RIB.
+     * by recursively looking up in the given RIB.
      */
+    virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&, const RoutingTable& ribToUse);
     virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&);
 };
