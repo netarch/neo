@@ -111,7 +111,7 @@
 #
 [[policies]]
     type = "one-request"
-    query_node = "node name regex"
+    server_node = "node name regex"
     [[policies.communications]]
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
