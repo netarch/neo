@@ -56,7 +56,7 @@ while getopts 'Tcatdjh' op; do
         d)
             add_config_flag '--enable-debug' ;;
         j)
-            add_makeflag '-j' ;;
+            add_makeflag "-j$(($(nproc) - 1))" ;;
         h|*)
             usage
             exit 1 ;;
