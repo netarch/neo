@@ -1,0 +1,15 @@
+pkgname=neo-dev
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="meta package for neo development"
+arch=('any')
+url="https://github.com/netarch/neo"
+license=()
+depends=('spin-git' 'libnet' 'ipvsadm' 'astyle' 'python-toml' 'bc')
+makedepends=()
+checkdepends=()
+optdepends=()
+source=()
+sha256sums=()
+
+# vim: set sw=4 ts=4 et:
