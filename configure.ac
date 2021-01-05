@@ -85,9 +85,9 @@ AC_ARG_ENABLE([debug],
 AC_ARG_VAR([MAX_COMMS], [Maximum number of communications (default: 2)])
 
 
-###
-### Predefined functions
-###
+##
+## Predefined functions
+##
 define([ADD_CPPFLAG], [
     AS_IF([test -z "$CPPFLAGS"], [CPPFLAGS="$1"],
           [AS_IF([test -n "${CPPFLAGS##*$1*}"], [CPPFLAGS="$CPPFLAGS $1"])])
@@ -181,7 +181,7 @@ define([CHECK_LIB], [
 ##
 ## Compiler and linker flags
 ##
-ADD_CFLAG([-std=c11])
+ADD_CFLAG([-std=c17]) # skip warning flags for spin-generated code
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
 ADD_CPPFLAG([-iquote ${srcdir}/src -iquote .])
 ADD_CPPFLAG([-isystem ${srcdir}/third_party])

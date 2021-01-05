@@ -78,11 +78,7 @@ pan.h: pan.c
 pan.c: $(srcdir)/src/network.pml
 	spin $(SPINFLAGS) $<
 
-neo.1.gz:
-	# TODO
-
-install-git-hooks: $(srcdir)/test/pre-commit.sh
-	-@$(LN_S) -f ../../test/pre-commit.sh $(srcdir)/.git/hooks/pre-commit
+#neo.1.gz: # TODO
 
 install: all
 	$(INSTALL) -Dm 755 "$(TARGET)" -t "$(bindir)"
@@ -90,16 +86,16 @@ install: all
 	$(INSTALL) -Dm 644 "$(srcdir)/LICENSE" -t "$(licensedir)"
 
 uninstall:
-	-rm -f "$(bindir)/$(TARGET)"
-	-rm -f "$(mandir)/man1/neo.1.gz"
-	-rm -rf "$(licensedir)"
+	rm -f "$(bindir)/$(TARGET)"
+	rm -f "$(mandir)/man1/neo.1.gz"
+	rm -f "$(licensedir)/LICENSE"
 
 clean:
-	-@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.* model.* *.gcov *.gcda *.gcno neo.1.gz
+	@rm -rf $(TARGET) $(TEST_TARGET) *.o pan.* model.* *.gcov *.gcda *.gcno neo.1.gz
 
 distclean: clean
-	-@rm -rf autom4te.cache codecov.sh config.log config.status configure \
-	         Makefile
+	@rm -rf autom4te.cache codecov.sh config.log config.status configure \
+	        Makefile
 
 check: $(TEST_TARGET)
 	./$(TEST_TARGET)
@@ -108,8 +104,4 @@ $(TEST_TARGET): $(TEST_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 	sudo setcap 'cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe' $@
 
-installcheck: install
-	# TODO
-
-.PHONY: all install-git-hooks install uninstall clean distclean check \
-        installcheck
+.PHONY: all install uninstall clean distclean check
