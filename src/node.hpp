@@ -4,7 +4,6 @@
 #include <map>
 #include <set>
 #include <memory>
-#include <cpptoml/cpptoml.hpp>
 
 #include "interface.hpp"
 #include "routingtable.hpp"
@@ -22,7 +21,7 @@ protected:
     std::map<IPv4Address, Interface *> intfs_l3;    // L3 interfaces
     std::set<Interface *> intfs_l2;                 // L2 interfaces/switchport
 
-    RoutingTable rib;   // global RIB for this node - TODO: DONOT MERGE WITHOUT MOVING THIS TO THE STATE VECTOR - RIB CHANGES WITH UPDATE INSTALL
+    RoutingTable rib;   // RIB of this node read from the config
 
     // active connected L2 peers indexed by interface name
     std::map<std::string, std::pair<Node *, Interface *> > l2_peers;
@@ -30,9 +29,12 @@ protected:
     // L2 interfaces to L2 LANs mappings
     std::map<Interface *, L2_LAN *> l2_lans;
 
+private:
+    friend class Config;
+    Node() = default;
+    void add_interface(Interface *interface);
+
 public:
-    Node(const std::shared_ptr<cpptoml::table>&);
-    Node() = delete;
     Node(const Node&) = delete;
     Node(Node&&) = default;
     virtual ~Node();

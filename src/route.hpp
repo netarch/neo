@@ -2,7 +2,6 @@
 
 #include <string>
 #include <memory>
-#include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
 
@@ -23,7 +22,7 @@ private:
     // There's no metric for static routes. The metric can be implemented later
     // if dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
     // For now, all the installed routes will be regarded as having the same
-    // metrics.
+    // metric value.
 
     friend bool operator< (const Route&, const Route&);
     friend bool operator<=(const Route&, const Route&);
@@ -32,11 +31,13 @@ private:
     friend bool operator==(const Route&, const Route&);
     friend bool operator!=(const Route&, const Route&);
 
+private:
+    friend class Config;
+    Route(): adm_dist(255) {}   // default administrative distance
+
 public:
-    Route() = delete;
     Route(const Route&) = default;
     Route(Route&&) = default;
-    Route(const std::shared_ptr<cpptoml::table>&);
     Route(const IPNetwork<IPv4Address>& net,
           const IPv4Address& nh = IPv4Address(),
           const std::string& ifn = "",
@@ -47,7 +48,6 @@ public:
     IPv4Address get_next_hop() const;
     std::string get_intf() const;
     int get_adm_dist() const;
-    void set_adm_dist(int dist);
     bool has_same_path(const Route&) const;
 
     Route& operator=(const Route&) = default;

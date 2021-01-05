@@ -8,18 +8,6 @@
 #include "lib/logger.hpp"
 #include "lib/fs.hpp"
 
-IPVS::IPVS(const std::shared_ptr<cpptoml::table>& config)
-    : MB_App(config)
-{
-    auto conf = config->get_as<std::string>("config");
-
-    if (!conf) {
-        Logger::get().err("Missing config");
-    }
-
-    this->config = *conf;
-}
-
 void IPVS::init()
 {
     // set forwarding

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cpptoml/cpptoml.hpp>
-
 #include "policy/policy.hpp"
 
 /*
@@ -15,9 +13,11 @@ private:
     bool first_run;
     bool result;
 
-public:
-    ConsistencyPolicy(const std::shared_ptr<cpptoml::table>&, const Network&);
+private:
+    friend class Config;
+    ConsistencyPolicy() = default;
 
+public:
     std::string to_string() const override;
     void init(State *) override;
     int check_violation(State *) override;

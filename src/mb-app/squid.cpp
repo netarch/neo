@@ -11,18 +11,6 @@
 
 #include "lib/logger.hpp"
 
-Squid::Squid(const std::shared_ptr<cpptoml::table>& config)
-    : MB_App(config), pid(0)
-{
-    auto conf = config->get_as<std::string>("config");
-
-    if (!conf) {
-        Logger::get().err("Missing config");
-    }
-
-    this->config = *conf;
-}
-
 Squid::~Squid()
 {
     stop();

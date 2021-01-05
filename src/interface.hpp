@@ -1,8 +1,6 @@
 #pragma once
 
 #include <string>
-#include <memory>
-#include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
 
@@ -11,12 +9,13 @@ class Interface
 private:
     std::string name;
     IPInterface<IPv4Address> ipv4;
-    bool switchport;
-    // TODO std::vector<int> vlans;
+    bool is_switchport;
+
+private:
+    friend class Config;
+    Interface() = default;
 
 public:
-    Interface(const std::shared_ptr<cpptoml::table>&);
-
     std::string to_string() const;
     std::string get_name() const;
     int prefix_length() const;

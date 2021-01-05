@@ -4,7 +4,7 @@
 
 [[nodes]]
     name = "string"
-    type = "generic" or "middlebox"
+    type = "generic" or "middlebox" # default: generic
     [[nodes.interfaces]]        # optional
     name = "string"
     ipv4 = "x.x.x.x/x"          # optional

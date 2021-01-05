@@ -5,7 +5,6 @@
 #ifdef __cplusplus
 
 #include <vector>
-#include <cpptoml/cpptoml.hpp>
 
 #include "lib/ip.hpp"
 #include "node.hpp"
@@ -42,8 +41,11 @@ private:
 
     friend bool operator==(const Communication&, const Communication&);
 
+private:
+    friend class Config;
+    Communication(): initial_ec(nullptr) {}
+
 public:
-    Communication(const std::shared_ptr<cpptoml::table>&, const Network&);
     Communication(const Communication&) = delete;
     Communication(Communication&&) = default;
 

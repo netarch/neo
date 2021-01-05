@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
 
@@ -14,8 +13,6 @@ private:
     Interface *intf1;
     Interface *intf2;
 
-    void normalize();   // called by every user-defined constructor
-
     friend bool operator< (const Link&, const Link&);
     friend bool operator<=(const Link&, const Link&);
     friend bool operator> (const Link&, const Link&);
@@ -23,10 +20,11 @@ private:
     friend bool operator==(const Link&, const Link&);
     friend bool operator!=(const Link&, const Link&);
 
-public:
-    Link(const std::shared_ptr<cpptoml::table>& config,
-         const std::map<std::string, Node *>& nodes);
+private:
+    friend class Config;
+    Link() = default;
 
+public:
     std::string to_string() const;
     Node *get_node1() const;
     Node *get_node2() const;

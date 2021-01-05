@@ -5,7 +5,6 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
-#include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
 #include "mb-env/mb-env.hpp"
@@ -20,16 +19,18 @@ private:
 
     NodePacketHistory *node_pkt_hist;
     std::thread *listener;
-    std::atomic<bool> listener_end;
+    std::atomic<bool> listener_ended;
     std::vector<Packet> recv_pkts;  // received packets
     std::mutex mtx;                 // lock for accessing recv_pkts
     std::condition_variable cv;     // for reading recv_pkts
 
     void listen_packets();
 
+private:
+    friend class Config;
+    Middlebox();
+
 public:
-    Middlebox(const std::shared_ptr<cpptoml::table>&);
-    Middlebox() = delete;
     Middlebox(const Middlebox&) = delete;
     Middlebox(Middlebox&&) = default;
     ~Middlebox() override;

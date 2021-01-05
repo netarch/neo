@@ -11,7 +11,6 @@
 
 #include <set>
 #include <typeinfo>
-#include <cpptoml/cpptoml.hpp>
 
 #include "stats.hpp"
 #include "lib/fs.hpp"
@@ -95,14 +94,10 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
     Logger::get().set_file(fs::append(out_dir, "main.log"));
     Logger::get().set_verbose(verbose);
 
-    auto config = cpptoml::parse_file(in_file);
-    auto nodes_config = config->get_table_array("nodes");
-    auto links_config = config->get_table_array("links");
-    auto of_config = config->get_table_array("openflow");
-    auto policies_config = config->get_table_array("policies");
-
-    network = Network(nodes_config, links_config, of_config);
-    policies = Policies(policies_config, network);
+    Config::start_parsing(in_file);
+    Config::parse_network(&network, in_file);
+    Config::parse_policies(&policies, in_file, network);
+    Config::finish_parsing(in_file);
 }
 
 extern "C" int spin_main(int argc, const char *argv[]);
@@ -257,6 +252,8 @@ void Plankton::verify_policy(Policy *policy)
 
 int Plankton::run()
 {
+    policies.compute_ecs(network);
+
     // register signal handlers
     struct sigaction action;
     action.sa_sigaction = signal_handler;

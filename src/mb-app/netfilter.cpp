@@ -8,26 +8,6 @@
 #include "lib/logger.hpp"
 #include "lib/fs.hpp"
 
-NetFilter::NetFilter(const std::shared_ptr<cpptoml::table>& config)
-    : MB_App(config)
-{
-    auto rpf = config->get_as<int>("rp_filter");
-    auto rules = config->get_as<std::string>("rules");
-
-    if (!rpf) {
-        Logger::get().err("Missing rp_filter");
-    }
-    if (!rules) {
-        Logger::get().err("Missing rules");
-    }
-
-    if (*rpf < 0 || *rpf > 2) {
-        Logger::get().err("Invalid rp_filter value: " + std::to_string(*rpf));
-    }
-    this->rp_filter = *rpf;
-    this->rules = *rules;
-}
-
 void NetFilter::init()
 {
     // set forwarding

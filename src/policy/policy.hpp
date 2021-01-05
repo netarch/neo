@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 #include <list>
-#include <cpptoml/cpptoml.hpp>
 
 #include "comm.hpp"
 #include "lib/ip.hpp"
@@ -34,13 +33,13 @@ protected:
     std::vector<Policy *> correlated_policies;
 
     friend class Policies;
-
-    void parse_correlated_policies(const std::shared_ptr<cpptoml::table>&,
-                                   const Network&);
     void compute_ecs(const EqClasses&, const EqClasses&);
 
-public:
+protected:
+    friend class Config;
     Policy(bool correlated = false);
+
+public:
     virtual ~Policy();
 
     int get_id() const;
@@ -74,6 +73,9 @@ private:
 
     void compute_ecs(const Network&) const;
 
+private:
+    friend class Config;
+
 public:
     typedef std::list<Policy *>::size_type size_type;
     typedef std::list<Policy *>::iterator iterator;
@@ -87,7 +89,6 @@ public:
     Policies& operator=(const Policies&) = delete;
     Policies& operator=(Policies&&) = default;
 
-    Policies(const std::shared_ptr<cpptoml::table_array>&, const Network&);
     ~Policies();
 
     iterator               begin();

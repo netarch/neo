@@ -5,56 +5,32 @@
 
 #include "lib/logger.hpp"
 
-Node::Node(const std::shared_ptr<cpptoml::table>& config)
+void Node::add_interface(Interface *interface)
 {
-    auto node_name = config->get_as<std::string>("name");
-    auto intfs_cfg = config->get_table_array("interfaces");
-    auto srs_cfg = config->get_table_array("static_routes");
-    auto irs_cfg = config->get_table_array("installed_routes");
-
-    if (!node_name) {
-        Logger::get().err("Missing node name");
+    // Add the new interface to intfs
+    auto res = this->intfs.insert(std::make_pair(interface->get_name(),
+                                                 interface));
+    if (res.second == false) {
+        Logger::get().err("Duplicate interface name: " +
+                          res.first->first);
     }
-    name = std::move(*node_name);
 
-    if (intfs_cfg) {
-        for (const std::shared_ptr<cpptoml::table>& cfg : *intfs_cfg) {
-            Interface *intf = new Interface(cfg);
-            // Add the new interface to intfs
-            auto res = intfs.insert(std::make_pair(intf->get_name(), intf));
-            if (res.second == false) {
-                Logger::get().err("Duplicate interface name: " +
-                                  res.first->first);
-            }
-            if (intf->is_l2()) {
-                // Add the new interface to intfs_l2
-                intfs_l2.insert(intf);
-            } else {
-                // Add the new interface to intfs_l3
-                auto res = intfs_l3.insert(std::make_pair(intf->addr(), intf));
-                if (res.second == false) {
-                    Logger::get().err("Duplicate interface IP: " +
-                                      res.first->first.to_string());
-                }
+    if (interface->is_l2()) {
+        // Add the new interface to intfs_l2
+        this->intfs_l2.insert(interface);
+    } else {
+        // Add the new interface to intfs_l3
+        auto res = this->intfs_l3.insert(
+                std::make_pair(interface->addr(), interface));
+        if (res.second == false) {
+            Logger::get().err("Duplicate interface IP: " +
+                              res.first->first.to_string());
+        }
 
-                // Add the directly connected route to rib
-                rib.emplace(intf->network(), intf->addr(), intf->get_name(), 0);
-            }
-        }
-    }
-    if (srs_cfg) {
-        for (const std::shared_ptr<cpptoml::table>& sr_cfg : *srs_cfg) {
-            Route route(sr_cfg);
-            if (route.get_adm_dist() == 255) {  // user did not specify adm dist
-                route.set_adm_dist(1);
-            }
-            rib.insert(std::move(route));
-        }
-    }
-    if (irs_cfg) {
-        for (const std::shared_ptr<cpptoml::table>& ir_cfg : *irs_cfg) {
-            rib.emplace(ir_cfg);
-        }
+        // Add the directly connected route to rib
+        this->rib.emplace(interface->network(),
+                          interface->addr(),
+                          interface->get_name(), 0);
     }
 }
 

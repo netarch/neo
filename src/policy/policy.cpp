@@ -31,39 +31,6 @@ Policy::~Policy()
     }
 }
 
-void Policy::parse_correlated_policies(
-    const std::shared_ptr<cpptoml::table>& config, const Network& network)
-{
-    auto policies_config = config->get_table_array("correlated_policies");
-
-    if (!policies_config) {
-        Logger::get().err("Missing correlated policies");
-    }
-
-    for (auto config : *policies_config) {
-        Policy *policy = nullptr;
-        auto type = config->get_as<std::string>("type");
-
-        if (!type) {
-            Logger::get().err("Missing policy type");
-        }
-
-        if (*type == "loadbalance") {
-            policy = new LoadBalancePolicy(config, network, true);
-        } else if (*type == "reachability") {
-            policy = new ReachabilityPolicy(config, network, true);
-        } else if (*type == "reply-reachability") {
-            policy = new ReplyReachabilityPolicy(config, network, true);
-        } else if (*type == "waypoint") {
-            policy = new WaypointPolicy(config, network, true);
-        } else {
-            Logger::get().err("Unsupported policy type: " + *type);
-        }
-
-        correlated_policies.push_back(policy);
-    }
-}
-
 void Policy::compute_ecs(const EqClasses& all_ECs, const EqClasses& owned_ECs)
 {
     if (correlated_policies.empty()) {
@@ -229,46 +196,6 @@ void Policy::report(State *state) const
 
 /******************************************************************************/
 
-Policies::Policies(const std::shared_ptr<cpptoml::table_array>& configs,
-                   const Network& network)
-{
-    if (configs) {
-        for (auto config : *configs) {
-            Policy *policy = nullptr;
-            auto type = config->get_as<std::string>("type");
-
-            if (!type) {
-                Logger::get().err("Missing policy type");
-            }
-
-            if (*type == "loadbalance") {
-                policy = new LoadBalancePolicy(config, network);
-            } else if (*type == "reachability") {
-                policy = new ReachabilityPolicy(config, network);
-            } else if (*type == "reply-reachability") {
-                policy = new ReplyReachabilityPolicy(config, network);
-            } else if (*type == "waypoint") {
-                policy = new WaypointPolicy(config, network);
-            } else if (*type == "conditional") {
-                policy = new ConditionalPolicy(config, network);
-            } else if (*type == "consistency") {
-                policy = new ConsistencyPolicy(config, network);
-            } else {
-                Logger::get().err("Unknown policy type: " + *type);
-            }
-
-            policies.push_back(policy);
-        }
-    }
-    if (policies.size() == 1) {
-        Logger::get().info("Loaded 1 policy");
-    } else {
-        Logger::get().info("Loaded " + std::to_string(policies.size())
-                           + " policies");
-    }
-    compute_ecs(network);
-}
-
 Policies::~Policies()
 {
     for (Policy *policy : policies) {
@@ -278,23 +205,25 @@ Policies::~Policies()
 
 void Policies::compute_ecs(const Network& network) const
 {
-    EqClasses all_ECs, owned_ECs;
+    // TODO: compute all_ECs and owned_ECs from network
 
-    for (const auto& node : network.get_nodes()) {
-        for (const auto& intf : node.second->get_intfs_l3()) {
-            all_ECs.add_ec(intf.first);
-            owned_ECs.add_ec(intf.first);
-        }
-        for (const Route& route : node.second->get_rib()) {
-            all_ECs.add_ec(route.get_network());
-        }
-    }
+    //EqClasses all_ECs, owned_ECs;
 
-    for (const auto& update_entry : Openflow::get_updates()) {
-        for (const auto& update_route : update_entry.second) {
-            all_ECs.add_ec(update_route.get_network());
-        }
-    }
+    //for (const auto& node : network.get_nodes()) {
+    //    for (const auto& intf : node.second->get_intfs_l3()) {
+    //        all_ECs.add_ec(intf.first);
+    //        owned_ECs.add_ec(intf.first);
+    //    }
+    //    for (const Route& route : node.second->get_rib()) {
+    //        all_ECs.add_ec(route.get_network());
+    //    }
+    //}
+
+    //for (const auto& update_entry : Openflow::get_updates()) {
+    //    for (const auto& update_route : update_entry.second) {
+    //        all_ECs.add_ec(update_route.get_network());
+    //    }
+    //}
 
     for (Policy *policy : policies) {
         policy->compute_ecs(all_ECs, owned_ECs);

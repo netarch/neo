@@ -11,74 +11,41 @@
 #include "model.h"
 #include "process/openflow.hpp"
 
-Network::Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
-                 const std::shared_ptr<cpptoml::table_array>& links_config,
-                 const std::shared_ptr<cpptoml::table_array>& of_config)
+void Network::add_node(Node *node)
 {
-    if (nodes_config) {
-        for (const std::shared_ptr<cpptoml::table>& cfg : *nodes_config) {
-            Node *node = nullptr;
-            auto type = cfg->get_as<std::string>("type");
-            if (!type) {
-                Logger::get().err("Missing node type");
-            }
-            if (*type == "generic") {
-                node = new Node(cfg);
-            } else if (*type == "middlebox") {
-                node = new Middlebox(cfg);
-            } else {
-                Logger::get().err("Unknown node type: " + *type);
-            }
-
-            // Add the new node to nodes
-            auto res = nodes.insert(std::make_pair(node->get_name(), node));
-            if (res.second == false) {
-                Logger::get().err("Duplicate node: " + res.first->first);
-            }
-        }
+    auto res = nodes.insert(std::make_pair(node->get_name(), node));
+    if (res.second == false) {
+        Logger::get().err("Duplicate node: " + res.first->first);
     }
-    Logger::get().info("Loaded " + std::to_string(nodes.size()) + " nodes");
+}
 
-    if (links_config) {
-        for (const std::shared_ptr<cpptoml::table>& cfg : *links_config) {
-            Link *link = new Link(cfg, nodes);
-
-            // Add the new link to links
-            auto res = links.insert(link);
-            if (res.second == false) {
-                Logger::get().err("Duplicate link: " +
-                                  (*res.first)->to_string());
-            }
-
-            // Add the new peer to the respective node structures
-            Node *node1 = link->get_node1();
-            Node *node2 = link->get_node2();
-            Interface *intf1 = link->get_intf1();
-            Interface *intf2 = link->get_intf2();
-            node1->add_peer(intf1->get_name(), node2, intf2);
-            node2->add_peer(intf2->get_name(), node1, intf1);
-        }
+void Network::add_link(Link *link)
+{
+    // Add the new link to links
+    auto res = links.insert(link);
+    if (res.second == false) {
+        Logger::get().err("Duplicate link: " + (*res.first)->to_string());
     }
-    Logger::get().info("Loaded " + std::to_string(links.size()) + " links");
 
-    Openflow::parse_config(of_config);
+    // Add the new peer to the respective node structures
+    Node *node1 = link->get_node1();
+    Node *node2 = link->get_node2();
+    Interface *intf1 = link->get_intf1();
+    Interface *intf2 = link->get_intf2();
+    node1->add_peer(intf1->get_name(), node2, intf2);
+    node2->add_peer(intf2->get_name(), node1, intf1);
+}
 
-    // collect L2 LANs
-    for (const auto& pair : nodes) {
-        Node *node = pair.second;
-        for (Interface *intf : node->get_intfs_l2()) {
-            if (!node->mapped_to_l2lan(intf)) {
-                L2_LAN *l2_lan = new L2_LAN(node, intf);
-                auto res = l2_lans.insert(l2_lan);
-                if (!res.second) {
-                    delete l2_lan;
-                    l2_lan = *(res.first);
-                }
-                for (const auto& ep : l2_lan->get_l2_endpoints()) {
-                    ep.first->set_l2lan(ep.second, l2_lan);
-                }
-            }
-        }
+void Network::grow_and_set_l2_lan(Node *node, Interface *interface)
+{
+    L2_LAN *l2_lan = new L2_LAN(node, interface);
+    auto res = l2_lans.insert(l2_lan);
+    if (!res.second) {
+        delete l2_lan;
+        l2_lan = *(res.first);
+    }
+    for (const auto& endpoint : l2_lan->get_l2_endpoints()) {
+        endpoint.first->set_l2lan(endpoint.second, l2_lan);
     }
 }
 

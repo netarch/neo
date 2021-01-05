@@ -4,7 +4,6 @@
 #include <set>
 #include <unordered_set>
 #include <string>
-#include <cpptoml/cpptoml.hpp>
 
 #include "node.hpp"
 #include "link.hpp"
@@ -31,11 +30,14 @@ private:
     std::unordered_set<FIB *> fibs;         // history FIBs
     std::unordered_set<L2_LAN *> l2_lans;   // history L2 LANs
 
+private:
+    friend class Config;
+    void add_node(Node *);
+    void add_link(Link *);
+    void grow_and_set_l2_lan(Node *, Interface *);
+
 public:
     Network() = default;
-    Network(const std::shared_ptr<cpptoml::table_array>& nodes_config,
-            const std::shared_ptr<cpptoml::table_array>& links_config,
-            const std::shared_ptr<cpptoml::table_array>& of_config);
     Network(const Network&) = delete;
     Network(Network&&) = default;
     ~Network();

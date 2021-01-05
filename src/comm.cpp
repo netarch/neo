@@ -10,58 +10,6 @@
 #include "packet.hpp"
 #include "model.h"
 
-Communication::Communication(const std::shared_ptr<cpptoml::table>& config,
-                             const Network& net)
-    : initial_ec(nullptr)
-{
-    auto proto_str = config->get_as<std::string>("protocol");
-    auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
-    auto owned_only = config->get_as<bool>("owned_dst_only");
-    auto start_regex = config->get_as<std::string>("start_node");
-
-    if (!proto_str) {
-        Logger::get().err("Missing protocol");
-    }
-    if (!pkt_dst_str) {
-        Logger::get().err("Missing packet destination");
-    }
-    if (!start_regex) {
-        Logger::get().err("Missing start node");
-    }
-
-    std::string proto_s = *proto_str;
-    std::transform(proto_s.begin(), proto_s.end(), proto_s.begin(),
-    [](unsigned char c) {
-        return std::tolower(c);
-    });
-    if (proto_s == "http") {
-        protocol = proto::PR_HTTP;
-    } else if (proto_s == "icmp-echo") {
-        protocol = proto::PR_ICMP_ECHO;
-    } else {
-        Logger::get().err("Unknown protocol: " + *proto_str);
-    }
-
-    std::string dst_str = *pkt_dst_str;
-    if (dst_str.find('/') == std::string::npos) {
-        dst_str += "/32";
-    }
-    pkt_dst = IPRange<IPv4Address>(dst_str);
-
-    owned_dst_only = owned_only ? *owned_only : true;
-
-    const std::map<std::string, Node *>& nodes = net.get_nodes();
-    for (const auto& node : nodes) {
-        if (std::regex_match(node.first, std::regex(*start_regex))) {
-            start_nodes.push_back(node.second);
-        }
-    }
-
-    // NOTE: fixed port numbers for now
-    tx_port = 1234;
-    rx_port = 80;
-}
-
 int Communication::get_protocol() const
 {
     return protocol;

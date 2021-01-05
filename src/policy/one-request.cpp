@@ -1,35 +1,7 @@
 #include "policy/one-request.hpp"
 
-#include <regex>
-
 //#include "process/forwarding.hpp"
 #include "model.h"
-
-OneRequestPolicy::OneRequestPolicy(
-    const std::shared_ptr<cpptoml::table>& config, const Network& net,
-    bool correlated)
-    : Policy(correlated)
-{
-    auto server_regex = config->get_as<std::string>("server_node");
-    auto comm_cfg = config->get_table("communication");
-
-    if (!server_regex) {
-        Logger::get().err("Missing server node");
-    }
-    if (!comm_cfg) {
-        Logger::get().err("Missing communication");
-    }
-
-    const std::map<std::string, Node *>& nodes = net.get_nodes();
-    for (const auto& node : nodes) {
-        if (std::regex_match(node.first, std::regex(*server_regex))) {
-            server_nodes.insert(node.second);
-        }
-    }
-
-    Communication comm(comm_cfg, net);
-    comms.push_back(std::move(comm));
-}
 
 std::string OneRequestPolicy::to_string() const
 {

@@ -1,23 +1,20 @@
 #pragma once
 
 #include <chrono>
-#include <cpptoml/cpptoml.hpp>
 
 #define IPV4_FWD "/proc/sys/net/ipv4/conf/all/forwarding"
 #define IPV4_RPF "/proc/sys/net/ipv4/conf/all/rp_filter"
 
-/*
- * Don't start emulation processes in the constructor.
- * Only read the configurations in constructors and later start the emulation in
- * init().
- */
 class MB_App
 {
 protected:
     std::chrono::microseconds timeout;
 
+protected:
+    friend class Config;
+    MB_App() = default;
+
 public:
-    MB_App(const std::shared_ptr<cpptoml::table>&);
     virtual ~MB_App() = default;
 
     std::chrono::microseconds get_timeout() const;

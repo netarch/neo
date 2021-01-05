@@ -1,42 +1,7 @@
 #include "policy/loadbalance.hpp"
 
-#include <regex>
-
 #include "process/forwarding.hpp"
 #include "model.h"
-
-LoadBalancePolicy::LoadBalancePolicy(
-    const std::shared_ptr<cpptoml::table>& config, const Network& net,
-    bool correlated)
-    : Policy(correlated)
-{
-    auto final_regex = config->get_as<std::string>("final_node");
-    auto repeat = config->get_as<int>("repeat");
-    auto comm_cfg = config->get_table("communication");
-
-    if (!final_regex) {
-        Logger::get().err("Missing final node");
-    }
-    if (!comm_cfg) {
-        Logger::get().err("Missing communication");
-    }
-
-    const std::map<std::string, Node *>& nodes = net.get_nodes();
-    for (const auto& node : nodes) {
-        if (std::regex_match(node.first, std::regex(*final_regex))) {
-            final_nodes.insert(node.second);
-        }
-    }
-
-    if (repeat) {
-        repetition = *repeat;
-    } else {
-        repetition = final_nodes.size();
-    }
-
-    Communication comm(comm_cfg, net);
-    comms.push_back(std::move(comm));
-}
 
 std::string LoadBalancePolicy::to_string() const
 {

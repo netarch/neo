@@ -17,7 +17,7 @@ private:
     Policies        policies;
 
     /* per process variables */
-    Policy    *policy;    // the policy being verified
+    Policy  *policy;            // the policy being verified
 
     /* processes */
     ForwardingProcess   fwd;

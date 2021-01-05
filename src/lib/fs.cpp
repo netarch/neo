@@ -127,25 +127,4 @@ std::string append(const std::string& parent, const std::string& child)
     return p;
 }
 
-std::shared_ptr<cpptoml::table> get_toml_config(
-    const std::string& content)
-{
-    int fd;
-    char filename[] = "/tmp/neo-config.XXXXXX";
-    std::shared_ptr<cpptoml::table> config;
-
-    if ((fd = mkstemp(filename)) < 0) {
-        Logger::get().err(filename, errno);
-    }
-    if (write(fd, content.c_str(), content.size()) < 0) {
-        Logger::get().err(filename, errno);
-    }
-    if (close(fd) < 0) {
-        Logger::get().err(filename, errno);
-    }
-    config = cpptoml::parse_file(filename);
-    remove(filename);
-    return config;
-}
-
 } // namespace fs

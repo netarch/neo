@@ -3,13 +3,6 @@
 #include "process/forwarding.hpp"
 #include "model.h"
 
-ConsistencyPolicy::ConsistencyPolicy(
-    const std::shared_ptr<cpptoml::table>& config, const Network& net)
-    : Policy()
-{
-    parse_correlated_policies(config, net);
-}
-
 std::string ConsistencyPolicy::to_string() const
 {
     std::string ret = "consistency of ";

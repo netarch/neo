@@ -2,48 +2,18 @@
 
 #include <libnet.h>
 
-#include "mb-env/netns.hpp"
-#include "mb-app/netfilter.hpp"
-#include "mb-app/ipvs.hpp"
-#include "mb-app/squid.hpp"
 #include "stats.hpp"
 
-Middlebox::Middlebox(const std::shared_ptr<cpptoml::table>& node_config)
-    : Node(node_config), node_pkt_hist(nullptr), listener(nullptr),
-      listener_end(false)
+Middlebox::Middlebox()
+    : env(nullptr), app(nullptr), node_pkt_hist(nullptr), listener(nullptr),
+      listener_ended(false)
 {
-    auto environment = node_config->get_as<std::string>("env");
-    auto appliance = node_config->get_as<std::string>("app");
-
-    if (!environment) {
-        Logger::get().err("Missing environment");
-    }
-    if (!appliance) {
-        Logger::get().err("Missing appliance");
-    }
-
-    if (*environment == "netns") {
-        env = new NetNS();
-    } else {
-        Logger::get().err("Unknown environment: " + *environment);
-    }
-
-    if (*appliance == "netfilter") {
-        app = new NetFilter(node_config);
-    } else if (*appliance == "ipvs") {
-        app = new IPVS(node_config);
-    } else if (*appliance == "squid") {
-        app = new Squid(node_config);
-    } else {
-        Logger::get().err("Unknown appliance: " + *appliance);
-    }
 }
-
 
 Middlebox::~Middlebox()
 {
     //if (listener) {
-    //    listener_end = true;
+    //    listener_ended = true;
     //    Packet dummy(intfs.begin()->second);
     //    env->inject_packet(dummy);
     //    if (listener->joinable()) {
@@ -59,7 +29,7 @@ void Middlebox::listen_packets()
 {
     std::vector<Packet> pkts;
 
-    while (!listener_end) {
+    while (!listener_ended) {
         // read the output packets (it will block if there is no packet)
         pkts = env->read_packets();
 
