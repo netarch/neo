@@ -32,6 +32,9 @@ public:
     FIB_IPNH(Node *l3nh, Interface *l3nh_intf,
              Node *l2nh, Interface *l2nh_intf);
     FIB_IPNH(const FIB_IPNH&) = default;
+    FIB_IPNH(FIB_IPNH&&) = default;
+
+    FIB_IPNH& operator=(FIB_IPNH&&) = default;
 
     std::string to_string() const;
     Node *const& get_l3_node() const;
@@ -62,6 +65,7 @@ private:
 public:
     std::string to_string() const;
     void set_ipnhs(Node *, std::set<FIB_IPNH>&&);
+    void add_ipnh(Node *, FIB_IPNH&&);
     const std::set<FIB_IPNH>& lookup(Node *const) const;
 };
 

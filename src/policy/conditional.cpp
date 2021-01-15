@@ -29,7 +29,7 @@ void ConditionalPolicy::init(State *state)
     correlated_policies[state->comm]->init(state);
 }
 
-int ConditionalPolicy::check_violation(State *state)
+int ConditionalPolicy::check_violation(State *state __attribute__((unused)))
 {
     // TODO
     return POL_NULL;

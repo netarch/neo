@@ -5,6 +5,7 @@
 #include "network.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
+#include "process/openflow.hpp"
 class State;
 
 class Plankton
@@ -15,21 +16,20 @@ private:
     std::string     out_dir;    // output directory
     Network         network;    // network information (inc. dataplane)
     Policies        policies;
+    EqClasses       all_ECs, owned_ECs; // policy-oblivious ECs
 
-    /* per process variables */
+    /* Plankton processes */
+    ForwardingProcess   forwarding;
+    OpenflowProcess     openflow;
+
+    /* per OS process variables */
     Policy  *policy;            // the policy being verified
 
-    /* processes */
-    ForwardingProcess   fwd;
-    /*
-     * NOTE:
-     * If there are more than one process, they need to be chosen
-     * non-deterministically.
-     */
-
     Plankton();
+    void compute_policy_oblivious_ecs();
     void verify_ec(Policy *);
     void verify_policy(Policy *);
+    void process_switch(State *) const;
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -43,9 +43,7 @@ public:
               const std::string& output_dir);
     int run();
 
-
     /***** functions used by the Promela network model *****/
-
     void initialize(State *);
     void exec_step(State *);
     void report(State *);

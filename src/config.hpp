@@ -24,6 +24,7 @@ class OneRequestPolicy;
 class ConditionalPolicy;
 class ConsistencyPolicy;
 class Policies;
+class OpenflowProcess;
 
 class Config
 {
@@ -45,7 +46,6 @@ private:
                 Link *,
                 const std::shared_ptr<cpptoml::table>&,
                 const std::map<std::string, Node *>&);
-    static void parse_openflow();   // TODO
 
     static void parse_communication(
                 Communication *,
@@ -78,11 +78,20 @@ private:
                 ConsistencyPolicy *,
                 const std::shared_ptr<cpptoml::table>&, const Network&);
 
+    static void parse_openflow_update(
+                Node **,
+                Route *,
+                const std::shared_ptr<cpptoml::table>&,
+                const Network&);
+
 public:
     static void start_parsing(const std::string& filename);
     static void finish_parsing(const std::string& filename);
     static void parse_network(Network *network, const std::string& filename);
     static void parse_policies(Policies *policies,
+                               const std::string& filename,
+                               const Network& network);
+    static void parse_openflow(OpenflowProcess *openflow,
                                const std::string& filename,
                                const Network& network);
 };

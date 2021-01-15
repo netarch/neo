@@ -7,8 +7,8 @@
 #include "stats.hpp"
 #include "lib/logger.hpp"
 #include "lib/hash.hpp"
+//#include "process/openflow.hpp"
 #include "model.h"
-#include "openflow.hpp"
 
 ForwardingProcess::~ForwardingProcess()
 {
@@ -31,6 +31,7 @@ ForwardingProcess::~ForwardingProcess()
 
 void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 {
+    this->enable(); // forwarding process is always enabled
     this->policy = policy;
 
     uint8_t pkt_state = 0;
@@ -79,11 +80,14 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
     Logger::get().info("EC: " + ec->to_string());
     network.update_fib(state);
-    Openflow::init(state);
 }
 
 void ForwardingProcess::reset(State *state, Network& network, Policy *policy)
 {
+    if (!enabled) {
+        return;
+    }
+
     uint8_t pkt_state = 0;
     if (policy->get_protocol(state) == proto::PR_HTTP) {
         pkt_state = PS_TCP_INIT_1;
@@ -135,9 +139,6 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             break;
         case fwd_mode::FIRST_FORWARD:
             first_forward(state);
-            break;
-        case fwd_mode::CHECK_UPDATES:
-            Openflow::install_updates(state, network);
             break;
         case fwd_mode::COLLECT_NHOPS:
             collect_next_hops(state, network);
@@ -302,18 +303,8 @@ void ForwardingProcess::forward_packet(State *state)
 
     Logger::get().info("Packet forwarded to " + next_hop->to_string() + ", "
                        + ingress_intf->to_string());
-
-    if (typeid(*current_node) == typeid(Node)) {
-        if (Openflow::has_updates(next_hop->get_name(), state)) {
-            state->comm_state[state->comm].fwd_mode = int(fwd_mode::CHECK_UPDATES);
-            state->choice_count = 2;    // non-deterministic choice to decide whether to install an update or not
-            return;
-        }
-    }
-
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
     state->choice_count = 1;    // deterministic choice
-
 }
 
 void ForwardingProcess::accepted(State *state, Network& network)

@@ -32,9 +32,6 @@ protected:
      */
     std::vector<Policy *> correlated_policies;
 
-    friend class Policies;
-    void compute_ecs(const EqClasses&, const EqClasses&);
-
 protected:
     friend class Config;
     Policy(bool correlated = false);
@@ -49,6 +46,7 @@ public:
     uint16_t get_src_port(State *) const;
     uint16_t get_dst_port(State *) const;
 
+    void compute_ecs(const EqClasses&, const EqClasses&);
     void add_ec(State *, const IPv4Address&);
     EqClass *find_ec(State *, const IPv4Address&) const;
     size_t num_ecs() const;
@@ -70,8 +68,6 @@ class Policies
 {
 private:
     std::list<Policy *> policies;
-
-    void compute_ecs(const Network&) const;
 
 private:
     friend class Config;

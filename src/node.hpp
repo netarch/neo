@@ -29,7 +29,7 @@ protected:
     // L2 interfaces to L2 LANs mappings
     std::map<Interface *, L2_LAN *> l2_lans;
 
-private:
+protected:
     friend class Config;
     Node() = default;
     void add_interface(Interface *interface);
@@ -69,6 +69,12 @@ public:
      * Compute the IP next hops from this node for a given destination address
      * by recursively looking up in the given RIB.
      */
-    virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&, const RoutingTable& ribToUse);
     virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&);
+
+    /*
+     * Compute the IP next hop from this node for a given egress interface and a
+     * destination address.
+     */
+    virtual FIB_IPNH get_ipnh(const std::string& egress_intf_name,
+                              const IPv4Address&);
 };

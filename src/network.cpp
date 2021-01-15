@@ -6,10 +6,9 @@
 #include <string>
 #include <utility>
 
-#include "middlebox.hpp"
 #include "lib/logger.hpp"
+#include "middlebox.hpp"
 #include "model.h"
-#include "process/openflow.hpp"
 
 void Network::add_node(Node *node)
 {
@@ -82,34 +81,6 @@ void Network::init(State *state __attribute__((unused)))
         Node *node = pair.second;
         node->init();
     }
-
-    // TODO: initialize update history if update agent is implemented
-}
-
-void Network::update_node_fib(State *state, Node *update_node, const RoutingTable& rib)
-{
-    EqClass *ec;
-    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-
-    FIB *currentFib;
-    memcpy(&currentFib, state->comm_state[state->comm].fib, sizeof(FIB *));
-
-    FIB *fib = new FIB(*currentFib);
-    IPv4Address addr = ec->representative_addr();
-
-    // collect IP next hops
-    fib->set_ipnhs(update_node, update_node->get_ipnhs(addr, rib));
-
-    // insert into the pool of history FIBs
-    auto res = fibs.insert(fib);
-
-    if (!res.second) {
-        delete fib;
-        fib = *(res.first);
-    }
-
-    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
-    Logger::get().debug(fib->to_string());
 }
 
 void Network::update_fib(State *state)
@@ -125,6 +96,40 @@ void Network::update_fib(State *state)
         Node *node = pair.second;
         fib->set_ipnhs(node, node->get_ipnhs(addr));
     }
+
+    // insert into the pool of history FIBs
+    auto res = fibs.insert(fib);
+    if (!res.second) {
+        delete fib;
+        fib = *(res.first);
+    }
+    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
+
+    Logger::get().debug(fib->to_string());
+}
+
+void Network::update_fib_openflow(State *state, Node *node, const Route& route)
+{
+    EqClass *ec;
+    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+
+    if (!route.relevant_to_ec(*ec)) {
+        return;
+    }
+
+    IPv4Address addr = ec->representative_addr();
+    FIB_IPNH next_hop = node->get_ipnh(route.get_intf(), addr);
+
+    if (!next_hop.get_l3_node()) {
+        return;
+    }
+
+    FIB *current_fib;
+    memcpy(&current_fib, state->comm_state[state->comm].fib, sizeof(FIB *));
+
+    // construct the new FIB
+    FIB *fib = new FIB(*current_fib);
+    fib->add_ipnh(node, std::move(next_hop));
 
     // insert into the pool of history FIBs
     auto res = fibs.insert(fib);

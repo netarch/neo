@@ -1,5 +1,7 @@
 #include "policy/reply-reachability.hpp"
 
+#include <cstring>
+
 #include "process/forwarding.hpp"
 #include "model.h"
 

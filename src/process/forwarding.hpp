@@ -15,15 +15,13 @@
 class State;
 
 enum fwd_mode {
-    // start from 1 to avoid execution before configuration
-    PACKET_ENTRY = 1,
-    FIRST_COLLECT = 2,
-    FIRST_FORWARD = 3,
-    CHECK_UPDATES = 4,
-    COLLECT_NHOPS = 5,
-    FORWARD_PACKET = 6,
-    ACCEPTED = 7,
-    DROPPED = 8
+    PACKET_ENTRY,
+    FIRST_COLLECT,
+    FIRST_FORWARD,
+    COLLECT_NHOPS,
+    FORWARD_PACKET,
+    ACCEPTED,
+    DROPPED
 };
 
 struct CandHash {
@@ -40,8 +38,7 @@ class ForwardingProcess : public Process
 private:
     Policy *policy;
 
-    std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq>
-    candidates_hist;
+    std::unordered_set<std::vector<FIB_IPNH> *, CandHash, CandEq> candidates_hist;
     std::unordered_set<Choices *> choices_hist;
 
     // all history packets
@@ -83,9 +80,9 @@ public:
     ForwardingProcess& operator=(const ForwardingProcess&) = delete;
     ForwardingProcess& operator=(ForwardingProcess&&) = delete;
 
-    // initialize fwd process when system starts
+    // initialize the forwarding process when system starts
     void init(State *, Network&, Policy *);
-    // reset fwd process without changing pkt_hist and path_choices
+    // reset the forwarding process without changing pkt_hist and path_choices
     void reset(State *, Network&, Policy *);
     void exec_step(State *, Network&) override;
 };

@@ -26,6 +26,9 @@
 #include "policy/one-request.hpp"
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
+#include "process/openflow.hpp"
+
+std::unordered_map<std::string, std::shared_ptr<cpptoml::table>> Config::configs;
 
 void Config::start_parsing(const std::string& filename)
 {
@@ -77,7 +80,7 @@ void Config::parse_route(Route *route,
         Logger::get().err("Missing network");
     }
     if (!next_hop && !interface) {
-        Logger::get().err("Missing next hop IP address or interface");
+        Logger::get().err("Missing next hop IP address and interface");
     }
 
     route->network = IPNetwork<IPv4Address>(*network);
@@ -139,8 +142,12 @@ void Config::parse_node(Node *node,
     }
 }
 
-void Config::parse_mb_app(MB_App *app, const std::shared_ptr<cpptoml::table>& config)
+void Config::parse_mb_app(
+    MB_App *app,
+    const std::shared_ptr<cpptoml::table>& config)
 {
+    assert(app != nullptr);
+
     auto timeout = config->get_as<long>("timeout");
     if (!timeout) {
         Logger::get().err("Missing timeout");
@@ -152,8 +159,12 @@ void Config::parse_mb_app(MB_App *app, const std::shared_ptr<cpptoml::table>& co
     app->timeout = std::chrono::microseconds(*timeout);
 }
 
-void Config::parse_netfilter(NetFilter *netfilter, const std::shared_ptr<cpptoml::table>& config)
+void Config::parse_netfilter(
+    NetFilter *netfilter,
+    const std::shared_ptr<cpptoml::table>& config)
 {
+    assert(netfilter != nullptr);
+
     Config::parse_mb_app(netfilter, config);
 
     auto rpf = config->get_as<int>("rp_filter");
@@ -173,8 +184,12 @@ void Config::parse_netfilter(NetFilter *netfilter, const std::shared_ptr<cpptoml
     netfilter->rules = *rules;
 }
 
-void Config::parse_ipvs(IPVS *ipvs, const std::shared_ptr<cpptoml::table>& config)
+void Config::parse_ipvs(
+    IPVS *ipvs,
+    const std::shared_ptr<cpptoml::table>& config)
 {
+    assert(ipvs != nullptr);
+
     Config::parse_mb_app(ipvs, config);
 
     auto ipvs_config = config->get_as<std::string>("config");
@@ -186,8 +201,12 @@ void Config::parse_ipvs(IPVS *ipvs, const std::shared_ptr<cpptoml::table>& confi
     ipvs->config = *ipvs_config;
 }
 
-void Config::parse_squid(Squid *squid, const std::shared_ptr<cpptoml::table>& config)
+void Config::parse_squid(
+    Squid *squid,
+    const std::shared_ptr<cpptoml::table>& config)
 {
+    assert(squid != nullptr);
+
     Config::parse_mb_app(squid, config);
 
     auto squid_config = config->get_as<std::string>("config");
@@ -200,9 +219,11 @@ void Config::parse_squid(Squid *squid, const std::shared_ptr<cpptoml::table>& co
 }
 
 void Config::parse_middlebox(
-        Middlebox *middlebox,
-        const std::shared_ptr<cpptoml::table>& config)
+    Middlebox *middlebox,
+    const std::shared_ptr<cpptoml::table>& config)
 {
+    assert(middlebox != nullptr);
+
     Config::parse_node(middlebox, config);
 
     auto environment = config->get_as<std::string>("env");
@@ -239,7 +260,6 @@ void Config::parse_link(
     Link *link,
     const std::shared_ptr<cpptoml::table>& config,
     const std::map<std::string, Node *>& nodes)
-
 {
     assert(link != nullptr);
 
@@ -283,17 +303,13 @@ void Config::parse_link(
     }
 }
 
-void Config::parse_openflow()
-{
-    // TODO
-}
-
 void Config::parse_network(Network *network, const std::string& filename)
 {
+    assert(network != nullptr);
+
     auto config = configs.at(filename);
     auto nodes_config = config->get_table_array("nodes");
     auto links_config = config->get_table_array("links");
-    auto of_config = config->get_table_array("openflow");
 
     if (nodes_config) {
         for (const auto& cfg : *nodes_config) {
@@ -331,18 +347,15 @@ void Config::parse_network(Network *network, const std::string& filename)
             }
         }
     }
-
-    if (of_config) {
-        // TODO (after policies)
-        //Openflow::parse_config(of_config);
-    }
 }
 
 void Config::parse_communication(
-        Communication *comm,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    Communication *comm,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(comm != nullptr);
+
     auto proto_str = config->get_as<std::string>("protocol");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
     auto owned_only = config->get_as<bool>("owned_dst_only");
@@ -391,10 +404,12 @@ void Config::parse_communication(
 }
 
 void Config::parse_loadbalancepolicy(
-        LoadBalancePolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    LoadBalancePolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     auto final_regex = config->get_as<std::string>("final_node");
     auto repeat = config->get_as<int>("repeat");
     auto comm_cfg = config->get_table("communication");
@@ -424,10 +439,12 @@ void Config::parse_loadbalancepolicy(
 }
 
 void Config::parse_reachabilitypolicy(
-        ReachabilityPolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    ReachabilityPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     auto final_regex = config->get_as<std::string>("final_node");
     auto reachability = config->get_as<bool>("reachable");
     auto comm_cfg = config->get_table("communication");
@@ -456,10 +473,12 @@ void Config::parse_reachabilitypolicy(
 }
 
 void Config::parse_replyreachabilitypolicy(
-        ReplyReachabilityPolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    ReplyReachabilityPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     auto query_regex = config->get_as<std::string>("query_node");
     auto reachability = config->get_as<bool>("reachable");
     auto comm_cfg = config->get_table("communication");
@@ -488,10 +507,12 @@ void Config::parse_replyreachabilitypolicy(
 }
 
 void Config::parse_waypointpolicy(
-        WaypointPolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    WaypointPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     auto wp_regex = config->get_as<std::string>("waypoint");
     auto through = config->get_as<bool>("pass_through");
     auto comm_cfg = config->get_table("communication");
@@ -520,10 +541,12 @@ void Config::parse_waypointpolicy(
 }
 
 void Config::parse_onerequestpolicy(
-        OneRequestPolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    OneRequestPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     auto server_regex = config->get_as<std::string>("server_node");
     auto comms_cfg = config->get_table_array("communications");
 
@@ -548,10 +571,12 @@ void Config::parse_onerequestpolicy(
 }
 
 void Config::parse_correlated_policies(
-        Policy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    Policy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     auto policies_config = config->get_table_array("correlated_policies");
 
     if (!policies_config) {
@@ -595,18 +620,22 @@ void Config::parse_correlated_policies(
 }
 
 void Config::parse_conditionalpolicy(
-        ConditionalPolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    ConditionalPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     parse_correlated_policies(policy, config, network);
 }
 
 void Config::parse_consistencypolicy(
-        ConsistencyPolicy *policy,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    ConsistencyPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
+    assert(policy != nullptr);
+
     parse_correlated_policies(policy, config, network);
 }
 
@@ -672,5 +701,59 @@ void Config::parse_policies(
         Logger::get().info("Loaded 1 policy");
     } else {
         Logger::get().info("Loaded " + std::to_string(policies->policies.size()) + " policies");
+    }
+}
+
+void Config::parse_openflow_update(
+        Node **node,
+        Route *route,
+        const std::shared_ptr<cpptoml::table>& config,
+        const Network& network)
+{
+    assert(node != nullptr);
+    assert(route != nullptr);
+
+    auto node_name = config->get_as<std::string>("node");
+    auto network_cidr = config->get_as<std::string>("network");
+    auto outport = config->get_as<std::string>("outport");
+
+    if (!node_name) {
+        Logger::get().err("Missing node name");
+    }
+    if (!network_cidr) {
+        Logger::get().err("Missing network");
+    }
+    if (!outport) {
+        Logger::get().err("Missing outport");
+    }
+
+    auto node_itr = network.get_nodes().find(*node_name);
+    if (node_itr == network.get_nodes().end()) {
+        Logger::get().err("Unknown node: " + *node_name);
+    }
+
+    *node = node_itr->second;
+    if (typeid(**node) != typeid(Node)) {
+        Logger::get().err("Unsupported node type");
+    }
+
+    route->network = IPNetwork<IPv4Address>(*network_cidr);
+    route->egress_intf = std::string(*outport);
+}
+
+void Config::parse_openflow(OpenflowProcess *openflow,
+                            const std::string& filename,
+                            const Network& network)
+{
+    auto config = configs.at(filename);
+    auto updates_cfg = config->get_table_array("openflow.updates");
+
+    if (updates_cfg) {
+        for (const auto& update_cfg : *updates_cfg) {
+            Node *node;
+            Route route;
+            Config::parse_openflow_update(&node, &route, update_cfg, network);
+            openflow->add_update(node, std::move(route));
+        }
     }
 }

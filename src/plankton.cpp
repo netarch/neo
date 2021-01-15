@@ -13,6 +13,7 @@
 #include <typeinfo>
 
 #include "stats.hpp"
+#include "config.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "policy/conditional.hpp"
@@ -96,8 +97,28 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
 
     Config::start_parsing(in_file);
     Config::parse_network(&network, in_file);
+    Config::parse_openflow(&openflow, in_file, network);
     Config::parse_policies(&policies, in_file, network);
     Config::finish_parsing(in_file);
+}
+
+void Plankton::compute_policy_oblivious_ecs()
+{
+    for (const auto& node : network.get_nodes()) {
+        for (const auto& intf : node.second->get_intfs_l3()) {
+            all_ECs.add_ec(intf.first);
+            owned_ECs.add_ec(intf.first);
+        }
+        for (const Route& route : node.second->get_rib()) {
+            all_ECs.add_ec(route.get_network());
+        }
+    }
+
+    for (const auto& update : openflow.get_updates()) {
+        for (const Route& update_route : update.second) {
+            all_ECs.add_ec(update_route.get_network());
+        }
+    }
 }
 
 extern "C" int spin_main(int argc, const char *argv[]);
@@ -252,7 +273,11 @@ void Plankton::verify_policy(Policy *policy)
 
 int Plankton::run()
 {
-    policies.compute_ecs(network);
+    // compute ECs
+    this->compute_policy_oblivious_ecs();
+    for (Policy *policy : policies) {
+        policy->compute_ecs(all_ECs, owned_ECs);
+    }
 
     // register signal handlers
     struct sigaction action;
@@ -296,31 +321,74 @@ int Plankton::run()
 
 /***** functions used by the Promela network model *****/
 
-
 void Plankton::initialize(State *state)
 {
     state->comm = 0;
 
     network.init(state);
     policy->init(state);
-    fwd.init(state, network, policy);
-    fwd.enable();
+
+    state->comm_state[state->comm].process_id = int(pid::FORWARDING);
+    forwarding.init(state, network, policy);
+    openflow.init(state);
+
     //sleep(7);   // DEBUG: wait for wireshark to launch
+}
+
+void Plankton::process_switch(State *state) const
+{
+    int process_id = state->comm_state[state->comm].process_id;
+    int forwarding_mode = state->comm_state[state->comm].fwd_mode;
+    Node *current_node;
+    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
+           sizeof(Node *));
+
+    switch (process_id) {
+        case pid::FORWARDING:
+            if ((forwarding_mode == fwd_mode::FIRST_COLLECT ||
+                forwarding_mode == fwd_mode::COLLECT_NHOPS) &&
+                openflow.has_updates(state, current_node)) {
+                state->comm_state[state->comm].process_id = int(pid::OPENFLOW);
+                state->choice_count = 2; // whether to install an update or not
+            }
+            break;
+        case pid::OPENFLOW:
+            if (state->choice_count == 1) {
+                state->comm_state[state->comm].process_id = int(pid::FORWARDING);
+                state->choice_count = 1;
+            }
+            break;
+        default:
+            Logger::get().err("Unknown process_id " + std::to_string(process_id));
+    }
 }
 
 void Plankton::exec_step(State *state)
 {
-    fwd.exec_step(state, network);
-    int pol_ret = policy->check_violation(state);
+    int process_id = state->comm_state[state->comm].process_id;
+    switch (process_id) {
+        case pid::FORWARDING:
+            forwarding.exec_step(state, network);
+            break;
+        case pid::OPENFLOW:
+            openflow.exec_step(state, network);
+            break;
+        default:
+            Logger::get().err("Unknown process_id " + std::to_string(process_id));
+    }
 
-    if (pol_ret & POL_INIT_POL) {
+    this->process_switch(state);
+
+    int policy_result = policy->check_violation(state);
+
+    if (policy_result & POL_INIT_POL) {
         policy->init(state);
     }
-    if (pol_ret & POL_INIT_FWD) {
-        fwd.init(state, network, policy);
+    if (policy_result & POL_INIT_FWD) {
+        forwarding.init(state, network, policy);
     }
-    if (pol_ret & POL_RESET_FWD) {
-        fwd.reset(state, network, policy);
+    if (policy_result & POL_RESET_FWD) {
+        forwarding.reset(state, network, policy);
     }
 }
 

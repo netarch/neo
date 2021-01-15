@@ -3,6 +3,11 @@
 #include "network.hpp"
 class State;
 
+enum pid {
+    FORWARDING,
+    OPENFLOW
+};
+
 class Process
 {
 protected:

@@ -107,6 +107,11 @@ void FIB::set_ipnhs(Node *node, std::set<FIB_IPNH>&& next_hops)
     tbl[node] = next_hops;
 }
 
+void FIB::add_ipnh(Node *node, FIB_IPNH&& next_hop)
+{
+    tbl[node].insert(next_hop);
+}
+
 const std::set<FIB_IPNH>& FIB::lookup(Node *const node) const
 {
     return tbl.at(node);

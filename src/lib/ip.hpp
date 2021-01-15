@@ -100,6 +100,7 @@ public:
     Addr network_addr() const;
     Addr broadcast_addr() const;
     bool contains(const Addr&) const;
+    bool contains(const IPRange<Addr>&) const;
     IPRange<Addr> range() const;
     bool operator==(const IPNetwork<Addr>&) const;
     bool operator!=(const IPNetwork<Addr>&) const;
@@ -289,6 +290,13 @@ template <class Addr>
 bool IPNetwork<Addr>::contains(const Addr& addr) const
 {
     return (addr >= network_addr() && addr <= broadcast_addr());
+}
+
+template <class Addr>
+bool IPNetwork<Addr>::contains(const IPRange<Addr>& range) const
+{
+    return (range.get_lb() >= network_addr() &&
+            range.get_ub() <= broadcast_addr());
 }
 
 template <class Addr>

@@ -58,6 +58,17 @@
 
 
 ##
+## OpenFlow configuration
+##
+
+[openflow]
+    [[openflow.updates]]
+    node = "name"
+    network = "x.x.x.x/x"
+    outport = "egress interface name"
+
+
+##
 ## Policies
 ##
 

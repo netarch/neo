@@ -11,7 +11,6 @@
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
-#include "process/openflow.hpp"
 #include "model.h"
 
 Policy::Policy(bool correlated)
@@ -28,19 +27,6 @@ Policy::~Policy()
 {
     for (Policy *p : correlated_policies) {
         delete p;
-    }
-}
-
-void Policy::compute_ecs(const EqClasses& all_ECs, const EqClasses& owned_ECs)
-{
-    if (correlated_policies.empty()) {
-        for (Communication& comm : comms) {
-            comm.compute_ecs(all_ECs, owned_ECs);
-        }
-    } else {
-        for (Policy *p : correlated_policies) {
-            p->compute_ecs(all_ECs, owned_ECs);
-        }
     }
 }
 
@@ -82,6 +68,19 @@ uint16_t Policy::get_dst_port(State *state) const
         return comms[state->comm].get_dst_port(state);
     } else {
         return correlated_policies[state->comm]->comms[0].get_dst_port(state);
+    }
+}
+
+void Policy::compute_ecs(const EqClasses& all_ECs, const EqClasses& owned_ECs)
+{
+    if (correlated_policies.empty()) {
+        for (Communication& comm : comms) {
+            comm.compute_ecs(all_ECs, owned_ECs);
+        }
+    } else {
+        for (Policy *p : correlated_policies) {
+            p->compute_ecs(all_ECs, owned_ECs);
+        }
     }
 }
 
@@ -200,33 +199,6 @@ Policies::~Policies()
 {
     for (Policy *policy : policies) {
         delete policy;
-    }
-}
-
-void Policies::compute_ecs(const Network& network) const
-{
-    // TODO: compute all_ECs and owned_ECs from network
-
-    //EqClasses all_ECs, owned_ECs;
-
-    //for (const auto& node : network.get_nodes()) {
-    //    for (const auto& intf : node.second->get_intfs_l3()) {
-    //        all_ECs.add_ec(intf.first);
-    //        owned_ECs.add_ec(intf.first);
-    //    }
-    //    for (const Route& route : node.second->get_rib()) {
-    //        all_ECs.add_ec(route.get_network());
-    //    }
-    //}
-
-    //for (const auto& update_entry : Openflow::get_updates()) {
-    //    for (const auto& update_route : update_entry.second) {
-    //        all_ECs.add_ec(update_route.get_network());
-    //    }
-    //}
-
-    for (Policy *policy : policies) {
-        policy->compute_ecs(all_ECs, owned_ECs);
     }
 }
 

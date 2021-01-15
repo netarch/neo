@@ -13,17 +13,17 @@ std::string Route::to_string() const
     return network.to_string() + " --> " + next_hop.to_string();
 }
 
-IPNetwork<IPv4Address> Route::get_network() const
+const IPNetwork<IPv4Address>& Route::get_network() const
 {
     return network;
 }
 
-IPv4Address Route::get_next_hop() const
+const IPv4Address& Route::get_next_hop() const
 {
     return next_hop;
 }
 
-std::string Route::get_intf() const
+const std::string& Route::get_intf() const
 {
     return egress_intf;
 }
@@ -39,6 +39,30 @@ bool Route::has_same_path(const Route& other) const
         return true;
     }
     return false;
+}
+
+bool Route::relevant_to_ec(const EqClass& ec) const
+{
+    bool fully_contained = false;   // whether ec is fully contained within network
+    bool has_been_set = false;
+
+    for (const ECRange& range : ec) {
+        if (has_been_set) {
+            if (this->network.contains(range) != fully_contained) {
+                /*
+                 * The "network" of this route should either contain all the EC
+                 * ranges or none at all.
+                 */
+                Logger::get().err("Route splits an EC");
+            }
+        } else {
+            // first loop
+            fully_contained = this->network.contains(range);
+            has_been_set = true;
+        }
+    }
+
+    return fully_contained;
 }
 
 bool operator<(const Route& a, const Route& b)

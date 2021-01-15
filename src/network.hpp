@@ -9,7 +9,6 @@
 #include "link.hpp"
 #include "fib.hpp"
 #include "routingtable.hpp"
-
 class State;
 
 /*
@@ -49,8 +48,9 @@ public:
     const std::set<Link *, LinkCompare>& get_links() const;
 
     void init(State *);
-    void update_fib(State *);
-    void update_node_fib(State *, Node *update_node, const RoutingTable& rib);
+    void update_fib(State *);   // update FIB from the RIB of all nodes
+    // update the current FIB with a single openflow update
+    void update_fib_openflow(State *, Node *, const Route&);
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

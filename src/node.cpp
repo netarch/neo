@@ -148,15 +148,15 @@ L2_LAN *Node::get_l2lan(Interface *intf) const
     return l2_lans.at(intf);
 }
 
-std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst, const RoutingTable& ribToUse)
+std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
 {
     std::set<FIB_IPNH> next_hops;
 
-    auto r = ribToUse.lookup(dst);
+    auto r = this->rib.lookup(dst);
     for (RoutingTable::const_iterator it = r.first; it != r.second; ++it) {
         if (it->get_intf().empty()) {
             // non-connected route; look it up recursively
-            auto nhs = get_ipnhs(it->get_next_hop());
+            auto nhs = this->get_ipnhs(it->get_next_hop());
             next_hops.insert(nhs.begin(), nhs.end());
         } else if (has_ip(dst)) {
             // connected route; accept
@@ -164,19 +164,9 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst, const RoutingTable& r
             //                        l3nh l3nh_intf l2nh l2nh_intf
         } else {
             // connected route; forward
-            auto l2nh = get_peer(it->get_intf());   // L2 next hop
-            if (l2nh.first) { // if the interface is truly connected (has peer)
-                if (!l2nh.second->is_l2()) {    // L2 next hop == L3 next hop
-                    next_hops.insert(FIB_IPNH(l2nh.first, l2nh.second,
-                                              l2nh.first, l2nh.second));
-                } else {
-                    auto l3nh =
-                        l2nh.first->l2_lans[l2nh.second]->find_l3_endpoint(dst);
-                    if (l3nh.first) {
-                        next_hops.insert(FIB_IPNH(l3nh.first, l3nh.second,
-                                                  l2nh.first, l2nh.second));
-                    }
-                }
+            FIB_IPNH next_hop = this->get_ipnh(it->get_intf(), dst);
+            if (next_hop.get_l3_node()) {   // next hop exists
+                next_hops.insert(next_hop);
             }
         }
     }
@@ -184,7 +174,22 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst, const RoutingTable& r
     return next_hops;
 }
 
-std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
+FIB_IPNH Node::get_ipnh(const std::string& egress_intf_name,
+                        const IPv4Address& dst)
 {
-    return get_ipnhs(dst, rib);
+    auto l2nh = get_peer(egress_intf_name); // L2 next hop
+    if (l2nh.first) { // if the interface is truly connected (has peer)
+        if (!l2nh.second->is_l2()) {    // L2 next hop == L3 next hop
+            return FIB_IPNH(l2nh.first, l2nh.second,
+                            l2nh.first, l2nh.second);
+        } else {
+            auto l3nh = l2nh.first->l2_lans[l2nh.second]->find_l3_endpoint(dst);
+            if (l3nh.first) {
+                return FIB_IPNH(l3nh.first, l3nh.second,
+                                l2nh.first, l2nh.second);
+            }
+        }
+    }
+
+    return FIB_IPNH(nullptr, nullptr, nullptr, nullptr);
 }
