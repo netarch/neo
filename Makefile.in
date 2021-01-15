@@ -54,7 +54,7 @@ VPATH      += $(shell find $(srcdir)/test -type d)
 .SUFFIXES: .c .o
 .SUFFIXES: .cpp .o
 
-all: $(TARGET) install-git-hooks #neo.1.gz
+all: $(TARGET) #neo.1.gz
 
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
