@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "lib/hash.hpp"
+#include "lib/logger.hpp"
 #include "model.h"
 
 size_t OpenflowUpdateState::num_of_installed_updates(int node_order) const
@@ -45,6 +46,20 @@ OpenflowProcess::~OpenflowProcess()
     }
 }
 
+std::string OpenflowProcess::to_string() const
+{
+    std::string ret = "=== Openflow updates:";
+
+    for (const auto& update : this->updates) {
+        ret += "\n--- " + update.first->get_name();
+        for (const Route& route : update.second) {
+            ret += "\n    " + route.to_string();
+        }
+    }
+
+    return ret;
+}
+
 const decltype(OpenflowProcess::updates)& OpenflowProcess::get_updates() const
 {
     return updates;
@@ -74,7 +89,7 @@ bool OpenflowProcess::has_updates(State *state, Node *node) const
 void OpenflowProcess::init(State *state)
 {
     if (this->updates.empty()) {
-        this->disable();
+        this->disable(); // disable the process if there's no update
         return;
     }
 
@@ -122,7 +137,9 @@ void OpenflowProcess::exec_step(State *state, Network& network)
 void OpenflowProcess::install_update(State *state, Network& network)
 {
     if (state->choice == 0) {
+        Logger::get().debug("Openflow: not installing update");
         state->choice_count = 1; // back to forwarding
+        return;
     }
 
     Node *current_node;
@@ -144,7 +161,10 @@ void OpenflowProcess::install_update(State *state, Network& network)
     const Route& update = all_updates[num_installed];
 
     // actually install the update to FIB
-    network.update_fib_openflow(state, current_node, update);
+    Logger::get().debug("Openflow: installing update at "
+                        + current_node->get_name() + ": " + update.to_string());
+    network.update_fib_openflow(state, current_node, update, all_updates,
+                                num_installed);
 
     // construct the new openflow update state after the install
     OpenflowUpdateState *new_update_state
@@ -169,35 +189,3 @@ void OpenflowProcess::install_update(State *state, Network& network)
         state->choice_count = 1; // back to forwarding
     }
 }
-
-/*
-OpenflowUpdateState *get_offset_vector(State *state)
-{
-    std::vector<size_t> *res;
-    memcpy(&res, state->comm_state[state->comm].openflow_update_state,
-           sizeof(OpenflowUpdateState *));
-    return res;
-}
-
-// how many updates are yet to be installed on node
-size_t get_update_size(State *state, const std::string& node) const;
-{
-    auto itr = updates.find(node);
-
-    if (itr != updates.end()) {
-        auto total_updates = itr->second.size();
-        auto offset_vector_idx = std::distance(itr, updates.begin());
-        const std::vector<size_t>& offset_vector = *(get_offset_vector(state));
-        auto installed_updates = offset_vector[offset_vector_idx];
-        assert(installed_updates <= total_updates);
-        return total_updates - installed_updates;
-    } else {
-        return 0;
-    }
-}
-
-bool has_updates(State *state, const std::string& node)
-{
-    return Openflow::get_update_size(node, state) > 0;
-}
-*/

@@ -4,6 +4,7 @@
 #include <set>
 #include <unordered_set>
 #include <string>
+#include <vector>
 
 #include "node.hpp"
 #include "link.hpp"
@@ -50,7 +51,9 @@ public:
     void init(State *);
     void update_fib(State *);   // update FIB from the RIB of all nodes
     // update the current FIB with a single openflow update
-    void update_fib_openflow(State *, Node *, const Route&);
+    void update_fib_openflow(State *, Node *node, const Route& route,
+                             const std::vector<Route>& all_updates,
+                             size_t num_installed);
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

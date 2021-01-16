@@ -18,7 +18,7 @@ private:
     Policies        policies;
     EqClasses       all_ECs, owned_ECs; // policy-oblivious ECs
 
-    /* Plankton processes */
+    /* Plankton processes (all processes are enabled by default) */
     ForwardingProcess   forwarding;
     OpenflowProcess     openflow;
 

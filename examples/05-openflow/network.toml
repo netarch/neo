@@ -70,20 +70,18 @@
 #   3. Incoming replies to past requests are allowed.
 
 [[policies]]
-    type = "reachability"
-    final_node = "h1"
-    reachable = false
+    type = "waypoint"
+    waypoint = "h1"
+    pass_through = false
     [policies.communication]
     protocol = "http"
     pkt_dst = "8.8.8.8"
     start_node = "h0"
-    owned_dst_only = false
 [[policies]]
-    type = "reachability"
-    final_node = "h2"
-    reachable = false
+    type = "waypoint"
+    waypoint = "h2"
+    pass_through = false
     [policies.communication]
     protocol = "http"
     pkt_dst = "8.8.8.8"
     start_node = "h0"
-    owned_dst_only = false

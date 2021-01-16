@@ -390,7 +390,7 @@ void Config::parse_communication(
     }
     comm->pkt_dst = IPRange<IPv4Address>(dst_str);
 
-    comm->owned_dst_only = owned_only ? *owned_only : true;
+    comm->owned_dst_only = owned_only ? *owned_only : false;
 
     for (const auto& node : network.get_nodes()) {
         if (std::regex_match(node.first, std::regex(*start_regex))) {
@@ -746,14 +746,22 @@ void Config::parse_openflow(OpenflowProcess *openflow,
                             const Network& network)
 {
     auto config = configs.at(filename);
-    auto updates_cfg = config->get_table_array("openflow.updates");
+    auto openflow_cfg = config->get_table("openflow");
 
-    if (updates_cfg) {
-        for (const auto& update_cfg : *updates_cfg) {
-            Node *node;
-            Route route;
-            Config::parse_openflow_update(&node, &route, update_cfg, network);
-            openflow->add_update(node, std::move(route));
-        }
+    if (!openflow_cfg) {
+        return;
+    }
+
+    auto updates_cfg = openflow_cfg->get_table_array("updates");
+
+    if (!updates_cfg) {
+        return;
+    }
+
+    for (const auto& update_cfg : *updates_cfg) {
+        Node *node;
+        Route route;
+        Config::parse_openflow_update(&node, &route, update_cfg, network);
+        openflow->add_update(node, std::move(route));
     }
 }

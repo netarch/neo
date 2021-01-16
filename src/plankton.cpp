@@ -100,6 +100,8 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
     Config::parse_openflow(&openflow, in_file, network);
     Config::parse_policies(&policies, in_file, network);
     Config::finish_parsing(in_file);
+
+    Logger::get().info(openflow.to_string());
 }
 
 void Plankton::compute_policy_oblivious_ecs()
@@ -348,24 +350,27 @@ void Plankton::process_switch(State *state) const
             if ((forwarding_mode == fwd_mode::FIRST_COLLECT ||
                 forwarding_mode == fwd_mode::COLLECT_NHOPS) &&
                 openflow.has_updates(state, current_node)) {
+                Logger::get().debug("Switching to openflow process");
                 state->comm_state[state->comm].process_id = int(pid::OPENFLOW);
                 state->choice_count = 2; // whether to install an update or not
             }
             break;
         case pid::OPENFLOW:
             if (state->choice_count == 1) {
+                Logger::get().debug("Switching to forwarding process");
                 state->comm_state[state->comm].process_id = int(pid::FORWARDING);
                 state->choice_count = 1;
             }
             break;
         default:
-            Logger::get().err("Unknown process_id " + std::to_string(process_id));
+            Logger::get().err("Unknown process id " + std::to_string(process_id));
     }
 }
 
 void Plankton::exec_step(State *state)
 {
     int process_id = state->comm_state[state->comm].process_id;
+
     switch (process_id) {
         case pid::FORWARDING:
             forwarding.exec_step(state, network);

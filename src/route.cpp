@@ -10,7 +10,15 @@ Route::Route(const IPNetwork<IPv4Address>& net, const IPv4Address& nh,
 
 std::string Route::to_string() const
 {
-    return network.to_string() + " --> " + next_hop.to_string();
+    std::string ret = network.to_string() + " --> ";
+
+    if (this->egress_intf.empty()) {
+        ret += next_hop.to_string();
+    } else {
+        ret += this->egress_intf;
+    }
+
+    return ret;
 }
 
 const IPNetwork<IPv4Address>& Route::get_network() const
@@ -35,10 +43,11 @@ int Route::get_adm_dist() const
 
 bool Route::has_same_path(const Route& other) const
 {
-    if (network == other.network && next_hop == other.next_hop) {
-        return true;
+    if (this->egress_intf.empty()) {
+        return (network == other.network && next_hop == other.next_hop);
+    } else {
+        return (network == other.network && egress_intf == other.egress_intf);
     }
-    return false;
 }
 
 bool Route::relevant_to_ec(const EqClass& ec) const

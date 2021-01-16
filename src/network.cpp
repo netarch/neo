@@ -108,8 +108,11 @@ void Network::update_fib(State *state)
     Logger::get().debug(fib->to_string());
 }
 
-void Network::update_fib_openflow(State *state, Node *node, const Route& route)
+void Network::update_fib_openflow(
+    State *state, Node *node, const Route& route,
+    const std::vector<Route>& all_updates, size_t num_installed)
 {
+    // check EC relevance
     EqClass *ec;
     memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
 
@@ -117,6 +120,22 @@ void Network::update_fib_openflow(State *state, Node *node, const Route& route)
         return;
     }
 
+    // check route precedence (longest prefix match)
+    bool preferred = true, multipath = false;
+    for (size_t i = 0; i < num_installed; ++i) {
+        if (all_updates[i] < route) {
+            preferred = false;
+        } else if (all_updates[i] == route &&
+                   !route.has_same_path(all_updates[i])) {
+            multipath = true;
+        }
+    }
+
+    if (!preferred) {
+        return;
+    }
+
+    // get the next hop
     IPv4Address addr = ec->representative_addr();
     FIB_IPNH next_hop = node->get_ipnh(route.get_intf(), addr);
 
@@ -124,12 +143,18 @@ void Network::update_fib_openflow(State *state, Node *node, const Route& route)
         return;
     }
 
+    // construct the new FIB
     FIB *current_fib;
     memcpy(&current_fib, state->comm_state[state->comm].fib, sizeof(FIB *));
-
-    // construct the new FIB
     FIB *fib = new FIB(*current_fib);
-    fib->add_ipnh(node, std::move(next_hop));
+
+    if (multipath) {
+        fib->add_ipnh(node, std::move(next_hop));
+    } else {
+        std::set<FIB_IPNH> next_hops;
+        next_hops.insert(std::move(next_hop));
+        fib->set_ipnhs(node, std::move(next_hops));
+    }
 
     // insert into the pool of history FIBs
     auto res = fibs.insert(fib);

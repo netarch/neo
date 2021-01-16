@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "network.hpp"
 class State;
 
@@ -7,6 +9,8 @@ enum pid {
     FORWARDING,
     OPENFLOW
 };
+
+std::string process_id_to_str(int);
 
 class Process
 {

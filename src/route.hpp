@@ -50,7 +50,7 @@ public:
     const IPv4Address& get_next_hop() const;
     const std::string& get_intf() const;
     int get_adm_dist() const;
-    bool has_same_path(const Route&) const;
+    bool has_same_path(const Route&) const; // whether it is identical
     bool relevant_to_ec(const EqClass&) const;
 
     Route& operator=(const Route&) = default;

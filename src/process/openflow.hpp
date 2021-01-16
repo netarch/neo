@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <unordered_set>
+#include <string>
 
 #include "process/process.hpp"
 #include "policy/policy.hpp"
@@ -65,6 +66,7 @@ public:
     OpenflowProcess() = default;
     ~OpenflowProcess();
 
+    std::string to_string() const;
     const decltype(updates)& get_updates() const;
     bool has_updates(State *, Node *) const;
 

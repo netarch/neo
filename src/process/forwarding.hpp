@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 #include <unordered_set>
 #include <optional>
@@ -23,6 +24,8 @@ enum fwd_mode {
     ACCEPTED,
     DROPPED
 };
+
+std::string fwd_mode_to_str(int);
 
 struct CandHash {
     size_t operator()(const std::vector<FIB_IPNH> *const&) const;

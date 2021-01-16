@@ -86,7 +86,7 @@
     [policies.communication]
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 [[policies]]
     type = "reachability"
@@ -95,7 +95,7 @@
     [policies.communication]
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 [[policies]]
     type = "reply-reachability"
@@ -104,7 +104,7 @@
     [policies.communication]
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 [[policies]]
     type = "waypoint"
@@ -113,7 +113,7 @@
     [policies.communication]
     protocol = "http" or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 
 #

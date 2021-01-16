@@ -7,8 +7,31 @@
 #include "stats.hpp"
 #include "lib/logger.hpp"
 #include "lib/hash.hpp"
-//#include "process/openflow.hpp"
 #include "model.h"
+
+std::string fwd_mode_to_str(int mode)
+{
+    switch (mode) {
+        case fwd_mode::PACKET_ENTRY:
+            return "fwd_mode::PACKET_ENTRY";
+        case fwd_mode::FIRST_COLLECT:
+            return "fwd_mode::FIRST_COLLECT";
+        case fwd_mode::FIRST_FORWARD:
+            return "fwd_mode::FIRST_FORWARD";
+        case fwd_mode::COLLECT_NHOPS:
+            return "fwd_mode::COLLECT_NHOPS";
+        case fwd_mode::FORWARD_PACKET:
+            return "fwd_mode::FORWARD_PACKET";
+        case fwd_mode::ACCEPTED:
+            return "fwd_mode::ACCEPTED";
+        case fwd_mode::DROPPED:
+            return "fwd_mode::DROPPED";
+        default:
+            Logger::get().err("Unknown forwarding mode ("
+                              + std::to_string(mode) + ")");
+            return "";
+    }
+}
 
 ForwardingProcess::~ForwardingProcess()
 {
@@ -31,7 +54,6 @@ ForwardingProcess::~ForwardingProcess()
 
 void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 {
-    this->enable(); // forwarding process is always enabled
     this->policy = policy;
 
     uint8_t pkt_state = 0;
@@ -153,7 +175,7 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             state->choice_count = 0;
             break;
         default:
-            Logger::get().err("Forwarding process: unknown mode ("
+            Logger::get().err("Unknown forwarding mode ("
                               + std::to_string(mode) + ")");
     }
 }
