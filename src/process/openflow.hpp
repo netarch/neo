@@ -51,10 +51,8 @@ class OpenflowProcess : public Process
 {
 private:
     std::map<Node *, std::vector<Route>> updates;
-    std::unordered_set<
-        OpenflowUpdateState *,
-        OFUpdateStateHash,
-        OFUpdateStateEq> update_state_hist;
+    std::unordered_set<OpenflowUpdateState *,
+        OFUpdateStateHash, OFUpdateStateEq> update_state_hist;
 
     void install_update(State *, Network&);
 

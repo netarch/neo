@@ -1,12 +1,54 @@
 #!/bin/bash
+#
+# Astyle check for source files.
+#
+set -euo pipefail
 
-type astyle >/dev/null 2>&1 || (echo '[!] astyle is not installed.' >&2; exit 1)
+msg() {
+    echo -e "[+] ${1-}" >&2
+}
+
+hurt() {
+    echo -e "[-] ${1-}" >&2
+}
+
+die() {
+    echo -e "[!] ${1-}" >&2
+    exit 1
+}
+
+check_depends() {
+    for cmd in $@; do
+        if ! command -v $cmd >/dev/null 2>&1; then
+            die "'$cmd' not found"
+        fi
+    done
+}
 
 usage() {
-    echo "[!] Usage: $0 [OPTIONS]" >&2
-    echo '    Options:' >&2
-    echo '        -a    automatically update the source files' >&2
-    echo '        -h    show this message and exit' >&2
+    cat <<EOF
+[!] Usage: $(basename "${BASH_SOURCE[0]}") [options]
+
+    Astyle check for source files.
+
+    Options:
+    -h, --help          Print this message and exit
+    -f, --overwrite     Overwrite the original source files
+EOF
+}
+
+parse_params() {
+    while :; do
+        case "${1-}" in
+        -h | --help) usage; exit ;;
+        -f | --overwrite)
+            OVERWRITE=1
+            ;;
+        -?*) die "Unknown option: $1\n$(usage)" ;;
+        *) break ;;
+        esac
+        shift
+    done
 }
 
 verle() {
@@ -17,65 +59,58 @@ verlt() {
     [ "$1" = "$2" ] && return 1 || verle $1 $2
 }
 
-AUTO=0
-while getopts 'ah' op; do
-    case $op in
-        a)
-            AUTO=1 ;;
-        h|*)
-            usage
-            exit 1 ;;
-    esac
-done
+main() {
+    OVERWRITE=0
+    parse_params $@
+    check_depends astyle
 
-EXITCODE=0
-ASTYLE_VER="$(astyle --version | head -n1 | cut -d ' ' -f 4)"
-ASTYLE_OPTS=(
-    '--style=kr'
-    '--indent=spaces=4'
-    '--indent-switches'
-    '--pad-oper'
-    '--pad-header'
-    '--align-pointer=name'
-    '--align-reference=type'
-    '--suffix=none'
-)
-if verle 2.06 $ASTYLE_VER; then
-    ASTYLE_OPTS+=('--pad-comma')    # >= 2.06
-fi
-if verlt $ASTYLE_VER 3.0; then
-    ASTYLE_OPTS+=('--add-brackets') # < 3.0
-else
-    ASTYLE_OPTS+=('--add-braces')   # >= 3.0
-fi
-SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
-SRC_DIR="$(realpath ${SCRIPT_DIR}/../src)"
-TEST_DIR="$(realpath ${SCRIPT_DIR}/../test)"
-FILES=$(find ${SRC_DIR} ${TEST_DIR} -type f | grep -E '\.(c|h|cpp|hpp)$')
+    ASTYLE_OPTS=(
+        '--suffix=none'
+        '--formatted'
+        '--style=kr'
+        '--indent=spaces=4'
+        '--indent-switches'
+        '--pad-oper'
+        '--pad-header'
+        '--align-pointer=name'
+        '--align-reference=type'
+        '--lineend=linux'
+    )
+    ASTYLE_VER="$(astyle --version | head -n1 | cut -d ' ' -f 4)"
+    if verle 2.06 $ASTYLE_VER; then
+        ASTYLE_OPTS+=('--pad-comma')    # >= 2.06
+    fi
+    if verlt $ASTYLE_VER 3.0; then
+        ASTYLE_OPTS+=('--add-brackets') # < 3.0
+    else
+        ASTYLE_OPTS+=('--add-braces')   # >= 3.0
+    fi
+    if [ $OVERWRITE -eq 0 ]; then
+        ASTYLE_OPTS+=('--dry-run')
+    fi
 
-for FILE in $FILES; do
-    newfile="$(mktemp "tmp.XXXXXX")" || exit 1
-    if ! astyle ${ASTYLE_OPTS[*]} <"$FILE" >"$newfile"; then
-        echo >&2
-        echo "[!] astyle failed." >&2
+    SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
+    SRC_DIR="$(realpath ${SCRIPT_DIR}/../src)"
+    TEST_DIR="$(realpath ${SCRIPT_DIR}/../test)"
+    FILES=$(find ${SRC_DIR} ${TEST_DIR} -type f | grep -E '\.(c|h|cpp|hpp)$')
+    RESULT="$(astyle ${ASTYLE_OPTS[*]} ${FILES[*]})"
+
+    if [ -n "$RESULT" ]; then
+        if [ $OVERWRITE -eq 0 ]; then
+            echo "$RESULT" | awk '{print $2}' | while read -r file; do
+                hurt "$file style mismatch"
+            done
+            echo >&2
+            die "Use: ${BASH_SOURCE[0]} -f"
+        else
+            echo "$RESULT" | while read -r line; do msg "$line"; done
+        fi
+
         exit 1
     fi
-    if ! diff -upB "$FILE" "$newfile" &>/dev/null; then
-        if [ $AUTO -ne 0 ]; then
-            cp "$newfile" "$FILE"
-            echo "[+] $FILE updated." >&2
-        else
-            echo "[-] $FILE style mismatch." >&2
-        fi
-        EXITCODE=1
-    fi
-    rm -f "$newfile"
-done
+}
 
-if [ $AUTO -eq 0 -a $EXITCODE -eq 1 ]; then
-    echo >&2
-    echo "[!] Please run the following command:" >&2
-    echo "    $SCRIPT_DIR/astyle.sh -a" >&2
-fi
 
-exit $EXITCODE
+main $@
+
+# vim: set ts=4 sw=4 et:

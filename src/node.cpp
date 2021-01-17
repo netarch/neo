@@ -8,8 +8,7 @@
 void Node::add_interface(Interface *interface)
 {
     // Add the new interface to intfs
-    auto res = this->intfs.insert(std::make_pair(interface->get_name(),
-                                                 interface));
+    auto res = this->intfs.insert(std::make_pair(interface->get_name(), interface));
     if (res.second == false) {
         Logger::get().err("Duplicate interface name: " +
                           res.first->first);
@@ -21,7 +20,7 @@ void Node::add_interface(Interface *interface)
     } else {
         // Add the new interface to intfs_l3
         auto res = this->intfs_l3.insert(
-                std::make_pair(interface->addr(), interface));
+                       std::make_pair(interface->addr(), interface));
         if (res.second == false) {
             Logger::get().err("Duplicate interface IP: " +
                               res.first->first.to_string());

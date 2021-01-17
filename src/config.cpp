@@ -594,23 +594,23 @@ void Config::parse_correlated_policies(
         if (*type == "loadbalance") {
             correlated_policy = new LoadBalancePolicy(true);
             Config::parse_loadbalancepolicy(
-                    static_cast<LoadBalancePolicy *>(correlated_policy),
-                    cfg, network);
+                static_cast<LoadBalancePolicy *>(correlated_policy),
+                cfg, network);
         } else if (*type == "reachability") {
             correlated_policy = new ReachabilityPolicy(true);
             Config::parse_reachabilitypolicy(
-                    static_cast<ReachabilityPolicy *>(correlated_policy),
-                    cfg, network);
+                static_cast<ReachabilityPolicy *>(correlated_policy),
+                cfg, network);
         } else if (*type == "reply-reachability") {
             correlated_policy = new ReplyReachabilityPolicy(true);
             Config::parse_replyreachabilitypolicy(
-                    static_cast<ReplyReachabilityPolicy *>(correlated_policy),
-                    cfg, network);
+                static_cast<ReplyReachabilityPolicy *>(correlated_policy),
+                cfg, network);
         } else if (*type == "waypoint") {
             correlated_policy = new WaypointPolicy(true);
             Config::parse_waypointpolicy(
-                    static_cast<WaypointPolicy *>(correlated_policy),
-                    cfg, network);
+                static_cast<WaypointPolicy *>(correlated_policy),
+                cfg, network);
         } else {
             Logger::get().err("Unsupported policy type: " + *type);
         }
@@ -705,10 +705,10 @@ void Config::parse_policies(
 }
 
 void Config::parse_openflow_update(
-        Node **node,
-        Route *route,
-        const std::shared_ptr<cpptoml::table>& config,
-        const Network& network)
+    Node **node,
+    Route *route,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
 {
     assert(node != nullptr);
     assert(route != nullptr);

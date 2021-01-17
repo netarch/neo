@@ -42,47 +42,44 @@ private:
     static void parse_squid(Squid *, const std::shared_ptr<cpptoml::table>&);
     static void parse_middlebox(Middlebox *, const std::shared_ptr<cpptoml::table>&);
 
-    static void parse_link(
-                Link *,
-                const std::shared_ptr<cpptoml::table>&,
-                const std::map<std::string, Node *>&);
+    static void parse_link(Link *, const std::shared_ptr<cpptoml::table>&,
+                           const std::map<std::string, Node *>&);
 
-    static void parse_communication(
-                Communication *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
+    static void parse_communication(Communication *,
+                                    const std::shared_ptr<cpptoml::table>&,
+                                    const Network&);
     /* single-communication policies */
-    static void parse_loadbalancepolicy(
-                LoadBalancePolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
-    static void parse_reachabilitypolicy(
-                ReachabilityPolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
-    static void parse_replyreachabilitypolicy(
-                ReplyReachabilityPolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
-    static void parse_waypointpolicy(
-                WaypointPolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
+    static void parse_loadbalancepolicy(LoadBalancePolicy *,
+                                        const std::shared_ptr<cpptoml::table>&,
+                                        const Network&);
+    static void parse_reachabilitypolicy(ReachabilityPolicy *,
+                                         const std::shared_ptr<cpptoml::table>&,
+                                         const Network&);
+    static void parse_replyreachabilitypolicy(ReplyReachabilityPolicy *,
+            const std::shared_ptr<cpptoml::table>&,
+            const Network&);
+    static void parse_waypointpolicy(WaypointPolicy *,
+                                     const std::shared_ptr<cpptoml::table>&,
+                                     const Network&);
     /* multi-communication policies */
-    static void parse_onerequestpolicy(
-                OneRequestPolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
+    static void parse_onerequestpolicy(OneRequestPolicy *,
+                                       const std::shared_ptr<cpptoml::table>&,
+                                       const Network&);
     /* policies with multiple, correlated, single-communication policies */
-    static void parse_correlated_policies(
-                Policy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
-    static void parse_conditionalpolicy(
-                ConditionalPolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
-    static void parse_consistencypolicy(
-                ConsistencyPolicy *,
-                const std::shared_ptr<cpptoml::table>&, const Network&);
+    static void parse_correlated_policies(Policy *,
+                                          const std::shared_ptr<cpptoml::table>&,
+                                          const Network&);
+    static void parse_conditionalpolicy(ConditionalPolicy *,
+                                        const std::shared_ptr<cpptoml::table>&,
+                                        const Network&);
+    static void parse_consistencypolicy(ConsistencyPolicy *,
+                                        const std::shared_ptr<cpptoml::table>&,
+                                        const Network&);
 
-    static void parse_openflow_update(
-                Node **,
-                Route *,
-                const std::shared_ptr<cpptoml::table>&,
-                const Network&);
+    static void parse_openflow_update(Node **,
+                                      Route *,
+                                      const std::shared_ptr<cpptoml::table>&,
+                                      const Network&);
 
 public:
     static void start_parsing(const std::string& filename);
