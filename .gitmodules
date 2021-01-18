@@ -1,3 +1,4 @@
 [submodule "spdlog"]
 	path = third_party/spdlog/spdlog
 	url = https://github.com/gabime/spdlog.git
+	ignore = dirty
