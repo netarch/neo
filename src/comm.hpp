@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef MAX_COMMS
 #define MAX_COMMS 2
+#endif
 
 #ifdef __cplusplus
 
