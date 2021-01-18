@@ -2,7 +2,7 @@
 
 #define XXH_INLINE_ALL
 #define XXH_STATIC_LINKING_ONLY
-#include <xxhash/xxhash.h>
+#include <xxhash.h>
 
 namespace hash
 {

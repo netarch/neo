@@ -2,7 +2,7 @@
 
 #include <string>
 #include <unordered_map>
-#include <cpptoml/cpptoml.hpp>
+#include <cpptoml.hpp>
 
 class Interface;
 class Route;

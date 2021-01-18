@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 #include <regex>
-#include <cpptoml/cpptoml.hpp>
+#include <cpptoml.hpp>
 
 #include "interface.hpp"
 #include "route.hpp"

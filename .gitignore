@@ -11,6 +11,7 @@ test-neo
 tags
 
 # Intermediate build files
+build/
 Makefile
 autom4te.cache/
 codecov.sh

@@ -1,7 +1,7 @@
 ##
 ## Package name, version, bug-report, package tarname, URL
 ##
-AC_INIT([Neo], [0.0.1], [kychou2@illinois.edu], [neo],
+AC_INIT([Neo], [0.1], [kychou2@illinois.edu], [neo],
         [https://github.com/netarch/neo])
 
 
@@ -184,7 +184,9 @@ define([CHECK_LIB], [
 ADD_CFLAG([-std=c17]) # skip warning flags for spin-generated code
 ADD_CXXFLAG([-Wall -Wextra -Werror -std=c++17])
 ADD_CPPFLAG([-iquote ${srcdir}/src -iquote .])
-ADD_CPPFLAG([-isystem ${srcdir}/third_party])
+ADD_CPPFLAG([-isystem ${srcdir}/third_party/catch2])
+ADD_CPPFLAG([-isystem ${srcdir}/third_party/cpptoml])
+ADD_CPPFLAG([-isystem ${srcdir}/third_party/xxhash])
 ADD_CPPFLAG([-DMAX_COMMS=$MAX_COMMS])
 ADD_SPINFLAG([-a])
 ADD_SPINFLAG([-DNOBOUNDCHECK])
