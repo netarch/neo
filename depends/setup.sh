@@ -1,16 +1,23 @@
 #!/bin/bash
 #
-# Set up the development environment
+# Set up the development environment.
 #
 
-set -e
-set -o nounset
+set -euo pipefail
 
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 cd "$SCRIPT_DIR"
 
-[ $UID -eq 0 ] && \
-    (echo '[!] Please run this script without root privilege' >&2; exit 1)
+msg() {
+    echo -e "[+] ${1-}" >&2
+}
+
+die() {
+    echo -e "[!] ${1-}" >&2
+    exit 1
+}
+
+[ $UID -eq 0 ] && die 'Please run this script without root privilege'
 
 #
 # Output a short name of the Linux distribution
@@ -42,8 +49,7 @@ get_distro() {
         # Fall back to uname
         echo "$(uname -s)"
     else
-        echo '[-] Unable to determine the distribution' >&2
-        exit 1
+        die 'Unable to determine the distribution'
     fi
 }
 
@@ -58,8 +64,7 @@ aur_pkg_exists() {
     elif [ "$RETURN_CODE" = "404" ]; then
         return 1    # package not found
     else
-        echo "[-] AUR HTTP $RETURN_CODE for $1" >&2
-        exit 1
+        die "AUR HTTP $RETURN_CODE for $1"
     fi
     unset RETURN_CODE
 }
@@ -70,7 +75,7 @@ aur_pkg_exists() {
 makepkg_arch() {
     TARGET="$1"
     shift
-    echo "[+] Building $TARGET..."
+    msg "Building $TARGET..."
     pushd "$TARGET"
     makepkg -sri $@
     popd # "$TARGET"
@@ -86,7 +91,7 @@ makepkg_ubuntu() {
 
     TARGET="$1"
     shift
-    echo "[+] Building $TARGET..."
+    msg "Building $TARGET..."
     pushd "$TARGET"
     sed -i PKGBUILD \
         -e 's|\<python\> |python3 |g' \
@@ -118,8 +123,7 @@ makepkg_ubuntu() {
             elif [[ "$url" == *.tar.* ]]; then
                 curl -L "$url" -o "$target" >/dev/null 2>&1
             else
-                echo "[-] Unsupported source URL $url" >&2
-                return 1
+                die "Unsupported source URL $url"
             fi
         fi
         # create links in the src directory
@@ -148,8 +152,7 @@ aur_install() {
     TARGET="$1"
     shift
     if ! aur_pkg_exists "$TARGET"; then
-        echo "[-] AUR package $TARGET not found" >&2
-        return 1
+        die "AUR package $TARGET not found"
     fi
     if [[ -d "$TARGET" ]]; then
         cd "$TARGET"; git pull; cd ..
@@ -164,7 +167,7 @@ main() {
     DISTRO="$(get_distro)"
 
     if [ "$DISTRO" = "arch" ]; then
-        makedepends=(autoconf make spin-git)
+        makedepends=(autoconf make cmake spin-git)
         depends=(libnet ipvsadm squid)
         experiment_depends=(astyle python-toml bc)
 
@@ -177,7 +180,7 @@ main() {
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_depends=(build-essential curl git)
-        makedepends=(autoconf make libnet1-dev)
+        makedepends=(autoconf make cmake libnet1-dev)
         depends=(libnet1 ipvsadm squid)
         experiment_depends=(astyle python3-toml bc)
         aur_pkgs=(spin-git)
@@ -192,11 +195,10 @@ main() {
         done
 
     else
-        echo "[-] Unsupported distribution: $DISTRO" >&2
-        exit 1
+        die "Unsupported distribution: $DISTRO"
     fi
 
-    echo '[+] Finished!'
+    msg "Finished"
 }
 
 
