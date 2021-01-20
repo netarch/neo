@@ -12,7 +12,6 @@ tags
 
 # Intermediate build files
 build/
-codecov.sh
 
 # Coverage files
 *.gcov

@@ -37,6 +37,9 @@ set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-fra
 set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
 
+#
+# coverage options
+#
 option(ENABLE_COVERAGE "Enable coverage testing" OFF)
 if (ENABLE_COVERAGE)
     add_compile_options(--coverage)
@@ -83,8 +86,6 @@ find_package(Threads REQUIRED)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 FILE(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ${SRC_DIR}/*.cpp)
 set(MODEL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/network.pml)
-set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
-FILE(GLOB_RECURSE TEST_SRC_FILES CONFIGURE_DEPENDS ${TEST_DIR}/*.cpp)
 
 #
 # spin model target
@@ -122,8 +123,8 @@ add_executable(neo ${SRC_FILES})
 add_dependencies(neo spdlog)
 target_include_directories(neo PRIVATE ${SRC_DIR})
 target_include_directories(neo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
-target_link_libraries(neo PRIVATE
-    spin_model cpptoml xxhash Libnet::Libnet Threads::Threads)
+target_link_libraries(neo PRIVATE spin_model cpptoml xxhash Libnet::Libnet
+    Threads::Threads)
 
 #
 # set main target capability
@@ -137,18 +138,8 @@ add_custom_target(setcap ALL
 #
 option(ENABLE_TESTS "Build tests" OFF)
 if (ENABLE_TESTS)
-    set(SRC_FILES_WO_MAIN ${SRC_FILES})
-    list(REMOVE_ITEM SRC_FILES_WO_MAIN main.cpp)
-    add_executable(tests ${SRC_FILES_WO_MAIN} ${TEST_SRC_FILES})
-    add_dependencies(tests spdlog)
-    target_include_directories(tests PRIVATE ${SRC_DIR})
-    target_include_directories(tests SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
-    target_link_libraries(tests PRIVATE
-        spin_model cpptoml xxhash Libnet::Libnet Threads::Threads Catch2::Catch2)
-
-    add_custom_target(tests-setcap ALL
-        sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
-        DEPENDS tests)
+    enable_testing()
+    add_subdirectory(test)
 endif()
 
 

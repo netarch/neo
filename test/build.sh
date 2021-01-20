@@ -66,7 +66,7 @@ main() {
 
     # fresh build
     cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" ${CMAKE_ARGS[*]}
-    make -C "${BUILD_DIR}"
+    cmake --build "${BUILD_DIR}"
 }
 
 
