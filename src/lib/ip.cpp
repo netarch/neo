@@ -10,12 +10,12 @@ IPv4Address::IPv4Address(const std::string& ips)
     r = sscanf(ips.c_str(), "%d.%d.%d.%d%n", oct, oct + 1, oct + 2, oct + 3,
                &parsed);
     if (r != 4 || parsed != (int)ips.size()) {
-        Logger::get().err("Failed to parse IP: " + ips);
+        Logger::error("Failed to parse IP: " + ips);
     }
     value = 0;
     for (int i = 0; i < 4; ++i) {
         if (oct[i] < 0 || oct[i] > 255) {
-            Logger::get().err("Invalid IP octet: " + std::to_string(oct[i]));
+            Logger::error("Invalid IP octet: " + std::to_string(oct[i]));
         }
         value = (value << 8) + oct[i];
     }

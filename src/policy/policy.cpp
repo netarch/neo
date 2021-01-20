@@ -186,10 +186,10 @@ EqClass *Policy::get_initial_ec(State *state) const
 void Policy::report(State *state) const
 {
     if (state->violated) {
-        Logger::get().info("*** Policy violated! ***");
+        Logger::info("*** Policy violated! ***");
         kill(getppid(), SIGUSR1);
     } else {
-        Logger::get().info("*** Policy holds! ***");
+        Logger::info("*** Policy holds! ***");
     }
 }
 

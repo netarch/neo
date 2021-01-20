@@ -6,8 +6,8 @@ void Choices::add_choice(EqClass *ec, Node *node, const FIB_IPNH& choice)
 {
     auto res = tbl.emplace(std::make_pair(ec, node), choice);
     if (!res.second) {
-        Logger::get().err("Duplicate choice key: (" + ec->to_string() + ", "
-                          + node->to_string() + ")");
+        Logger::error("Duplicate choice key: (" + ec->to_string() + ", "
+                      + node->to_string() + ")");
     }
 }
 

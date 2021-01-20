@@ -9,7 +9,7 @@
 #include "policy/policy.hpp"
 #include "lib/ip.hpp"
 #include "lib/hash.hpp"
-class State;
+struct State;
 
 /*
  * Packet state
@@ -130,10 +130,14 @@ bool same_ips_ports(const Packet&, const Packet&);
 bool reversed_ips_ports(const Packet&, const Packet&);
 bool same_comm(const Packet&, const Packet&);
 
-struct PacketHash {
+class PacketHash
+{
+public:
     size_t operator()(Packet *const&) const;
 };
 
-struct PacketEq {
+class PacketEq
+{
+public:
     bool operator()(Packet *const&, Packet *const&) const;
 };

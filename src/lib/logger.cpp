@@ -1,127 +1,118 @@
 #include "lib/logger.hpp"
 
-#include <iostream>
-#include <string>
 #include <cstring>
 #include <clocale>
+#include <string>
 #include <stdexcept>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
-Logger::Logger(): verbose(false)
+// [second.microsecond] [pid] [log_level] log_msg
+#define LOG_PATTERN "[%E.%f] [%P] [%l] %v"
+
+std::shared_ptr<spdlog::logger> Logger::stdout_logger = nullptr;
+std::shared_ptr<spdlog::logger> Logger::file_logger = nullptr;
+
+void Logger::enable_console_logging()
 {
-}
-
-void Logger::log(const std::string& type, const std::string& msg)
-{
-    // write log if the file is open
-    if (logfile.is_open()) {
-        logfile << "[" + type + "] " + msg << std::endl;
-    }
-}
-
-Logger::~Logger()
-{
-    if (logfile.is_open()) {
-        logfile.close();
-    }
-}
-
-Logger& Logger::get()
-{
-    static Logger instance;
-    return instance;
-}
-
-void Logger::reopen()
-{
-    if (logfile.is_open()) {
-        logfile.close();
-    }
-    if (!filename.empty()) {
-        logfile.open(filename, std::ios_base::app);
-        if (logfile.fail()) {
-            throw std::runtime_error("Failed to open log file: " + filename);
-        }
-    }
-}
-
-void Logger::set_file(const std::string& fn)
-{
-    if (logfile.is_open()) {
-        logfile.close();
-    }
-    filename = fn;
-    if (!filename.empty()) {
-        logfile.open(filename, std::ios_base::app);
-        if (logfile.fail()) {
-            throw std::runtime_error("Failed to open log file: " + filename);
-        }
-    }
-}
-
-void Logger::set_verbose(bool v)
-{
-    verbose = v;
-}
-
-std::string Logger::get_file() const
-{
-    return filename;
-}
-
-void Logger::print(const std::string& msg)
-{
-    if (logfile.is_open()) {
-        logfile << msg << std::endl;
-    }
-}
-
-void Logger::out(const std::string& msg)
-{
-    std::cout << msg << std::endl;
-}
-
+    if (!stdout_logger) {
+        stdout_logger = spdlog::stdout_color_st("stdout_logger");
+        stdout_logger->set_pattern(LOG_PATTERN);
 #ifdef DEBUG
+        stdout_logger->set_level(spdlog::level::debug);
+#else
+        stdout_logger->set_level(spdlog::level::info);
+#endif
+        stdout_logger->flush_on(spdlog::level::debug);
+    }
+}
+
+void Logger::disable_console_logging()
+{
+    if (stdout_logger) {
+        stdout_logger = nullptr;
+        spdlog::drop("stdout_logger");
+    }
+}
+
+void Logger::enable_file_logging(const std::string& filename)
+{
+    if (Logger::filename() != filename) {
+        disable_file_logging();
+        file_logger = spdlog::basic_logger_st("file_logger", filename, /* truncate */false);
+        file_logger->set_pattern(LOG_PATTERN);
+#ifdef DEBUG
+        file_logger->set_level(spdlog::level::debug);
+#else
+        file_logger->set_level(spdlog::level::info);
+#endif
+        file_logger->flush_on(spdlog::level::debug);
+    }
+}
+
+void Logger::disable_file_logging()
+{
+    if (file_logger) {
+        file_logger = nullptr;
+        spdlog::drop("file_logger");
+    }
+}
+
+std::string Logger::filename()
+{
+    if (file_logger) {
+        return std::static_pointer_cast<spdlog::sinks::basic_file_sink_st>(
+                   file_logger->sinks()[0])->filename();
+    }
+    return "";
+}
+
 void Logger::debug(const std::string& msg)
 {
-    log("DEBUG", msg);
-    if (verbose) {
-        std::cout << "[DEBUG] " << msg << std::endl;
+    if (stdout_logger) {
+        stdout_logger->debug(msg);
+    }
+    if (file_logger) {
+        file_logger->debug(msg);
     }
 }
-#else
-void Logger::debug(const std::string& msg __attribute__((unused)))
-{
-}
-#endif
 
 void Logger::info(const std::string& msg)
 {
-    log("INFO", msg);
-    if (verbose) {
-        std::cout << "[INFO] " << msg << std::endl;
+    if (stdout_logger) {
+        stdout_logger->info(msg);
+    }
+    if (file_logger) {
+        file_logger->info(msg);
     }
 }
 
 void Logger::warn(const std::string& msg)
 {
-    log("WARN", msg);
-    if (verbose) {
-        std::cout << "[WARN] " << msg << std::endl;
-    } else {
-        std::cerr << "[WARN] " << msg << std::endl;
+    if (stdout_logger) {
+        stdout_logger->warn(msg);
+    }
+    if (file_logger) {
+        file_logger->warn(msg);
     }
 }
 
-void Logger::err(const std::string& msg)
+void Logger::error(const std::string& msg)
 {
-    log("ERRO", msg);
+    if (stdout_logger) {
+        stdout_logger->error(msg);
+    }
+    if (file_logger) {
+        file_logger->error(msg);
+    }
     throw std::runtime_error(msg);
 }
 
-void Logger::err(const std::string& msg, int errnum)
+void Logger::error(const std::string& msg, int err_num)
 {
     locale_t locale = newlocale(LC_ALL_MASK, "", 0);
-    std::string err_str = strerror_l(errnum, locale);
+    std::string err_str = strerror_l(err_num, locale);
     freelocale(locale);
-    err(msg + ": " + err_str);
+    error(msg + ": " + err_str);
 }

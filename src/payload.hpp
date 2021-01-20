@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "eqclass.hpp"
-class State;
+struct State;
 
 class Payload
 {
@@ -49,15 +49,21 @@ public:
 bool operator==(const PayloadKey&, const PayloadKey&);
 
 
-struct PayloadHash {
+class PayloadHash
+{
+public:
     size_t operator()(Payload *const&) const;
 };
 
-struct PayloadEq {
+class PayloadEq
+{
+public:
     bool operator()(Payload *const&, Payload *const&) const;
 };
 
-struct PayloadKeyHash {
+class PayloadKeyHash
+{
+public:
     size_t operator()(const PayloadKey&) const;
 };
 

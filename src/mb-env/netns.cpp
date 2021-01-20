@@ -29,7 +29,7 @@ void NetNS::set_interfaces(const Node& node)
 
     // open a ctrl_sock for setting up IP addresses
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket()", errno);
+        Logger::error("socket()", errno);
     }
 
     // TODO: what about L2 interface?
@@ -39,7 +39,7 @@ void NetNS::set_interfaces(const Node& node)
 
         // create a new tap device
         if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
-            Logger::get().err("/dev/net/tun", errno);
+            Logger::error("/dev/net/tun", errno);
         }
         memset(&ifr, 0, sizeof(ifr));
         ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
@@ -93,7 +93,7 @@ void NetNS::set_interfaces(const Node& node)
 
 error:
     close(ctrl_sock);
-    Logger::get().err(ifr.ifr_name, errno);
+    Logger::error(ifr.ifr_name, errno);
 }
 
 void NetNS::set_rttable(const RoutingTable& rib)
@@ -104,7 +104,7 @@ void NetNS::set_rttable(const RoutingTable& rib)
 
     // open a ctrl_sock for setting up routing entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket()", errno);
+        Logger::error("socket()", errno);
     }
 
     for (const Route& route : rib) {
@@ -137,7 +137,7 @@ void NetNS::set_rttable(const RoutingTable& rib)
 
         if (ioctl(ctrl_sock, SIOCADDRT, &rt) < 0) {
             close(ctrl_sock);
-            Logger::get().err(route.to_string(), errno);
+            Logger::error(route.to_string(), errno);
         }
     }
 
@@ -159,7 +159,7 @@ void NetNS::set_arp_cache(const Node& node)
 
     // open a ctrl_sock for setting up arp cache entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::get().err("socket()", errno);
+        Logger::error("socket()", errno);
     }
 
     // collect L3 peer IP addresses and egress interface
@@ -194,8 +194,8 @@ void NetNS::set_arp_cache(const Node& node)
 
         if (ioctl(ctrl_sock, SIOCSARP, &arp) < 0) {
             close(ctrl_sock);
-            Logger::get().err("Failed to set ARP cache for "
-                              + arp_input.first.to_string(), errno);
+            Logger::error("Failed to set ARP cache for "
+                          + arp_input.first.to_string(), errno);
         }
     }
 
@@ -206,22 +206,21 @@ void NetNS::set_arp_cache(const Node& node)
 //{
 //    // create and enter a new mntns
 //    if (unshare(CLONE_NEWNS) < 0) {
-//        Logger::get().err("Failed to create a new mntns", errno);
+//        Logger::error("Failed to create a new mntns", errno);
 //    }
 //
 //    // create a new xtables.lock for this network namespace
 //    int fd;
 //    if ((fd = mkstemp(xtables_lock)) < 0) {
-//        Logger::get().err(xtables_lock, errno);
+//        Logger::error(xtables_lock, errno);
 //    }
 //    if (close(fd) < 0) {
-//        Logger::get().err(xtables_lock, errno);
+//        Logger::error(xtables_lock, errno);
 //    }
 //
 //    // bind mount it to /run/xtables.lock
 //    if (mount(xtables_lock, xtables_lock_mnt, NULL, MS_BIND, NULL) < 0) {
-//        Logger::get().err("Failed to mount " + std::string(xtables_lock),
-//                          errno);
+//        Logger::error("Failed to mount " + std::string(xtables_lock), errno);
 //    }
 //}
 
@@ -249,7 +248,7 @@ NetNS::~NetNS()
 
     // unmount the xtables lock and remove the actual lock file
     //if (umount(xtables_lock_mnt) < 0) {
-    //    Logger::get().err(xtables_lock_mnt, errno);
+    //    Logger::error(xtables_lock_mnt, errno);
     //}
     //fs::remove(xtables_lock);
 }
@@ -260,15 +259,15 @@ void NetNS::init(const Node& node)
 
     // save the original netns fd
     if ((old_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::get().err(netns_path, errno);
+        Logger::error(netns_path, errno);
     }
     // create and enter a new netns
     if (unshare(CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to create a new netns", errno);
+        Logger::error("Failed to create a new netns", errno);
     }
     // save the new netns fd
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::get().err(netns_path, errno);
+        Logger::error(netns_path, errno);
     }
     // create tap interfaces and set IP addresses
     set_interfaces(node);
@@ -280,7 +279,7 @@ void NetNS::init(const Node& node)
     //mntns_xtables_lock();
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("setns()", errno);
+        Logger::error("setns()", errno);
     }
 }
 
@@ -288,14 +287,14 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
 {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("setns()", errno);
+        Logger::error("setns()", errno);
     }
 
     app_action(app);
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("setns()", errno);
+        Logger::error("setns()", errno);
     }
 }
 
@@ -303,7 +302,7 @@ size_t NetNS::inject_packet(const Packet& pkt)
 {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("setns()", errno);
+        Logger::error("setns()", errno);
     }
 
     // serialize the packet
@@ -318,7 +317,7 @@ size_t NetNS::inject_packet(const Packet& pkt)
     int fd = tapfds.at(pkt.get_intf());
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
-        Logger::get().err("Packet injection failed", errno);
+        Logger::error("Packet injection failed", errno);
     }
 
     // free resources
@@ -326,7 +325,7 @@ size_t NetNS::inject_packet(const Packet& pkt)
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("setns()", errno);
+        Logger::error("setns()", errno);
     }
 
     return nwrite;
@@ -344,7 +343,7 @@ std::vector<Packet> NetNS::read_packets() const
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("setns()", errno);
+        Logger::error("setns()", errno);
     }
 
     // set read fds
@@ -360,7 +359,7 @@ std::vector<Packet> NetNS::read_packets() const
 
     // select among the tap fds
     if (select(nfds, &readfds, NULL, NULL, NULL) < 0) {
-        Logger::get().err("select()", errno);
+        Logger::error("select()", errno);
     }
 
     // read from tap fds if available
@@ -370,7 +369,7 @@ std::vector<Packet> NetNS::read_packets() const
             ssize_t nread;
             if ((nread = read(tapfd.second, pktbuff.get_buffer(),
                               pktbuff.get_len())) < 0) {
-                Logger::get().err("Failed to read packet", errno);
+                Logger::error("Failed to read packet", errno);
             }
             pktbuff.set_len(nread);
             pktbuffs.push_back(pktbuff);
@@ -379,7 +378,7 @@ std::vector<Packet> NetNS::read_packets() const
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::get().err("Failed to setns", errno);
+        Logger::error("Failed to setns", errno);
     }
 
     // deserialize the packets
@@ -402,7 +401,7 @@ std::vector<Packet> NetNS::read_packets() const
 
     // create and connect to a netlink socket
     if (!(sock = nl_socket_alloc())) {
-        Logger::get().err("nl_socket_alloc", ENOMEM);
+        Logger::error("nl_socket_alloc", ENOMEM);
     }
     nl_connect(sock, NETLINK_ROUTE);
 
@@ -411,7 +410,7 @@ std::vector<Packet> NetNS::read_packets() const
 
         // configure veth interfaces and put the peer to the original netns
         if (!(link = rtnl_link_veth_alloc())) {
-            Logger::get().err("rtnl_link_veth_alloc", ENOMEM);
+            Logger::error("rtnl_link_veth_alloc", ENOMEM);
         }
         peer = rtnl_link_veth_get_peer(link);
         rtnl_link_set_name(link, intf->get_name().c_str());
@@ -422,7 +421,7 @@ std::vector<Packet> NetNS::read_packets() const
         // actually create the interfaces
         int err = rtnl_link_add(sock, link, NLM_F_CREATE);
         if (err < 0) {
-            Logger::get().err(std::string("rtnl_link_add: ") +
+            Logger::error(std::string("rtnl_link_add: ") +
                                        nl_geterror(err));
         }
 

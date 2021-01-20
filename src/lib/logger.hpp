@@ -1,36 +1,29 @@
 #pragma once
 
-#include <fstream>
+#include <memory>
 #include <string>
+
+namespace spdlog
+{
+class logger;
+} // namespace spdlog
 
 class Logger
 {
 private:
-    std::string filename;
-    std::ofstream logfile;
-    bool verbose;
-
-    Logger();
-    void log(const std::string&, const std::string&);
+    static std::shared_ptr<spdlog::logger> stdout_logger;
+    static std::shared_ptr<spdlog::logger> file_logger;
 
 public:
-    // Disable the copy constructor and the copy assignment operator
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
-    ~Logger();
+    static void enable_console_logging();
+    static void disable_console_logging();
+    static void enable_file_logging(const std::string& filename);
+    static void disable_file_logging();
+    static std::string filename();
 
-    static Logger& get();
-
-    void reopen();
-    void set_file(const std::string&);
-    void set_verbose(bool);
-    std::string get_file() const;
-
-    void print(const std::string&);     // print directly to log file
-    void out(const std::string&);       // print to stdout
-    void debug(const std::string&);     // log debugging messages
-    void info(const std::string&);      // log info
-    void warn(const std::string&);      // log warning
-    void err(const std::string&);       // log error and throw exception
-    void err(const std::string&, int);  // log error and throw exception
+    static void debug(const std::string&);
+    static void info(const std::string&);
+    static void warn(const std::string&);
+    static void error(const std::string&);
+    static void error(const std::string&, int err_num);
 };

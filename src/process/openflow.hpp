@@ -9,7 +9,7 @@
 #include "policy/policy.hpp"
 #include "node.hpp"
 #include "network.hpp"
-class State;
+struct State;
 
 /*
  * The state of how many updates have been installed.

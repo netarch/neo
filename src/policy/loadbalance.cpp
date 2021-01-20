@@ -42,9 +42,9 @@ int LoadBalancePolicy::check_violation(State *state)
         ++state->comm_state[state->comm].repetition;
         if (visited.size() == final_nodes.size()) {
             state->violated = false;
-            Logger::get().info("LBPolicy: repeated " +
-                               std::to_string(state->comm_state[state->comm].repetition) +
-                               " times");
+            Logger::info("Repeated "
+                         + std::to_string(state->comm_state[state->comm].repetition)
+                         + " times");
         } else if (state->comm_state[state->comm].repetition < repetition) {
             // see each repetition as a different communication
             comms[0].set_tx_port(comms[0].get_tx_port() + 1);

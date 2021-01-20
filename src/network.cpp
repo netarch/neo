@@ -14,7 +14,7 @@ void Network::add_node(Node *node)
 {
     auto res = nodes.insert(std::make_pair(node->get_name(), node));
     if (res.second == false) {
-        Logger::get().err("Duplicate node: " + res.first->first);
+        Logger::error("Duplicate node: " + res.first->first);
     }
 }
 
@@ -23,7 +23,7 @@ void Network::add_link(Link *link)
     // Add the new link to links
     auto res = links.insert(link);
     if (res.second == false) {
-        Logger::get().err("Duplicate link: " + (*res.first)->to_string());
+        Logger::error("Duplicate link: " + (*res.first)->to_string());
     }
 
     // Add the new peer to the respective node structures
@@ -105,7 +105,7 @@ void Network::update_fib(State *state)
     }
     memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
 
-    Logger::get().debug(fib->to_string());
+    Logger::debug(fib->to_string());
 }
 
 void Network::update_fib_openflow(
@@ -164,5 +164,5 @@ void Network::update_fib_openflow(
     }
     memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
 
-    Logger::get().debug(fib->to_string());
+    Logger::debug(fib->to_string());
 }

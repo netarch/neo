@@ -3,10 +3,11 @@
 #include <string>
 
 #include "network.hpp"
+#include "eqclasses.hpp"
 #include "policy/policy.hpp"
 #include "process/forwarding.hpp"
 #include "process/openflow.hpp"
-class State;
+struct State;
 
 class Plankton
 {
@@ -39,8 +40,7 @@ public:
     static Plankton& get();
 
     void init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
-              bool verbose, const std::string& input_file,
-              const std::string& output_dir);
+              const std::string& input_file, const std::string& output_dir);
     int run();
 
     /***** functions used by the Promela network model *****/

@@ -39,8 +39,7 @@ Packet::Packet(State *state, const Policy *policy)
         ack = 0;
         payload = nullptr;
     } else {
-        Logger::get().err("Unsupported packet state "
-                          + std::to_string(pkt_state));
+        Logger::error("Unsupported packet state " + std::to_string(pkt_state));
     }
 }
 

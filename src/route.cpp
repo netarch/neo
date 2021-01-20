@@ -62,7 +62,7 @@ bool Route::relevant_to_ec(const EqClass& ec) const
                  * The "network" of this route should either contain all the EC
                  * ranges or none at all.
                  */
-                Logger::get().err("Route splits an EC");
+                Logger::error("Route splits an EC");
             }
         } else {
             // first loop

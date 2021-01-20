@@ -12,7 +12,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(MAX_COMMS 2 CACHE STRING "Maximum number of communications")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
-add_compile_options(-O3 -g -Wall -Wextra -Werror)
+add_compile_options(-g -Wall -Wextra -Werror)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-Wno-dynamic-class-memaccess)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
+            AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
+        add_compile_options(-Wno-stringop-overflow)
+    endif()
+endif()
 add_compile_definitions(MAX_COMMS=${MAX_COMMS}
                         SIZEOF_VOID_P=${SIZEOF_VOID_P}
                         SIZEOF_INT=${SIZEOF_INT})
@@ -21,8 +29,10 @@ set(SPIN_FLAGS -a -DNOBOUNDCHECK -DNOCOMP -DNOFAIR -DSAFETY -DSFH -DVECTORSZ=100
     -DSIZEOF_INT=${SIZEOF_INT})
 
 #
-# debug compile options
+# release/debug compile options
 #
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_C_FLAGS_DEBUG "-g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
@@ -82,7 +92,7 @@ add_custom_command(
 #
 add_executable(neo ${SRC_FILES})
 add_dependencies(neo spdlog)
-target_include_directories(neo PRIVATE ${SRC_DIR})
+target_include_directories(neo PRIVATE ${SRC_DIR} ${spdlog_INCLUDE_DIRS})
 target_link_libraries(neo PRIVATE
     spin_model cpptoml xxhash Libnet::Libnet Threads::Threads)
 

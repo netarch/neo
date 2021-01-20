@@ -29,7 +29,7 @@ std::string process_id_to_str(int process_id)
         case pid::OPENFLOW:
             return "pid::OPENFLOW";
         default:
-            Logger::get().err("Unknown process id " + std::to_string(process_id));
+            Logger::error("Unknown process id " + std::to_string(process_id));
             return "";
     }
 }

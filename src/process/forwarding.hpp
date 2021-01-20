@@ -13,7 +13,7 @@
 #include "pkt-hist.hpp"
 #include "network.hpp"
 #include "middlebox.hpp"
-class State;
+struct State;
 
 enum fwd_mode {
     PACKET_ENTRY,

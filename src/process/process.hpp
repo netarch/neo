@@ -3,7 +3,7 @@
 #include <string>
 
 #include "network.hpp"
-class State;
+struct State;
 
 enum pid {
     FORWARDING,

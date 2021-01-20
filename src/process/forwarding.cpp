@@ -27,8 +27,7 @@ std::string fwd_mode_to_str(int mode)
         case fwd_mode::DROPPED:
             return "fwd_mode::DROPPED";
         default:
-            Logger::get().err("Unknown forwarding mode ("
-                              + std::to_string(mode) + ")");
+            Logger::error("Unknown forwarding mode: " + std::to_string(mode));
             return "";
     }
 }
@@ -62,8 +61,8 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     } else if (policy->get_protocol(state) == proto::PR_ICMP_ECHO) {
         pkt_state = PS_ICMP_ECHO_REQ;
     } else {
-        Logger::get().err("Unknown protocol: "
-                          + std::to_string(policy->get_protocol(state)));
+        Logger::error("Unknown protocol: "
+                      + std::to_string(policy->get_protocol(state)));
     }
     state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
@@ -100,7 +99,7 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     // initialize packet EC and update the FIB
     EqClass *ec = policy->get_initial_ec(state);
     memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
-    Logger::get().info("EC: " + ec->to_string());
+    Logger::info("EC: " + ec->to_string());
     network.update_fib(state);
 }
 
@@ -116,8 +115,8 @@ void ForwardingProcess::reset(State *state, Network& network, Policy *policy)
     } else if (policy->get_protocol(state) == proto::PR_ICMP_ECHO) {
         pkt_state = PS_ICMP_ECHO_REQ;
     } else {
-        Logger::get().err("Unknown protocol: "
-                          + std::to_string(policy->get_protocol(state)));
+        Logger::error("Unknown protocol: "
+                      + std::to_string(policy->get_protocol(state)));
     }
     state->comm_state[state->comm].pkt_state = pkt_state;
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::PACKET_ENTRY);
@@ -141,7 +140,7 @@ void ForwardingProcess::reset(State *state, Network& network, Policy *policy)
     // initialize packet EC and update the FIB
     EqClass *ec = policy->get_initial_ec(state);
     memcpy(state->comm_state[state->comm].ec, &ec, sizeof(EqClass *));
-    Logger::get().info("EC: " + ec->to_string());
+    Logger::info("EC: " + ec->to_string());
     network.update_fib(state);
 }
 
@@ -175,8 +174,7 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             state->choice_count = 0;
             break;
         default:
-            Logger::get().err("Unknown forwarding mode ("
-                              + std::to_string(mode) + ")");
+            Logger::error("Unknown forwarding mode: " + std::to_string(mode));
     }
 }
 
@@ -192,9 +190,8 @@ void ForwardingProcess::packet_entry(State *state) const
     state->choice_count = 1;    // deterministic choice
 
     uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
-    // TODO: better logging information
-    Logger::get().info("Packet (state: " + std::to_string(pkt_state)
-                       + ") started at " + entry->to_string());
+    Logger::info("Packet (state: " + std::to_string(pkt_state) + ") started at "
+                 + entry->to_string());
     if (PS_IS_FIRST(pkt_state)) {
         memcpy(state->comm_state[state->comm].tx_node, &entry, sizeof(Node *));
     }
@@ -298,20 +295,20 @@ void ForwardingProcess::forward_packet(State *state)
             memcpy(state->comm_state[state->comm].rx_node, &current_node,
                    sizeof(Node *));
         } else if (PS_IS_REQUEST(pkt_state) && current_node != rx_node) {
-            Logger::get().info("current_node: " + current_node->to_string());
-            Logger::get().info("rx_node: " + rx_node->to_string());
-            Logger::get().warn("Inconsistent endpoints");
+            Logger::info("current_node: " + current_node->to_string());
+            Logger::info("rx_node: " + rx_node->to_string());
+            Logger::warn("Inconsistent endpoints");
             dropped(state);
             return;
         } else if (PS_IS_REPLY(pkt_state) && current_node != tx_node) {
-            Logger::get().info("current_node: " + current_node->to_string());
-            Logger::get().info("tx_node: " + tx_node->to_string());
-            Logger::get().warn("Inconsistent endpoints");
+            Logger::info("current_node: " + current_node->to_string());
+            Logger::info("tx_node: " + tx_node->to_string());
+            Logger::warn("Inconsistent endpoints");
             dropped(state);
             return;
         }
 
-        Logger::get().info("Packet delivered at " + next_hop->to_string());
+        Logger::info("Packet delivered at " + next_hop->to_string());
         state->comm_state[state->comm].fwd_mode = int(fwd_mode::ACCEPTED);
         state->choice_count = 1;
         return;
@@ -323,8 +320,8 @@ void ForwardingProcess::forward_packet(State *state)
     memcpy(state->comm_state[state->comm].ingress_intf, &ingress_intf,
            sizeof(Interface *));
 
-    Logger::get().info("Packet forwarded to " + next_hop->to_string() + ", "
-                       + ingress_intf->to_string());
+    Logger::info("Packet forwarded to " + next_hop->to_string() + ", "
+                 + ingress_intf->to_string());
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::COLLECT_NHOPS);
     state->choice_count = 1;    // deterministic choice
 }
@@ -370,8 +367,8 @@ void ForwardingProcess::accepted(State *state, Network& network)
             state->choice_count = 0;
             break;
         default:
-            Logger::get().err("Forwarding process: unknown packet state "
-                              + std::to_string(pkt_state));
+            Logger::error("Forwarding process: unknown packet state "
+                          + std::to_string(pkt_state));
     }
 }
 
@@ -380,7 +377,7 @@ void ForwardingProcess::dropped(State *state) const
     Node *current_node;
     memcpy(&current_node, state->comm_state[state->comm].pkt_location,
            sizeof(Node *));
-    Logger::get().info("Packet dropped by " + current_node->to_string());
+    Logger::info("Packet dropped by " + current_node->to_string());
     state->comm_state[state->comm].fwd_mode = int(fwd_mode::DROPPED);
     state->choice_count = 0;
 }
@@ -440,7 +437,7 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
         }
         EqClass *next_ec = policy->find_ec(state, src_ip);
         memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
-        Logger::get().info("EC: " + next_ec->to_string());
+        Logger::info("EC: " + next_ec->to_string());
 
         // update FIB according to the new EC
         network.update_fib(state);
@@ -520,8 +517,7 @@ const
                     pkt_state = old_pkt_state;
                     break;
                 default:
-                    Logger::get().err("Invalid TCP flags: " +
-                                      std::to_string(flags));
+                    Logger::error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else if (flags == (TH_PUSH | TH_ACK)) {
             switch (old_pkt_state) {
@@ -534,8 +530,7 @@ const
                     pkt_state = old_pkt_state;
                     break;
                 default:
-                    Logger::get().err("Invalid TCP flags: " +
-                                      std::to_string(flags));
+                    Logger::error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else if (flags == (TH_FIN | TH_ACK)) {
             bool same_direction = same_dir_comm(state, comm, pkt);
@@ -551,11 +546,10 @@ const
                 case PS_TCP_TERM_3:
                     break;
                 default:
-                    Logger::get().err("Invalid TCP flags: " +
-                                      std::to_string(flags));
+                    Logger::error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else {
-            Logger::get().err("Invalid TCP flags: " + std::to_string(flags));
+            Logger::error("Invalid TCP flags: " + std::to_string(flags));
         }
         pkt.set_pkt_state(pkt_state);
     }
@@ -564,17 +558,17 @@ const
 std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
         Network& network)
 {
-    Stats::get().set_overall_lat_t1();
+    Stats::set_overall_lat_t1();
 
     // check state's pkt_hist and rewind the middlebox state
     PacketHistory *pkt_hist;
     memcpy(&pkt_hist, state->comm_state[state->comm].pkt_hist,
            sizeof(PacketHistory *));
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
-    Stats::get().set_rewind_lat_t1();
+    Stats::set_rewind_lat_t1();
     int rewind_injections = mb->rewind(current_nph);
-    Stats::get().set_rewind_latency();
-    Stats::get().set_rewind_injection_count(rewind_injections);
+    Stats::set_rewind_latency();
+    Stats::set_rewind_injection_count(rewind_injections);
 
     // construct new packet
     Packet *new_pkt = new Packet(state, policy);
@@ -606,16 +600,16 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
 
     // inject packet
     std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
-    //Logger::get().info("Received packet " + recv_pkt.to_string());
+    //Logger::info("Received packet " + recv_pkt.to_string());
 
     std::set<FIB_IPNH> next_hops;
 
     // TODO: how to handle multiple packets
     // DEBUG
     for (Packet& recv_pkt : recv_pkts) {
-        Logger::get().info("Received packets:");
-        Logger::get().info("recv_pkt: " + recv_pkt.to_string());
-        Logger::get().info("");
+        Logger::info("Received packets:");
+        Logger::info("recv_pkt: " + recv_pkt.to_string());
+        Logger::info("");
     }
 
     for (Packet& recv_pkt : recv_pkts) {
@@ -648,24 +642,22 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
                     uint8_t flags = recv_pkt.get_pkt_state() & (~0x80U);
                     if (flags != TH_SYN) {
                         // it has to be a SYN packet for TCP
-                        Logger::get().err("Unrecognized packet: " +
-                                          recv_pkt.to_string());
+                        Logger::error("Unrecognized packet: " + recv_pkt.to_string());
                     }
                     recv_pkt.set_pkt_state(PS_TCP_INIT_1);
                 }
 
                 if (!PS_IS_FIRST(recv_pkt.get_pkt_state())) {
-                    Logger::get().err("Unrecognized packet: " +
-                                      recv_pkt.to_string());
+                    Logger::error("Unrecognized packet: " + recv_pkt.to_string());
                 }
 
                 // TODO (create a new communication)
-                Logger::get().info("new communication");
+                Logger::info("new communication");
             }
 
             // convert the TCP flags to real pkt_state if needed
             convert_tcp_flags(state, comm, recv_pkt);
-            Logger::get().info("Received packet " + recv_pkt.to_string());
+            Logger::info("Received packet " + recv_pkt.to_string());
 
             if (comm == state->comm) {
                 // same communication
@@ -673,8 +665,6 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
                 // next phase
                 if (PS_IS_NEXT(recv_pkt.get_pkt_state(),
                                new_pkt->get_pkt_state())) {
-                    Logger::get().info("ZZZZZZZZZZZZZZ");
-
                     std::vector<FIB_IPNH> candidates(
                         1, FIB_IPNH(mb, nullptr, mb, nullptr));
                     update_candidates(state, candidates);
@@ -706,7 +696,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
                            &ingress_intf, sizeof(Interface *));
 
                 } else if (!eq_except_intf(recv_pkt, *new_pkt)) { // DEBUG/TEST
-                    Logger::get().err("Different packet");
+                    Logger::error("Different packet");
                 }
             } else {
                 // existing communication; change state->comm?
@@ -722,7 +712,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
                     EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
                     memcpy(state->comm_state[state->comm].ec, &next_ec,
                            sizeof(EqClass *));
-                    Logger::get().info("NAT EC: " + next_ec->to_string());
+                    Logger::info("NAT EC: " + next_ec->to_string());
                     // update FIB according to the new EC
                     network.update_fib(state);
                 }
@@ -743,9 +733,9 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb,
         nhops_str += " " + nhop.to_string();
     }
     nhops_str += " ]";
-    Logger::get().info(nhops_str);
+    Logger::info(nhops_str);
 
-    Stats::get().set_overall_latency();
+    Stats::set_overall_latency();
     return next_hops;
 }
 

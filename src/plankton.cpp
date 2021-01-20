@@ -35,8 +35,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
             while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
                 tasks.erase(pid);
                 if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    Logger::get().warn("Process " + std::to_string(pid)
-                                       + " failed");
+                    Logger::warn("Process " + std::to_string(pid) + " failed");
                 }
             }
             break;
@@ -50,8 +49,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
                     }
                 }
             }
-            Logger::get().warn("Policy violated in process "
-                               + std::to_string(pid));
+            Logger::warn("Policy violated in process " + std::to_string(pid));
             break;
         case SIGHUP:
         case SIGINT:
@@ -60,7 +58,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
             for (int childpid : tasks) {
                 kill(childpid, sig);
             }
-            while (1) {
+            while (1) { // wait for all children to die out
                 if (wait(nullptr) == -1 && errno == ECHILD) {
                     break;
                 };
@@ -80,28 +78,28 @@ Plankton& Plankton::get()
 }
 
 void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
-                    bool verbose, const std::string& input_file,
+                    const std::string& input_file,
                     const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = dop;
-    Stats::get().record_latencies(latency);
+    if (latency) {
+        Stats::enable_latency_recording();
+    }
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
     fs::mkdir(output_dir);
     in_file = fs::realpath(input_file);
     out_dir = fs::realpath(output_dir);
-    Logger::get().set_file(fs::append(out_dir, "main.log"));
-    Logger::get().set_verbose(verbose);
+    Logger::enable_console_logging();
+    Logger::enable_file_logging(fs::append(out_dir, "main.log"));
 
     Config::start_parsing(in_file);
     Config::parse_network(&network, in_file);
     Config::parse_openflow(&openflow, in_file, network);
     Config::parse_policies(&policies, in_file, network);
     Config::finish_parsing(in_file);
-
-    Logger::get().info(openflow.to_string());
 }
 
 void Plankton::compute_policy_oblivious_ecs()
@@ -127,14 +125,10 @@ extern "C" int spin_main(int argc, const char *argv[]);
 
 void Plankton::verify_exit(int status)
 {
-    Stats::get().set_ec_time();
-    Stats::get().set_ec_maxrss();
-
-    // output per proecess stats
-    fflush(NULL);
-    Logger::get().set_file(std::to_string(getpid()) + ".stats.csv");
-    Logger::get().set_verbose(false);
-    Stats::get().print_ec_stats();
+    // output per EC proecess stats
+    Stats::set_ec_time();
+    Stats::set_ec_maxrss();
+    Stats::output_ec_stats();
 
     exit(status);
 }
@@ -147,8 +141,7 @@ static void mb_sig_handler(int sig)
     if (sig == SIGCHLD) {
         while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
             if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                Logger::get().warn("Process " + std::to_string(pid)
-                                   + " failed");
+                Logger::warn("Process " + std::to_string(pid) + " failed");
             }
         }
     }
@@ -156,6 +149,7 @@ static void mb_sig_handler(int sig)
 
 void Plankton::verify_ec(Policy *policy)
 {
+    const std::string logfile = std::to_string(getpid()) + ".log";
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
         "neo",
@@ -178,38 +172,37 @@ void Plankton::verify_ec(Policy *policy)
     }
 
     // reset logger
-    const std::string logfile = std::to_string(getpid()) + ".log";
-    Logger::get().set_file(logfile);
-    Logger::get().set_verbose(false);
-    Logger::get().info("Policy: " + policy->to_string());
+    Logger::disable_console_logging();
+    Logger::enable_file_logging(logfile);
+    Logger::info("Policy: " + policy->to_string());
 
     // duplicate file descriptors
-    int fd = open(logfile.c_str(), O_WRONLY | O_APPEND);
+    int fd = open(logfile.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
     if (fd < 0) {
-        Logger::get().err("Failed to open " + logfile, errno);
+        Logger::error("Failed to open " + logfile, errno);
     }
     dup2(fd, STDOUT_FILENO);
     dup2(fd, STDERR_FILENO);
     close(fd);
 
-    // configure per process variables
+    // configure per OS process variables
     this->policy = policy;
 
     // record time usage for this EC
-    Stats::get().set_ec_t1();
+    Stats::set_ec_t1();
 
     // run SPIN verifier
-    verify_exit(spin_main(sizeof(spin_args) / sizeof(char *), spin_args));
+    spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
+    Logger::error("verify_exit isn't called by Spin");
 }
 
 void Plankton::verify_policy(Policy *policy)
 {
-    Logger::get().info("====================");
-    Logger::get().info(std::to_string(policy->get_id()) + ". Verifying "
-                       + policy->to_string());
-    Logger::get().info("Packet ECs: " + std::to_string(policy->num_ecs()));
-    Logger::get().info("Communications: "
-                       + std::to_string(policy->num_comms()));
+    Logger::info("====================");
+    Logger::info(std::to_string(policy->get_id()) + ". Verifying "
+                 + policy->to_string());
+    Logger::info("Packet ECs: " + std::to_string(policy->num_ecs()));
+    Logger::info("Communications: " + std::to_string(policy->num_comms()));
 
     // reset static variables
     policy_violated = false;
@@ -227,21 +220,21 @@ void Plankton::verify_policy(Policy *policy)
         sigaction(sigs[i], &action, nullptr);
     }
 
-    // change to the policy's working directory
-    const std::string working_dir
+    // cd to the policy working directory
+    const std::string policy_working_dir
         = fs::append(out_dir, std::to_string(policy->get_id()));
-    if (!fs::exists(working_dir)) {
-        fs::mkdir(working_dir);
+    if (!fs::exists(policy_working_dir)) {
+        fs::mkdir(policy_working_dir);
     }
-    fs::chdir(working_dir);
+    fs::chdir(policy_working_dir);
 
-    Stats::get().set_policy_t1();
+    Stats::set_policy_t1();
 
     // fork for each combination of ECs for concurrent execution
     while (policy->set_initial_ec()) {
         int childpid;
         if ((childpid = fork()) < 0) {
-            Logger::get().err("fork for verifying EC", errno);
+            Logger::error("fork()", errno);
         } else if (childpid == 0) {
             verify_ec(policy);
         }
@@ -261,14 +254,10 @@ void Plankton::verify_policy(Policy *policy)
         pause();
     }
 
-    Stats::get().set_policy_time();
-    Stats::get().set_policy_maxrss();
-
-    Logger::get().set_file("stats.csv");
-    Logger::get().set_verbose(false);
-    Stats::get().print_policy_stats(network.get_nodes().size(),
-                                    network.get_links().size(),
-                                    policy);
+    Stats::set_policy_time();
+    Stats::set_policy_maxrss();
+    Stats::output_policy_stats(network.get_nodes().size(),
+                               network.get_links().size(), policy);
 
     exit(0);
 }
@@ -293,14 +282,17 @@ int Plankton::run()
         sigaction(sigs[i], &action, nullptr);
     }
 
-    Stats::get().set_total_t1();
+    // cd to the main working directory (output directory)
+    fs::chdir(out_dir);
+
+    Stats::set_total_t1();
 
     for (Policy *policy : policies) {
         int childpid;
 
         // fork for each policy to get their memory usage measurements
         if ((childpid = fork()) < 0) {
-            Logger::get().err("fork()", errno);
+            Logger::error("fork()", errno);
         } else if (childpid == 0) {
             verify_policy(policy);
         }
@@ -313,9 +305,9 @@ int Plankton::run()
         }
     }
 
-    Stats::get().set_total_time();
-    Stats::get().set_total_maxrss();
-    Stats::get().print_main_stats();
+    Stats::set_total_time();
+    Stats::set_total_maxrss();
+    Stats::output_main_stats();
 
     return 0;
 }
@@ -350,20 +342,18 @@ void Plankton::process_switch(State *state) const
             if ((forwarding_mode == fwd_mode::FIRST_COLLECT ||
                     forwarding_mode == fwd_mode::COLLECT_NHOPS) &&
                     openflow.has_updates(state, current_node)) {
-                Logger::get().debug("Switching to openflow process");
                 state->comm_state[state->comm].process_id = int(pid::OPENFLOW);
                 state->choice_count = 2; // whether to install an update or not
             }
             break;
         case pid::OPENFLOW:
             if (state->choice_count == 1) {
-                Logger::get().debug("Switching to forwarding process");
                 state->comm_state[state->comm].process_id = int(pid::FORWARDING);
                 state->choice_count = 1;
             }
             break;
         default:
-            Logger::get().err("Unknown process id " + std::to_string(process_id));
+            Logger::error("Unknown process id " + std::to_string(process_id));
     }
 }
 
@@ -379,7 +369,7 @@ void Plankton::exec_step(State *state)
             openflow.exec_step(state, network);
             break;
         default:
-            Logger::get().err("Unknown process_id " + std::to_string(process_id));
+            Logger::error("Unknown process id " + std::to_string(process_id));
     }
 
     this->process_switch(state);

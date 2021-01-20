@@ -58,7 +58,7 @@ int Middlebox::rewind(NodePacketHistory *nph)
 
     int rewind_injections = 0;
 
-    Logger::get().info("============== rewind starts ==============");
+    Logger::info("============== rewind starts ==============");
 
     // reset middlebox state
     env->run(mb_app_reset, app);
@@ -72,7 +72,7 @@ int Middlebox::rewind(NodePacketHistory *nph)
     }
     node_pkt_hist = nph;
 
-    Logger::get().info("==============  rewind ends  ==============");
+    Logger::info("==============  rewind ends  ==============");
 
     return rewind_injections;
 }
@@ -88,19 +88,19 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
     recv_pkts.clear();
 
     // inject packet
-    Logger::get().info("Injecting packet " + pkt.to_string());
+    Logger::info("Injecting packet " + pkt.to_string());
     env->inject_packet(pkt);
 
-    Stats::get().set_pkt_lat_t1();
+    Stats::set_pkt_lat_t1();
 
     // wait for timeout
     std::cv_status status = cv.wait_for(lck, app->get_timeout());
 
-    Stats::get().set_pkt_latency();
+    Stats::set_pkt_latency();
 
     // logging
     if (status == std::cv_status::timeout) {
-        Logger::get().info("Timeout!");
+        Logger::info("Timeout!");
     }
 
     // return the received packets

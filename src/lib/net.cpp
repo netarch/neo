@@ -13,7 +13,7 @@ Net::Net()
     char errbuf[LIBNET_ERRBUF_SIZE];
     l = libnet_init(LIBNET_LINK_ADV, NULL, errbuf);
     if (!l) {
-        Logger::get().err(std::string("libnet_init() failed: ") + errbuf);
+        Logger::error(std::string("libnet_init() failed: ") + errbuf);
     }
 }
 
@@ -75,8 +75,7 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
               l,                            // libnet context
               0);                           // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::get().err(std::string("Can't build TCP header: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("Can't build TCP header: ") + libnet_geterror(l));
     }
 
     tag = libnet_build_ipv4(
@@ -94,8 +93,7 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
               l,                                // libnet context
               0);                               // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::get().err(std::string("Can't build IP header: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("Can't build IP header: ") + libnet_geterror(l));
     }
 
     tag = libnet_build_ethernet(
@@ -107,8 +105,7 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
               l,                // libnet context
               0);               // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::get().err(std::string("Can't build ethernet header: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("Can't build ethernet header: ") + libnet_geterror(l));
     }
 }
 
@@ -123,7 +120,7 @@ void Net::build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
     } else if (pkt.get_pkt_state() == PS_ICMP_ECHO_REP) {
         icmp_type = ICMP_ECHOREPLY;
     } else {
-        Logger::get().err("pkt_state is not related to ICMP echo");
+        Logger::error("pkt_state is not related to ICMP echo");
     }
 
     tag = libnet_build_icmpv4_echo(
@@ -137,8 +134,7 @@ void Net::build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
               l,            // libnet context
               0);           // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::get().err(std::string("Can't build TCP header: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("Can't build TCP header: ") + libnet_geterror(l));
     }
 
     tag = libnet_build_ipv4(
@@ -156,8 +152,7 @@ void Net::build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
               l,                                    // libnet context
               0);                                   // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::get().err(std::string("Can't build IP header: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("Can't build IP header: ") + libnet_geterror(l));
     }
 
     tag = libnet_build_ethernet(
@@ -169,8 +164,7 @@ void Net::build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
               l,                // libnet context
               0);               // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::get().err(std::string("Can't build ethernet header: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("Can't build ethernet header: ") + libnet_geterror(l));
     }
 }
 
@@ -184,13 +178,12 @@ void Net::serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
     } else if (PS_IS_ICMP_ECHO(pkt_state)) {
         build_icmp_echo(pkt, src_mac, dst_mac);
     } else {
-        Logger::get().err("Unsupported packet state "
-                          + std::to_string(pkt.get_pkt_state()));
+        Logger::error("Unsupported packet state " + std::to_string(pkt.get_pkt_state()));
     }
 
     if (libnet_adv_cull_packet(l, buffer, buffer_size) < 0) {
-        Logger::get().err(std::string("libnet_adv_cull_packet() failed: ")
-                          + libnet_geterror(l));
+        Logger::error(std::string("libnet_adv_cull_packet() failed: ")
+                      + libnet_geterror(l));
     }
 
     libnet_clear_packet(l);

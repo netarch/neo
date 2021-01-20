@@ -10,7 +10,7 @@
 #include "network.hpp"
 #include "eqclasses.hpp"
 #include "eqclass.hpp"
-class State;
+struct State;
 
 #define POL_NULL        0
 #define POL_INIT_POL    1

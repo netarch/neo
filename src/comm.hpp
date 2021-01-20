@@ -4,8 +4,6 @@
 #define MAX_COMMS 2
 #endif
 
-#ifdef __cplusplus
-
 #include <vector>
 
 #include "lib/ip.hpp"
@@ -13,7 +11,7 @@
 #include "eqclasses.hpp"
 #include "eqclass.hpp"
 #include "network.hpp"
-class State;
+struct State;
 
 enum proto {
     PR_HTTP = 0,
@@ -73,5 +71,3 @@ public:
 };
 
 bool operator==(const Communication&, const Communication&);
-
-#endif // #ifdef __cplusplus

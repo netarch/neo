@@ -137,7 +137,7 @@ void OpenflowProcess::exec_step(State *state, Network& network)
 void OpenflowProcess::install_update(State *state, Network& network)
 {
     if (state->choice == 0) {
-        Logger::get().debug("Openflow: not installing update");
+        Logger::info("Openflow: not installing update");
         state->choice_count = 1; // back to forwarding
         return;
     }
@@ -161,8 +161,8 @@ void OpenflowProcess::install_update(State *state, Network& network)
     const Route& update = all_updates[num_installed];
 
     // actually install the update to FIB
-    Logger::get().debug("Openflow: installing update at "
-                        + current_node->get_name() + ": " + update.to_string());
+    Logger::info("Openflow: installing update at " + current_node->get_name()
+                 + ": " + update.to_string());
     network.update_fib_openflow(state, current_node, update, all_updates,
                                 num_installed);
 

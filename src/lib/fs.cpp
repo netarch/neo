@@ -18,14 +18,14 @@ namespace fs
 void chdir(const std::string& wd)
 {
     if (::chdir(wd.c_str()) < 0) {
-        Logger::get().err(wd, errno);
+        Logger::error(wd, errno);
     }
 }
 
 void mkdir(const std::string& p)
 {
     if (::mkdir(p.c_str(), 0777) < 0) {
-        Logger::get().err(p, errno);
+        Logger::error(p, errno);
     }
 }
 
@@ -37,7 +37,7 @@ bool exists(const std::string& p)
         if (errno == ENOENT) {
             return false;
         }
-        Logger::get().err(p, errno);
+        Logger::error(p, errno);
     }
     return true;
 }
@@ -60,7 +60,7 @@ static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
 void remove(const std::string& p)
 {
     if (nftw(p.c_str(), &rm, 10000, FTW_DEPTH | FTW_PHYS) < 0) {
-        Logger::get().err(p, errno);
+        Logger::error(p, errno);
     }
 }
 
@@ -87,7 +87,7 @@ bool is_regular(const std::string& path)
     struct stat buffer;
     int ret = stat(path.c_str(), &buffer);
     if (ret == -1) {
-        Logger::get().err(path, errno);
+        Logger::error(path, errno);
     }
     return S_ISREG(buffer.st_mode);
 }
@@ -97,7 +97,7 @@ std::string getcwd()
     char p[PATH_MAX];
 
     if (::getcwd(p, sizeof(p)) == NULL) {
-        Logger::get().err("getcwd", errno);
+        Logger::error("getcwd", errno);
     }
 
     return std::string(p);
@@ -108,7 +108,7 @@ std::string realpath(const std::string& rel_p)
     char p[PATH_MAX];
 
     if (::realpath(rel_p.c_str(), p) == NULL) {
-        Logger::get().err(rel_p, errno);
+        Logger::error(rel_p, errno);
     }
 
     return std::string(p);

@@ -7,7 +7,7 @@ FIB_IPNH::FIB_IPNH(Node *l3nh, Interface *l3nh_intf,
     : l3_node(l3nh), l3_intf(l3nh_intf), l2_node(l2nh), l2_intf(l2nh_intf)
 {
     if (!l3_node || !l2_node) {
-        Logger::get().err("Invalid IP next hop");
+        Logger::error("Invalid IP next hop");
     }
 }
 

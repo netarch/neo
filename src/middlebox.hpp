@@ -32,11 +32,11 @@ private:
 
 public:
     Middlebox(const Middlebox&) = delete;
-    Middlebox(Middlebox&&) = default;
+    Middlebox(Middlebox&&) = delete;
     ~Middlebox() override;
 
     Middlebox& operator=(const Middlebox&) = delete;
-    Middlebox& operator=(Middlebox&&) = default;
+    Middlebox& operator=(Middlebox&&) = delete;
 
     /*
      * Actually initialize and start the emulation.
