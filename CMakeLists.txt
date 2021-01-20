@@ -8,11 +8,12 @@ include("ExternalProject")
 #
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(MAX_COMMS 2 CACHE STRING "Maximum number of communications")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
-add_compile_options(-g -Wall -Wextra -Werror)
+add_compile_options(-Wall -Wextra -Werror)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wno-dynamic-class-memaccess)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -33,40 +34,23 @@ set(SPIN_FLAGS -a -DNOBOUNDCHECK -DNOCOMP -DNOFAIR -DSAFETY -DSFH -DVECTORSZ=100
 #
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
-set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
+set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g -fsanitize=address -fno-omit-frame-pointer -fno-common")
+set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
 
 #
 # coverage options
 #
+add_library(coverage_config INTERFACE)
 option(ENABLE_COVERAGE "Enable coverage testing" OFF)
 if (ENABLE_COVERAGE)
-    add_compile_options(--coverage)
-    #add_link_options()
+    target_compile_options(coverage_config INTERFACE -O0 -g --coverage)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.13)
+        target_link_options(coverage_config INTERFACE --coverage)
+    else()
+        target_link_libraries(coverage_config INTERFACE --coverage)
+    endif()
 endif()
-#AS_IF([test "$enable_coverage" = "yes"], [
-#    ADD_CFLAG_CXXFLAG([--coverage])
-#    ADD_LIB(--coverage)
-#    AS_IF([test -z "$GCOV"], [      # if GCOV is not defined or null
-#           AS_IF([test -z "${CXX##*g++*}"], [GCOV="$(which gcov)"],
-#                 [test -z "${CXX##*clang++*}"], [GCOV="$(which llvm-cov) gcov"],
-#                 [AC_MSG_ERROR([unsupported compiler: $CXX])])],
-#          [test -n "${GCOV##/*}"], [        # else if GCOV is not an abs path
-#           GCOV_PATH="$(which $(echo $GCOV | cut -f 1 -d ' ') 2>/dev/null)"
-#           AS_IF([test -z "$GCOV_PATH"],
-#                 [AC_MSG_ERROR(["$(echo $GCOV | cut -f 1 -d ' ')" file not found])])
-#           GCOV="$(echo $GCOV | sed "s|[[^ ]]\+|$GCOV_PATH|")"])
-#    AC_MSG_CHECKING([for $(echo $GCOV | cut -f 1 -d ' ')])
-#    AS_IF([test -x "$(echo $GCOV | cut -f 1 -d ' ')"], [AC_MSG_RESULT(yes)], [
-#           AC_MSG_RESULT(no)
-#           AC_MSG_ERROR([$(echo $GCOV | cut -f 1 -d ' ') cannot be executed])])
-#    CXX_VER="$($CXX --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
-#    GCOV_VER="$($GCOV --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
-#    AS_IF([test "$CXX_VER" != "$GCOV_VER"],
-#          [AC_MSG_ERROR([$GCOV $GCOV_VER and $CXX $CXX_VER version mismatch])])
-#    AC_SUBST([GCOV], [$GCOV])
-#])
 
 #
 # third party libraries
@@ -124,7 +108,7 @@ add_dependencies(neo spdlog)
 target_include_directories(neo PRIVATE ${SRC_DIR})
 target_include_directories(neo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(neo PRIVATE spin_model cpptoml xxhash Libnet::Libnet
-    Threads::Threads)
+    Threads::Threads coverage_config)
 
 #
 # set main target capability
