@@ -1,6 +1,6 @@
-#include <catch.hpp>
 #include <climits>
 #include <unistd.h>
+#include <catch2/catch.hpp>
 
 #include "lib/fs.hpp"
 

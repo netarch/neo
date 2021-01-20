@@ -37,7 +37,11 @@ set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-fra
 set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
 
-#TODO option(ENABLE_COVERAGE "Enable coverage testing" OFF)
+option(ENABLE_COVERAGE "Enable coverage testing" OFF)
+if (ENABLE_COVERAGE)
+    add_compile_options(--coverage)
+    #add_link_options()
+endif()
 #AS_IF([test "$enable_coverage" = "yes"], [
 #    ADD_CFLAG_CXXFLAG([--coverage])
 #    ADD_LIB(--coverage)
@@ -129,22 +133,22 @@ add_custom_target(setcap ALL
     DEPENDS neo)
 
 #
-# unit testing targets
+# tests targets
 #
-option(ENABLE_UNIT_TESTS "Build unit tests" OFF)
-if (ENABLE_UNIT_TESTS)
+option(ENABLE_TESTS "Build tests" OFF)
+if (ENABLE_TESTS)
     set(SRC_FILES_WO_MAIN ${SRC_FILES})
     list(REMOVE_ITEM SRC_FILES_WO_MAIN main.cpp)
-    add_executable(unittests ${SRC_FILES_WO_MAIN} ${TEST_SRC_FILES})
-    add_dependencies(unittests spdlog)
-    target_include_directories(unittests PRIVATE ${SRC_DIR})
-    target_include_directories(unittests SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
-    target_link_libraries(unittests PRIVATE
-        spin_model catch2 cpptoml xxhash Libnet::Libnet Threads::Threads)
+    add_executable(tests ${SRC_FILES_WO_MAIN} ${TEST_SRC_FILES})
+    add_dependencies(tests spdlog)
+    target_include_directories(tests PRIVATE ${SRC_DIR})
+    target_include_directories(tests SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
+    target_link_libraries(tests PRIVATE
+        spin_model cpptoml xxhash Libnet::Libnet Threads::Threads Catch2::Catch2)
 
-    add_custom_target(unittests-setcap ALL
+    add_custom_target(tests-setcap ALL
         sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
-        DEPENDS unittests)
+        DEPENDS tests)
 endif()
 
 

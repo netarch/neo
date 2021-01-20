@@ -28,8 +28,8 @@ usage()
     Options:
     -h, --help          Print this message and exit
     -d, --debug         Enable debugging
+    -t, --tests         Build tests
     -c, --coverage      Enable coverage
-    -t, --unit-tests    Build unit tests
 EOF
 }
 
@@ -39,10 +39,10 @@ parse_params() {
         -h | --help) usage; exit ;;
         -d | --debug)
             CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug') ;;
+        -t | --tests)
+            CMAKE_ARGS+=('-DENABLE_TESTS=ON') ;;
         -c | --coverage)
             CMAKE_ARGS+=('-DENABLE_COVERAGE=ON') ;;
-        -t | --unit-tests)
-            CMAKE_ARGS+=('-DENABLE_UNIT_TESTS=ON') ;;
         -?*) die "Unknown option: $1\n$(usage)" ;;
         *) break ;;
         esac

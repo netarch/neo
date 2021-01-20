@@ -1,5 +1,5 @@
-#include <catch.hpp>
 #include <string>
+#include <catch2/catch.hpp>
 
 #include "route.hpp"
 #include "lib/fs.hpp"

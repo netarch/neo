@@ -1,6 +1,6 @@
-#include <catch.hpp>
 #include <memory>
 #include <utility>
+#include <catch2/catch.hpp>
 
 #include "lib/ip.hpp"
 
@@ -225,10 +225,10 @@ TEST_CASE("ipnetwork")
 
         CHECK(net.network_addr() == "192.168.10.0");
         CHECK(net.broadcast_addr() == "192.168.10.255");
-        CHECK(net.contains("192.168.10.0"));
-        CHECK(net.contains("192.168.10.255"));
-        CHECK_FALSE(net.contains("192.168.9.255"));
-        CHECK_FALSE(net.contains("192.168.11.0"));
+        CHECK(net.contains(IPv4Address("192.168.10.0")));
+        CHECK(net.contains(IPv4Address("192.168.10.255")));
+        CHECK_FALSE(net.contains(IPv4Address("192.168.9.255")));
+        CHECK_FALSE(net.contains(IPv4Address("192.168.11.0")));
         CHECK(net.range() ==
               IPRange<IPv4Address>("192.168.10.0", "192.168.10.255"));
         CHECK(IPNetwork<IPv4Address>("0.0.0.0/0").range() ==
