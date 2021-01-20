@@ -60,6 +60,9 @@ main() {
     PROJECT_DIR="$(realpath ${SCRIPT_DIR}/..)"
     BUILD_DIR="$(realpath ${PROJECT_DIR}/build)"
 
+    cd "${PROJECT_DIR}"
+    git submodule update --init
+
     # clean up old builds
     git submodule foreach --recursive git clean -xdf
     rm -rf "${BUILD_DIR}"
