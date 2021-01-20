@@ -9,7 +9,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 // [second.microsecond] [pid] [log_level] log_msg
-#define LOG_PATTERN "[%E.%f] [%P] [%l] %v"
+#define LOG_PATTERN "[%E.%f] [%P] [%^%L%L%$] %v"
 
 std::shared_ptr<spdlog::logger> Logger::stdout_logger = nullptr;
 std::shared_ptr<spdlog::logger> Logger::file_logger = nullptr;
@@ -19,7 +19,7 @@ void Logger::enable_console_logging()
     if (!stdout_logger) {
         stdout_logger = spdlog::stdout_color_st("stdout_logger");
         stdout_logger->set_pattern(LOG_PATTERN);
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
         stdout_logger->set_level(spdlog::level::debug);
 #else
         stdout_logger->set_level(spdlog::level::info);
@@ -42,7 +42,7 @@ void Logger::enable_file_logging(const std::string& filename)
         disable_file_logging();
         file_logger = spdlog::basic_logger_st("file_logger", filename, /* truncate */false);
         file_logger->set_pattern(LOG_PATTERN);
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
         file_logger->set_level(spdlog::level::debug);
 #else
         file_logger->set_level(spdlog::level::info);

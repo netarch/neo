@@ -63,12 +63,6 @@
     network = "8.8.8.8/32"
     outport = "eth2"
 
-# Policy:
-#   1. Outgoing packets are always allowed. (This should fail due to the
-#      misconfiguration of fw.)
-#   2. Incoming packets are always denied, except for 3.
-#   3. Incoming replies to past requests are allowed.
-
 [[policies]]
     type = "waypoint"
     waypoint = "h1"

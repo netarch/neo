@@ -5,21 +5,14 @@
 
 # Executables
 neo
-test-neo
+unittests
 
 # ctags
 tags
 
 # Intermediate build files
 build/
-Makefile
-autom4te.cache/
 codecov.sh
-config.log
-config.status
-configure
-pan.[bchmpt]
-model.[ch]
 
 # Coverage files
 *.gcov

@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch.hpp>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>

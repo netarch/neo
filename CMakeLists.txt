@@ -33,11 +33,33 @@ set(SPIN_FLAGS -a -DNOBOUNDCHECK -DNOCOMP -DNOFAIR -DSAFETY -DSFH -DVECTORSZ=100
 #
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_C_FLAGS_DEBUG "-g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
-set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
+set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
+set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -Og -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
 
-#TODO option(COVERAGE "Enable coverage testing" OFF)
+#TODO option(ENABLE_COVERAGE "Enable coverage testing" OFF)
+#AS_IF([test "$enable_coverage" = "yes"], [
+#    ADD_CFLAG_CXXFLAG([--coverage])
+#    ADD_LIB(--coverage)
+#    AS_IF([test -z "$GCOV"], [      # if GCOV is not defined or null
+#           AS_IF([test -z "${CXX##*g++*}"], [GCOV="$(which gcov)"],
+#                 [test -z "${CXX##*clang++*}"], [GCOV="$(which llvm-cov) gcov"],
+#                 [AC_MSG_ERROR([unsupported compiler: $CXX])])],
+#          [test -n "${GCOV##/*}"], [        # else if GCOV is not an abs path
+#           GCOV_PATH="$(which $(echo $GCOV | cut -f 1 -d ' ') 2>/dev/null)"
+#           AS_IF([test -z "$GCOV_PATH"],
+#                 [AC_MSG_ERROR(["$(echo $GCOV | cut -f 1 -d ' ')" file not found])])
+#           GCOV="$(echo $GCOV | sed "s|[[^ ]]\+|$GCOV_PATH|")"])
+#    AC_MSG_CHECKING([for $(echo $GCOV | cut -f 1 -d ' ')])
+#    AS_IF([test -x "$(echo $GCOV | cut -f 1 -d ' ')"], [AC_MSG_RESULT(yes)], [
+#           AC_MSG_RESULT(no)
+#           AC_MSG_ERROR([$(echo $GCOV | cut -f 1 -d ' ') cannot be executed])])
+#    CXX_VER="$($CXX --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
+#    GCOV_VER="$($GCOV --version | grep -oE '[[0-9]]\.[[0-9]]\.[[0-9]]' | head -n1)"
+#    AS_IF([test "$CXX_VER" != "$GCOV_VER"],
+#          [AC_MSG_ERROR([$GCOV $GCOV_VER and $CXX $CXX_VER version mismatch])])
+#    AC_SUBST([GCOV], [$GCOV])
+#])
 
 #
 # third party libraries
@@ -57,6 +79,8 @@ find_package(Threads REQUIRED)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 FILE(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ${SRC_DIR}/*.cpp)
 set(MODEL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/network.pml)
+set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
+FILE(GLOB_RECURSE TEST_SRC_FILES CONFIGURE_DEPENDS ${TEST_DIR}/*.cpp)
 
 #
 # spin model target
@@ -92,16 +116,37 @@ add_custom_command(
 #
 add_executable(neo ${SRC_FILES})
 add_dependencies(neo spdlog)
-target_include_directories(neo PRIVATE ${SRC_DIR} ${spdlog_INCLUDE_DIRS})
+target_include_directories(neo PRIVATE ${SRC_DIR})
+target_include_directories(neo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(neo PRIVATE
     spin_model cpptoml xxhash Libnet::Libnet Threads::Threads)
 
 #
-# set capability
+# set main target capability
 #
 add_custom_target(setcap ALL
     sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
     DEPENDS neo)
+
+#
+# unit testing targets
+#
+option(ENABLE_UNIT_TESTS "Build unit tests" OFF)
+if (ENABLE_UNIT_TESTS)
+    set(SRC_FILES_WO_MAIN ${SRC_FILES})
+    list(REMOVE_ITEM SRC_FILES_WO_MAIN main.cpp)
+    add_executable(unittests ${SRC_FILES_WO_MAIN} ${TEST_SRC_FILES})
+    add_dependencies(unittests spdlog)
+    target_include_directories(unittests PRIVATE ${SRC_DIR})
+    target_include_directories(unittests SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
+    target_link_libraries(unittests PRIVATE
+        spin_model catch2 cpptoml xxhash Libnet::Libnet Threads::Threads)
+
+    add_custom_target(unittests-setcap ALL
+        sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
+        DEPENDS unittests)
+endif()
+
 
 #
 # install
