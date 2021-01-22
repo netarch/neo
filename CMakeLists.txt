@@ -69,6 +69,7 @@ find_package(Threads REQUIRED)
 #
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 FILE(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ${SRC_DIR}/*.cpp)
+list(REMOVE_ITEM SRC_FILES ${SRC_DIR}/main.cpp)
 set(MODEL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/network.pml)
 
 #
@@ -101,14 +102,21 @@ add_custom_command(
     DEPENDS Spin::Spin ${MODEL_SRC})
 
 #
+# neo object library (libneo)
+#
+add_library(libneo OBJECT ${SRC_FILES})
+add_dependencies(libneo spdlog)
+target_include_directories(libneo PUBLIC ${SRC_DIR})
+target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
+target_link_libraries(libneo PUBLIC coverage_config)
+target_link_libraries(libneo PRIVATE spin_model cpptoml xxhash Libnet::Libnet
+    Threads::Threads)
+
+#
 # main target
 #
-add_executable(neo ${SRC_FILES})
-add_dependencies(neo spdlog)
-target_include_directories(neo PRIVATE ${SRC_DIR})
-target_include_directories(neo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
-target_link_libraries(neo PRIVATE spin_model cpptoml xxhash Libnet::Libnet
-    Threads::Threads coverage_config)
+add_executable(neo $<TARGET_OBJECTS:libneo> ${SRC_DIR}/main.cpp)
+target_link_libraries(neo PRIVATE libneo)
 
 #
 # set main target capability
