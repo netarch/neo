@@ -3,6 +3,7 @@
 #include <libnet.h>
 #include <cstring>
 #include <typeinfo>
+#include <utility>
 
 #include "stats.hpp"
 #include "lib/logger.hpp"
@@ -400,7 +401,7 @@ void ForwardingProcess::phase_transition(State *state, Network& network,
             seq += 1;
         }
         if (change_direction) {
-            seq ^= ack ^= seq ^= ack;   // swap
+            std::swap(seq, ack);
         }
         memcpy(state->comm_state[state->comm].seq, &seq, sizeof(uint32_t));
         memcpy(state->comm_state[state->comm].ack, &ack, sizeof(uint32_t));
