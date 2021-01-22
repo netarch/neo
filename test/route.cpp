@@ -1,4 +1,5 @@
 #include <string>
+#include <iterator>
 #include <catch2/catch.hpp>
 
 #include "config.hpp"
@@ -22,7 +23,7 @@ TEST_CASE("route")
     SECTION("basic access") {
         auto res = rib.lookup(IPv4Address("10.0.0.1"));
         REQUIRE(res.first != res.second);
-        REQUIRE(++(res.first) == res.second);
+        REQUIRE(std::distance(res.first, res.second) == 1);
         const Route& route = *(res.first);
         CHECK(route.to_string() == "10.0.0.0/8 --> 1.2.3.4");
         CHECK(route.get_network() == "10.0.0.0/8");

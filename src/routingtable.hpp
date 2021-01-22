@@ -2,6 +2,7 @@
 
 #include <set>
 #include <utility>
+#include <string>
 
 #include "route.hpp"
 
@@ -22,6 +23,8 @@ public:
     RoutingTable(RoutingTable&&) = default;
     RoutingTable& operator=(const RoutingTable&) = default;
     RoutingTable& operator=(RoutingTable&&) = default;
+
+    std::string to_string() const;
 
     iterator insert(const Route&);
     iterator insert(Route&&);

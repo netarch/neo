@@ -13,6 +13,6 @@ add_custom_target(unittest-setcap ALL
     sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" unittest
     DEPENDS unittest)
 
-add_test(NAME "neo_unit_test"
+add_test(NAME "neo_unit_tests"
     COMMAND "${CMAKE_CURRENT_BINARY_DIR}/unittest"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

@@ -3,6 +3,15 @@
 #include <iterator>
 #include <utility>
 
+std::string RoutingTable::to_string() const
+{
+    std::string ret = "RIB:";
+    for (const Route& route : tbl) {
+        ret += "\n\t" + route.to_string();
+    }
+    return ret;
+}
+
 RoutingTable::iterator RoutingTable::insert(const Route& route)
 {
     std::pair<iterator, iterator> range = tbl.equal_range(route);
