@@ -167,7 +167,7 @@ main() {
     DISTRO="$(get_distro)"
 
     if [ "$DISTRO" = "arch" ]; then
-        makedepends=(autoconf make cmake clang spin-git)
+        makedepends=(make cmake clang spin-git)
         depends=(libnet ipvsadm squid)
         experiment_depends=(astyle python-toml bc)
 
@@ -180,7 +180,7 @@ main() {
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_depends=(build-essential curl git bison)
-        makedepends=(autoconf make cmake clang libnet1-dev)
+        makedepends=(make cmake clang libnet1-dev)
         depends=(libnet1 ipvsadm squid)
         experiment_depends=(astyle python3-toml bc)
         aur_pkgs=(spin-git)
