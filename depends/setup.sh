@@ -140,7 +140,7 @@ makepkg_ubuntu() {
     [ "$(type -t build)" = "function" ] && build
     [ "$(type -t check)" = "function" ] && check
     sudo bash -c "pkgdir=\"$pkgdir\"; srcdir=\"$srcdir\";
-                  source \"$srcdir/../PKGBUILD\"; package" || exit $?
+                  source \"$srcdir/../PKGBUILD\"; package"
     popd # "$srcdir"
     popd # "$TARGET"
 }
@@ -159,7 +159,7 @@ aur_install() {
     else
         git clone "https://aur.archlinux.org/$TARGET.git"
     fi
-    (makepkg_$(get_distro) "$TARGET" $@) || exit $?
+    (makepkg_$(get_distro) "$TARGET" $@)
     rm -rf "$TARGET"
 }
 
@@ -167,7 +167,7 @@ main() {
     DISTRO="$(get_distro)"
 
     if [ "$DISTRO" = "arch" ]; then
-        makedepends=(autoconf make cmake spin-git)
+        makedepends=(autoconf make cmake clang spin-git)
         depends=(libnet ipvsadm squid)
         experiment_depends=(astyle python-toml bc)
 
@@ -179,8 +179,8 @@ main() {
         yay -S --needed --noconfirm --removemake ${experiment_depends[@]} $@
 
     elif [ "$DISTRO" = "ubuntu" ]; then
-        script_depends=(build-essential curl git)
-        makedepends=(autoconf make cmake libnet1-dev)
+        script_depends=(build-essential curl git bison)
+        makedepends=(autoconf make cmake clang libnet1-dev)
         depends=(libnet1 ipvsadm squid)
         experiment_depends=(astyle python3-toml bc)
         aur_pkgs=(spin-git)
