@@ -1,4 +1,4 @@
-name: main
+name: Test
 on: [push, pull_request]
 jobs:
 
@@ -25,11 +25,12 @@ jobs:
         with:
           submodules: 'recursive'
       - run: ${GITHUB_WORKSPACE}/depends/setup.sh
-      - run: cmake -B ${GITHUB_WORKSPACE}/build -S ${GITHUB_WORKSPACE} \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DENABLE_TESTS=ON \
-            -DENABLE_COVERAGE=ON \
-            -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+      - run: >
+          cmake -B ${GITHUB_WORKSPACE}/build -S ${GITHUB_WORKSPACE}
+            -DCMAKE_BUILD_TYPE=Release
+            -DENABLE_TESTS=ON
+            -DENABLE_COVERAGE=ON
+            -DCMAKE_C_COMPILER=${{ matrix.cc }}
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
       - run: cmake --build ${GITHUB_WORKSPACE}/build
       - run: ctest
