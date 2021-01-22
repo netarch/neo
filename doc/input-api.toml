@@ -12,11 +12,11 @@
     [[nodes.static_routes]]     # optional
     network = "x.x.x.x/x"
     next_hop = "x.x.x.x"
-    adm_dist = 1                # optional (0..255), default: 1
+    adm_dist = 1                # optional (1..254), default: 1
     [[nodes.installed_routes]]  # optional
     network = "x.x.x.x/x"
     next_hop = "x.x.x.x"
-    adm_dist = 255              # optional (0..255), default: 255
+    adm_dist = 254              # optional (1..254), default: 255
 [[nodes]]
     name = "string"
     type = "middlebox"
