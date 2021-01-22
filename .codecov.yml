@@ -1,0 +1,22 @@
+coverage:
+  precision: 2
+  round: nearest
+  range: "60...100"
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: yes
+      macro: no
+
+comment:
+  layout: "header, diff"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "examples"
+  - "third_party"
+  - "test"
