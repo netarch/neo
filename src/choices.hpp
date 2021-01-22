@@ -28,7 +28,9 @@ namespace std
 {
 
 template<>
-struct hash<Choices> {
+class hash<Choices>
+{
+public:
     size_t operator()(const Choices& c) const
     {
         size_t value = 0;
@@ -45,7 +47,9 @@ struct hash<Choices> {
 };
 
 template <>
-struct hash<Choices *> {
+class hash<Choices *>
+{
+public:
     size_t operator()(Choices *const& c) const
     {
         return hash<Choices>()(*c);
@@ -53,7 +57,9 @@ struct hash<Choices *> {
 };
 
 template <>
-struct equal_to<Choices *> {
+class equal_to<Choices *>
+{
+public:
     bool operator()(Choices *const& a, Choices *const& b) const
     {
         return *a == *b;

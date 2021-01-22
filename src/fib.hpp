@@ -76,7 +76,9 @@ namespace std
 {
 
 template <>
-struct hash<FIB_IPNH> {
+class hash<FIB_IPNH>
+{
+public:
     size_t operator()(const FIB_IPNH& next_hop) const
     {
         size_t value = 0;
@@ -91,7 +93,9 @@ struct hash<FIB_IPNH> {
 };
 
 template <>
-struct hash<FIB> {
+class hash<FIB>
+{
+public:
     size_t operator()(const FIB& fib) const
     {
         size_t value = 0;
@@ -108,7 +112,9 @@ struct hash<FIB> {
 };
 
 template <>
-struct hash<FIB *> {
+class hash<FIB *>
+{
+public:
     size_t operator()(FIB *const& fib) const
     {
         return hash<FIB>()(*fib);
@@ -116,7 +122,9 @@ struct hash<FIB *> {
 };
 
 template <>
-struct equal_to<FIB *> {
+class equal_to<FIB *>
+{
+public:
     bool operator()(FIB *const& a, FIB *const& b) const
     {
         return *a == *b;

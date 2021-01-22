@@ -37,7 +37,9 @@ namespace std
 {
 
 template <>
-struct hash<L2_LAN> {
+class hash<L2_LAN>
+{
+public:
     size_t operator()(const L2_LAN& l2dm) const
     {
         size_t value = 0;
@@ -55,7 +57,9 @@ struct hash<L2_LAN> {
 };
 
 template <>
-struct hash<L2_LAN *> {
+class hash<L2_LAN *>
+{
+public:
     size_t operator()(L2_LAN *const& l2dm) const
     {
         return hash<L2_LAN>()(*l2dm);
@@ -63,7 +67,9 @@ struct hash<L2_LAN *> {
 };
 
 template <>
-struct equal_to<L2_LAN *> {
+class equal_to<L2_LAN *>
+{
+public:
     bool operator()(L2_LAN *const& a, L2_LAN *const& b) const
     {
         return *a == *b;
