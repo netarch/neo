@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <unordered_set>
 
 #include "interface.hpp"
 #include "routingtable.hpp"
@@ -69,11 +70,15 @@ public:
      * Compute the IP next hops from this node for a given destination address
      * by recursively looking up in the given RIB.
      */
-    virtual std::set<FIB_IPNH> get_ipnhs(const IPv4Address&);
+    virtual std::set<FIB_IPNH> get_ipnhs(
+            const IPv4Address&,
+            std::unordered_set<IPv4Address> *looked_up_ips = nullptr);
 
     /*
      * Compute the IP next hop from this node for a given egress interface and a
      * destination address.
+     * NOTE: If the next hop does not exist, the returned l3_node and l2_node
+     * will both be nullptr.
      */
     virtual FIB_IPNH get_ipnh(const std::string& egress_intf_name,
                               const IPv4Address&);

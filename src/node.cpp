@@ -145,15 +145,26 @@ L2_LAN *Node::get_l2lan(Interface *intf) const
     return l2_lans.at(intf);
 }
 
-std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
+std::set<FIB_IPNH> Node::get_ipnhs(
+    const IPv4Address& dst,
+    std::unordered_set<IPv4Address> *looked_up_ips)
 {
     std::set<FIB_IPNH> next_hops;
+    std::unordered_set<IPv4Address> empty_set;
+
+    if (looked_up_ips == nullptr) {
+        looked_up_ips = &empty_set;
+    } else if (looked_up_ips->count(dst) > 0) {
+        return next_hops;
+    }
 
     auto r = this->rib.lookup(dst);
+    looked_up_ips->insert(dst);
+
     for (RoutingTable::const_iterator it = r.first; it != r.second; ++it) {
         if (it->get_intf().empty()) {
             // non-connected route; look it up recursively
-            auto nhs = this->get_ipnhs(it->get_next_hop());
+            auto nhs = this->get_ipnhs(it->get_next_hop(), looked_up_ips);
             next_hops.insert(nhs.begin(), nhs.end());
         } else if (has_ip(dst)) {
             // connected route; accept
@@ -162,7 +173,7 @@ std::set<FIB_IPNH> Node::get_ipnhs(const IPv4Address& dst)
         } else {
             // connected route; forward
             FIB_IPNH next_hop = this->get_ipnh(it->get_intf(), dst);
-            if (next_hop.get_l3_node()) {   // next hop exists
+            if (next_hop.get_l3_node()) {   // next hop does exist
                 next_hops.insert(next_hop);
             }
         }
