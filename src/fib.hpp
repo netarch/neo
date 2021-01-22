@@ -23,7 +23,7 @@ private:
      * when l3_node and l2_node are both the same.
      */
 
-    friend class std::hash<FIB_IPNH>;
+    friend struct std::hash<FIB_IPNH>;
     friend bool operator<(const FIB_IPNH&, const FIB_IPNH&);
     friend bool operator>(const FIB_IPNH&, const FIB_IPNH&);
     friend bool operator==(const FIB_IPNH&, const FIB_IPNH&);
@@ -59,7 +59,7 @@ private:
     // TODO: find a way to increase hashing speed for FIB when update agent is
     // implemented. (incremental hashing)
 
-    friend class std::hash<FIB>;
+    friend struct std::hash<FIB>;
     friend bool operator==(const FIB&, const FIB&);
 
 public:
@@ -76,9 +76,7 @@ namespace std
 {
 
 template <>
-class hash<FIB_IPNH>
-{
-public:
+struct hash<FIB_IPNH> {
     size_t operator()(const FIB_IPNH& next_hop) const
     {
         size_t value = 0;
@@ -93,9 +91,7 @@ public:
 };
 
 template <>
-class hash<FIB>
-{
-public:
+struct hash<FIB> {
     size_t operator()(const FIB& fib) const
     {
         size_t value = 0;
@@ -112,9 +108,7 @@ public:
 };
 
 template <>
-class hash<FIB *>
-{
-public:
+struct hash<FIB *> {
     size_t operator()(FIB *const& fib) const
     {
         return hash<FIB>()(*fib);
@@ -122,9 +116,7 @@ public:
 };
 
 template <>
-class equal_to<FIB *>
-{
-public:
+struct equal_to<FIB *> {
     bool operator()(FIB *const& a, FIB *const& b) const
     {
         return *a == *b;

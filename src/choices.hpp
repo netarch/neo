@@ -14,7 +14,7 @@ class Choices
 private:
     std::map<std::pair<EqClass *, Node *>, FIB_IPNH> tbl;
 
-    friend class std::hash<Choices>;
+    friend struct std::hash<Choices>;
     friend bool operator==(const Choices&, const Choices&);
 
 public:
@@ -28,9 +28,7 @@ namespace std
 {
 
 template<>
-class hash<Choices>
-{
-public:
+struct hash<Choices> {
     size_t operator()(const Choices& c) const
     {
         size_t value = 0;
@@ -47,9 +45,7 @@ public:
 };
 
 template <>
-class hash<Choices *>
-{
-public:
+struct hash<Choices *> {
     size_t operator()(Choices *const& c) const
     {
         return hash<Choices>()(*c);
@@ -57,9 +53,7 @@ public:
 };
 
 template <>
-class equal_to<Choices *>
-{
-public:
+struct equal_to<Choices *> {
     bool operator()(Choices *const& a, Choices *const& b) const
     {
         return *a == *b;

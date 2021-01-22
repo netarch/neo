@@ -16,7 +16,7 @@ private:
     std::set<std::pair<Node *, Interface *> > l2_endpoints;
     std::map<IPv4Address, std::pair<Node *, Interface *> > l3_endpoints;
 
-    friend class std::hash<L2_LAN>;
+    friend struct std::hash<L2_LAN>;
     friend bool operator==(const L2_LAN&, const L2_LAN&);
 
     void collect_intfs(Node *, Interface *);
@@ -37,9 +37,7 @@ namespace std
 {
 
 template <>
-class hash<L2_LAN>
-{
-public:
+struct hash<L2_LAN> {
     size_t operator()(const L2_LAN& l2dm) const
     {
         size_t value = 0;
@@ -57,9 +55,7 @@ public:
 };
 
 template <>
-class hash<L2_LAN *>
-{
-public:
+struct hash<L2_LAN *> {
     size_t operator()(L2_LAN *const& l2dm) const
     {
         return hash<L2_LAN>()(*l2dm);
@@ -67,9 +63,7 @@ public:
 };
 
 template <>
-class equal_to<L2_LAN *>
-{
-public:
+struct equal_to<L2_LAN *> {
     bool operator()(L2_LAN *const& a, L2_LAN *const& b) const
     {
         return *a == *b;
