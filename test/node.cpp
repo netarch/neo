@@ -84,9 +84,9 @@ TEST_CASE("node")
         CHECK(r0->get_ipnhs("10.0.0.1").empty());
         CHECK(r0->get_ipnhs("8.8.8.8").empty());
         CHECK(r0->get_ipnh("eth0", "8.8.8.8") ==
-                FIB_IPNH(r1, r1->get_interface("eth0"), r1, r1->get_interface("eth0")));
+              FIB_IPNH(r1, r1->get_interface("eth0"), r1, r1->get_interface("eth0")));
         CHECK(r0->get_ipnh("eth1", "8.8.8.8") ==
-                FIB_IPNH(r1, r1->get_interface("eth1"), r1, r1->get_interface("eth1")));
+              FIB_IPNH(r1, r1->get_interface("eth1"), r1, r1->get_interface("eth1")));
 
         REQUIRE(r1->get_ipnhs("192.168.1.1").size() == 1);
         CHECK(*(r1->get_ipnhs("192.168.1.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
@@ -99,9 +99,9 @@ TEST_CASE("node")
         CHECK(r1->get_ipnhs("8.8.8.8").empty());
         CHECK(r1->get_ipnh("eth0", "8.8.8.8") == FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
         CHECK(r1->get_ipnh("eth0", "10.0.0.1") ==
-                FIB_IPNH(r1, r1->get_interface("eth1"), r0, r0->get_interface("eth0")));
+              FIB_IPNH(r1, r1->get_interface("eth1"), r0, r0->get_interface("eth0")));
         CHECK(r1->get_ipnh("eth1", "8.8.8.8") == FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
         CHECK(r1->get_ipnh("eth1", "192.168.1.1") ==
-                FIB_IPNH(r1, r1->get_interface("eth0"), r0, r0->get_interface("eth1")));
+              FIB_IPNH(r1, r1->get_interface("eth0"), r0, r0->get_interface("eth1")));
     }
 }
