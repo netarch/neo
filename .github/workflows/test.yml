@@ -37,7 +37,5 @@ jobs:
         working-directory: ./build
       - uses: codecov/codecov-action@v1
         with:
-          directory: ./build
-          gcov_args: '-l'
           fail_ci_if_error: true
-          verbose: true
+          gcov_args: '-l'
