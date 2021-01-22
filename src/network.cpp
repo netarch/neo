@@ -46,6 +46,9 @@ void Network::grow_and_set_l2_lan(Node *node, Interface *interface)
     for (const auto& endpoint : l2_lan->get_l2_endpoints()) {
         endpoint.first->set_l2lan(endpoint.second, l2_lan);
     }
+    for (const auto& endpoint : l2_lan->get_l3_endpoints()) {
+        endpoint.second.first->set_l2lan(endpoint.second.second, l2_lan);
+    }
 }
 
 Network::~Network()

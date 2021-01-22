@@ -1,0 +1,36 @@
+[[nodes]]
+    name = "r0"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "1.2.3.4"
+    [[nodes.installed_routes]]
+    network = "10.0.0.0/16"
+    next_hop = "192.168.1.1"
+[[nodes]]
+    name = "r1"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.1/30"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "1.2.3.4"
+    [[nodes.installed_routes]]
+    network = "10.0.0.0/16"
+    next_hop = "192.168.1.1"
+[[links]]
+    node1 = "r0"
+    intf1 = "eth0"
+    node2 = "r1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "r0"
+    intf1 = "eth1"
+    node2 = "r1"
+    intf2 = "eth1"

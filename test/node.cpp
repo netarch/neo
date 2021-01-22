@@ -1,179 +1,107 @@
 #include <string>
 #include <catch2/catch.hpp>
 
-#include "node.hpp"
+#include "config.hpp"
 #include "network.hpp"
-#include "lib/fs.hpp"
+#include "node.hpp"
 
 TEST_CASE("node")
 {
-    Node *node;
+    Network network;
+    const std::string input_filename = "networks/node.toml";
+    REQUIRE_NOTHROW(Config::start_parsing(input_filename));
+    REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));
+    REQUIRE_NOTHROW(Config::finish_parsing(input_filename));
 
-    SECTION("missing node name") {
-        std::string content =
-            "[node]\n"
-            ;
-        auto config = fs::get_toml_config(content);
-        REQUIRE(config);
-        auto node_config = config->get_table("node");
-        REQUIRE(node_config);
-        CHECK_THROWS_WITH(node = new Node(node_config),
-                          "Missing node name");
+    Node *r0, *r1;
+    REQUIRE_NOTHROW(r0 = network.get_nodes().at("r0"));
+    REQUIRE_NOTHROW(r1 = network.get_nodes().at("r1"));
+    REQUIRE(r0);
+    REQUIRE(r1);
+
+    SECTION("basic information access (r0)") {
+        CHECK_NOTHROW(r0->init());
+        CHECK(r0->to_string() == "r0");
+        CHECK(r0->get_name() == "r0");
+        CHECK_FALSE(r0->has_ip("192.168.1.1"));
+        CHECK_FALSE(r0->has_ip("10.0.0.1"));
+        CHECK_FALSE(r0->is_l3_only());
+        CHECK(r0->get_interface("eth0"));
+        CHECK(r0->get_interface("eth1"));
+        CHECK_THROWS(r0->get_interface("eth2"));
+        CHECK_THROWS(r0->get_interface(IPv4Address("192.168.1.1")));
+        CHECK_THROWS(r0->get_interface(IPv4Address("10.0.0.1")));
+        CHECK(r0->get_intfs().size() == 2);
+        CHECK(r0->get_intfs_l3().size() == 0);
+        CHECK(r0->get_intfs_l2().size() == 2);
+        CHECK_NOTHROW(r0->get_rib());
     }
 
-    /*
-    SECTION("duplicate interface name") {
-        std::string content =
-            "[node]\n"
-            "   name = \"r0\"\n"
-            "   [[node.interfaces]]\n"
-            "   name = \"eth0\"\n"
-            "   [[node.interfaces]]\n"
-            "   name = \"eth0\"\n"
-            ;
-        auto config = fs::get_toml_config(content);
-        REQUIRE(config);
-        auto node_config = config->get_table("node");
-        REQUIRE(node_config);
-        CHECK_THROWS_WITH(node = new Node(node_config),
-                          "Duplicate interface name: eth0");
-        delete node;
+    SECTION("basic information access (r1)") {
+        CHECK_NOTHROW(r1->init());
+        CHECK(r1->to_string() == "r1");
+        CHECK(r1->get_name() == "r1");
+        CHECK(r1->has_ip("192.168.1.1"));
+        CHECK(r1->has_ip("10.0.0.1"));
+        CHECK_FALSE(r1->has_ip("1.2.3.4"));
+        CHECK(r1->is_l3_only());
+        CHECK(r1->get_interface("eth0"));
+        CHECK(r1->get_interface("eth1"));
+        CHECK_THROWS(r1->get_interface("eth2"));
+        CHECK(r1->get_interface(IPv4Address("192.168.1.1")));
+        CHECK(r1->get_interface(IPv4Address("10.0.0.1")));
+        CHECK_THROWS(r1->get_interface(IPv4Address("1.2.3.4")));
+        CHECK(r1->get_intfs().size() == 2);
+        CHECK(r1->get_intfs_l3().size() == 2);
+        CHECK(r1->get_intfs_l2().size() == 0);
+        CHECK_NOTHROW(r1->get_rib());
     }
 
-    SECTION("duplicate interface IP") {
-        std::string content =
-            "[node]\n"
-            "   name = \"r0\"\n"
-            "   [[node.interfaces]]\n"
-            "   name = \"eth0\"\n"
-            "   ipv4 = \"192.168.1.1/30\"\n"
-            "   [[node.interfaces]]\n"
-            "   name = \"eth1\"\n"
-            "   ipv4 = \"192.168.1.1/30\"\n"
-            ;
-        auto config = fs::get_toml_config(content);
-        REQUIRE(config);
-        auto node_config = config->get_table("node");
-        REQUIRE(node_config);
-        CHECK_THROWS_WITH(node = new Node(node_config),
-                          "Duplicate interface IP: 192.168.1.1");
-        delete node;
-    }
-    */
-
-    std::shared_ptr<Network> net;
-
-    SECTION("basic information access") {
-        std::string content =
-            "[[nodes]]\n"
-            "    name = \"r0\"\n"
-            "    type = \"generic\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth0\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth1\"\n"
-            "    [[nodes.static_routes]]\n"
-            "    network = \"0.0.0.0/0\"\n"
-            "    next_hop = \"1.2.3.4\"\n"
-            "    [[nodes.installed_routes]]\n"
-            "    network = \"10.0.0.0/16\"\n"
-            "    next_hop = \"192.168.1.1\"\n"
-            "[[nodes]]\n"
-            "    name = \"r1\"\n"
-            "    type = \"generic\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth0\"\n"
-            "    ipv4 = \"192.168.1.1/30\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth1\"\n"
-            "    ipv4 = \"10.0.0.1/24\"\n"
-            "    [[nodes.static_routes]]\n"
-            "    network = \"0.0.0.0/0\"\n"
-            "    next_hop = \"1.2.3.4\"\n"
-            "    [[nodes.installed_routes]]\n"
-            "    network = \"10.0.0.0/16\"\n"
-            "    next_hop = \"192.168.1.1\"\n"
-            "[[links]]\n"
-            "    node1 = \"r0\"\n"
-            "    intf1 = \"eth0\"\n"
-            "    node2 = \"r1\"\n"
-            "    intf2 = \"eth0\"\n"
-            "[[links]]\n"
-            "    node1 = \"r0\"\n"
-            "    intf1 = \"eth1\"\n"
-            "    node2 = \"r1\"\n"
-            "    intf2 = \"eth1\"\n"
-            ;
-        auto config = fs::get_toml_config(content);
-        REQUIRE(config);
-        auto nodes_config = config->get_table_array("nodes");
-        auto links_config = config->get_table_array("links");
-        REQUIRE_NOTHROW(net = std::make_shared<Network>
-                              (nodes_config, links_config, nullptr));
-
-        REQUIRE_NOTHROW(node = net->get_nodes().at("r1"));
-        CHECK(node->to_string() == "r1");
-        CHECK(node->get_name() == "r1");
-        CHECK(node->has_ip(IPv4Address("192.168.1.1")));
-        CHECK(node->has_ip(IPv4Address("10.0.0.1")));
-        CHECK_FALSE(node->has_ip(IPv4Address("1.2.3.4")));
-        CHECK_NOTHROW(node->get_interface("eth0"));
-        CHECK_NOTHROW(node->get_interface("eth1"));
-        CHECK_THROWS (node->get_interface("eth2"));
-        CHECK_NOTHROW(node->get_interface(IPv4Address("192.168.1.1")));
-        CHECK_NOTHROW(node->get_interface(IPv4Address("10.0.0.1")));
-        CHECK_THROWS (node->get_interface(IPv4Address("1.2.3.4")));
-
-        Node *r0;
-        REQUIRE_NOTHROW(r0 = net->get_nodes().at("r0"));
-        auto r0_peer = r0->get_peer("eth0");
-        CHECK(r0_peer.first == node);
-        CHECK(r0_peer.second == node->get_interface("eth0"));
-        auto r1_peer = node->get_peer("eth1");
-        CHECK(r1_peer.first == r0);
-        CHECK(r1_peer.second == r0->get_interface("eth1"));
+    SECTION("peer check") {
+        std::pair<Node *, Interface *> r0eth0_peer = r0->get_peer("eth0");
+        std::pair<Node *, Interface *> r0eth1_peer = r0->get_peer("eth1");
+        std::pair<Node *, Interface *> r1eth0_peer = r1->get_peer("eth0");
+        std::pair<Node *, Interface *> r1eth1_peer = r1->get_peer("eth1");
+        CHECK(r0eth0_peer.first == r1);
+        CHECK(r0eth0_peer.second == r1->get_interface("eth0"));
+        CHECK(r0eth1_peer.first == r1);
+        CHECK(r0eth1_peer.second == r1->get_interface("eth1"));
+        CHECK(r1eth0_peer.first == r0);
+        CHECK(r1eth0_peer.second == r0->get_interface("eth0"));
+        CHECK(r1eth1_peer.first == r0);
+        CHECK(r1eth1_peer.second == r0->get_interface("eth1"));
     }
 
-    /*
-    SECTION("two peers/links on one interface") {
-        std::string content =
-            "[[nodes]]\n"
-            "    name = \"r0\"\n"
-            "    type = \"generic\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth0\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth1\"\n"
-            "[[nodes]]\n"
-            "    name = \"r1\"\n"
-            "    type = \"generic\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth0\"\n"
-            "    [[nodes.interfaces]]\n"
-            "    name = \"eth1\"\n"
-            "[[links]]\n"
-            "    node1 = \"r0\"\n"
-            "    intf1 = \"eth0\"\n"
-            "    node2 = \"r1\"\n"
-            "    intf2 = \"eth0\"\n"
-            "[[links]]\n"
-            "    node1 = \"r0\"\n"
-            "    intf1 = \"eth1\"\n"
-            "    node2 = \"r1\"\n"
-            "    intf2 = \"eth1\"\n"
-            "[[links]]\n"
-            "    node1 = \"r0\"\n"
-            "    intf1 = \"eth0\"\n"
-            "    node2 = \"r1\"\n"
-            "    intf2 = \"eth1\"\n"
-            ;
-        auto config = fs::get_toml_config(content);
-        REQUIRE(config);
-        auto nodes_config = config->get_table_array("nodes");
-        auto links_config = config->get_table_array("links");
-        CHECK_THROWS_WITH(net = std::make_shared<Network>
-                                (nodes_config, links_config),
-                          Catch::StartsWith("Two peers on interface"));
+    SECTION("L2_LAN check") {
+        L2_LAN *lan = r0->get_l2lan(r0->get_interface("eth0"));
+        REQUIRE(lan);
+        CHECK(lan == r0->get_l2lan(r0->get_interface("eth1")));
+        CHECK(lan == r1->get_l2lan(r1->get_interface("eth0")));
+        CHECK(lan == r1->get_l2lan(r1->get_interface("eth1")));
     }
-    */
+
+    SECTION("next hops") {
+        CHECK(r0->get_ipnhs("10.0.0.1").empty());
+        CHECK(r0->get_ipnhs("8.8.8.8").empty());
+        CHECK(r0->get_ipnh("eth0", "8.8.8.8") ==
+                FIB_IPNH(r1, r1->get_interface("eth0"), r1, r1->get_interface("eth0")));
+        CHECK(r0->get_ipnh("eth1", "8.8.8.8") ==
+                FIB_IPNH(r1, r1->get_interface("eth1"), r1, r1->get_interface("eth1")));
+
+        REQUIRE(r1->get_ipnhs("192.168.1.1").size() == 1);
+        CHECK(*(r1->get_ipnhs("192.168.1.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
+        CHECK(r1->get_ipnhs("192.168.1.2").empty());
+        REQUIRE(r1->get_ipnhs("10.0.0.1").size() == 1);
+        CHECK(*(r1->get_ipnhs("10.0.0.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
+        CHECK(r1->get_ipnhs("10.0.0.2").empty());
+        REQUIRE(r1->get_ipnhs("10.0.1.1").size() == 1);
+        CHECK(*(r1->get_ipnhs("10.0.1.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
+        CHECK(r1->get_ipnhs("8.8.8.8").empty());
+        CHECK(r1->get_ipnh("eth0", "8.8.8.8") == FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
+        CHECK(r1->get_ipnh("eth0", "10.0.0.1") ==
+                FIB_IPNH(r1, r1->get_interface("eth1"), r0, r0->get_interface("eth0")));
+        CHECK(r1->get_ipnh("eth1", "8.8.8.8") == FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
+        CHECK(r1->get_ipnh("eth1", "192.168.1.1") ==
+                FIB_IPNH(r1, r1->get_interface("eth0"), r0, r0->get_interface("eth1")));
+    }
 }

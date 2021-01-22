@@ -10,7 +10,7 @@ target_link_libraries(unittest PRIVATE spin_model cpptoml xxhash Libnet::Libnet
   Threads::Threads Catch2::Catch2 coverage_config)
 
 add_custom_target(unittest-setcap ALL
-    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
+    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" unittest
     DEPENDS unittest)
 
 add_test(NAME "neo_unit_test"

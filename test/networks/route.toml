@@ -1,0 +1,22 @@
+[[nodes]]
+    name = "r0"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.11/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "172.16.1.2/10"
+    [[nodes.interfaces]]
+    name = "br0"
+
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "172.16.1.1"
+    adm_dist = 1
+    [[nodes.installed_routes]]
+    network = "10.0.0.0/8"
+    next_hop = "1.2.3.4"
+    adm_dist = 255
+    [[nodes.installed_routes]]
+    network = "1.2.3.0/24"
+    next_hop = "192.168.1.254"

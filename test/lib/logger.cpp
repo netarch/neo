@@ -16,11 +16,6 @@ TEST_CASE("logger")
                           ": No such file or directory");
     }
 
-    SECTION("non-existent log file") {
-        CHECK_THROWS_WITH(Logger::enable_file_logging("non/existent/log/file"),
-                          "Failed to open log file: non/existent/log/file");
-    }
-
     SECTION("normal log file") {
         Logger::enable_file_logging("normal.log");
         Logger::info("");

@@ -14,7 +14,7 @@ TEST_CASE("fs")
     }
 
     SECTION("exists") {
-        CHECK(fs::exists("test-fs.o"));
+        CHECK(fs::exists("lib/fs.cpp"));
         CHECK_FALSE(fs::exists("non/existent/file"));
         CHECK_THROWS_WITH(fs::exists("/proc/1/fd/0"),
                           "/proc/1/fd/0: Permission denied");
@@ -32,7 +32,7 @@ TEST_CASE("fs")
     SECTION("realpath") {
         char cwd[PATH_MAX];
         REQUIRE(getcwd(cwd, PATH_MAX) != NULL);
-        CHECK(fs::realpath("test-fs.o") == std::string(cwd) + "/test-fs.o");
+        CHECK(fs::realpath("lib/fs.cpp") == std::string(cwd) + "/lib/fs.cpp");
         CHECK_THROWS_WITH(fs::realpath("non/existent/file"),
                           "non/existent/file: No such file or directory");
     }
