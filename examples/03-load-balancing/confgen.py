@@ -3,7 +3,7 @@
 import sys
 import toml
 import argparse
-from conf_classes import *
+from config import *
 
 def confgen(lbs, servers, algorithm, repeat):
     network = Network()
@@ -64,9 +64,7 @@ def confgen(lbs, servers, algorithm, repeat):
                 repeat = repeat))
 
     ## output as TOML
-    config = network.to_dict()
-    config.update(policies.to_dict())
-    print(toml.dumps(config))
+    output_toml(network, None, policies)
 
 def main():
     parser = argparse.ArgumentParser(description='02-firewall-consistency')

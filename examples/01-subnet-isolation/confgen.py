@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 
 import sys
-import toml
 import argparse
-from conf_classes import *
+from config import *
 
 def confgen(subnets, hosts, fault1, fault2):
     network = Network()
@@ -195,9 +194,7 @@ COMMIT
             reachable = False))
 
     ## output as TOML
-    config = network.to_dict()
-    config.update(policies.to_dict())
-    print(toml.dumps(config))
+    output_toml(network, None, policies)
 
 def main():
     parser = argparse.ArgumentParser(description='01-subnet-isolation')

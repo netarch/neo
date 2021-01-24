@@ -27,7 +27,7 @@ class Route:
         return data
 
 class Node:
-    def __init__(self, name, type='generic'):
+    def __init__(self, name, type=None):
         self.name: str                      = name
         self.type: str                      = type
         self.interfaces: List[Interface]    = list()
@@ -44,15 +44,15 @@ class Node:
         self.installed_routes.append(route)
 
     def to_dict(self):
-        data = {'name': self.name, 'type': self.type}
+        data = {'name': self.name}
+        if self.type != None:
+            data['type'] = self.type
         if self.interfaces:
             data['interfaces'] = [intf.to_dict() for intf in self.interfaces]
         if self.static_routes:
-            data['static_routes'] = [route.to_dict()
-                                     for route in self.static_routes]
+            data['static_routes'] = [route.to_dict() for route in self.static_routes]
         if self.installed_routes:
-            data['installed_routes'] = [route.to_dict()
-                                        for route in self.installed_routes]
+            data['installed_routes'] = [route.to_dict() for route in self.installed_routes]
         return data
 
 class Middlebox(Node):
@@ -72,7 +72,7 @@ class Middlebox(Node):
     def to_dict(self):
         data = Node.to_dict(self)
         data.update({'env': self.env, 'app': self.app})
-        if self.timeout is not None:
+        if self.timeout != None:
             data.update({'timeout': self.timeout})
         data.update(self.other_configs)
         return data
@@ -106,6 +106,28 @@ class Network:
             data['links'] = [link.to_dict() for link in self.links]
         return data
 
+class OpenflowUpdate:
+    def __init__(self, node_name, network, outport):
+        self.node: str = node_name
+        self.network: str = network
+        self.outport: str = outport
+
+    def to_dict(self):
+        return self.__dict__
+
+class Openflow:
+    def __init__(self):
+        self.updates: List[OpenflowUpdate] = list()
+
+    def add_update(self, update):
+        self.updates.append(update);
+
+    def to_dict(self):
+        data = {}
+        if self.updates:
+            data['updates'] = [update.to_dict() for update in self.updates]
+        return data
+
 class Communication:
     def __init__(self, protocol=None, pkt_dst=None, owned_dst_only=None,
                  start_node=None):
@@ -129,6 +151,10 @@ class Communication:
 class Policy:
     def __init__(self, type):
         self.type: str = type
+
+##
+## single-communication policies
+##
 
 class LoadBalancePolicy(Policy):
     def __init__(self, protocol, pkt_dst, start_node, final_node, repeat,
@@ -174,6 +200,42 @@ class ReplyReachabilityPolicy(Policy):
         data['communication'] = self.communication.to_dict()
         return data
 
+class WaypointPolicy(Policy):
+    def __init__(self, protocol, pkt_dst, start_node, waypoint, pass_through,
+                 owned_dst_only=None):
+        Policy.__init__(self, 'waypoint')
+        self.waypoint: str = waypoint
+        self.pass_through: bool = pass_through
+        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
+                                           start_node)
+
+    def to_dict(self):
+        data = self.__dict__
+        data['communication'] = self.communication.to_dict()
+        return data
+
+##
+## multi-communication policies
+##
+
+# TODO: OneRequestPolicy (one-request)
+
+##
+## policies with multiple single-communication correlated policies
+##
+
+class ConditionalPolicy(Policy):
+    def __init__(self, correlated_policies):
+        Policy.__init__(self, 'conditional')
+        self.correlated_policies: List[Policy] = correlated_policies
+
+    def to_dict(self):
+        data = self.__dict__
+        if self.correlated_policies:
+            data['correlated_policies'] = [policy.to_dict()
+                    for policy in self.correlated_policies]
+        return data
+
 class ConsistencyPolicy(Policy):
     def __init__(self, correlated_policies):
         Policy.__init__(self, 'consistency')
@@ -186,11 +248,9 @@ class ConsistencyPolicy(Policy):
                     for policy in self.correlated_policies]
         return data
 
-# TODO: add other policy classes
-
 class Policies:
     def __init__(self):
-        self.policies: List = list()
+        self.policies: List[Policy] = list()
 
     def add_policy(self, policy):
         self.policies.append(policy)
@@ -200,3 +260,15 @@ class Policies:
             return {'policies': [policy.to_dict() for policy in self.policies]}
         else:
             return {}
+
+import toml
+
+def output_toml(network, openflow, policies):
+    config = {}
+    if network != None:
+        config.update(network.to_dict())
+    if openflow != None:
+        config.update(openflow.to_dict())
+    if policies != None:
+        config.update(policies.to_dict())
+    print(toml.dumps(config))

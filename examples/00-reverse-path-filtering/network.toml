@@ -194,6 +194,7 @@ COMMIT
     protocol = "http"
     pkt_dst = "192.168.0.0/22"
     start_node = "server"
+    owned_dst_only = true
 [[policies]]
     type = "reply-reachability"
     query_node = "server"
