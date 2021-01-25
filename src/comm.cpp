@@ -1,14 +1,6 @@
 #include "comm.hpp"
 
-#include <cctype>
 #include <cassert>
-
-#include <algorithm>
-#include <regex>
-
-#include "lib/logger.hpp"
-#include "packet.hpp"
-#include "model.h"
 
 int Communication::get_protocol() const
 {
@@ -30,46 +22,14 @@ std::string Communication::start_nodes_str() const
     return ret;
 }
 
-uint16_t Communication::get_src_port(State *state) const
+uint16_t Communication::get_src_port() const
 {
-    bool is_reply = PS_IS_REPLY(state->comm_state[state->comm].pkt_state);
-
-    if (is_reply) {
-        return rx_port;
-    } else {
-        return tx_port;
-    }
+    return src_port;
 }
 
-uint16_t Communication::get_dst_port(State *state) const
+uint16_t Communication::get_dst_port() const
 {
-    bool is_reply = PS_IS_REPLY(state->comm_state[state->comm].pkt_state);
-
-    if (is_reply) {
-        return tx_port;
-    } else {
-        return rx_port;
-    }
-}
-
-uint16_t Communication::get_tx_port() const
-{
-    return tx_port;
-}
-
-uint16_t Communication::get_rx_port() const
-{
-    return rx_port;
-}
-
-void Communication::set_tx_port(uint16_t port)
-{
-    tx_port = port;
-}
-
-void Communication::set_rx_port(uint16_t port)
-{
-    rx_port = port;
+    return dst_port;
 }
 
 void Communication::compute_ecs(const EqClasses& all_ECs,
@@ -102,11 +62,6 @@ size_t Communication::num_start_nodes() const
     return start_nodes.size();
 }
 
-size_t Communication::num_comms() const
-{
-    return ECs.size() * start_nodes.size();
-}
-
 bool Communication::set_initial_ec()
 {
     if (!initial_ec || ++ECs_itr == ECs.end()) {
@@ -123,16 +78,4 @@ bool Communication::set_initial_ec()
 EqClass *Communication::get_initial_ec() const
 {
     return initial_ec;
-}
-
-bool operator==(const Communication& a, const Communication& b)
-{
-    if (a.protocol == b.protocol &&
-            a.start_nodes == b.start_nodes &&
-            a.tx_port == b.tx_port &&
-            a.rx_port == b.rx_port &&
-            *a.initial_ec == *b.initial_ec) {
-        return true;
-    }
-    return false;
 }

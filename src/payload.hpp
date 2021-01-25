@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "eqclass.hpp"
+class EqClass;
 struct State;
 
 class Payload
@@ -84,6 +84,5 @@ public:
 
     static PayloadMgr& get();
 
-    Payload *get_payload(State *, uint16_t dst_port);
-    //Payload *get_payload(const Payload&);
+    Payload *get_payload(State *);
 };

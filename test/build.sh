@@ -30,6 +30,7 @@ usage()
     -d, --debug         Enable debugging
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
+    --max-comms N       Maximum number of concurrent communications
 EOF
 }
 
@@ -43,6 +44,10 @@ parse_params() {
             CMAKE_ARGS+=('-DENABLE_TESTS=ON') ;;
         -c | --coverage)
             CMAKE_ARGS+=('-DENABLE_COVERAGE=ON') ;;
+        --max-comms)
+            CMAKE_ARGS+=("-DMAX_COMMS=${2-}")
+            shift
+            ;;
         -?*) die "Unknown option: $1\n$(usage)" ;;
         *) break ;;
         esac

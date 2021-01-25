@@ -25,16 +25,18 @@ typedef comm_state_t {
     /* network */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
 
-    /* Plankton process */
+    /* plankton process */
     unsigned process_id : 1;                        /* executing process */
 
     /* forwarding process */
     unsigned pkt_state : 4;                         /* packet state */
     unsigned fwd_mode : 3;                          /* forwarding mode */
     int ec[SIZEOF_VOID_P / SIZEOF_INT];             /* (EqClass *), current EC (destination IP range) */
+    int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int seq[4 / SIZEOF_INT];                        /* (uint32_t) */
     int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
-    int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
+    unsigned src_port : 16;                         /* (uint16_t) */
+    unsigned dst_port : 16;                         /* (uint16_t) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int tx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
     int rx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
@@ -47,33 +49,20 @@ typedef comm_state_t {
     int openflow_update_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (OpenflowUpdateState *) */
 
     /* load balance policy */
-    int repetition; /* number of repeated communications */
+    int repetition;                                 /* number of repeated communications */
 };
 
-/* policy */
-bool violated;
-
-/* forwarding process */
-unsigned picking_comm : 1;
-
 comm_state_t comm_state[MAX_COMMS];
-unsigned comm : 1;  /* index of the executing communication */
-int num_comms;      /* number of current communications */
-int choice;         /* non-determinisic selection result */
-int choice_count;   /* non-determinisic selection range [0, choice_count) */
-/*
- * if picking_comm == 0
- *      candidate: (std::vector<FIB_IPNH> *)
- * else if picking_comm == 1
- *      candidate: (nullptr)
- *      choice: comm
- *      choice_count: MAX_COMMS
- */
-int candidates[SIZEOF_VOID_P / SIZEOF_INT];
 
-/* reserved extended state for later use */
-int ext_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (void *) */
+/* policy */
+bool violated;              /* whether the policy has been violated */
+int comm;                   /* index of the executing communication */
+int num_comms;              /* number of concurrent communications */
+int correlated_policy_idx;  /* index of sequential correlated policies */
 
+int choice;                 /* non-determinisic selection result */
+int choice_count;           /* non-determinisic selection range [0, choice_count) */
+int candidates[SIZEOF_VOID_P / SIZEOF_INT];         /* (Candidates *) */
 
 c_code {
     \#include "api.hpp"

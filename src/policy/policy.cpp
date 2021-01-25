@@ -40,7 +40,8 @@ int Policy::get_protocol(State *state) const
     if (correlated_policies.empty()) {
         return comms[state->comm].get_protocol();
     } else {
-        return correlated_policies[state->comm]->comms[0].get_protocol();
+        Policy *policy = correlated_policies[state->correlated_policy_idx];
+        return policy->comms[0].get_protocol();
     }
 }
 
@@ -49,25 +50,28 @@ const std::vector<Node *>& Policy::get_start_nodes(State *state) const
     if (correlated_policies.empty()) {
         return comms[state->comm].get_start_nodes();
     } else {
-        return correlated_policies[state->comm]->comms[0].get_start_nodes();
+        Policy *policy = correlated_policies[state->correlated_policy_idx];
+        return policy->comms[0].get_start_nodes();
     }
 }
 
 uint16_t Policy::get_src_port(State *state) const
 {
     if (correlated_policies.empty()) {
-        return comms[state->comm].get_src_port(state);
+        return comms[state->comm].get_src_port();
     } else {
-        return correlated_policies[state->comm]->comms[0].get_src_port(state);
+        Policy *policy = correlated_policies[state->correlated_policy_idx];
+        return policy->comms[0].get_src_port();
     }
 }
 
 uint16_t Policy::get_dst_port(State *state) const
 {
     if (correlated_policies.empty()) {
-        return comms[state->comm].get_dst_port(state);
+        return comms[state->comm].get_dst_port();
     } else {
-        return correlated_policies[state->comm]->comms[0].get_dst_port(state);
+        Policy *policy = correlated_policies[state->correlated_policy_idx];
+        return policy->comms[0].get_dst_port();
     }
 }
 
@@ -122,26 +126,9 @@ size_t Policy::num_ecs() const
 size_t Policy::num_comms() const
 {
     if (correlated_policies.empty()) {
-        size_t num = 1;
-        for (const Communication& comm : comms) {
-            num *= comm.num_comms();
-        }
-        return num;
-    } else {
-        size_t total_num_start_nodes = 0;
-        for (Policy *p : correlated_policies) {
-            total_num_start_nodes += p->comms[0].num_start_nodes();
-        }
-        return num_ecs() * total_num_start_nodes;
-    }
-}
-
-size_t Policy::num_simul_comms() const
-{
-    if (correlated_policies.empty()) {
         return comms.size();
     } else {
-        return 1;
+        return correlated_policies.size();
     }
 }
 

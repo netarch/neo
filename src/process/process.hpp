@@ -2,15 +2,13 @@
 
 #include <string>
 
-#include "network.hpp"
+class Network;
 struct State;
 
 enum pid {
-    FORWARDING,
-    OPENFLOW
+    forwarding,
+    openflow
 };
-
-std::string process_id_to_str(int);
 
 class Process
 {

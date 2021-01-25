@@ -3,14 +3,13 @@
 #include <string>
 #include <map>
 #include <set>
-#include <memory>
 #include <unordered_set>
 
 #include "interface.hpp"
 #include "routingtable.hpp"
-class Node;
 #include "l2-lan.hpp"
 #include "fib.hpp"
+#include "lib/ip.hpp"
 
 class Node
 {

@@ -3,6 +3,7 @@
 #include <libnet.h>
 
 #include "stats.hpp"
+#include "lib/logger.hpp"
 
 Middlebox::Middlebox()
     : env(nullptr), app(nullptr), node_pkt_hist(nullptr), listener(nullptr),
@@ -53,12 +54,13 @@ void Middlebox::init()
 int Middlebox::rewind(NodePacketHistory *nph)
 {
     if (node_pkt_hist == nph) {
+        Logger::info(this->get_name() + " up to date, no need to rewind");
         return -1;
     }
 
     int rewind_injections = 0;
 
-    Logger::info("============== rewind starts ==============");
+    Logger::info("============== rewind starts (" + this->get_name() + ") ==============");
 
     // reset middlebox state
     env->run(mb_app_reset, app);
@@ -72,7 +74,7 @@ int Middlebox::rewind(NodePacketHistory *nph)
     }
     node_pkt_hist = nph;
 
-    Logger::info("==============  rewind ends  ==============");
+    Logger::info("==============  rewind ends  (" + this->get_name() + ") ==============");
 
     return rewind_injections;
 }
@@ -88,7 +90,7 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
     recv_pkts.clear();
 
     // inject packet
-    Logger::info("Injecting packet " + pkt.to_string());
+    Logger::info("Injecting packet: " + pkt.to_string());
     env->inject_packet(pkt);
 
     Stats::set_pkt_lat_t1();
@@ -102,6 +104,13 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
     if (status == std::cv_status::timeout) {
         Logger::info("Timeout!");
     }
+    /*
+     * NOTE:
+     * We don't process the read packets in the critical section (i.e., here).
+     * Instead, we process the read packets in ForwardingProcess (the caller),
+     * which is also because the knowledge of the current connection state is
+     * required to process it correctly, as mentioned in lib/net.cpp.
+     */
 
     // return the received packets
     return recv_pkts;

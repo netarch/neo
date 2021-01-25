@@ -377,9 +377,14 @@ void Config::parse_communication(
         return std::tolower(c);
     });
     if (proto_s == "http") {
-        comm->protocol = proto::PR_HTTP;
+        comm->protocol = proto::http;
+        // NOTE: fixed port numbers for now
+        comm->src_port = 49152; // 49152 to 65535
+        comm->dst_port = 80;
     } else if (proto_s == "icmp-echo") {
-        comm->protocol = proto::PR_ICMP_ECHO;
+        comm->protocol = proto::icmp_echo;
+        comm->src_port = 0;
+        comm->dst_port = 0;
     } else {
         Logger::error("Unknown protocol: " + *proto_str);
     }
@@ -397,10 +402,6 @@ void Config::parse_communication(
             comm->start_nodes.push_back(node.second);
         }
     }
-
-    // NOTE: fixed port numbers for now
-    comm->tx_port = 1234;
-    comm->rx_port = 80;
 }
 
 void Config::parse_loadbalancepolicy(
@@ -763,5 +764,11 @@ void Config::parse_openflow(OpenflowProcess *openflow,
         Route route;
         Config::parse_openflow_update(&node, &route, update_cfg, network);
         openflow->add_update(node, std::move(route));
+    }
+
+    if (openflow->num_nodes() > 0) {
+        Logger::info("Loaded " + std::to_string(openflow->num_updates())
+                     + " openflow updates for "
+                     + std::to_string(openflow->num_nodes()) + " nodes");
     }
 }

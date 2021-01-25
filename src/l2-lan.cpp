@@ -1,5 +1,8 @@
 #include "l2-lan.hpp"
 
+#include <utility>
+
+#include "node.hpp"
 #include "lib/logger.hpp"
 
 void L2_LAN::collect_intfs(Node *node,

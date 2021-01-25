@@ -1,7 +1,10 @@
 #include "packet.hpp"
 
-#include <cstring>
-
+#include "eqclass.hpp"
+#include "interface.hpp"
+#include "payload.hpp"
+#include "lib/hash.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 Packet::Packet()
@@ -10,34 +13,26 @@ Packet::Packet()
 {
 }
 
-Packet::Packet(State *state, const Policy *policy)
+Packet::Packet(State *state)
+    : Packet()  // make sure all members are initialized
 {
     // ingress interface
-    memcpy(&interface, state->comm_state[state->comm].ingress_intf,
-           sizeof(Interface *));
+    this->interface = ::get_ingress_intf(state);
     // IP
-    memcpy(&src_ip, state->comm_state[state->comm].src_ip, sizeof(uint32_t));
-    EqClass *dst_ip_ec;
-    memcpy(&dst_ip_ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-    dst_ip = dst_ip_ec->representative_addr();
+    this->src_ip = ::get_src_ip(state);
+    this->dst_ip = ::get_ec(state)->representative_addr();
     // packet state
-    int pkt_state = state->comm_state[state->comm].pkt_state;
-    this->pkt_state = pkt_state;
+    this->pkt_state = ::get_pkt_state(state);
 
     if (PS_IS_TCP(pkt_state)) {
         // TCP
-        src_port = policy->get_src_port(state);
-        dst_port = policy->get_dst_port(state);
-        memcpy(&seq, state->comm_state[state->comm].seq, sizeof(uint32_t));
-        memcpy(&ack, state->comm_state[state->comm].ack, sizeof(uint32_t));
-        payload = PayloadMgr::get().get_payload(state, dst_port);
+        this->src_port = ::get_src_port(state);
+        this->dst_port = ::get_dst_port(state);
+        this->seq = ::get_seq(state);
+        this->ack = ::get_ack(state);
+        this->payload = PayloadMgr::get().get_payload(state);
     } else if (PS_IS_ICMP_ECHO(pkt_state)) {
-        // ICMP
-        src_port = 0;
-        dst_port = 0;
-        seq = 0;
-        ack = 0;
-        payload = nullptr;
+        // ICMP (do nothing)
     } else {
         Logger::error("Unsupported packet state " + std::to_string(pkt_state));
     }
@@ -68,7 +63,7 @@ std::string Packet::to_string() const
     ret += " (state: " + std::to_string(pkt_state) + ")";
     if (PS_IS_TCP(pkt_state)) {
         ret +=
-            " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (S/A)]"
+            " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (seq/ack)]"
             " payload size: " +
             (payload ? std::to_string(payload->get_size()) : std::string("0"));
     }
@@ -189,51 +184,18 @@ bool operator==(const Packet& a, const Packet& b)
             a.payload == b.payload);
 }
 
-bool eq_except_intf(const Packet& a, const Packet& b)
-{
-    return (a.src_ip == b.src_ip &&
-            a.dst_ip == b.dst_ip &&
-            a.src_port == b.src_port &&
-            a.dst_port == b.dst_port &&
-            a.seq == b.seq &&
-            a.ack == b.ack &&
-            a.pkt_state == b.pkt_state &&
-            a.payload == b.payload);
-}
-
-bool same_ips_ports(const Packet& a, const Packet& b)
-{
-    return (a.src_ip == b.src_ip &&
-            a.dst_ip == b.dst_ip &&
-            a.src_port == b.src_port &&
-            a.dst_port == b.dst_port);
-}
-
-bool reversed_ips_ports(const Packet& a, const Packet& b)
-{
-    return (a.src_ip == b.dst_ip &&
-            a.dst_ip == b.src_ip &&
-            a.src_port == b.dst_port &&
-            a.dst_port == b.src_port);
-}
-
-bool same_comm(const Packet& a, const Packet& b)
-{
-    return same_ips_ports(a, b) || reversed_ips_ports(a, b);
-}
-
 size_t PacketHash::operator()(Packet *const& p) const
 {
     size_t value = 0;
-    ::hash::hash_combine(value, std::hash<Interface *>()(p->interface));
-    ::hash::hash_combine(value, std::hash<IPv4Address>()(p->src_ip));
-    ::hash::hash_combine(value, std::hash<IPv4Address>()(p->dst_ip));
-    ::hash::hash_combine(value, std::hash<uint16_t>()   (p->src_port));
-    ::hash::hash_combine(value, std::hash<uint16_t>()   (p->dst_port));
-    ::hash::hash_combine(value, std::hash<uint32_t>()   (p->seq));
-    ::hash::hash_combine(value, std::hash<uint32_t>()   (p->ack));
-    ::hash::hash_combine(value, std::hash<uint8_t>()    (p->pkt_state));
-    ::hash::hash_combine(value, std::hash<Payload *>()(p->payload));
+    hash::hash_combine(value, std::hash<Interface *>()(p->interface));
+    hash::hash_combine(value, std::hash<IPv4Address>()(p->src_ip));
+    hash::hash_combine(value, std::hash<IPv4Address>()(p->dst_ip));
+    hash::hash_combine(value, std::hash<uint16_t>()   (p->src_port));
+    hash::hash_combine(value, std::hash<uint16_t>()   (p->dst_port));
+    hash::hash_combine(value, std::hash<uint32_t>()   (p->seq));
+    hash::hash_combine(value, std::hash<uint32_t>()   (p->ack));
+    hash::hash_combine(value, std::hash<uint8_t>()    (p->pkt_state));
+    hash::hash_combine(value, std::hash<Payload *>()(p->payload));
     return value;
 }
 

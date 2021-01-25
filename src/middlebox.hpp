@@ -48,9 +48,9 @@ public:
     std::vector<Packet> send_pkt(const Packet&); // send one L7 packet
 
     /*
-     * Return an empty set. We don't model the forwarding behavior of
-     * middleboxes. The forwarding process will inject a concrete packet to the
-     * emulation instance.
+     * Return an empty set. We use emulations to get next hops for middleboxes.
+     * The forwarding process will inject a concrete packet to the emulation
+     * instance.
      */
     std::set<FIB_IPNH> get_ipnhs(
         const IPv4Address&,

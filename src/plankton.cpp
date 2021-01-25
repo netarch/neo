@@ -1,8 +1,6 @@
 #include "plankton.hpp"
 
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <csignal>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -10,14 +8,12 @@
 #include <unistd.h>
 
 #include <set>
-#include <typeinfo>
 
 #include "stats.hpp"
 #include "config.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
-#include "policy/conditional.hpp"
-#include "policy/consistency.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 static bool verify_all_ECs = false;    // verify all ECs even if a violation is found
@@ -317,12 +313,10 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    state->comm = 0;
-
     network.init(state);
-    policy->init(state);
+    policy->init(state); // this also initializes the communication settings
 
-    state->comm_state[state->comm].process_id = int(pid::FORWARDING);
+    set_process_id(state, pid::forwarding);
     forwarding.init(state, network, policy);
     openflow.init(state);
 
@@ -331,24 +325,22 @@ void Plankton::initialize(State *state)
 
 void Plankton::process_switch(State *state) const
 {
-    int process_id = state->comm_state[state->comm].process_id;
-    int forwarding_mode = state->comm_state[state->comm].fwd_mode;
-    Node *current_node;
-    memcpy(&current_node, state->comm_state[state->comm].pkt_location,
-           sizeof(Node *));
+    int process_id = get_process_id(state);
+    int fwd_mode = get_fwd_mode(state);
+    Node *current_node = get_pkt_location(state);
 
     switch (process_id) {
-        case pid::FORWARDING:
-            if ((forwarding_mode == fwd_mode::FIRST_COLLECT ||
-                    forwarding_mode == fwd_mode::COLLECT_NHOPS) &&
+        case pid::forwarding:
+            if ((fwd_mode == fwd_mode::FIRST_COLLECT ||
+                    fwd_mode == fwd_mode::COLLECT_NHOPS) &&
                     openflow.has_updates(state, current_node)) {
-                state->comm_state[state->comm].process_id = int(pid::OPENFLOW);
+                set_process_id(state, pid::openflow);
                 state->choice_count = 2; // whether to install an update or not
             }
             break;
-        case pid::OPENFLOW:
+        case pid::openflow:
             if (state->choice_count == 1) {
-                state->comm_state[state->comm].process_id = int(pid::FORWARDING);
+                set_process_id(state, pid::forwarding);
                 state->choice_count = 1;
             }
             break;
@@ -359,13 +351,13 @@ void Plankton::process_switch(State *state) const
 
 void Plankton::exec_step(State *state)
 {
-    int process_id = state->comm_state[state->comm].process_id;
+    int process_id = get_process_id(state);
 
     switch (process_id) {
-        case pid::FORWARDING:
+        case pid::forwarding:
             forwarding.exec_step(state, network);
             break;
-        case pid::OPENFLOW:
+        case pid::openflow:
             openflow.exec_step(state, network);
             break;
         default:
@@ -383,7 +375,7 @@ void Plankton::exec_step(State *state)
         forwarding.init(state, network, policy);
     }
     if (policy_result & POL_RESET_FWD) {
-        forwarding.reset(state, network, policy);
+        forwarding.reset(state, network);
     }
 }
 

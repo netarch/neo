@@ -1,7 +1,6 @@
 #include "node.hpp"
 
 #include <utility>
-#include <stdexcept>
 
 #include "lib/logger.hpp"
 
@@ -191,7 +190,8 @@ FIB_IPNH Node::get_ipnh(const std::string& egress_intf_name,
             return FIB_IPNH(l2nh.first, l2nh.second,
                             l2nh.first, l2nh.second);
         } else {
-            auto l3nh = l2nh.first->l2_lans[l2nh.second]->find_l3_endpoint(dst);
+            L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
+            auto l3nh = l2_lan->find_l3_endpoint(dst);
             if (l3nh.first) {
                 return FIB_IPNH(l3nh.first, l3nh.second,
                                 l2nh.first, l2nh.second);

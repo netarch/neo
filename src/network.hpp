@@ -8,8 +8,8 @@
 
 #include "node.hpp"
 #include "link.hpp"
-#include "fib.hpp"
-#include "routingtable.hpp"
+#include "l2-lan.hpp"
+class Route;
 struct State;
 
 /*
@@ -18,8 +18,6 @@ struct State;
  *
  * The state of a network consists of the current FIB (dataplane) and the failed
  * links.
- *
- * "fibs" records all the history FIBs to prevent duplicate.
  */
 class Network
 {
@@ -27,7 +25,6 @@ private:
     std::map<std::string, Node *>   nodes;
     std::set<Link *, LinkCompare>   links;
 
-    std::unordered_set<FIB *> fibs;         // history FIBs
     std::unordered_set<L2_LAN *> l2_lans;   // history L2 LANs
 
 private:

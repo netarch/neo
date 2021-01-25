@@ -1,11 +1,15 @@
 #include "lib/net.hpp"
 
+#include <cassert>
 #include <string>
 #include <sstream>
 #include <iomanip>
 #include <ios>
+#include <libnet.h>
 
+#include "packet.hpp"
 #include "payload.hpp"
+#include "pktbuffer.hpp"
 #include "lib/logger.hpp"
 
 Net::Net()
@@ -241,9 +245,15 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
             uint8_t flags;
             memcpy(&flags, buffer + 47, 1);
             pkt.set_pkt_state(flags | 0x80U);
-            // NOTE: store the TCP flags for now, which will be converted to
-            // real pkt_state in ForwardingProcess::inject_packet(). The highest
-            // bit is used to indicate unconverted TCP flags
+            /*
+             * NOTE:
+             * Store the TCP flags in pkt_state for now, which will be converted
+             * to the real pkt_state in ForwardingProcess (calling
+             * Net::convert_tcp_flags), because the knowledge of the current
+             * connection state is required to interprete the pkt_state. The
+             * highest bit of the variable is used to indicate unconverted TCP
+             * flags.
+             */
         } else if (ip_proto == IPPROTO_ICMP) {  // ICMP packets
             // TODO
             // set pkt_state according to it being a ping request or reply
@@ -259,6 +269,69 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
 
 bad_packet:
     pkt.clear();
+}
+
+void Net::convert_tcp_flags(
+    Packet& pkt, uint8_t old_pkt_state, bool change_direction) const
+{
+    // the highest bit (0x80) is used to indicate unconverted TCP flags
+    if (pkt.get_pkt_state() & 0x80U) {
+        uint8_t pkt_state = 0;
+        uint8_t flags = pkt.get_pkt_state() & (~0x80U);
+        if (flags == TH_SYN) {
+            pkt_state = PS_TCP_INIT_1;
+        } else if (flags == (TH_SYN | TH_ACK)) {
+            pkt_state = PS_TCP_INIT_2;
+        } else if (flags == TH_ACK) {
+            switch (old_pkt_state) {
+                case PS_TCP_INIT_2:
+                case PS_HTTP_REQ:
+                case PS_HTTP_REP:
+                case PS_TCP_TERM_2:
+                    pkt_state = old_pkt_state + 1;
+                    break;
+                case PS_TCP_INIT_3:
+                case PS_HTTP_REQ_A:
+                case PS_HTTP_REP_A:
+                case PS_TCP_TERM_3:
+                    pkt_state = old_pkt_state;
+                    break;
+                default:
+                    Logger::error("Invalid TCP flags: " + std::to_string(flags));
+            }
+        } else if (flags == (TH_PUSH | TH_ACK)) {
+            switch (old_pkt_state) {
+                case PS_TCP_INIT_3:
+                case PS_HTTP_REQ_A:
+                    pkt_state = old_pkt_state + 1;
+                    break;
+                case PS_HTTP_REQ:
+                case PS_HTTP_REP:
+                    pkt_state = old_pkt_state;
+                    break;
+                default:
+                    Logger::error("Invalid TCP flags: " + std::to_string(flags));
+            }
+        } else if (flags == (TH_FIN | TH_ACK)) {
+            if (change_direction) {
+                pkt_state = old_pkt_state + 1;
+            } else {
+                pkt_state = old_pkt_state;
+            }
+            switch (old_pkt_state) {
+                case PS_HTTP_REP_A:
+                case PS_TCP_TERM_1:
+                case PS_TCP_TERM_2:
+                case PS_TCP_TERM_3:
+                    break;
+                default:
+                    Logger::error("Invalid TCP flags: " + std::to_string(flags));
+            }
+        } else {
+            Logger::error("Invalid TCP flags: " + std::to_string(flags));
+        }
+        pkt.set_pkt_state(pkt_state);
+    }
 }
 
 std::string Net::mac_to_str(const uint8_t *mac) const

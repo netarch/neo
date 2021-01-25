@@ -46,6 +46,7 @@ private:
 public:
     PacketHistory(const Network&);
     PacketHistory(const PacketHistory&) = default;
+    PacketHistory(PacketHistory&&) = default;
 
     void set_node_pkt_hist(Node *, NodePacketHistory *);
     NodePacketHistory *get_node_pkt_hist(Node *);

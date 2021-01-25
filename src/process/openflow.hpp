@@ -2,13 +2,13 @@
 
 #include <map>
 #include <vector>
-#include <unordered_set>
 #include <string>
 
 #include "process/process.hpp"
-#include "policy/policy.hpp"
-#include "node.hpp"
-#include "network.hpp"
+class Policy;
+class Node;
+class Route;
+class Network;
 struct State;
 
 /*
@@ -21,18 +21,17 @@ private:
     // value: number of installed updates of that node
     std::vector<size_t> update_vector;
 
-    friend bool operator==(const OpenflowUpdateState&, const OpenflowUpdateState&);
     friend struct OFUpdateStateHash;
+    friend struct OFUpdateStateEq;
 
 public:
     OpenflowUpdateState(size_t num_nodes): update_vector(num_nodes, 0) {}
     OpenflowUpdateState(const OpenflowUpdateState&) = default;
+    OpenflowUpdateState(OpenflowUpdateState&&) = default;
 
     size_t num_of_installed_updates(int node_order) const;
     void install_update_at(int node_order);
 };
-
-bool operator==(const OpenflowUpdateState&, const OpenflowUpdateState&);
 
 struct OFUpdateStateHash {
     size_t operator()(const OpenflowUpdateState *const&) const;
@@ -51,8 +50,6 @@ class OpenflowProcess : public Process
 {
 private:
     std::map<Node *, std::vector<Route>> updates;
-    std::unordered_set<OpenflowUpdateState *,
-        OFUpdateStateHash, OFUpdateStateEq> update_state_hist;
 
     void install_update(State *, Network&);
 
@@ -62,9 +59,10 @@ private:
 
 public:
     OpenflowProcess() = default;
-    ~OpenflowProcess();
 
     std::string to_string() const;
+    size_t num_updates() const; // number of total updates
+    size_t num_nodes() const;   // number of nodes that have updates
     const decltype(updates)& get_updates() const;
     bool has_updates(State *, Node *) const;
 

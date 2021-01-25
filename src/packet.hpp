@@ -1,14 +1,10 @@
 #pragma once
 
 #include <string>
-#include <functional>
 
-#include "interface.hpp"
-#include "eqclass.hpp"
-#include "payload.hpp"
-#include "policy/policy.hpp"
 #include "lib/ip.hpp"
-#include "lib/hash.hpp"
+class Interface;
+class Payload;
 struct State;
 
 /*
@@ -87,14 +83,10 @@ private:
 
     friend class PacketHash;
     friend bool operator==(const Packet&, const Packet&);
-    friend bool eq_except_intf(const Packet&, const Packet&);
-    friend bool same_ips_ports(const Packet&, const Packet&);
-    friend bool reversed_ips_ports(const Packet&, const Packet&);
-    friend bool same_comm(const Packet&, const Packet&);
 
 public:
     Packet();
-    Packet(State *, const Policy *);
+    Packet(State *);
     Packet(Interface *);    // dummy packet, used unblocking listener thread
     Packet(const Packet&) = default;
     Packet(Packet&&) = default;
@@ -125,10 +117,6 @@ public:
 };
 
 bool operator==(const Packet&, const Packet&);
-bool eq_except_intf(const Packet&, const Packet&);
-bool same_ips_ports(const Packet&, const Packet&);
-bool reversed_ips_ports(const Packet&, const Packet&);
-bool same_comm(const Packet&, const Packet&);
 
 class PacketHash
 {

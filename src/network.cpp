@@ -1,13 +1,9 @@
 #include "network.hpp"
 
-#include <cstring>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <utility>
-
-#include "lib/logger.hpp"
+#include "fib.hpp"
 #include "middlebox.hpp"
+#include "lib/logger.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 void Network::add_node(Node *node)
@@ -59,9 +55,6 @@ Network::~Network()
     for (const auto& link : links) {
         delete link;
     }
-    for (FIB * const& fib : fibs) {
-        delete fib;
-    }
     for (L2_LAN * const& l2_lan : l2_lans) {
         delete l2_lan;
     }
@@ -88,27 +81,18 @@ void Network::init(State *state __attribute__((unused)))
 
 void Network::update_fib(State *state)
 {
-    EqClass *ec;
-    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-
-    FIB *fib = new FIB();
+    FIB fib;
+    EqClass *ec = get_ec(state);
     IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops
     for (const auto& pair : nodes) {
         Node *node = pair.second;
-        fib->set_ipnhs(node, node->get_ipnhs(addr));
+        fib.set_ipnhs(node, node->get_ipnhs(addr));
     }
 
-    // insert into the pool of history FIBs
-    auto res = fibs.insert(fib);
-    if (!res.second) {
-        delete fib;
-        fib = *(res.first);
-    }
-    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
-
-    Logger::debug(fib->to_string());
+    FIB *new_fib = set_fib(state, std::move(fib));
+    Logger::debug(new_fib->to_string());
 }
 
 void Network::update_fib_openflow(
@@ -116,8 +100,7 @@ void Network::update_fib_openflow(
     const std::vector<Route>& all_updates, size_t num_installed)
 {
     // check EC relevance
-    EqClass *ec;
-    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    EqClass *ec = get_ec(state);
 
     if (!route.relevant_to_ec(*ec)) {
         return;
@@ -128,8 +111,7 @@ void Network::update_fib_openflow(
     for (size_t i = 0; i < num_installed; ++i) {
         if (all_updates[i] < route) {
             preferred = false;
-        } else if (all_updates[i] == route &&
-                   !route.has_same_path(all_updates[i])) {
+        } else if (all_updates[i] == route && !route.has_same_path(all_updates[i])) {
             multipath = true;
         }
     }
@@ -147,25 +129,16 @@ void Network::update_fib_openflow(
     }
 
     // construct the new FIB
-    FIB *current_fib;
-    memcpy(&current_fib, state->comm_state[state->comm].fib, sizeof(FIB *));
-    FIB *fib = new FIB(*current_fib);
+    FIB fib(*get_fib(state));
 
     if (multipath) {
-        fib->add_ipnh(node, std::move(next_hop));
+        fib.add_ipnh(node, std::move(next_hop));
     } else {
         std::set<FIB_IPNH> next_hops;
         next_hops.insert(std::move(next_hop));
-        fib->set_ipnhs(node, std::move(next_hops));
+        fib.set_ipnhs(node, std::move(next_hops));
     }
 
-    // insert into the pool of history FIBs
-    auto res = fibs.insert(fib);
-    if (!res.second) {
-        delete fib;
-        fib = *(res.first);
-    }
-    memcpy(state->comm_state[state->comm].fib, &fib, sizeof(FIB *));
-
-    Logger::debug(fib->to_string());
+    FIB *new_fib = set_fib(state, std::move(fib));
+    Logger::debug(new_fib->to_string());
 }

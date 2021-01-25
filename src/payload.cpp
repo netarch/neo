@@ -3,8 +3,10 @@
 #include <cstring>
 #include <functional>
 
+#include "eqclass.hpp"
 #include "packet.hpp"
 #include "lib/hash.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 Payload::Payload(const std::string& pl)
@@ -45,8 +47,8 @@ bool operator==(const Payload& a, const Payload& b)
 
 PayloadKey::PayloadKey(State *state)
 {
-    memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
-    pkt_state = state->comm_state[state->comm].pkt_state;
+    this->ec = get_ec(state);
+    this->pkt_state = get_pkt_state(state);
 }
 
 bool operator==(const PayloadKey& a, const PayloadKey& b)
@@ -56,60 +58,6 @@ bool operator==(const PayloadKey& a, const PayloadKey& b)
     } else {
         return false;
     }
-}
-
-/******************************************************************************/
-
-PayloadMgr::~PayloadMgr()
-{
-    for (Payload *payload : all_payloads) {
-        delete payload;
-    }
-}
-
-PayloadMgr& PayloadMgr::get()
-{
-    static PayloadMgr instance;
-    return instance;
-}
-
-Payload *PayloadMgr::get_payload(State *state, uint16_t dst_port)
-{
-    PayloadKey key(state);
-
-    auto it = tbl.find(key);
-    if (it != tbl.end()) {
-        return it->second;
-    }
-
-    std::string pl_content;
-
-    if (key.pkt_state == PS_HTTP_REQ) {
-        pl_content = "GET / HTTP/1.1\r\n"
-                     "Host: " + key.ec->representative_addr().to_string()
-                     + ":" + std::to_string(dst_port) + "\r\n"
-                     "\r\n";
-    } else if (key.pkt_state == PS_HTTP_REP) {
-        std::string http = "<!DOCTYPE html>"
-                           "<html>"
-                           "<head><title>Reply</title></head>"
-                           "<body>Reply</body>"
-                           "</html>\r\n";
-        pl_content = "HTTP/1.1 200 OK\r\n"
-                     "Server: plankton\r\n"
-                     "Content-Type: text/html\r\n"
-                     "Content-Length: " + std::to_string(http.size()) + "\r\n"
-                     "\r\n";
-    }
-
-    Payload *payload = new Payload(pl_content);
-    auto res = all_payloads.insert(payload);
-    if (!res.second) {
-        delete payload;
-        payload = *(res.first);
-    }
-    tbl.emplace(key, payload);
-    return payload;
 }
 
 /******************************************************************************/
@@ -132,4 +80,58 @@ size_t PayloadKeyHash::operator()(const PayloadKey& key) const
     hash::hash_combine(value, std::hash<EqClass *>()(key.ec));
     hash::hash_combine(value, std::hash<uint8_t>()(key.pkt_state));
     return value;
+}
+
+/******************************************************************************/
+
+PayloadMgr::~PayloadMgr()
+{
+    for (Payload *payload : all_payloads) {
+        delete payload;
+    }
+}
+
+PayloadMgr& PayloadMgr::get()
+{
+    static PayloadMgr instance;
+    return instance;
+}
+
+Payload *PayloadMgr::get_payload(State *state)
+{
+    PayloadKey key(state);
+
+    auto it = tbl.find(key);
+    if (it != tbl.end()) {
+        return it->second;
+    }
+
+    std::string pl_content;
+
+    if (key.pkt_state == PS_HTTP_REQ) {
+        pl_content = "GET / HTTP/1.1\r\n"
+                     "Host: " + key.ec->representative_addr().to_string()
+                     + ":" + std::to_string(get_dst_port(state)) + "\r\n"
+                     "\r\n";
+    } else if (key.pkt_state == PS_HTTP_REP) {
+        std::string http = "<!DOCTYPE html>"
+                           "<html>"
+                           "<head><title>Reply</title></head>"
+                           "<body>Reply</body>"
+                           "</html>\r\n";
+        pl_content = "HTTP/1.1 200 OK\r\n"
+                     "Server: plankton\r\n"
+                     "Content-Type: text/html\r\n"
+                     "Content-Length: " + std::to_string(http.size()) + "\r\n"
+                     "\r\n";
+    }
+
+    Payload *payload = new Payload(pl_content);
+    auto res = all_payloads.insert(payload);
+    if (!res.second) {
+        delete payload;
+        payload = *(res.first);
+    }
+    tbl.emplace(key, payload);
+    return payload;
 }
