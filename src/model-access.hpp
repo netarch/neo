@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-class State;
 class FIB;
 class EqClass;
 class Node;
@@ -11,6 +10,7 @@ class Interface;
 class Choices;
 class OpenflowUpdateState;
 class Candidates;
+struct State;
 
 /* per-communication state variables */
 
