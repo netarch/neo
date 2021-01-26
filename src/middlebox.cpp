@@ -118,6 +118,7 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(
     const IPv4Address& dst __attribute__((unused)),
+    const RoutingTable *rib __attribute__((unused)),
     std::unordered_set<IPv4Address> *looked_up_ips __attribute__((unused)))
 {
     return std::set<FIB_IPNH>();

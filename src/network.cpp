@@ -2,6 +2,7 @@
 
 #include "fib.hpp"
 #include "middlebox.hpp"
+#include "process/openflow.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
 #include "model.h"
@@ -70,13 +71,15 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-void Network::init(State *state __attribute__((unused)))
+void Network::init(State *state __attribute__((unused)), OpenflowProcess *ofp)
 {
     // initialize and start middlebox emulations
     for (const auto& pair : nodes) {
         Node *node = pair.second;
         node->init();
     }
+
+    this->openflow = ofp;
 }
 
 void Network::update_fib(State *state)
@@ -85,58 +88,15 @@ void Network::update_fib(State *state)
     EqClass *ec = get_ec(state);
     IPv4Address addr = ec->representative_addr();
 
-    // collect IP next hops
+    // collect IP next hops from routing tables
     for (const auto& pair : nodes) {
         Node *node = pair.second;
         fib.set_ipnhs(node, node->get_ipnhs(addr));
     }
 
-    FIB *new_fib = set_fib(state, std::move(fib));
-    Logger::debug(new_fib->to_string());
-}
-
-void Network::update_fib_openflow(
-    State *state, Node *node, const Route& route,
-    const std::vector<Route>& all_updates, size_t num_installed)
-{
-    // check EC relevance
-    EqClass *ec = get_ec(state);
-
-    if (!route.relevant_to_ec(*ec)) {
-        return;
-    }
-
-    // check route precedence (longest prefix match)
-    bool preferred = true, multipath = false;
-    for (size_t i = 0; i < num_installed; ++i) {
-        if (all_updates[i] < route) {
-            preferred = false;
-        } else if (all_updates[i] == route && !route.has_same_path(all_updates[i])) {
-            multipath = true;
-        }
-    }
-
-    if (!preferred) {
-        return;
-    }
-
-    // get the next hop
-    IPv4Address addr = ec->representative_addr();
-    FIB_IPNH next_hop = node->get_ipnh(route.get_intf(), addr);
-
-    if (!next_hop.get_l3_node()) {
-        return;
-    }
-
-    // construct the new FIB
-    FIB fib(*get_fib(state));
-
-    if (multipath) {
-        fib.add_ipnh(node, std::move(next_hop));
-    } else {
-        std::set<FIB_IPNH> next_hops;
-        next_hops.insert(std::move(next_hop));
-        fib.set_ipnhs(node, std::move(next_hops));
+    // install openflow updates that have been installed
+    for (auto& pair : openflow->get_installed_updates(state)) {
+        fib.set_ipnhs(pair.first, std::move(pair.second));
     }
 
     FIB *new_fib = set_fib(state, std::move(fib));

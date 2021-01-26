@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 
@@ -9,6 +10,7 @@ class Policy;
 class Node;
 class Route;
 class Network;
+class FIB_IPNH;
 struct State;
 
 /*
@@ -51,7 +53,7 @@ class OpenflowProcess : public Process
 private:
     std::map<Node *, std::vector<Route>> updates;
 
-    void install_update(State *, Network&);
+    void install_update(State *);
 
 private:
     friend class Config;
@@ -64,6 +66,7 @@ public:
     size_t num_updates() const; // number of total updates
     size_t num_nodes() const;   // number of nodes that have updates
     const decltype(updates)& get_updates() const;
+    std::map<Node *, std::set<FIB_IPNH>> get_installed_updates(State *) const;
     bool has_updates(State *, Node *) const;
 
     void init(State *); // initialize the openflow process when system starts

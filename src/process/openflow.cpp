@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "fib.hpp"
 #include "network.hpp"
 #include "node.hpp"
 #include "policy/policy.hpp"
@@ -70,6 +71,37 @@ const decltype(OpenflowProcess::updates)& OpenflowProcess::get_updates() const
     return updates;
 }
 
+std::map<Node *, std::set<FIB_IPNH>> OpenflowProcess::get_installed_updates(
+                                      State *state) const
+{
+    std::map<Node *, std::set<FIB_IPNH>> installed_updates;
+    EqClass *ec = get_ec(state);
+    OpenflowUpdateState *update_state = get_openflow_update_state(state);
+
+    size_t node_order = 0;
+    for (const auto& pair : this->updates) {
+        size_t num_installed = update_state->num_of_installed_updates(node_order);
+        Node *node = pair.first;
+        RoutingTable of_rib = node->get_rib();
+
+        for (size_t i = 0; i < num_installed; ++i) {
+            if (pair.second[i].relevant_to_ec(*ec)) {
+                of_rib.insert(pair.second[i]);
+            }
+        }
+
+        IPv4Address addr = ec->representative_addr();
+        std::set<FIB_IPNH> next_hops = node->get_ipnhs(addr, &of_rib);
+        if (!next_hops.empty()) {
+            installed_updates.emplace(node, std::move(next_hops));
+        }
+
+        ++node_order;
+    }
+
+    return installed_updates;
+}
+
 bool OpenflowProcess::has_updates(State *state, Node *node) const
 {
     auto itr = this->updates.find(node);
@@ -112,20 +144,20 @@ void OpenflowProcess::reset(State *state)
     set_openflow_update_state(state, OpenflowUpdateState(this->updates.size()));
 }
 
-void OpenflowProcess::exec_step(State *state, Network& network)
+void OpenflowProcess::exec_step(State *state, Network& network __attribute__((unused)))
 {
     if (!enabled) {
         return;
     }
 
-    this->install_update(state, network);
+    this->install_update(state);
 }
 
 /*
  * For now, setting choice_count to 1 means not continuing installing updates
  * since there is no update left, 2 otherwise.
  */
-void OpenflowProcess::install_update(State *state, Network& network)
+void OpenflowProcess::install_update(State *state)
 {
     if (state->choice == 0) {
         Logger::info("Openflow: not installing update");
@@ -141,20 +173,12 @@ void OpenflowProcess::install_update(State *state, Network& network)
     OpenflowUpdateState *update_state = get_openflow_update_state(state);
     size_t num_installed = update_state->num_of_installed_updates(node_order);
 
-    // the openflow rule to be updated
-    const Route& update = all_updates[num_installed];
-
-    // actually install the update to FIB
-    Logger::info("Openflow: installing update at " + current_node->get_name()
-                 + ": " + update.to_string());
-    network.update_fib_openflow(state, current_node, update, all_updates,
-                                num_installed);
-
-    // set the new openflow update state after the install
+    // set the new openflow update state
     OpenflowUpdateState new_update_state(*update_state);
     new_update_state.install_update_at(node_order);
     set_openflow_update_state(state, std::move(new_update_state));
 
+    // set choice_count
     if (num_installed + 1 < all_updates.size()) {
         // if there are still more updates of the current node,
         // non-deterministically install each of them
@@ -162,4 +186,32 @@ void OpenflowProcess::install_update(State *state, Network& network)
     } else {
         state->choice_count = 1; // back to forwarding
     }
+
+    // the openflow rule to be updated
+    const Route& update = all_updates[num_installed];
+
+    // actually install the update to FIB
+    Logger::info("Openflow: installing update at " + current_node->get_name()
+                 + ": " + update.to_string());
+
+    // check route precedence (longest prefix match)
+    RoutingTable of_rib = current_node->get_rib();
+    EqClass *ec = get_ec(state);
+    for (size_t i = 0; i < num_installed; ++i) {
+        if (all_updates[i].relevant_to_ec(*ec)) {
+            of_rib.insert(all_updates[i]);
+        }
+    }
+
+    // get the next hops
+    IPv4Address addr = ec->representative_addr();
+    std::set<FIB_IPNH> next_hops = current_node->get_ipnhs(addr, &of_rib);
+
+    // construct the new FIB
+    FIB fib(*get_fib(state));
+    fib.set_ipnhs(current_node, std::move(next_hops));
+
+    // update FIB
+    FIB *new_fib = set_fib(state, std::move(fib));
+    Logger::debug(new_fib->to_string());
 }

@@ -313,7 +313,7 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    network.init(state);
+    network.init(state, &openflow);
     policy->init(state); // this also initializes the communication settings
 
     set_process_id(state, pid::forwarding);

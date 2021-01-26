@@ -71,6 +71,7 @@ public:
      */
     virtual std::set<FIB_IPNH> get_ipnhs(
         const IPv4Address&,
+        const RoutingTable *rib = nullptr,
         std::unordered_set<IPv4Address> *looked_up_ips = nullptr);
 
     /*

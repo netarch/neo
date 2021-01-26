@@ -9,6 +9,7 @@
 #include "node.hpp"
 #include "link.hpp"
 #include "l2-lan.hpp"
+class OpenflowProcess;
 class Route;
 struct State;
 
@@ -24,6 +25,7 @@ class Network
 private:
     std::map<std::string, Node *>   nodes;
     std::set<Link *, LinkCompare>   links;
+    OpenflowProcess *openflow;
 
     std::unordered_set<L2_LAN *> l2_lans;   // history L2 LANs
 
@@ -45,12 +47,8 @@ public:
     const std::map<std::string, Node *>& get_nodes() const;
     const std::set<Link *, LinkCompare>& get_links() const;
 
-    void init(State *);
-    void update_fib(State *);   // update FIB from the RIB of all nodes
-    // update the current FIB with a single openflow update
-    void update_fib_openflow(State *, Node *node, const Route& route,
-                             const std::vector<Route>& all_updates,
-                             size_t num_installed);
+    void init(State *, OpenflowProcess *ofp = nullptr);
+    void update_fib(State *);   // update FIB according to the current EC
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

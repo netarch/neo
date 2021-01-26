@@ -54,5 +54,6 @@ public:
      */
     std::set<FIB_IPNH> get_ipnhs(
         const IPv4Address&,
-        std::unordered_set<IPv4Address> *looked_up_ips = nullptr) override;
+        const RoutingTable *rib,
+        std::unordered_set<IPv4Address> *looked_up_ips) override;
 };

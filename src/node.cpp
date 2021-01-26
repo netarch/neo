@@ -146,6 +146,7 @@ L2_LAN *Node::get_l2lan(Interface *intf) const
 
 std::set<FIB_IPNH> Node::get_ipnhs(
     const IPv4Address& dst,
+    const RoutingTable *rib,
     std::unordered_set<IPv4Address> *looked_up_ips)
 {
     std::set<FIB_IPNH> next_hops;
@@ -157,13 +158,13 @@ std::set<FIB_IPNH> Node::get_ipnhs(
         return next_hops;
     }
 
-    auto r = this->rib.lookup(dst);
+    auto r = rib ? rib->lookup(dst) : this->rib.lookup(dst);
     looked_up_ips->insert(dst);
 
     for (RoutingTable::const_iterator it = r.first; it != r.second; ++it) {
         if (it->get_intf().empty()) {
             // non-connected route; look it up recursively
-            auto nhs = this->get_ipnhs(it->get_next_hop(), looked_up_ips);
+            auto nhs = this->get_ipnhs(it->get_next_hop(), rib, looked_up_ips);
             next_hops.insert(nhs.begin(), nhs.end());
         } else if (has_ip(dst)) {
             // connected route; accept
