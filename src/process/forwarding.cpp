@@ -373,14 +373,14 @@ void ForwardingProcess::phase_transition(
         set_dst_port(state, src_port);
     }
 
-    set_src_node(state, nullptr);
-    set_ingress_intf(state, nullptr);
-
     // update candidates as the start node
     Node *start_node = change_direction ? get_pkt_location(state) : get_src_node(state);
     Candidates candidates;
     candidates.add(FIB_IPNH(start_node, nullptr, start_node, nullptr));
     set_candidates(state, std::move(candidates));
+
+    set_src_node(state, nullptr);
+    set_ingress_intf(state, nullptr);
 }
 
 void ForwardingProcess::identify_comm(

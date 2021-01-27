@@ -4,6 +4,16 @@
 
 #include "lib/hash.hpp"
 
+std::string Candidates::to_string() const
+{
+    std::string ret = "Candidates: [";
+    for (const FIB_IPNH& next_hop : this->next_hops) {
+        ret += " " + next_hop.to_string();
+    }
+    ret += " ]";
+    return ret;
+}
+
 void Candidates::add(const FIB_IPNH& next_hop)
 {
     this->next_hops.push_back(next_hop);
