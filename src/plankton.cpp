@@ -368,9 +368,6 @@ void Plankton::exec_step(State *state)
 
     int policy_result = policy->check_violation(state);
 
-    if (policy_result & POL_INIT_POL) {
-        policy->init(state);
-    }
     if (policy_result & POL_INIT_FWD) {
         forwarding.init(state, network, policy);
     }

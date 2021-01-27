@@ -1,8 +1,9 @@
 #include "policy/loadbalance.hpp"
 
-#include <cstring>
-
+#include "node.hpp"
+#include "packet.hpp"
 #include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string LoadBalancePolicy::to_string() const
@@ -17,21 +18,21 @@ std::string LoadBalancePolicy::to_string() const
 
 void LoadBalancePolicy::init(State *state)
 {
-    state->violated = true;
-    state->comm_state[state->comm].repetition = 0;
+    set_violated(state, true);
+    set_comm(state, 0);
+    set_num_comms(state, 1);
+    set_repetition(state, 0);
+
     visited.clear();
 }
 
 int LoadBalancePolicy::check_violation(State *state)
 {
-    int mode = state->comm_state[state->comm].fwd_mode;
-    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    int mode = get_fwd_mode(state);
+    int pkt_state = get_pkt_state(state);
 
-    if (mode == fwd_mode::ACCEPTED &&
-            (pkt_state == PS_TCP_INIT_1 || pkt_state == PS_ICMP_ECHO_REQ)) {
-        Node *rx_node;
-        memcpy(&rx_node, state->comm_state[state->comm].rx_node,
-               sizeof(Node *));
+    if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(pkt_state)) {
+        Node *rx_node = get_rx_node(state);
         if (final_nodes.count(rx_node)) {
             visited.insert(rx_node);
         }
@@ -39,16 +40,14 @@ int LoadBalancePolicy::check_violation(State *state)
     }
 
     if (state->choice_count == 0) {
-        ++state->comm_state[state->comm].repetition;
+        set_repetition(state, get_repetition(state) + 1);
         if (visited.size() == final_nodes.size()) {
-            state->violated = false;
-            Logger::info("Repeated "
-                         + std::to_string(state->comm_state[state->comm].repetition)
+            set_violated(state, false);
+            Logger::info("Repeated " + std::to_string(get_repetition(state))
                          + " times");
-        } else if (state->comm_state[state->comm].repetition < repetition) {
+        } else if (get_repetition(state) < repetition) {
             // see each repetition as a different communication
-            comms[0].set_tx_port(comms[0].get_tx_port() + 1);
-            state->choice_count = 1;
+            comms[0].set_src_port(get_src_port(state) + 1);
             // reset the forwarding process and repeat
             return POL_RESET_FWD;
         }

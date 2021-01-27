@@ -48,6 +48,8 @@ public:
     std::string start_nodes_str() const;
     uint16_t get_src_port() const;
     uint16_t get_dst_port() const;
+    void set_src_port(uint16_t);
+    void set_dst_port(uint16_t);
 
     void compute_ecs(const EqClasses&, const EqClasses&);
     void add_ec(const IPv4Address&);

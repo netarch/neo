@@ -1,8 +1,9 @@
 #include "policy/reply-reachability.hpp"
 
-#include <cstring>
-
+#include "node.hpp"
+#include "packet.hpp"
 #include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string ReplyReachabilityPolicy::to_string() const
@@ -22,53 +23,45 @@ std::string ReplyReachabilityPolicy::to_string() const
 
 void ReplyReachabilityPolicy::init(State *state)
 {
-    state->violated = false;
+    set_violated(state, false);
+    set_comm(state, 0);
+    set_num_comms(state, 1);
 }
 
 int ReplyReachabilityPolicy::check_violation(State *state)
 {
-    bool reached;
-    int mode = state->comm_state[state->comm].fwd_mode;
-    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    int mode = get_fwd_mode(state);
+    int pkt_state = get_pkt_state(state);
 
-    if (pkt_state == PS_HTTP_REP || pkt_state == PS_ICMP_ECHO_REP) {
+    if ((PS_IS_TCP(pkt_state) && pkt_state < PS_HTTP_REP) ||
+            (PS_IS_ICMP_ECHO(pkt_state) && pkt_state < PS_ICMP_ECHO_REP)) {
+        // request
+        Node *rx_node = get_rx_node(state);
+        if ((mode == fwd_mode::ACCEPTED && query_nodes.count(rx_node) == 0)
+                || mode == fwd_mode::DROPPED) {
+            // if the request is accepted by a wrong node or dropped
+            // precondition is false (request not received)
+            state->violated = false;
+            state->choice_count = 0;
+        } else {
+            // If the request (or session construction packets) hasn't been
+            // accepted or dropped, there is nothing to check.
+            return POL_NULL;
+        }
+    } else if (pkt_state == PS_HTTP_REP || pkt_state == PS_ICMP_ECHO_REP) {
+        // reply
+        bool reached;
         if (mode == fwd_mode::ACCEPTED) {
-            Node *final_node, *tx_node;
-            memcpy(&final_node, state->comm_state[state->comm].pkt_location,
-                   sizeof(Node *));
-            memcpy(&tx_node, state->comm_state[state->comm].tx_node,
-                   sizeof(Node *));
-            reached = (final_node == tx_node);
+            reached = (get_pkt_location(state) == get_tx_node(state));
         } else if (mode == fwd_mode::DROPPED) {
             reached = false;
         } else {
-            /*
-             * If the reply hasn't been accepted or dropped, there is nothing to
-             * check.
-             */
+            // If the reply hasn't been accepted or dropped, there is nothing to
+            // check.
             return POL_NULL;
         }
         state->violated = (reachable != reached);
         state->choice_count = 0;
-    } else {    // previous phases
-        Node *rx_node;
-        memcpy(&rx_node, state->comm_state[state->comm].rx_node,
-               sizeof(Node *));
-        if ((mode == fwd_mode::ACCEPTED && query_nodes.count(rx_node) == 0)
-                || mode == fwd_mode::DROPPED) {
-            reached = false;
-        } else {
-            /*
-             * If the request (or session construction packets) hasn't been
-             * accepted or dropped, there is nothing to check.
-             */
-            return POL_NULL;
-        }
-        if (!reached) {
-            // precondition is false (request not received)
-            state->violated = false;
-            state->choice_count = 0;
-        }
     }
 
     return POL_NULL;

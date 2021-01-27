@@ -1,6 +1,6 @@
 #include "policy/consistency.hpp"
 
-#include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string ConsistencyPolicy::to_string() const
@@ -16,19 +16,21 @@ std::string ConsistencyPolicy::to_string() const
 
 void ConsistencyPolicy::init(State *state)
 {
-    first_run = true;
-    correlated_policies[state->comm]->init(state);
+    set_violated(state, false);
+    set_comm(state, 0);
+    set_num_comms(state, 1);
+    set_correlated_policy_idx(state, 0);
+    correlated_policies[state->correlated_policy_idx]->init(state);
 }
 
 int ConsistencyPolicy::check_violation(State *state)
 {
-    correlated_policies[state->comm]->check_violation(state);
+    correlated_policies[state->correlated_policy_idx]->check_violation(state);
 
     if (state->choice_count == 0) {
-        // for the first execution, store the verification result
-        if (first_run) {
+        // for the first subpolicy, store the verification result
+        if (state->correlated_policy_idx == 0) {
             result = state->violated;
-            first_run = false;
         }
 
         // check for consistency
@@ -39,11 +41,12 @@ int ConsistencyPolicy::check_violation(State *state)
         }
 
         // next subpolicy
-        if ((size_t)state->comm + 1 < correlated_policies.size()) {
-            ++state->comm;
+        if ((size_t)state->correlated_policy_idx + 1 < correlated_policies.size()) {
+            ++state->correlated_policy_idx;
             state->choice_count = 1;
-            return POL_INIT_POL | POL_INIT_FWD;
-        } else {
+            correlated_policies[state->correlated_policy_idx]->init(state);
+            return POL_INIT_FWD;
+        } else {    // we have checked all the subpolicies
             state->violated = false;
             state->choice_count = 0;
         }

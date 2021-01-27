@@ -13,9 +13,8 @@
 struct State;
 
 #define POL_NULL        0
-#define POL_INIT_POL    1
-#define POL_INIT_FWD    2
-#define POL_RESET_FWD   4
+#define POL_INIT_FWD    1
+#define POL_RESET_FWD   2
 
 class Policy
 {

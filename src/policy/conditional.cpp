@@ -1,36 +1,60 @@
 #include "policy/conditional.hpp"
 
-#include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string ConditionalPolicy::to_string() const
 {
-    return std::string();
-    //std::string ret = "stateful-reachability [";
-    //for (Node *node : start_nodes) {
-    //    ret += " " + node->to_string();
-    //}
-    //ret += " ] -";
-    //if (reachable) {
-    //    ret += "-";
-    //} else {
-    //    ret += "X";
-    //}
-    //ret += "-> [";
-    //for (Node *node : final_nodes) {
-    //    ret += " " + node->to_string();
-    //}
-    //ret += " ], with prerequisite: " + prerequisite->to_string();
-    //return ret;
+    std::string ret = "conditional policy of ";
+    for (Policy *p : correlated_policies) {
+        ret += p->to_string() + ", ";
+    }
+    ret.pop_back();
+    ret.pop_back();
+    return ret;
 }
 
 void ConditionalPolicy::init(State *state)
 {
-    correlated_policies[state->comm]->init(state);
+    set_violated(state, false);
+    set_comm(state, 0);
+    set_num_comms(state, 1);
+    set_correlated_policy_idx(state, 0);
+    correlated_policies[state->correlated_policy_idx]->init(state);
 }
 
-int ConditionalPolicy::check_violation(State *state __attribute__((unused)))
+int ConditionalPolicy::check_violation(State *state)
 {
-    // TODO
+    correlated_policies[state->correlated_policy_idx]->check_violation(state);
+
+    if (state->choice_count == 0) {
+        if (state->correlated_policy_idx == 0) {
+            // policy holds if the first subpolicy does not
+            if (state->violated) {
+                state->violated = false;
+                state->choice_count = 0;
+                return POL_NULL;
+            }
+        } else {
+            // policy violated if any subsequent subpolicy fails to hold
+            if (state->violated) {
+                state->violated = true;
+                state->choice_count = 0;
+                return POL_NULL;
+            }
+        }
+
+        // next subpolicy
+        if ((size_t)state->correlated_policy_idx + 1 < correlated_policies.size()) {
+            ++state->correlated_policy_idx;
+            state->choice_count = 1;
+            correlated_policies[state->correlated_policy_idx]->init(state);
+            return POL_INIT_FWD;
+        } else {    // we have checked all the subpolicies
+            state->violated = false;
+            state->choice_count = 0;
+        }
+    }
+
     return POL_NULL;
 }

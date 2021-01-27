@@ -1,6 +1,7 @@
 #pragma once
 
 #include "policy/policy.hpp"
+struct State;
 
 /*
  * If the first correlated policy holds, the conditional policy holds if all the
@@ -10,8 +11,6 @@
 class ConditionalPolicy : public Policy
 {
 private:
-    // TODO
-    bool first_run;
     bool result;
 
 private:

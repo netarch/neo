@@ -1,6 +1,7 @@
 #pragma once
 
 #include "policy/policy.hpp"
+struct State;
 
 /*
  * All converged states of all execution paths of all correlated policies should
@@ -10,7 +11,6 @@
 class ConsistencyPolicy : public Policy
 {
 private:
-    bool first_run;
     bool result;
 
 private:

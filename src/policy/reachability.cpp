@@ -1,8 +1,9 @@
 #include "policy/reachability.hpp"
 
-#include <cstring>
-
+#include "node.hpp"
+#include "packet.hpp"
 #include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string ReachabilityPolicy::to_string() const
@@ -22,33 +23,29 @@ std::string ReachabilityPolicy::to_string() const
 
 void ReachabilityPolicy::init(State *state)
 {
-    state->violated = false;
+    set_violated(state, false);
+    set_comm(state, 0);
+    set_num_comms(state, 1);
 }
 
 int ReachabilityPolicy::check_violation(State *state)
 {
     bool reached;
-    int mode = state->comm_state[state->comm].fwd_mode;
-    uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    int mode = get_fwd_mode(state);
+    int pkt_state = get_pkt_state(state);
 
     if (mode == fwd_mode::ACCEPTED &&
             (pkt_state == PS_HTTP_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
-        Node *rx_node;
-        memcpy(&rx_node, state->comm_state[state->comm].rx_node,
-               sizeof(Node *));
-        reached = (final_nodes.count(rx_node) > 0);
+        reached = (final_nodes.count(get_rx_node(state)) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
-        /*
-         * If the packet hasn't been accepted or dropped, there is nothing to
-         * check.
-         */
+        // If the packet hasn't been accepted or dropped, there is nothing to
+        // check.
         return POL_NULL;
     }
 
     state->violated = (reachable != reached);
     state->choice_count = 0;
-
     return POL_NULL;
 }

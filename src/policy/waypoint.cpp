@@ -1,8 +1,9 @@
 #include "policy/waypoint.hpp"
 
-#include <cstring>
-
+#include "node.hpp"
+#include "packet.hpp"
 #include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string WaypointPolicy::to_string() const
@@ -22,18 +23,17 @@ std::string WaypointPolicy::to_string() const
 
 void WaypointPolicy::init(State *state)
 {
-    state->violated = pass_through;
+    set_violated(state, false);
+    set_comm(state, 0);
+    set_num_comms(state, 1);
 }
 
 int WaypointPolicy::check_violation(State *state)
 {
-    int mode = state->comm_state[state->comm].fwd_mode;
+    int mode = get_fwd_mode(state);
 
     if (mode == fwd_mode::COLLECT_NHOPS || mode == fwd_mode::FIRST_COLLECT) {
-        Node *current_node;
-        memcpy(&current_node, state->comm_state[state->comm].pkt_location,
-               sizeof(Node *));
-        if (waypoints.count(current_node) > 0) {
+        if (waypoints.count(get_pkt_location(state)) > 0) {
             // encountering waypoint
             state->violated = !pass_through;
             state->choice_count = 0;

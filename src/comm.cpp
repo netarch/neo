@@ -32,6 +32,16 @@ uint16_t Communication::get_dst_port() const
     return dst_port;
 }
 
+void Communication::set_src_port(uint16_t src_port)
+{
+    this->src_port = src_port;
+}
+
+void Communication::set_dst_port(uint16_t dst_port)
+{
+    this->dst_port = dst_port;
+}
+
 void Communication::compute_ecs(const EqClasses& all_ECs,
                                 const EqClasses& owned_ECs)
 {
