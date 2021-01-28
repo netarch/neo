@@ -47,7 +47,12 @@ void Middlebox::init()
     env->init(*this);
     env->run(mb_app_init, app);
     if (!listener) {
+        sigset_t mask, old_mask;
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGCHLD);
+        pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
         listener = new std::thread(&Middlebox::listen_packets, this);
+        pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
     }
 }
 

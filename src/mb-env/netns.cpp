@@ -17,9 +17,13 @@
 #include <set>
 #include <list>
 
+#include "interface.hpp"
+#include "node.hpp"
+#include "packet.hpp"
 #include "pktbuffer.hpp"
-#include "lib/logger.hpp"
+#include "routingtable.hpp"
 #include "lib/net.hpp"
+#include "lib/logger.hpp"
 //#include "lib/fs.hpp"
 
 void NetNS::set_interfaces(const Node& node)
@@ -202,6 +206,25 @@ void NetNS::set_arp_cache(const Node& node)
     close(ctrl_sock);
 }
 
+void NetNS::set_epoll_events()
+{
+    // create an epoll instance for IO multiplexing
+    if ((epollfd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
+        Logger::error("epoll_create1", errno);
+    }
+    // register interesting interface fds in the epoll instance
+    struct epoll_event event;
+    for (const auto& tap : tapfds) {
+        event.events = EPOLLIN;
+        event.data.ptr = tap.first;
+        if (epoll_ctl(epollfd, EPOLL_CTL_ADD, tap.second, &event) < 0) {
+            Logger::error("epoll_ctl", errno);
+        }
+    }
+    // allocate space for receiving events
+    events = new struct epoll_event[tapfds.size()];
+}
+
 //void NetNS::mntns_xtables_lock()
 //{
 //    // create and enter a new mntns
@@ -225,7 +248,7 @@ void NetNS::set_arp_cache(const Node& node)
 //}
 
 NetNS::NetNS()
-    : old_net(-1), new_net(-1) //, xtables_lock("/tmp/xtables.lock.XXXXXX")
+    : old_net(-1), new_net(-1), epollfd(-1) //, xtables_lock("/tmp/xtables.lock.XXXXXX")
 {
 }
 
@@ -235,6 +258,9 @@ NetNS::~NetNS()
         return;
     }
 
+    // epoll
+    delete [] events;
+    close(epollfd);
     // delete the created tap devices
     for (const auto& tap : tapfds) {
         close(tap.second);
@@ -269,14 +295,13 @@ void NetNS::init(const Node& node)
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
         Logger::error(netns_path, errno);
     }
-    // create tap interfaces and set IP addresses
-    set_interfaces(node);
-    // update routing table according to node->rib
-    set_rttable(node.get_rib());
-    // set ARP entries
-    set_arp_cache(node);
+    set_interfaces(node);       // create tap interfaces and set IP addresses
+    set_rttable(node.get_rib());    // set routing table according to node->rib
+    set_arp_cache(node);        // set ARP entries
+    set_epoll_events();         // set epoll events for future packet reads
     // create a new mount namespace for /run/xtables.lock
     //mntns_xtables_lock();
+
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
         Logger::error("setns()", errno);
@@ -346,34 +371,23 @@ std::vector<Packet> NetNS::read_packets() const
         Logger::error("setns()", errno);
     }
 
-    // set read fds
-    int nfds = 0;
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    for (const auto& tapfd : tapfds) {
-        FD_SET(tapfd.second, &readfds);
-        if (tapfd.second >= nfds) {
-            nfds = tapfd.second + 1;
-        }
+    // wait until at least one of the fds becomes available
+    int nfds = epoll_wait(epollfd, events, tapfds.size(), -1);
+    if (nfds < 0) {
+        Logger::error("epoll_wait", errno);
     }
 
-    // select among the tap fds
-    if (select(nfds, &readfds, NULL, NULL, NULL) < 0) {
-        Logger::error("select()", errno);
-    }
-
-    // read from tap fds if available
-    for (const auto& tapfd : tapfds) {
-        if (FD_ISSET(tapfd.second, &readfds)) {
-            PktBuffer pktbuff(tapfd.first);
-            ssize_t nread;
-            if ((nread = read(tapfd.second, pktbuff.get_buffer(),
-                              pktbuff.get_len())) < 0) {
-                Logger::error("Failed to read packet", errno);
-            }
-            pktbuff.set_len(nread);
-            pktbuffs.push_back(pktbuff);
+    // read from available tap fds
+    for (int i = 0; i < nfds; ++i) {
+        Interface *interface = static_cast<Interface *>(events[i].data.ptr);
+        int tapfd = tapfds.at(interface);
+        PktBuffer pktbuff(interface);
+        ssize_t nread;
+        if ((nread = read(tapfd, pktbuff.get_buffer(), pktbuff.get_len())) < 0) {
+            Logger::error("Failed to read packet", errno);
         }
+        pktbuff.set_len(nread);
+        pktbuffs.push_back(pktbuff);
     }
 
     // return to the original netns
