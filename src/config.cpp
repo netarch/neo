@@ -694,6 +694,7 @@ void Config::parse_policies(
                 Logger::error("Unknown policy type: " + *type);
             }
 
+            assert(policy->comms.size() <= MAX_COMMS);
             policies->policies.push_back(policy);
         }
     }

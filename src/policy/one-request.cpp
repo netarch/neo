@@ -1,6 +1,8 @@
 #include "policy/one-request.hpp"
 
-//#include "process/forwarding.hpp"
+#include "node.hpp"
+#include "process/forwarding.hpp"
+#include "model-access.hpp"
 #include "model.h"
 
 std::string OneRequestPolicy::to_string() const
@@ -19,7 +21,9 @@ std::string OneRequestPolicy::to_string() const
 
 void OneRequestPolicy::init(State *state)
 {
-    state->violated = true;
+    set_violated(state, true);
+    set_comm(state, 0);
+    set_num_comms(state, this->comms.size());
 }
 
 // TODO

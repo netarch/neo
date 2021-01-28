@@ -3,7 +3,8 @@
 #include <unordered_set>
 
 #include "policy/policy.hpp"
-#include "node.hpp"
+class Node;
+struct State;
 
 /*
  * For the specified communications, only one of the requests of those
