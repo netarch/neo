@@ -301,7 +301,6 @@ void NetNS::init(const Node& node)
     set_epoll_events();         // set epoll events for future packet reads
     // create a new mount namespace for /run/xtables.lock
     //mntns_xtables_lock();
-
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
         Logger::error("setns()", errno);

@@ -2,9 +2,6 @@
 
 #include <chrono>
 
-#define IPV4_FWD "/proc/sys/net/ipv4/conf/all/forwarding"
-#define IPV4_RPF "/proc/sys/net/ipv4/conf/all/rp_filter"
-
 class MB_App
 {
 protected:

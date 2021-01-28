@@ -48,4 +48,7 @@ public:
                            bool change_direction) const;
 
     std::string mac_to_str(const uint8_t *) const;
+
+    void set_forwarding(int) const;
+    void set_rp_filter(int) const;
 };

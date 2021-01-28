@@ -1,6 +1,10 @@
 #include "lib/net.hpp"
 
 #include <cassert>
+#include <net/if.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -344,4 +348,40 @@ std::string Net::mac_to_str(const uint8_t *mac) const
     }
 
     return ss.str();
+}
+
+static void write_value_to_file(int val, const std::string& filename)
+{
+    int fd = open(filename.c_str(), O_WRONLY);
+    if (fd < 0) {
+        Logger::error("Failed to open " + filename, errno);
+    }
+    std::string val_s = std::to_string(val);
+    if (write(fd, val_s.c_str(), val_s.size()) < 0) {
+        Logger::error("Failed writting \"" + val_s + "\" to " + filename);
+    }
+    close(fd);
+}
+
+void Net::set_forwarding(int val) const
+{
+    write_value_to_file(val, "/proc/sys/net/ipv4/conf/all/forwarding");
+}
+
+void Net::set_rp_filter(int val) const
+{
+    // The max value from conf/{all,interface}/rp_filter is used when doing
+    // source validation on the {interface}.
+
+    // set conf.all.rp_filter
+    write_value_to_file(val, "/proc/sys/net/ipv4/conf/all/rp_filter");
+
+    // set conf.{interface}.rp_filter
+    struct if_nameindex *if_nidxs = if_nameindex();
+    assert(if_nidxs);
+    for (struct if_nameindex *intf = if_nidxs; intf->if_name != NULL; intf++) {
+        write_value_to_file(val, "/proc/sys/net/ipv4/conf/"
+                            + std::string(intf->if_name) + "/rp_filter");
+    }
+    if_freenameindex(if_nidxs);
 }
