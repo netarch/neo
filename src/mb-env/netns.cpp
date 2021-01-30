@@ -102,8 +102,9 @@ void NetNS::set_interfaces(const Node& node)
             goto error;
         }
 
-        // DEBUG: launch wireshark
-        //system(("wireshark -k -i " + intf->get_name() + " &").c_str());
+//#ifdef ENABLE_DEBUG
+//        system(("wireshark -k -i " + intf->get_name() + " &").c_str());
+//#endif
     }
 
     close(ctrl_sock);

@@ -320,7 +320,9 @@ void Plankton::initialize(State *state)
     forwarding.init(state, network, policy);
     openflow.init(state);
 
-    //sleep(7);   // DEBUG: wait for wireshark to launch
+//#ifdef ENABLE_DEBUG
+//    sleep(7);   // wait for wireshark to launch
+//#endif
 }
 
 void Plankton::process_switch(State *state) const

@@ -106,7 +106,11 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
     Stats::set_pkt_latency();
 
     // logging
-    if (status == std::cv_status::timeout) {
+    if (status == std::cv_status::timeout && recv_pkts.empty()) {
+        // It is possible that the condition variable's timeout occurs after the
+        // listening thread has acquired the lock but before it calls the
+        // notification function, in which case, the attempt of wait_for's
+        // acquiring the lock will block until the listening thread releases it.
         Logger::info("Timeout!");
     }
     /*
