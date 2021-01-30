@@ -21,6 +21,7 @@ private:
     //const char *xtables_lock_mnt = "/run/xtables.lock";
     //char xtables_lock[25];  // "/tmp/xtables.lock.XXXXXX"
 
+    void set_env_vars() const;
     void set_interfaces(const Node&);
     void set_rttable(const RoutingTable&);
     void set_arp_cache(const Node&);

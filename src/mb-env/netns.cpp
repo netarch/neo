@@ -1,5 +1,6 @@
 #include "mb-env/netns.hpp"
 
+#include <cstdlib>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -25,6 +26,19 @@
 #include "lib/net.hpp"
 #include "lib/logger.hpp"
 //#include "lib/fs.hpp"
+
+void NetNS::set_env_vars() const
+{
+    // set XTABLES_LOCKFILE for multiple iptables instances
+    char lockfile[] = "/run/xtables.lock.XXXXXX";
+    mktemp(lockfile);
+    if (!lockfile[0]) {
+        Logger::error("mktemp", errno);
+    }
+    if (setenv("XTABLES_LOCKFILE", lockfile, 1) < 0) {
+        Logger::error("setenv XTABLES_LOCKFILE", errno);
+    }
+}
 
 void NetNS::set_interfaces(const Node& node)
 {
@@ -295,6 +309,7 @@ void NetNS::init(const Node& node)
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
         Logger::error(netns_path, errno);
     }
+    set_env_vars();             // set environment variables
     set_interfaces(node);       // create tap interfaces and set IP addresses
     set_rttable(node.get_rib());    // set routing table according to node->rib
     set_arp_cache(node);        // set ARP entries
