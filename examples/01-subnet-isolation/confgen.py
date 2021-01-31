@@ -45,7 +45,7 @@ COMMIT
     fw.add_static_route(Route('10.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('11.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('12.0.0.0/8', '9.0.0.2'))
-    fw.set_timeout(100)
+    fw.set_timeout(200)
     fw.add_config('rp_filter', 0)
     if fault:
         fw.add_config('rules', fw_bad_rules)
@@ -181,7 +181,7 @@ def main():
                         help='Number of subnets in each policy zone')
     parser.add_argument('-H', '--hosts', type=int,
                         help='Number of hosts in each subnet')
-    parser.add_argument('--fault', action='store_true', default=False,
+    parser.add_argument('-f', '--fault', action='store_true', default=False,
                         help='Use faulty rules')
     arg = parser.parse_args()
 

@@ -7,7 +7,6 @@ from config import *
 
 def confgen(apps, hosts, fault):
     network = Network()
-    policies = Policies()
 
     ## set firewall rules
     fw_rules = """
@@ -53,7 +52,7 @@ def confgen(apps, hosts, fault):
     fw1.add_interface(Interface('eth0', '8.0.2.2/24'))
     fw1.add_interface(Interface('eth1', '8.0.3.1/24'))
     fw1.add_static_route(Route('0.0.0.0/0', '8.0.3.2'))
-    fw1.set_timeout(1000)
+    fw1.set_timeout(200)
     fw1.add_config('rp_filter', 0)
     fw1.add_config('rules', fw_rules)
     agg1_source = Node('agg1-source')
@@ -70,7 +69,7 @@ def confgen(apps, hosts, fault):
     fw2.add_interface(Interface('eth0', '8.0.6.2/24'))
     fw2.add_interface(Interface('eth1', '8.0.7.1/24'))
     fw2.add_static_route(Route('0.0.0.0/0', '8.0.7.2'))
-    fw2.set_timeout(1000)
+    fw2.set_timeout(200)
     fw2.add_config('rp_filter', 0)
     if fault:
         fw2.add_config('rules', wrong_fw_rules)
@@ -155,6 +154,7 @@ def confgen(apps, hosts, fault):
             network.add_node(node)
 
     ## add policies
+    policies = Policies()
     for app in range(apps):
         second = (app // 256) % 256 # second octet
         third = app % 256           # third octet
