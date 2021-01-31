@@ -47,7 +47,19 @@ RoutingTable::iterator RoutingTable::insert(Route&& route)
             }
         }
     }
+    return tbl.insert(std::move(route));
+}
+
+RoutingTable::iterator RoutingTable::update(const Route& route)
+{
+    tbl.erase(route);
     return tbl.insert(route);
+}
+
+RoutingTable::iterator RoutingTable::update(Route&& route)
+{
+    tbl.erase(route);
+    return tbl.insert(std::move(route));
 }
 
 RoutingTable::size_type RoutingTable::erase(const Route& route)

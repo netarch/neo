@@ -86,7 +86,7 @@ std::map<Node *, std::set<FIB_IPNH>> OpenflowProcess::get_installed_updates(
 
         for (size_t i = 0; i < num_installed; ++i) {
             if (pair.second[i].relevant_to_ec(*ec)) {
-                of_rib.insert(pair.second[i]);
+                of_rib.update(pair.second[i]);
             }
         }
 
@@ -202,7 +202,7 @@ void OpenflowProcess::install_update(State *state)
             of_rib.insert(all_updates[i]);
         }
     }
-    of_rib.insert(update);
+    of_rib.update(update);
 
     // get the next hops
     IPv4Address addr = ec->representative_addr();

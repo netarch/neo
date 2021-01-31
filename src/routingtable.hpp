@@ -28,6 +28,8 @@ public:
 
     iterator insert(const Route&);
     iterator insert(Route&&);
+    iterator update(const Route&);
+    iterator update(Route&&);
     size_type erase(const Route&);
     iterator erase(const_iterator);
     void clear();
