@@ -202,6 +202,7 @@ void OpenflowProcess::install_update(State *state)
             of_rib.insert(all_updates[i]);
         }
     }
+    of_rib.insert(update);
 
     // get the next hops
     IPv4Address addr = ec->representative_addr();
