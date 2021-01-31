@@ -14,9 +14,8 @@ struct State;
  * or be accepted by any other node.
  *
  * If the original request packets are not accepted by any of query_nodes, the
- * policy holds. So if we want to specify that the request and reply should both
- * be accepted, we should specify two policies, ReachabilityPolicy and
- * ReplyReachabilityPolicy.
+ * policy fails by default. So the policy implies the ReachabilityPolicy of the
+ * requests.
  */
 class ReplyReachabilityPolicy : public Policy
 {
