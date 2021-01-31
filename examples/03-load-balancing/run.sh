@@ -1,39 +1,28 @@
 #!/bin/bash
 
-set -e
-set -o nounset
-
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
-cd "$SCRIPT_DIR"
+source "${SCRIPT_DIR}/../common.sh"
 
-[ $UID -eq 0 ] && \
-    (echo '[!] Please run this script without root privilege' >&2; exit 1)
+build
 
-NEO="$(realpath "$SCRIPT_DIR/../../neo")"
-OUT_DIR="$(realpath "$SCRIPT_DIR/results")"
-
-type "$NEO" >/dev/null 2>&1 || \
-    (echo '[!] Verifier executable not found' >&2; exit 1)
-
-mkdir -p "$OUT_DIR"
-
-for num_lbs in 4 8 12; do
-    for num_srvs in 4 8 12; do
-        for algo in rr sh dh; do
+for lbs in 4 8 12; do
+    for srvs in 4 8 12; do
+        for algo in rr sh dh; do    # round-robin, source-hashing, destination-hashing
             if [ "$algo" == "sh" ]; then
-                repeat=$((num_srvs * 4))
+                repeat=$((srvs * 4))
             else
-                repeat=$num_srvs
+                repeat=$srvs
             fi
-            for num_procs in 1; do
-                echo "[+] Verifying $num_lbs LBs and $num_srvs servers/LB with algorithm $algo..."
-                python3 confgen.py -l $num_lbs -s $num_srvs -a $algo -r $repeat \
-                    > network.toml
-                sudo "$NEO" -f -j $num_procs -i network.toml \
-                    -o "$OUT_DIR/$num_lbs-lbs.$num_srvs-servers.$algo.repeat-$repeat.DOP-$num_procs"
+            for procs in 1; do
+                name="$lbs-lbs.$srvs-servers.$algo.repeat-$repeat.DOP-$procs"
+                msg "Verifying $name"
+                ${CONFGEN[*]} -l $lbs -s $srvs -a $algo -r $repeat > "$CONF"
+                sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
+                sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR/$name"
+                mv "$CONF" "$RESULTS_DIR/$name"
             done
         done
     done
 done
 
-echo "[+] Done!"
+msg "Done"

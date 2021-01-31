@@ -76,8 +76,6 @@ def main():
                         help='Load balancing algorithm')
     parser.add_argument('-r', '--repeat', type=int,
                         help='Repeat N times for each connection')
-    #parser.add_argument('-f', '--fault', action='store_true', default=False,
-    #                    help='Use inconsistent rules')
     arg = parser.parse_args()
 
     if not arg.lbs or arg.lbs > 255:
