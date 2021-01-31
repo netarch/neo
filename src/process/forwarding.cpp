@@ -519,8 +519,10 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
         }
     }
 
-    // if there is no response, assume the sent packet is accepted if it's ACK
-    if (next_hops.empty() && new_pkt->get_pkt_state() == PS_TCP_INIT_3) {
+    // if there is no response when the injected packet is destined to the
+    // middlebox, assume the sent packet is accepted if it's an ACK
+    if (next_hops.empty() && mb->has_ip(new_pkt->get_dst_ip())
+            && new_pkt->get_pkt_state() == PS_TCP_INIT_3) {
         next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
     }
 
