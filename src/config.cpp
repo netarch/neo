@@ -587,7 +587,7 @@ void Config::parse_correlated_policies(
     for (const auto& cfg : *policies_config) {
         Policy *correlated_policy = nullptr;
 
-        auto type = config->get_as<std::string>("type");
+        auto type = cfg->get_as<std::string>("type");
         if (!type) {
             Logger::error("Missing policy type");
         }
