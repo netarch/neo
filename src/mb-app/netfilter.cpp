@@ -29,16 +29,7 @@ void NetFilter::reset()
     if (close(fd) < 0) {
         Logger::error(filename, errno);
     }
-    /*
-     * NOTE:
-     * Use iptables "-w" option to wait for the shared "/run/xtables.lock".
-     * Ideally we should create different mnt namespaces for each middlebox.
-     * TODO: isolate (part of) the filesystem
-     *
-     * See:
-     * https://www.spinics.net/lists/netfilter-devel/msg56960.html
-     * https://www.spinics.net/lists/netdev/msg497351.html
-     */
+
     if (system("iptables -F")) {
         Logger::error("iptables -F");
     }

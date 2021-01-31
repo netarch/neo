@@ -14,7 +14,6 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <net/route.h>
-//#include <sys/mount.h>
 #include <set>
 #include <list>
 
@@ -25,7 +24,6 @@
 #include "routingtable.hpp"
 #include "lib/net.hpp"
 #include "lib/logger.hpp"
-//#include "lib/fs.hpp"
 
 void NetNS::set_env_vars() const
 {
@@ -240,28 +238,6 @@ void NetNS::set_epoll_events()
     events = new struct epoll_event[tapfds.size()];
 }
 
-//void NetNS::mntns_xtables_lock()
-//{
-//    // create and enter a new mntns
-//    if (unshare(CLONE_NEWNS) < 0) {
-//        Logger::error("Failed to create a new mntns", errno);
-//    }
-//
-//    // create a new xtables.lock for this network namespace
-//    int fd;
-//    if ((fd = mkstemp(xtables_lock)) < 0) {
-//        Logger::error(xtables_lock, errno);
-//    }
-//    if (close(fd) < 0) {
-//        Logger::error(xtables_lock, errno);
-//    }
-//
-//    // bind mount it to /run/xtables.lock
-//    if (mount(xtables_lock, xtables_lock_mnt, NULL, MS_BIND, NULL) < 0) {
-//        Logger::error("Failed to mount " + std::string(xtables_lock), errno);
-//    }
-//}
-
 NetNS::NetNS()
     : old_net(-1), new_net(-1), epollfd(-1) //, xtables_lock("/tmp/xtables.lock.XXXXXX")
 {
@@ -286,12 +262,6 @@ NetNS::~NetNS()
     }
     // remove the new network namespace
     close(new_net);
-
-    // unmount the xtables lock and remove the actual lock file
-    //if (umount(xtables_lock_mnt) < 0) {
-    //    Logger::error(xtables_lock_mnt, errno);
-    //}
-    //fs::remove(xtables_lock);
 }
 
 void NetNS::init(const Node& node)
@@ -315,8 +285,6 @@ void NetNS::init(const Node& node)
     set_rttable(node.get_rib());    // set routing table according to node->rib
     set_arp_cache(node);        // set ARP entries
     set_epoll_events();         // set epoll events for future packet reads
-    // create a new mount namespace for /run/xtables.lock
-    //mntns_xtables_lock();
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
         Logger::error("setns()", errno);
@@ -371,12 +339,6 @@ size_t NetNS::inject_packet(const Packet& pkt)
     return nwrite;
 }
 
-/*
- * TODO what?
- * Read packets blockingly for the first time, and if there are packets,
- * continue to read packets in a loop unblockingly, until there is no packet to
- * read.
- */
 std::vector<Packet> NetNS::read_packets() const
 {
     std::list<PktBuffer> pktbuffs;
