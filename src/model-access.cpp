@@ -14,12 +14,40 @@
 
 /* variables for preventing duplicates */
 
-static std::unordered_set<FIB *, FIBHash, FIBEq> fib_hist;
-static std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq> pkt_hist_hist;
-static std::unordered_set<Choices *, ChoicesHash, ChoicesEq> path_choices_hist;
-static std::unordered_set<OpenflowUpdateState *,
-       OFUpdateStateHash, OFUpdateStateEq> openflow_update_state_hist;
-static std::unordered_set<Candidates *, CandHash, CandEq> candidates_hist;
+class VariableHist
+{
+public:
+    std::unordered_set<FIB *, FIBHash, FIBEq> fib_hist;
+    std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq> pkt_hist_hist;
+    std::unordered_set<Choices *, ChoicesHash, ChoicesEq> path_choices_hist;
+    std::unordered_set<OpenflowUpdateState *,
+    OFUpdateStateHash, OFUpdateStateEq> openflow_update_state_hist;
+    std::unordered_set<Candidates *, CandHash, CandEq> candidates_hist;
+
+    VariableHist() = default;
+    ~VariableHist();
+};
+
+VariableHist::~VariableHist()
+{
+    for (FIB *fib : this->fib_hist) {
+        delete fib;
+    }
+    for (PacketHistory *pkt_hist : this->pkt_hist_hist) {
+        delete pkt_hist;
+    }
+    for (Choices *path_choices : this->path_choices_hist) {
+        delete path_choices;
+    }
+    for (OpenflowUpdateState *update_state : this->openflow_update_state_hist) {
+        delete update_state;
+    }
+    for (Candidates *candidates : candidates_hist) {
+        delete candidates;
+    }
+}
+
+static VariableHist storage;
 
 
 FIB *get_fib(State *state)
@@ -32,7 +60,7 @@ FIB *get_fib(State *state)
 FIB *set_fib(State *state, FIB&& fib)
 {
     FIB *new_fib = new FIB(std::move(fib));
-    auto res = fib_hist.insert(new_fib);
+    auto res = storage.fib_hist.insert(new_fib);
     if (!res.second) {
         delete new_fib;
         new_fib = *(res.first);
@@ -192,7 +220,7 @@ PacketHistory *get_pkt_hist(State *state)
 PacketHistory *set_pkt_hist(State *state, PacketHistory&& pkt_hist)
 {
     PacketHistory *new_pkt_hist = new PacketHistory(std::move(pkt_hist));
-    auto res = pkt_hist_hist.insert(new_pkt_hist);
+    auto res = storage.pkt_hist_hist.insert(new_pkt_hist);
     if (!res.second) {
         delete new_pkt_hist;
         new_pkt_hist = *(res.first);
@@ -237,7 +265,7 @@ Choices *get_path_choices(State *state)
 Choices *set_path_choices(State *state, Choices&& path_choices)
 {
     Choices *new_path_choices = new Choices(std::move(path_choices));
-    auto res = path_choices_hist.insert(new_path_choices);
+    auto res = storage.path_choices_hist.insert(new_path_choices);
     if (!res.second) {
         delete new_path_choices;
         new_path_choices = *(res.first);
@@ -257,7 +285,7 @@ OpenflowUpdateState *get_openflow_update_state(State *state)
 OpenflowUpdateState *set_openflow_update_state(State *state, OpenflowUpdateState&& update_state)
 {
     OpenflowUpdateState *new_state = new OpenflowUpdateState(std::move(update_state));
-    auto res = openflow_update_state_hist.insert(new_state);
+    auto res = storage.openflow_update_state_hist.insert(new_state);
     if (!res.second) {
         delete new_state;
         new_state = *(res.first);
@@ -347,7 +375,7 @@ Candidates *get_candidates(State *state)
 Candidates *set_candidates(State *state, Candidates&& candidates)
 {
     Candidates *new_candidates = new Candidates(std::move(candidates));
-    auto res = candidates_hist.insert(new_candidates);
+    auto res = storage.candidates_hist.insert(new_candidates);
     if (!res.second) {
         delete new_candidates;
         new_candidates = *(res.first);
