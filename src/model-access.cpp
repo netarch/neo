@@ -21,7 +21,7 @@ public:
     std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq> pkt_hist_hist;
     std::unordered_set<Choices *, ChoicesHash, ChoicesEq> path_choices_hist;
     std::unordered_set<OpenflowUpdateState *,
-    OFUpdateStateHash, OFUpdateStateEq> openflow_update_state_hist;
+        OFUpdateStateHash, OFUpdateStateEq> openflow_update_state_hist;
     std::unordered_set<Candidates *, CandHash, CandEq> candidates_hist;
 
     VariableHist() = default;
