@@ -125,7 +125,7 @@ class Openflow:
     def to_dict(self):
         data = {}
         if self.updates:
-            data['updates'] = [update.to_dict() for update in self.updates]
+            data['openflow'] = {'updates': [update.to_dict() for update in self.updates]}
         return data
 
 class Communication:
