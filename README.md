@@ -94,6 +94,6 @@ $ neo -fj8 -i examples/00-reverse-path-filtering/network.toml -o output
 
 ## Developer's Guide
 
-`setup.sh` can be used to set up the development environment. Pull requests and
-issues are appreciated.
+`depends/setup.sh` can be used to set up the development environment. Pull
+requests and issues are appreciated.
 
