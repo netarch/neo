@@ -2,6 +2,7 @@
 
 #include <sys/epoll.h>
 #include <unordered_map>
+#include <string>
 #include <vector>
 
 #include "mb-env/mb-env.hpp"
@@ -16,10 +17,11 @@ private:
     int old_net, new_net;
     int epollfd;
     struct epoll_event *events;
+    std::string xtables_lockpath;
     std::unordered_map<Interface *, int> tapfds;        // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> tapmacs; // intf --> mac addr
 
-    void set_env_vars() const;
+    void set_env_vars();
     void set_interfaces(const Node&);
     void set_rttable(const RoutingTable&);
     void set_arp_cache(const Node&);

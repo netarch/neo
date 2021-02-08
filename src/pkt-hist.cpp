@@ -12,12 +12,28 @@ NodePacketHistory::NodePacketHistory(Packet *p, NodePacketHistory *h)
 std::list<Packet *> NodePacketHistory::get_packets() const
 {
     std::list<Packet *> packets;
-
     for (const NodePacketHistory *nph = this; nph; nph = nph->past_hist) {
         packets.push_front(nph->last_pkt);
     }
-
     return packets;
+}
+
+std::list<Packet *> NodePacketHistory::get_packets_since(NodePacketHistory *start) const
+{
+    std::list<Packet *> packets;
+    for (const NodePacketHistory *nph = this; nph && nph != start; nph = nph->past_hist) {
+        packets.push_front(nph->last_pkt);
+    }
+    return packets;
+}
+
+bool NodePacketHistory::contains(NodePacketHistory *other) const
+{
+    const NodePacketHistory *nph = this;
+    while (nph && nph != other) {
+        nph = nph->past_hist;
+    }
+    return nph == other;
 }
 
 bool operator==(const NodePacketHistory& a, const NodePacketHistory& b)
@@ -70,6 +86,23 @@ bool NodePacketHistoryEq::operator()(NodePacketHistory *const& a,
                                      NodePacketHistory *const& b) const
 {
     return *a == *b;
+}
+
+bool NodePacketHistoryComp::operator()(NodePacketHistory *const& a,
+                                       NodePacketHistory *const& b) const
+{
+    std::list<Packet *> a_pkts = a->get_packets();
+    std::list<Packet *> b_pkts = b->get_packets();
+
+    for (auto a_it = a_pkts.begin(), b_it = b_pkts.begin();
+            a_it != a_pkts.end() && b_it != b_pkts.end();
+            ++a_it, ++b_it) {
+        if (*a_it != *b_it) {
+            return *a_it < *b_it;
+        }
+    }
+
+    return a_pkts.size() < b_pkts.size();
 }
 
 size_t PacketHistoryHash::operator()(PacketHistory *const& ph) const

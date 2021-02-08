@@ -1,128 +1,50 @@
 #include "middlebox.hpp"
 
-#include <libnet.h>
+#include <cassert>
 
-#include "stats.hpp"
-#include "lib/logger.hpp"
+#include "emulationmgr.hpp"
 
 Middlebox::Middlebox()
-    : env(nullptr), app(nullptr), node_pkt_hist(nullptr), listener(nullptr),
-      listener_ended(false)
+    : emulation(nullptr), app(nullptr)
 {
 }
 
 Middlebox::~Middlebox()
 {
-    //if (listener) {
-    //    listener_ended = true;
-    //    Packet dummy(intfs.begin()->second);
-    //    env->inject_packet(dummy);
-    //    if (listener->joinable()) {
-    //        listener->join();
-    //    }
-    //}
-    delete listener;
     delete app;
-    delete env;
 }
 
-void Middlebox::listen_packets()
+std::string Middlebox::get_env() const
 {
-    std::vector<Packet> pkts;
-
-    while (!listener_ended) {
-        // read the output packets (it will block if there is no packet)
-        pkts = env->read_packets();
-
-        if (!pkts.empty()) {
-            std::unique_lock<std::mutex> lck(mtx);
-            recv_pkts = pkts;
-            cv.notify_all();
-        }
-    }
+    return env;
 }
 
-void Middlebox::init()
+MB_App *Middlebox::get_app() const
 {
-    env->init(*this);
-    env->run(mb_app_init, app);
-    if (!listener) {
-        sigset_t mask, old_mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-        listener = new std::thread(&Middlebox::listen_packets, this);
-        pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-    }
+    return app;
+}
+
+std::chrono::microseconds Middlebox::get_timeout() const
+{
+    return timeout;
 }
 
 int Middlebox::rewind(NodePacketHistory *nph)
 {
-    if (node_pkt_hist == nph) {
-        Logger::info(this->get_name() + " up to date, no need to rewind");
-        return -1;
-    }
-
-    int rewind_injections = 0;
-
-    Logger::info("============== rewind starts (" + this->get_name() + ") ==============");
-
-    // reset middlebox state
-    env->run(mb_app_reset, app);
-
-    // replay history
-    if (nph) {
-        rewind_injections = nph->get_packets().size();
-        for (Packet *packet : nph->get_packets()) {
-            send_pkt(*packet);
-        }
-    }
-    node_pkt_hist = nph;
-
-    Logger::info("==============  rewind ends  (" + this->get_name() + ") ==============");
-
-    return rewind_injections;
+    emulation = EmulationMgr::get().get_emulation(this, nph);
+    return emulation->rewind(nph);
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
 {
-    node_pkt_hist = nph;
+    assert(emulation->get_mb() == this);
+    EmulationMgr::get().update_node_pkt_hist(emulation, nph);
 }
 
 std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
 {
-    std::unique_lock<std::mutex> lck(mtx);
-    recv_pkts.clear();
-
-    // inject packet
-    Logger::info("Injecting packet: " + pkt.to_string());
-    env->inject_packet(pkt);
-
-    Stats::set_pkt_lat_t1();
-
-    // wait for timeout
-    std::cv_status status = cv.wait_for(lck, app->get_timeout());
-
-    Stats::set_pkt_latency();
-
-    // logging
-    if (status == std::cv_status::timeout && recv_pkts.empty()) {
-        // It is possible that the condition variable's timeout occurs after the
-        // listening thread has acquired the lock but before it calls the
-        // notification function, in which case, the attempt of wait_for's
-        // acquiring the lock will block until the listening thread releases it.
-        Logger::info("Timeout!");
-    }
-    /*
-     * NOTE:
-     * We don't process the read packets in the critical section (i.e., here).
-     * Instead, we process the read packets in ForwardingProcess (the caller),
-     * which is also because the knowledge of the current connection state is
-     * required to process it correctly, as mentioned in lib/net.cpp.
-     */
-
-    // return the received packets
-    return recv_pkts;
+    assert(emulation->get_mb() == this);
+    return emulation->send_pkt(pkt);
 }
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(

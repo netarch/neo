@@ -1,20 +1,13 @@
 #pragma once
 
-#include <chrono>
-
 class MB_App
 {
-protected:
-    std::chrono::microseconds timeout;
-
 protected:
     friend class Config;
     MB_App() = default;
 
 public:
     virtual ~MB_App() = default;
-
-    std::chrono::microseconds get_timeout() const;
 
     /* Note that all internal states should be flushed/reset */
     virtual void init() = 0;    // hard-reset, restart, start

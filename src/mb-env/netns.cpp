@@ -25,15 +25,18 @@
 #include "lib/net.hpp"
 #include "lib/logger.hpp"
 
-void NetNS::set_env_vars() const
+void NetNS::set_env_vars()
 {
     // set XTABLES_LOCKFILE for multiple iptables instances
-    char lockfile[] = "/run/xtables.lock.XXXXXX";
-    mktemp(lockfile);
-    if (!lockfile[0]) {
-        Logger::error("mktemp", errno);
+    if (xtables_lockpath.empty()) {
+        char lockfile[] = "/run/xtables.lock.XXXXXX";
+        mktemp(lockfile);
+        if (!lockfile[0]) {
+            Logger::error("mktemp", errno);
+        }
+        xtables_lockpath = lockfile;
     }
-    if (setenv("XTABLES_LOCKFILE", lockfile, 1) < 0) {
+    if (setenv("XTABLES_LOCKFILE", xtables_lockpath.c_str(), 1) < 0) {
         Logger::error("setenv XTABLES_LOCKFILE", errno);
     }
 }
@@ -239,7 +242,7 @@ void NetNS::set_epoll_events()
 }
 
 NetNS::NetNS()
-    : old_net(-1), new_net(-1), epollfd(-1) //, xtables_lock("/tmp/xtables.lock.XXXXXX")
+    : old_net(-1), new_net(-1), epollfd(-1), events(nullptr)
 {
 }
 
@@ -280,11 +283,11 @@ void NetNS::init(const Node& node)
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
         Logger::error(netns_path, errno);
     }
-    set_env_vars();             // set environment variables
-    set_interfaces(node);       // create tap interfaces and set IP addresses
-    set_rttable(node.get_rib());    // set routing table according to node->rib
-    set_arp_cache(node);        // set ARP entries
-    set_epoll_events();         // set epoll events for future packet reads
+    set_env_vars();              // set environment variables
+    set_interfaces(node);        // create tap interfaces and set IP addresses
+    set_rttable(node.get_rib()); // set routing table according to node->rib
+    set_arp_cache(node);         // set ARP entries
+    set_epoll_events();          // set epoll events for future packet reads
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
         Logger::error("setns()", errno);
@@ -297,6 +300,7 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app)
     if (setns(new_net, CLONE_NEWNET) < 0) {
         Logger::error("setns()", errno);
     }
+    set_env_vars();
 
     app_action(app);
 

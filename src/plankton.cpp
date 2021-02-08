@@ -11,6 +11,7 @@
 
 #include "stats.hpp"
 #include "config.hpp"
+#include "emulationmgr.hpp"
 #include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
@@ -73,8 +74,8 @@ Plankton& Plankton::get()
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
-                    const std::string& input_file,
+void Plankton::init(bool all_ECs, bool rm_out_dir, bool latency, size_t dop,
+                    int emulations, const std::string& input_file,
                     const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
@@ -96,6 +97,12 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, bool latency,
     Config::parse_openflow(&openflow, in_file, network);
     Config::parse_policies(&policies, in_file, network);
     Config::finish_parsing(in_file);
+
+    if (emulations < 0) {
+        emulations = network.get_middleboxes().size();
+    }
+    EmulationMgr::get().set_max_emulations(emulations);
+    EmulationMgr::get().set_num_middleboxes(network.get_middleboxes().size());
 }
 
 void Plankton::compute_policy_oblivious_ecs()

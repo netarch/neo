@@ -42,7 +42,6 @@ public:
     virtual Node& operator=(const Node&) = delete;
     virtual Node& operator=(Node&&) = default;
 
-    virtual void init();    // per process initialization
     virtual std::string to_string() const;
     virtual std::string get_name() const;
     virtual bool has_ip(const IPv4Address& addr) const;

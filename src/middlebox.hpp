@@ -1,30 +1,22 @@
 #pragma once
 
-#include <thread>
-#include <atomic>
+#include <string>
+#include <chrono>
 #include <vector>
-#include <mutex>
-#include <condition_variable>
 
 #include "node.hpp"
-#include "mb-env/mb-env.hpp"
+#include "emulation.hpp"
 #include "mb-app/mb-app.hpp"
 #include "pkt-hist.hpp"
+#include "packet.hpp"
 
 class Middlebox : public Node
 {
 private:
-    MB_Env *env;    // environment
+    Emulation *emulation;
+    std::string env;
     MB_App *app;    // appliance
-
-    NodePacketHistory *node_pkt_hist;
-    std::thread *listener;
-    std::atomic<bool> listener_ended;
-    std::vector<Packet> recv_pkts;  // received packets
-    std::mutex mtx;                 // lock for accessing recv_pkts
-    std::condition_variable cv;     // for reading recv_pkts
-
-    void listen_packets();
+    std::chrono::microseconds timeout;
 
 private:
     friend class Config;
@@ -34,23 +26,21 @@ public:
     Middlebox(const Middlebox&) = delete;
     Middlebox(Middlebox&&) = delete;
     ~Middlebox() override;
-
     Middlebox& operator=(const Middlebox&) = delete;
     Middlebox& operator=(Middlebox&&) = delete;
 
-    /*
-     * Actually initialize and start the emulation.
-     */
-    void init() override;
+    std::string get_env() const;
+    MB_App *get_app() const;
+    std::chrono::microseconds get_timeout() const;
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::vector<Packet> send_pkt(const Packet&); // send one L7 packet
+    std::vector<Packet> send_pkt(const Packet&);
 
     /*
-     * Return an empty set. We use emulations to get next hops for middleboxes.
-     * The forwarding process will inject a concrete packet to the emulation
-     * instance.
+     * Return an empty set. We use emulations to get next hops for middleboxes,
+     * instead of looking up from routing tables. The forwarding process will
+     * inject a concrete packet to the emulation instance.
      */
     std::set<FIB_IPNH> get_ipnhs(
         const IPv4Address&,

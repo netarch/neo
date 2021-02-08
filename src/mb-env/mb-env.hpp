@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "node.hpp"
-#include "interface.hpp"
 #include "packet.hpp"
 #include "mb-app/mb-app.hpp"
 

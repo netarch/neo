@@ -32,6 +32,14 @@ void Network::add_link(Link *link)
     node2->add_peer(intf2->get_name(), node1, intf1);
 }
 
+void Network::add_middlebox(Node *node)
+{
+    auto res = middleboxes.insert(node);
+    if (res.second == false) {
+        Logger::error("Duplicate middlebox: " + (*res.first)->to_string());
+    }
+}
+
 void Network::grow_and_set_l2_lan(Node *node, Interface *interface)
 {
     L2_LAN *l2_lan = new L2_LAN(node, interface);
@@ -71,14 +79,14 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-void Network::init(State *state __attribute__((unused)), OpenflowProcess *ofp)
+const std::unordered_set<Node *>& Network::get_middleboxes() const
 {
-    // initialize and start middlebox emulations
-    for (const auto& pair : nodes) {
-        Node *node = pair.second;
-        node->init();
-    }
+    return middleboxes;
+}
 
+void Network::init(State *state, OpenflowProcess *ofp)
+{
+    set_fib(state, FIB());  // empty fib
     this->openflow = ofp;
 }
 

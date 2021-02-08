@@ -36,7 +36,6 @@ private:
     static void parse_route(Route *, const std::shared_ptr<cpptoml::table>&);
     static void parse_node(Node *, const std::shared_ptr<cpptoml::table>&);
 
-    static void parse_mb_app(MB_App *, const std::shared_ptr<cpptoml::table>&);
     static void parse_netfilter(NetFilter *, const std::shared_ptr<cpptoml::table>&);
     static void parse_ipvs(IPVS *, const std::shared_ptr<cpptoml::table>&);
     static void parse_squid(Squid *, const std::shared_ptr<cpptoml::table>&);

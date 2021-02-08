@@ -9,8 +9,8 @@
 #include "lib/hash.hpp"
 
 /*
- * NodePacketHistory contains the packet traversal history of *one* node, which
- * is represented as the "state" of that node.
+ * NodePacketHistory contains the packet traversal history of one node, which is
+ * represented as the "state" of that node.
  *
  * A (NodePacketHistory *) being null means empty history.
  */
@@ -21,12 +21,15 @@ private:
     NodePacketHistory *past_hist;
 
     friend struct NodePacketHistoryHash;
+    friend struct NodePacketHistoryComp;
     friend bool operator==(const NodePacketHistory&, const NodePacketHistory&);
 
 public:
     NodePacketHistory(Packet *, NodePacketHistory *);
 
     std::list<Packet *> get_packets() const;
+    std::list<Packet *> get_packets_since(NodePacketHistory *start) const;
+    bool contains(NodePacketHistory *) const;
 };
 
 bool operator==(const NodePacketHistory&, const NodePacketHistory&);
@@ -59,6 +62,10 @@ struct NodePacketHistoryHash {
 };
 
 struct NodePacketHistoryEq {
+    bool operator()(NodePacketHistory *const&, NodePacketHistory *const&) const;
+};
+
+struct NodePacketHistoryComp {
     bool operator()(NodePacketHistory *const&, NodePacketHistory *const&) const;
 };
 

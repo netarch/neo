@@ -13,7 +13,6 @@
 #include "mb-app/netfilter.hpp"
 #include "mb-app/ipvs.hpp"
 #include "mb-app/squid.hpp"
-#include "mb-env/netns.hpp"
 #include "middlebox.hpp"
 #include "link.hpp"
 #include "network.hpp"
@@ -142,30 +141,11 @@ void Config::parse_node(Node *node,
     }
 }
 
-void Config::parse_mb_app(
-    MB_App *app,
-    const std::shared_ptr<cpptoml::table>& config)
-{
-    assert(app != nullptr);
-
-    auto timeout = config->get_as<long>("timeout");
-    if (!timeout) {
-        Logger::error("Missing timeout");
-    }
-
-    if (*timeout < 0) {
-        Logger::error("Invalid timeout: " + std::to_string(*timeout));
-    }
-    app->timeout = std::chrono::microseconds(*timeout);
-}
-
 void Config::parse_netfilter(
     NetFilter *netfilter,
     const std::shared_ptr<cpptoml::table>& config)
 {
     assert(netfilter != nullptr);
-
-    Config::parse_mb_app(netfilter, config);
 
     auto rpf = config->get_as<int>("rp_filter");
     auto rules = config->get_as<std::string>("rules");
@@ -190,8 +170,6 @@ void Config::parse_ipvs(
 {
     assert(ipvs != nullptr);
 
-    Config::parse_mb_app(ipvs, config);
-
     auto ipvs_config = config->get_as<std::string>("config");
 
     if (!ipvs_config) {
@@ -206,8 +184,6 @@ void Config::parse_squid(
     const std::shared_ptr<cpptoml::table>& config)
 {
     assert(squid != nullptr);
-
-    Config::parse_mb_app(squid, config);
 
     auto squid_config = config->get_as<std::string>("config");
 
@@ -228,6 +204,7 @@ void Config::parse_middlebox(
 
     auto environment = config->get_as<std::string>("env");
     auto appliance = config->get_as<std::string>("app");
+    auto timeout = config->get_as<long>("timeout");
 
     if (!environment) {
         Logger::error("Missing environment");
@@ -235,9 +212,12 @@ void Config::parse_middlebox(
     if (!appliance) {
         Logger::error("Missing appliance");
     }
+    if (!timeout) {
+        Logger::error("Missing timeout");
+    }
 
     if (*environment == "netns") {
-        middlebox->env = new NetNS();
+        middlebox->env = *environment;
     } else {
         Logger::error("Unknown environment: " + *environment);
     }
@@ -254,6 +234,11 @@ void Config::parse_middlebox(
     } else {
         Logger::error("Unknown appliance: " + *appliance);
     }
+
+    if (*timeout < 0) {
+        Logger::error("Invalid timeout: " + std::to_string(*timeout));
+    }
+    middlebox->timeout = std::chrono::microseconds(*timeout);
 }
 
 void Config::parse_link(
@@ -321,6 +306,7 @@ void Config::parse_network(Network *network, const std::string& filename)
             } else if (*type == "middlebox") {
                 node = new Middlebox();
                 Config::parse_middlebox(static_cast<Middlebox *>(node), cfg);
+                network->add_middlebox(node);
             } else {
                 Logger::error("Unknown node type: " + *type);
             }
