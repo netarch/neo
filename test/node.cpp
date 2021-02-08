@@ -20,7 +20,6 @@ TEST_CASE("node")
     REQUIRE(r1);
 
     SECTION("basic information access (r0)") {
-        CHECK_NOTHROW(r0->init());
         CHECK(r0->to_string() == "r0");
         CHECK(r0->get_name() == "r0");
         CHECK_FALSE(r0->has_ip("192.168.1.1"));
@@ -38,7 +37,6 @@ TEST_CASE("node")
     }
 
     SECTION("basic information access (r1)") {
-        CHECK_NOTHROW(r1->init());
         CHECK(r1->to_string() == "r1");
         CHECK(r1->get_name() == "r1");
         CHECK(r1->has_ip("192.168.1.1"));
