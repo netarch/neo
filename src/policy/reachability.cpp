@@ -34,8 +34,7 @@ int ReachabilityPolicy::check_violation(State *state)
     int mode = get_fwd_mode(state);
     int pkt_state = get_pkt_state(state);
 
-    if (mode == fwd_mode::ACCEPTED &&
-            (pkt_state == PS_TCP_L7_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
+    if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(pkt_state)) {
         reached = (final_nodes.count(get_rx_node(state)) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;

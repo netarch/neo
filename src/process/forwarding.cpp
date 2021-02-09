@@ -251,11 +251,11 @@ void ForwardingProcess::forward_packet(State *state)
         if (PS_IS_FIRST(pkt_state)) {
             // store the original receiving endpoint of the communication
             set_rx_node(state, current_node);
-        } else if (PS_IS_REQUEST(pkt_state) && current_node != rx_node) {
+        } else if (PS_IS_REQUEST_DIR(pkt_state) && current_node != rx_node) {
             Logger::warn("Inconsistent endpoints (current_node != rx_node)");
             dropped(state);
             return;
-        } else if (PS_IS_REPLY(pkt_state) && current_node != tx_node) {
+        } else if (PS_IS_REPLY_DIR(pkt_state) && current_node != tx_node) {
             Logger::warn("Inconsistent endpoints (current_node != tx_node)");
             dropped(state);
             return;
@@ -492,7 +492,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
         assert(comm == state->comm); // same communication
 
         // convert TCP flags to the real pkt_state
-        Net::get().convert_tcp_flags(recv_pkt, get_pkt_state(state), change_direction);
+        Net::get().convert_pkt_state(recv_pkt, get_pkt_state(state), change_direction);
         Logger::info("Received packet: " + recv_pkt.to_string());
 
         // find the next hop

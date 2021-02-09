@@ -25,7 +25,7 @@ struct State;
 #define PS_ICMP_ECHO_REQ   12   // ICMP echo request
 #define PS_ICMP_ECHO_REP   13   // ICMP echo reply
 
-#define PS_IS_REQUEST(x) (        \
+#define PS_IS_REQUEST_DIR(x) (    \
         (x) == PS_TCP_INIT_1   || \
         (x) == PS_TCP_INIT_3   || \
         (x) == PS_TCP_L7_REQ   || \
@@ -34,7 +34,7 @@ struct State;
         (x) == PS_UDP_REQ      || \
         (x) == PS_ICMP_ECHO_REQ   \
 )
-#define PS_IS_REPLY(x) (          \
+#define PS_IS_REPLY_DIR(x) (      \
         (x) == PS_TCP_INIT_2   || \
         (x) == PS_TCP_L7_REQ_A || \
         (x) == PS_TCP_L7_REP   || \
@@ -42,6 +42,16 @@ struct State;
         (x) == PS_TCP_TERM_3   || \
         (x) == PS_UDP_REP      || \
         (x) == PS_ICMP_ECHO_REP   \
+)
+#define PS_IS_REQUEST(x) ( \
+        (x) == PS_TCP_L7_REQ || \
+        (x) == PS_UDP_REQ    || \
+        (x) == PS_ICMP_ECHO_REQ \
+)
+#define PS_IS_REPLY(x) ( \
+        (x) == PS_TCP_L7_REP || \
+        (x) == PS_UDP_REP    || \
+        (x) == PS_ICMP_ECHO_REP \
 )
 #define PS_IS_FIRST(x) (        \
         (x) == PS_TCP_INIT_1 || \

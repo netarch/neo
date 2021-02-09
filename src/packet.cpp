@@ -31,6 +31,11 @@ Packet::Packet(State *state)
         this->seq = ::get_seq(state);
         this->ack = ::get_ack(state);
         this->payload = PayloadMgr::get().get_payload(state);
+    } else if (PS_IS_UDP(pkt_state)) {
+        // UDP
+        this->src_port = ::get_src_port(state);
+        this->dst_port = ::get_dst_port(state);
+        this->payload = PayloadMgr::get().get_payload(state);
     } else if (PS_IS_ICMP_ECHO(pkt_state)) {
         // ICMP (do nothing)
     } else {

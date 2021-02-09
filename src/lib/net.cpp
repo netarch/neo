@@ -306,7 +306,7 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
              * NOTE:
              * Store the TCP flags in pkt_state for now, which will be converted
              * to the real pkt_state in ForwardingProcess (calling
-             * Net::convert_tcp_flags), because the knowledge of the current
+             * Net::convert_pkt_state), because the knowledge of the current
              * connection state is required to interprete the pkt_state. The
              * highest bit of the variable is used to indicate unconverted TCP
              * flags.
@@ -346,11 +346,11 @@ bad_packet:
     pkt.clear();
 }
 
-void Net::convert_tcp_flags(
+void Net::convert_pkt_state(
     Packet& pkt, uint8_t old_pkt_state, bool change_direction) const
 {
     // the highest bit (0x80) is used to indicate unconverted TCP flags
-    if (pkt.get_pkt_state() & 0x80U) {
+    if (PS_IS_TCP(old_pkt_state) && pkt.get_pkt_state() & 0x80U) {
         uint8_t pkt_state = 0;
         uint8_t flags = pkt.get_pkt_state() & (~0x80U);
         if (flags == TH_SYN) {
@@ -404,6 +404,17 @@ void Net::convert_tcp_flags(
             }
         } else {
             Logger::error("Invalid TCP flags: " + std::to_string(flags));
+        }
+        pkt.set_pkt_state(pkt_state);
+    } else if (PS_IS_UDP(old_pkt_state)) {
+        uint8_t pkt_state;
+        if (change_direction) {
+            pkt_state = old_pkt_state + 1;
+            if (!PS_SAME_PROTO(pkt_state, old_pkt_state)) {
+                Logger::error("Change direction after receiving reply");
+            }
+        } else {
+            pkt_state = old_pkt_state;
         }
         pkt.set_pkt_state(pkt_state);
     }
