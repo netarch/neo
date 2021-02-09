@@ -8,8 +8,9 @@
 #include "eqclass.hpp"
 
 enum proto {
-    http = 0,
-    icmp_echo = 1
+    tcp,
+    udp,
+    icmp_echo
 };
 
 /*
@@ -25,19 +26,21 @@ private:
     IPRange<IPv4Address>    pkt_dst;
     bool                    owned_dst_only;
     std::vector<Node *>     start_nodes;
-    uint16_t                src_port;    // initial source port
-    uint16_t                dst_port;    // initial destination port
 
     EqClasses               ECs;
     EqClasses::iterator     ECs_itr;
+    std::vector<uint16_t>   dst_ports;
+    std::vector<uint16_t>::iterator dst_ports_itr;
 
-    EqClass                 *initial_ec;    // per-process variable
+    EqClass                 *initial_ec;    // per-process variable (assigned)
+    uint16_t                src_port;       // per-process variable (fixed)
+    uint16_t                dst_port;       // per-process variable (assigned)
 
     friend bool operator==(const Communication&, const Communication&);
 
 private:
     friend class Config;
-    Communication(): initial_ec(nullptr) {}
+    Communication();
 
 public:
     Communication(const Communication&) = delete;
@@ -51,7 +54,7 @@ public:
     void set_src_port(uint16_t);
     void set_dst_port(uint16_t);
 
-    void compute_ecs(const EqClasses&, const EqClasses&);
+    void compute_ecs(const EqClasses&, const EqClasses&, const std::set<uint16_t>&);
     void add_ec(const IPv4Address&);
     EqClass *find_ec(const IPv4Address&) const;
     size_t num_ecs() const;

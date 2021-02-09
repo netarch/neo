@@ -355,6 +355,9 @@ std::vector<Packet> NetNS::read_packets() const
     // wait until at least one of the fds becomes available
     int nfds = epoll_wait(epollfd, events, tapfds.size(), -1);
     if (nfds < 0) {
+        if (errno == EINTR) {   // SIGUSR1 - stop thread
+            return std::vector<Packet>();
+        }
         Logger::error("epoll_wait", errno);
     }
 

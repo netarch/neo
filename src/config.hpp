@@ -2,8 +2,10 @@
 
 #include <string>
 #include <unordered_map>
+#include <set>
 #include <cpptoml.hpp>
 
+#include "lib/ip.hpp"
 class Interface;
 class Route;
 class Node;
@@ -80,6 +82,15 @@ private:
                                       const std::shared_ptr<cpptoml::table>&,
                                       const Network&);
 
+    static void parse_netfilter(const NetFilter *netfilter,
+                                std::set<IPNetwork<IPv4Address>>& prefixes,
+                                std::set<IPv4Address>& addrs,
+                                std::set<uint16_t>& dst_ports);
+    static void parse_ipvs(const IPVS *ipvs,
+                           std::set<IPNetwork<IPv4Address>>& prefixes,
+                           std::set<IPv4Address>& addrs,
+                           std::set<uint16_t>& dst_ports);
+
 public:
     static void start_parsing(const std::string& filename);
     static void finish_parsing(const std::string& filename);
@@ -90,4 +101,8 @@ public:
     static void parse_openflow(OpenflowProcess *openflow,
                                const std::string& filename,
                                const Network& network);
+    static void parse_appliance(const MB_App *app,
+                                std::set<IPNetwork<IPv4Address>>& prefixes,
+                                std::set<IPv4Address>& addrs,
+                                std::set<uint16_t>& dst_ports);
 };

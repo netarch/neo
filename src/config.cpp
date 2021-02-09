@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 #include <regex>
+#include <typeinfo>
+#include <sstream>
 #include <cpptoml.hpp>
 
 #include "interface.hpp"
@@ -150,17 +152,17 @@ void Config::parse_netfilter(
     auto rpf = config->get_as<int>("rp_filter");
     auto rules = config->get_as<std::string>("rules");
 
-    if (!rpf) {
-        Logger::error("Missing rp_filter");
-    }
     if (!rules) {
         Logger::error("Missing rules");
     }
 
-    if (*rpf < 0 || *rpf > 2) {
+    if (!rpf) {
+        netfilter->rp_filter = 0;
+    } else if (*rpf >= 0 && *rpf <= 2) {
+        netfilter->rp_filter = *rpf;
+    } else {
         Logger::error("Invalid rp_filter value: " + std::to_string(*rpf));
     }
-    netfilter->rp_filter = *rpf;
     netfilter->rules = *rules;
 }
 
@@ -306,7 +308,7 @@ void Config::parse_network(Network *network, const std::string& filename)
             } else if (*type == "middlebox") {
                 node = new Middlebox();
                 Config::parse_middlebox(static_cast<Middlebox *>(node), cfg);
-                network->add_middlebox(node);
+                network->add_middlebox(static_cast<Middlebox *>(node));
             } else {
                 Logger::error("Unknown node type: " + *type);
             }
@@ -344,6 +346,7 @@ void Config::parse_communication(
 
     auto proto_str = config->get_as<std::string>("protocol");
     auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
+    auto dst_port = config->get_as<int>("dst_port");
     auto owned_only = config->get_as<bool>("owned_dst_only");
     auto start_regex = config->get_as<std::string>("start_node");
 
@@ -362,15 +365,20 @@ void Config::parse_communication(
     [](unsigned char c) {
         return std::tolower(c);
     });
-    if (proto_s == "http") {
-        comm->protocol = proto::http;
-        // NOTE: fixed port numbers for now
+    if (proto_s == "tcp") {
+        comm->protocol = proto::tcp;
         comm->src_port = 49152; // 49152 to 65535
-        comm->dst_port = 80;
+        if (dst_port) {
+            comm->dst_ports.push_back(*dst_port);
+        }
+    } else if (proto_s == "udp") {
+        comm->protocol = proto::udp;
+        comm->src_port = 49152; // 49152 to 65535
+        if (dst_port) {
+            comm->dst_ports.push_back(*dst_port);
+        }
     } else if (proto_s == "icmp-echo") {
         comm->protocol = proto::icmp_echo;
-        comm->src_port = 0;
-        comm->dst_port = 0;
     } else {
         Logger::error("Unknown protocol: " + *proto_str);
     }
@@ -757,5 +765,81 @@ void Config::parse_openflow(OpenflowProcess *openflow,
         Logger::info("Loaded " + std::to_string(openflow->num_updates())
                      + " openflow updates for "
                      + std::to_string(openflow->num_nodes()) + " nodes");
+    }
+}
+
+static const std::regex ip_prefix_regex("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+");
+static const std::regex ip_regex("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+");
+static const std::regex ip_port_regex("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+");
+static const std::regex port_regex("[0-9]+");
+
+void Config::parse_netfilter(
+    const NetFilter *netfilter,
+    std::set<IPNetwork<IPv4Address>>& prefixes,
+    std::set<IPv4Address>& addrs,
+    std::set<uint16_t>& dst_ports)
+{
+    std::string line, token;
+    std::stringstream config(netfilter->rules);
+    while (std::getline(config, line)) {
+        if (line.empty() || line[0] != '-') {
+            continue;
+        }
+        std::stringstream line_ss(line);
+        while (std::getline(line_ss, token, ' ')) {
+            if (std::regex_match(token, ip_prefix_regex)) {
+                prefixes.insert(IPNetwork<IPv4Address>(token));
+            } else if (std::regex_match(token, ip_regex)) {
+                addrs.emplace(token);
+            } else if (std::regex_match(token, ip_port_regex)) {
+                size_t colon_pos = token.find(':');
+                addrs.emplace(token.substr(0, colon_pos));
+                dst_ports.insert(std::stoi(token.substr(colon_pos + 1)));
+            } else if (std::regex_match(token, port_regex)) {
+                dst_ports.insert(std::stoi(token));
+            }
+        }
+    }
+}
+
+void Config::parse_ipvs(
+    const IPVS *ipvs,
+    std::set<IPNetwork<IPv4Address>>& prefixes,
+    std::set<IPv4Address>& addrs,
+    std::set<uint16_t>& dst_ports)
+{
+    std::string line, token;
+    std::stringstream config(ipvs->config);
+    while (std::getline(config, line)) {
+        if (line.empty() || line[0] != '-') {
+            continue;
+        }
+        std::stringstream line_ss(line);
+        while (std::getline(line_ss, token, ' ')) {
+            if (std::regex_match(token, ip_prefix_regex)) {
+                prefixes.insert(IPNetwork<IPv4Address>(token));
+            } else if (std::regex_match(token, ip_regex)) {
+                addrs.emplace(token);
+            } else if (std::regex_match(token, ip_port_regex)) {
+                size_t colon_pos = token.find(':');
+                addrs.emplace(token.substr(0, colon_pos));
+                dst_ports.insert(std::stoi(token.substr(colon_pos + 1)));
+            } else if (std::regex_match(token, port_regex)) {
+                dst_ports.insert(std::stoi(token));
+            }
+        }
+    }
+}
+
+void Config::parse_appliance(
+    const MB_App *app,
+    std::set<IPNetwork<IPv4Address>>& prefixes,
+    std::set<IPv4Address>& addrs,
+    std::set<uint16_t>& dst_ports)
+{
+    if (typeid(*app) == typeid(NetFilter)) {
+        Config::parse_netfilter(static_cast<const NetFilter *>(app), prefixes, addrs, dst_ports);
+    } else if (typeid(*app) == typeid(IPVS)) {
+        Config::parse_ipvs(static_cast<const IPVS *>(app), prefixes, addrs, dst_ports);
     }
 }

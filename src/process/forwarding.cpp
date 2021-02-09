@@ -36,8 +36,10 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
     this->policy = policy;
 
     uint8_t pkt_state = 0;
-    if (policy->get_protocol(state) == proto::http) {
+    if (policy->get_protocol(state) == proto::tcp) {
         pkt_state = PS_TCP_INIT_1;
+    } else if (policy->get_protocol(state) == proto::udp) {
+        pkt_state = PS_UDP_REQ;
     } else if (policy->get_protocol(state) == proto::icmp_echo) {
         pkt_state = PS_ICMP_ECHO_REQ;
     } else {
@@ -67,6 +69,7 @@ void ForwardingProcess::init(State *state, Network& network, Policy *policy)
 
     // update FIB
     Logger::info("EC: " + get_ec(state)->to_string());
+    Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
     network.update_fib(state);
 }
 
@@ -77,8 +80,10 @@ void ForwardingProcess::reset(State *state, Network& network)
     }
 
     uint8_t pkt_state = 0;
-    if (policy->get_protocol(state) == proto::http) {
+    if (policy->get_protocol(state) == proto::tcp) {
         pkt_state = PS_TCP_INIT_1;
+    } else if (policy->get_protocol(state) == proto::udp) {
+        pkt_state = PS_UDP_REQ;
     } else if (policy->get_protocol(state) == proto::icmp_echo) {
         pkt_state = PS_ICMP_ECHO_REQ;
     } else {
@@ -107,6 +112,7 @@ void ForwardingProcess::reset(State *state, Network& network)
 
     // update FIB
     Logger::info("EC: " + get_ec(state)->to_string());
+    Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
     network.update_fib(state);
 }
 
@@ -279,18 +285,18 @@ void ForwardingProcess::accepted(State *state, Network& network)
             phase_transition(state, network, PS_TCP_INIT_3, true);
             break;
         case PS_TCP_INIT_3:
-            phase_transition(state, network, PS_HTTP_REQ, false);
+            phase_transition(state, network, PS_TCP_L7_REQ, false);
             break;
-        case PS_HTTP_REQ:
-            phase_transition(state, network, PS_HTTP_REQ_A, true);
+        case PS_TCP_L7_REQ:
+            phase_transition(state, network, PS_TCP_L7_REQ_A, true);
             break;
-        case PS_HTTP_REQ_A:
-            phase_transition(state, network, PS_HTTP_REP, false);
+        case PS_TCP_L7_REQ_A:
+            phase_transition(state, network, PS_TCP_L7_REP, false);
             break;
-        case PS_HTTP_REP:
-            phase_transition(state, network, PS_HTTP_REP_A, true);
+        case PS_TCP_L7_REP:
+            phase_transition(state, network, PS_TCP_L7_REP_A, true);
             break;
-        case PS_HTTP_REP_A:
+        case PS_TCP_L7_REP_A:
             phase_transition(state, network, PS_TCP_TERM_1, true);
             break;
         case PS_TCP_TERM_1:
@@ -300,6 +306,12 @@ void ForwardingProcess::accepted(State *state, Network& network)
             phase_transition(state, network, PS_TCP_TERM_3, true);
             break;
         case PS_TCP_TERM_3:
+            state->choice_count = 0;
+            break;
+        case PS_UDP_REQ:
+            phase_transition(state, network, PS_UDP_REP, true);
+            break;
+        case PS_UDP_REP:
             state->choice_count = 0;
             break;
         case PS_ICMP_ECHO_REQ:
@@ -371,6 +383,7 @@ void ForwardingProcess::phase_transition(
         uint16_t dst_port = get_dst_port(state);
         set_src_port(state, dst_port);
         set_dst_port(state, src_port);
+        Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
     }
 
     // update candidates as the start node

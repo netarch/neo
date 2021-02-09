@@ -53,19 +53,20 @@ std::string Packet::to_string() const
         ret += interface->to_string() + ": ";
     }
     ret += "{ " + src_ip.to_string();
-    if (PS_IS_TCP(pkt_state)) {
+    if (PS_IS_TCP(pkt_state) || PS_IS_UDP(pkt_state)) {
         ret += ":" + std::to_string(src_port);
     }
     ret += " -> " + dst_ip.to_string();
-    if (PS_IS_TCP(pkt_state)) {
+    if (PS_IS_TCP(pkt_state) || PS_IS_UDP(pkt_state)) {
         ret += ":" + std::to_string(dst_port);
     }
     ret += " (state: " + std::to_string(pkt_state) + ")";
     if (PS_IS_TCP(pkt_state)) {
-        ret +=
-            " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (seq/ack)]"
-            " payload size: " +
-            (payload ? std::to_string(payload->get_size()) : std::string("0"));
+        ret += " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (seq/ack)]";
+    }
+    if (PS_IS_TCP(pkt_state) || PS_IS_UDP(pkt_state)) {
+        ret += " payload size: " +
+               (payload ? std::to_string(payload->get_size()) : std::string("0"));
     }
     ret += " }";
     return ret;

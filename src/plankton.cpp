@@ -6,13 +6,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-
 #include <set>
+#include <list>
 
 #include "stats.hpp"
 #include "config.hpp"
 #include "emulationmgr.hpp"
 #include "lib/fs.hpp"
+#include "lib/ip.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
 #include "model.h"
@@ -36,7 +37,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
                 }
             }
             break;
-        case SIGUSR1:   // policy violated; kill all the other children
+        case SIGUSR1:   // policy violated; kill all other children
             pid = siginfo->si_pid;
             policy_violated = true;
             if (!verify_all_ECs) {
@@ -122,6 +123,22 @@ void Plankton::compute_policy_oblivious_ecs()
             all_ECs.add_ec(update_route.get_network());
         }
     }
+
+    for (const Middlebox *mb : network.get_middleboxes()) {
+        MB_App *app = mb->get_app();
+        std::set<IPNetwork<IPv4Address>> prefixes;
+        std::set<IPv4Address> addrs;
+        std::set<uint16_t> dst_ports;
+        Config::parse_appliance(app, prefixes, addrs, dst_ports);
+
+        for (const auto& prefix : prefixes) {
+            all_ECs.add_ec(prefix);
+        }
+        for (const auto& addr : addrs) {
+            all_ECs.add_ec(addr);
+        }
+        this->dst_ports = dst_ports;
+    }
 }
 
 extern "C" int spin_main(int argc, const char *argv[]);
@@ -136,9 +153,9 @@ void Plankton::verify_exit(int status)
     exit(status);
 }
 
-static const int mb_sigs[] = {SIGCHLD};
+static const int emulation_sigs[] = {SIGCHLD, SIGUSR1};
 
-static void mb_sig_handler(int sig)
+static void emulation_sig_handler(int sig)
 {
     int pid, status;
     if (sig == SIGCHLD) {
@@ -162,16 +179,16 @@ void Plankton::verify_ec(Policy *policy)
         suffix.c_str(),
     };
 
-    // register signal handlers for middleboxes
+    // register signal handlers for emulations
     struct sigaction action;
-    action.sa_handler = mb_sig_handler;
+    action.sa_handler = emulation_sig_handler;
     sigemptyset(&action.sa_mask);
-    for (size_t i = 0; i < sizeof(mb_sigs) / sizeof(int); ++i) {
-        sigaddset(&action.sa_mask, mb_sigs[i]);
+    for (size_t i = 0; i < sizeof(emulation_sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, emulation_sigs[i]);
     }
     action.sa_flags = SA_NOCLDSTOP;
-    for (size_t i = 0; i < sizeof(mb_sigs) / sizeof(int); ++i) {
-        sigaction(mb_sigs[i], &action, nullptr);
+    for (size_t i = 0; i < sizeof(emulation_sigs) / sizeof(int); ++i) {
+        sigaction(emulation_sigs[i], &action, nullptr);
     }
 
     // reset logger
@@ -210,18 +227,6 @@ void Plankton::verify_policy(Policy *policy)
     // reset static variables
     policy_violated = false;
     tasks.clear();
-
-    // register signal handlers
-    struct sigaction action;
-    action.sa_sigaction = signal_handler;
-    sigemptyset(&action.sa_mask);
-    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaddset(&action.sa_mask, sigs[i]);
-    }
-    action.sa_flags = SA_NOCLDSTOP | SA_SIGINFO;
-    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaction(sigs[i], &action, nullptr);
-    }
 
     // cd to the policy working directory
     const std::string policy_working_dir
@@ -270,7 +275,7 @@ int Plankton::run()
     // compute ECs
     this->compute_policy_oblivious_ecs();
     for (Policy *policy : policies) {
-        policy->compute_ecs(all_ECs, owned_ECs);
+        policy->compute_ecs(all_ECs, owned_ECs, dst_ports);
     }
 
     // register signal handlers

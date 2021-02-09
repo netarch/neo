@@ -9,7 +9,7 @@
 
 Emulation::Emulation()
     : env(nullptr), emulated_mb(nullptr), node_pkt_hist(nullptr),
-      listener(nullptr), listener_ended(false)
+      listener(nullptr), stop_listener(false)
 {
 }
 
@@ -22,7 +22,7 @@ void Emulation::listen_packets()
 {
     std::vector<Packet> pkts;
 
-    while (!listener_ended) {
+    while (!stop_listener) {
         // read the output packets (it will block if there is no packet)
         pkts = env->read_packets();
 
@@ -37,12 +37,12 @@ void Emulation::listen_packets()
 void Emulation::teardown()
 {
     if (listener) {
-        listener_ended = true;
-        Packet dummy(emulated_mb->get_intfs().begin()->second);
-        env->inject_packet(dummy);
-        //if (listener->joinable()) {
-        listener->join();
-        //}
+        stop_listener = true;
+        auto tid = listener->native_handle();
+        pthread_kill(tid, SIGUSR1);
+        if (listener->joinable()) {
+            listener->join();
+        }
     }
     delete listener;
     delete env;
@@ -50,7 +50,7 @@ void Emulation::teardown()
     emulated_mb = nullptr;
     node_pkt_hist = nullptr;
     listener = nullptr;
-    listener_ended = false;
+    stop_listener = false;
 }
 
 Middlebox *Emulation::get_mb() const

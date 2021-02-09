@@ -25,7 +25,7 @@ private:
     NodePacketHistory *node_pkt_hist;
 
     std::thread *listener;          // listener thread
-    std::atomic<bool> listener_ended;
+    std::atomic<bool> stop_listener;
     std::vector<Packet> recv_pkts;  // received packets (race)
     std::mutex mtx;                 // lock for accessing recv_pkts
     std::condition_variable cv;     // for reading recv_pkts

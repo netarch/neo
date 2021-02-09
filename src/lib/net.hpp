@@ -16,6 +16,8 @@ private:
     Net();
     void build_tcp(const Packet& pkt, const uint8_t *src_mac,
                    const uint8_t *dst_mac) const;
+    void build_udp(const Packet& pkt, const uint8_t *src_mac,
+                   const uint8_t *dst_mac) const;
     void build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
                          const uint8_t *dst_mac) const;
 

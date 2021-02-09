@@ -9,6 +9,7 @@
 #include "node.hpp"
 #include "link.hpp"
 #include "l2-lan.hpp"
+class Middlebox;
 class OpenflowProcess;
 class Route;
 struct State;
@@ -25,7 +26,7 @@ class Network
 private:
     std::map<std::string, Node *>   nodes;
     std::set<Link *, LinkCompare>   links;
-    std::unordered_set<Node *>      middleboxes;
+    std::unordered_set<Middlebox *> middleboxes;
     OpenflowProcess *openflow;
 
     std::unordered_set<L2_LAN *> l2_lans;   // history L2 LANs
@@ -34,7 +35,7 @@ private:
     friend class Config;
     void add_node(Node *);
     void add_link(Link *);
-    void add_middlebox(Node *);
+    void add_middlebox(Middlebox *);
     void grow_and_set_l2_lan(Node *, Interface *);
 
 public:
@@ -48,7 +49,7 @@ public:
 
     const std::map<std::string, Node *>& get_nodes() const;
     const std::set<Link *, LinkCompare>& get_links() const;
-    const std::unordered_set<Node *>& get_middleboxes() const;
+    const std::unordered_set<Middlebox *>& get_middleboxes() const;
 
     void init(State *, OpenflowProcess *ofp = nullptr);
     void update_fib(State *);   // update FIB according to the current EC

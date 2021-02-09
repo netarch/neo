@@ -108,12 +108,12 @@ Payload *PayloadMgr::get_payload(State *state)
 
     std::string pl_content;
 
-    if (key.pkt_state == PS_HTTP_REQ) {
+    if (key.pkt_state == PS_TCP_L7_REQ) {
         pl_content = "GET / HTTP/1.1\r\n"
                      "Host: " + key.ec->representative_addr().to_string()
                      + ":" + std::to_string(get_dst_port(state)) + "\r\n"
                      "\r\n";
-    } else if (key.pkt_state == PS_HTTP_REP) {
+    } else if (key.pkt_state == PS_TCP_L7_REP) {
         std::string http = "<!DOCTYPE html>"
                            "<html>"
                            "<head><title>Reply</title></head>"

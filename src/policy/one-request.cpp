@@ -34,7 +34,7 @@ int OneRequestPolicy::check_violation(State *state __attribute__((unused)))
     //uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
 
     //if (mode == fwd_mode::ACCEPTED &&
-    //        (pkt_state == PS_HTTP_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
+    //        (pkt_state == PS_TCP_L7_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
     //    Node *rx_node;
     //    memcpy(&rx_node, state->comm_state[state->comm].rx_node,
     //           sizeof(Node *));

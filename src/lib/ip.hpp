@@ -60,6 +60,9 @@ class IPInterface : protected Addr
 protected:
     int prefix; // number of bits
 
+    template <class T>
+    friend bool operator<(const IPInterface<T>&, const IPInterface<T>&);
+
 public:
     IPInterface() = default;
     IPInterface(const IPInterface&) = default;
@@ -78,6 +81,9 @@ public:
     IPInterface<Addr>& operator=(const IPInterface<Addr>&) = default;
     IPInterface<Addr>& operator=(IPInterface<Addr>&&) = default;
 };
+
+template <class Addr>
+bool operator<(const IPInterface<Addr>&, const IPInterface<Addr>&);
 
 template <class Addr>
 class IPRange;
@@ -223,6 +229,17 @@ template <class Addr>
 bool IPInterface<Addr>::operator!=(const IPInterface<Addr>& rhs) const
 {
     return (Addr::value != rhs.value || prefix != rhs.prefix);
+}
+
+template <class Addr>
+bool operator<(const IPInterface<Addr>& lhs, const IPInterface<Addr>& rhs)
+{
+    if (lhs.prefix > rhs.prefix) {
+        return true;
+    } else if (lhs.prefix < rhs.prefix) {
+        return false;
+    }
+    return lhs.addr() < rhs.addr();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

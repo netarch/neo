@@ -33,7 +33,7 @@ int ReplyReachabilityPolicy::check_violation(State *state)
     int mode = get_fwd_mode(state);
     int pkt_state = get_pkt_state(state);
 
-    if ((PS_IS_TCP(pkt_state) && pkt_state < PS_HTTP_REP) ||
+    if ((PS_IS_TCP(pkt_state) && pkt_state < PS_TCP_L7_REP) ||
             (PS_IS_ICMP_ECHO(pkt_state) && pkt_state < PS_ICMP_ECHO_REP)) {
         // request
         Node *rx_node = get_rx_node(state);
@@ -47,7 +47,7 @@ int ReplyReachabilityPolicy::check_violation(State *state)
             // accepted or dropped, there is nothing to check.
             return POL_NULL;
         }
-    } else if (pkt_state == PS_HTTP_REP || pkt_state == PS_ICMP_ECHO_REP) {
+    } else if (pkt_state == PS_TCP_L7_REP || pkt_state == PS_ICMP_ECHO_REP) {
         // reply
         bool reached;
         if (mode == fwd_mode::ACCEPTED) {

@@ -75,15 +75,16 @@ uint16_t Policy::get_dst_port(State *state) const
     }
 }
 
-void Policy::compute_ecs(const EqClasses& all_ECs, const EqClasses& owned_ECs)
+void Policy::compute_ecs(const EqClasses& all_ECs, const EqClasses& owned_ECs,
+                         const std::set<uint16_t>& dst_ports)
 {
     if (correlated_policies.empty()) {
         for (Communication& comm : comms) {
-            comm.compute_ecs(all_ECs, owned_ECs);
+            comm.compute_ecs(all_ECs, owned_ECs, dst_ports);
         }
     } else {
         for (Policy *p : correlated_policies) {
-            p->compute_ecs(all_ECs, owned_ECs);
+            p->compute_ecs(all_ECs, owned_ECs, dst_ports);
         }
     }
 }

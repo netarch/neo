@@ -50,13 +50,13 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
             ctrl_flags = TH_SYN | TH_ACK;
             break;
         case PS_TCP_INIT_3:
-        case PS_HTTP_REQ_A:
-        case PS_HTTP_REP_A:
+        case PS_TCP_L7_REQ_A:
+        case PS_TCP_L7_REP_A:
         case PS_TCP_TERM_3:
             ctrl_flags = TH_ACK;
             break;
-        case PS_HTTP_REQ:
-        case PS_HTTP_REP:
+        case PS_TCP_L7_REQ:
+        case PS_TCP_L7_REP:
             ctrl_flags = TH_PUSH | TH_ACK;
             break;
         case PS_TCP_TERM_1:
@@ -88,6 +88,57 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
 
     tag = libnet_build_ipv4(
               LIBNET_IPV4_H + LIBNET_TCP_H + payload_size,  // length
+              0,                                // ToS
+              242,                              // identification number
+              0,                                // fragmentation offset
+              64,                               // TTL (time to live)
+              IPPROTO_TCP,                      // upper layer protocol
+              0,                                // checksum (0: autofill)
+              htonl(pkt.get_src_ip().get_value()),  // source address
+              htonl(pkt.get_dst_ip().get_value()),  // destination address
+              NULL,                             // payload
+              0,                                // payload length
+              l,                                // libnet context
+              0);                               // ptag (0: build a new one)
+    if (tag < 0) {
+        Logger::error(std::string("Can't build IP header: ") + libnet_geterror(l));
+    }
+
+    tag = libnet_build_ethernet(
+              dst_mac,          // destination ethernet address
+              src_mac,          // source ethernet address
+              ETHERTYPE_IP,     // upper layer protocol
+              NULL,             // payload
+              0,                // payload length
+              l,                // libnet context
+              0);               // ptag (0: build a new one)
+    if (tag < 0) {
+        Logger::error(std::string("Can't build ethernet header: ") + libnet_geterror(l));
+    }
+}
+
+void Net::build_udp(const Packet& pkt, const uint8_t *src_mac,
+                    const uint8_t *dst_mac) const
+{
+    libnet_ptag_t tag;
+    const uint8_t *payload = pkt.get_payload()->get();
+    uint32_t payload_size = pkt.get_payload()->get_size();
+
+    tag = libnet_build_udp(
+              pkt.get_src_port(),           // source port
+              pkt.get_dst_port(),           // destination port
+              LIBNET_UDP_H + payload_size,  // length
+              0,                            // checksum (0: autofill)
+              payload,                      // payload
+              payload_size,                 // payload length
+              l,                            // libnet context
+              0);                           // ptag (0: build a new one)
+    if (tag < 0) {
+        Logger::error(std::string("Can't build UDP header: ") + libnet_geterror(l));
+    }
+
+    tag = libnet_build_ipv4(
+              LIBNET_IPV4_H + LIBNET_UDP_H + payload_size,  // length
               0,                                // ToS
               242,                              // identification number
               0,                                // fragmentation offset
@@ -183,6 +234,8 @@ void Net::serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
 
     if (PS_IS_TCP(pkt_state)) {
         build_tcp(pkt, src_mac, dst_mac);
+    } else if (PS_IS_UDP(pkt_state)) {
+        build_udp(pkt, src_mac, dst_mac);
     } else if (PS_IS_ICMP_ECHO(pkt_state)) {
         build_icmp_echo(pkt, src_mac, dst_mac);
     } else {
@@ -216,7 +269,7 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
     uint16_t ethertype;
     memcpy(&ethertype, buffer + 12, 2);
     ethertype = ntohs(ethertype);
-    if (ethertype == ETHERTYPE_IP) {    // IPv4 packets
+    if (ethertype == ETHERTYPE_IP) {    // IPv4 packets (buffer + 14)
         // source and destination IP addresses
         uint32_t src_ip, dst_ip;
         memcpy(&src_ip, buffer + 26, 4);
@@ -258,9 +311,27 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
              * highest bit of the variable is used to indicate unconverted TCP
              * flags.
              */
+        } else if (ip_proto == IPPROTO_UDP) {   // UDP packets
+            // source and destination TCP port
+            uint16_t src_port, dst_port;
+            memcpy(&src_port, buffer + 34, 2);
+            memcpy(&dst_port, buffer + 36, 2);
+            src_port = ntohs(src_port);
+            dst_port = ntohs(dst_port);
+            pkt.set_src_port(src_port);
+            pkt.set_dst_port(dst_port);
         } else if (ip_proto == IPPROTO_ICMP) {  // ICMP packets
-            // TODO
-            // set pkt_state according to it being a ping request or reply
+            // ICMP type
+            uint8_t icmp_type;
+            memcpy(&icmp_type, buffer + 34, 1);
+            if (icmp_type == ICMP_ECHO) {
+                pkt.set_pkt_state(PS_ICMP_ECHO_REQ);
+            } else if (icmp_type == ICMP_ECHOREPLY) {
+                pkt.set_pkt_state(PS_ICMP_ECHO_REP);
+            } else {
+                Logger::warn("ICMP type: " + std::to_string(icmp_type));
+                goto bad_packet;
+            }
         } else {    // unsupported L4 (or L3.5) protocols
             goto bad_packet;
         }
@@ -272,6 +343,7 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
     return;
 
 bad_packet:
+    Logger::warn("bad packet");
     pkt.clear();
 }
 
@@ -289,14 +361,14 @@ void Net::convert_tcp_flags(
         } else if (flags == TH_ACK) {
             switch (old_pkt_state) {
                 case PS_TCP_INIT_2:
-                case PS_HTTP_REQ:
-                case PS_HTTP_REP:
+                case PS_TCP_L7_REQ:
+                case PS_TCP_L7_REP:
                 case PS_TCP_TERM_2:
                     pkt_state = old_pkt_state + 1;
                     break;
                 case PS_TCP_INIT_3:
-                case PS_HTTP_REQ_A:
-                case PS_HTTP_REP_A:
+                case PS_TCP_L7_REQ_A:
+                case PS_TCP_L7_REP_A:
                 case PS_TCP_TERM_3:
                     pkt_state = old_pkt_state;
                     break;
@@ -306,11 +378,11 @@ void Net::convert_tcp_flags(
         } else if (flags == (TH_PUSH | TH_ACK)) {
             switch (old_pkt_state) {
                 case PS_TCP_INIT_3:
-                case PS_HTTP_REQ_A:
+                case PS_TCP_L7_REQ_A:
                     pkt_state = old_pkt_state + 1;
                     break;
-                case PS_HTTP_REQ:
-                case PS_HTTP_REP:
+                case PS_TCP_L7_REQ:
+                case PS_TCP_L7_REP:
                     pkt_state = old_pkt_state;
                     break;
                 default:
@@ -323,7 +395,7 @@ void Net::convert_tcp_flags(
                 pkt_state = old_pkt_state;
             }
             switch (old_pkt_state) {
-                case PS_HTTP_REP_A:
+                case PS_TCP_L7_REP_A:
                 case PS_TCP_TERM_1:
                 case PS_TCP_TERM_2:
                 case PS_TCP_TERM_3:

@@ -32,9 +32,9 @@ void Network::add_link(Link *link)
     node2->add_peer(intf2->get_name(), node1, intf1);
 }
 
-void Network::add_middlebox(Node *node)
+void Network::add_middlebox(Middlebox *mb)
 {
-    auto res = middleboxes.insert(node);
+    auto res = middleboxes.insert(mb);
     if (res.second == false) {
         Logger::error("Duplicate middlebox: " + (*res.first)->to_string());
     }
@@ -79,7 +79,7 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
     return links;
 }
 
-const std::unordered_set<Node *>& Network::get_middleboxes() const
+const std::unordered_set<Middlebox *>& Network::get_middleboxes() const
 {
     return middleboxes;
 }

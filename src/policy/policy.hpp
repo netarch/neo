@@ -45,7 +45,7 @@ public:
     uint16_t get_src_port(State *) const;
     uint16_t get_dst_port(State *) const;
 
-    void compute_ecs(const EqClasses&, const EqClasses&);
+    void compute_ecs(const EqClasses&, const EqClasses&, const std::set<uint16_t>&);
     void add_ec(State *, const IPv4Address&);
     EqClass *find_ec(State *, const IPv4Address&) const;
     size_t num_ecs() const;     // number of initial ECs

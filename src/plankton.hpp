@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 
 #include "network.hpp"
 #include "eqclasses.hpp"
@@ -18,6 +19,7 @@ private:
     Network         network;    // network information (inc. dataplane)
     Policies        policies;
     EqClasses       all_ECs, owned_ECs; // policy-oblivious ECs
+    std::set<uint16_t> dst_ports;       // policy-oblivious dst port ECs
 
     /* Plankton processes (all processes are enabled by default) */
     ForwardingProcess   forwarding;
