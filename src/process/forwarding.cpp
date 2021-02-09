@@ -339,7 +339,7 @@ void ForwardingProcess::phase_transition(
     set_pkt_state(state, next_pkt_state);
     set_fwd_mode(state, fwd_mode::PACKET_ENTRY);
 
-    // update packet EC, src IP, and FIB
+    // update packet EC, src IP, src/dst ports, and FIB
     if (change_direction) {
         uint32_t src_ip = get_src_ip(state);
         EqClass *old_ec = get_ec(state);
@@ -355,6 +355,13 @@ void ForwardingProcess::phase_transition(
         // set the next src IP
         uint32_t next_src_ip = old_ec->representative_addr().get_value();
         set_src_ip(state, next_src_ip);
+
+        // update src port and dst port
+        uint16_t src_port = get_src_port(state);
+        uint16_t dst_port = get_dst_port(state);
+        set_src_port(state, dst_port);
+        set_dst_port(state, src_port);
+        Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
 
         // update FIB according to the new EC
         network.update_fib(state);
@@ -375,15 +382,6 @@ void ForwardingProcess::phase_transition(
         }
         set_seq(state, seq);
         set_ack(state, ack);
-    }
-
-    // update src port and dst port
-    if (change_direction) {
-        uint16_t src_port = get_src_port(state);
-        uint16_t dst_port = get_dst_port(state);
-        set_src_port(state, dst_port);
-        set_dst_port(state, src_port);
-        Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
     }
 
     // update candidates as the start node
