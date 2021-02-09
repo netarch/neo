@@ -1,0 +1,146 @@
+[[nodes]]
+    name = "h1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h3"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.3/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "s1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+    [[nodes.interfaces]]
+    name = "eth3"
+[[nodes]]
+    name = "r1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.0.254/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.1"
+[[nodes]]
+    name = "fw"
+    type = "middlebox"
+    env = "netns"
+    app = "netfilter"
+    timeout = 200
+    rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -p icmp -s 192.168.0.0/24 -j ACCEPT
+-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+"""
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/24"
+    next_hop = "192.168.1.2"
+[[nodes]]
+    name = "server"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/23"
+    next_hop = "10.0.0.2"
+
+[[links]]
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "fw"
+    intf2 = "eth0"
+[[links]]
+    node1 = "fw"
+    intf1 = "eth1"
+    node2 = "r1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "r1"
+    intf1 = "eth1"
+    node2 = "s1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth1"
+    node2 = "h1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth2"
+    node2 = "h2"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth3"
+    node2 = "h3"
+    intf2 = "eth0"
+
+# Policy:
+#   1. Hosts can ping each other.
+#   2. Hosts can ping the server.
+#   3. The server cannot ping the hosts.
+
+[[policies]]
+    type = "reply-reachability"
+    query_node = "h[123]|r1"
+    reachable = true
+    [policies.communication]
+    protocol = "icmp-echo"
+    pkt_dst = "192.168.0.0/24"
+    start_node = "h[123]"
+    owned_dst_only = true
+[[policies]]
+    type = "reply-reachability"
+    query_node = "server"
+    reachable = true
+    [policies.communication]
+    protocol = "icmp-echo"
+    pkt_dst = "10.0.0.1"
+    start_node = "h[123]"
+[[policies]]
+    type = "reply-reachability"
+    query_node = "h[123]|r1"
+    reachable = false
+    [policies.communication]
+    protocol = "icmp-echo"
+    pkt_dst = "192.168.0.0/24"
+    start_node = "server"
+    owned_dst_only = true
