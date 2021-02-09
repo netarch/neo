@@ -1,0 +1,171 @@
+[[nodes]]
+    name = "h1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h2"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h3"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.3/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "s1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+    [[nodes.interfaces]]
+    name = "eth3"
+[[nodes]]
+    name = "r1"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.0.254/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.1"
+[[nodes]]
+    name = "fw"
+    type = "middlebox"
+    env = "netns"
+    app = "netfilter"
+    timeout = 200
+    rules = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -i eth1 -j ACCEPT
+-A INPUT -i eth0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -i eth0 -p tcp --dport 22 -j ACCEPT
+-A FORWARD -i eth1 -j ACCEPT
+-A FORWARD -i eth0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -i eth0 -p tcp --dport 22 -j ACCEPT
+-A FORWARD -i eth0 -p tcp -d 192.168.0.1 --dport 2222 -j ACCEPT
+COMMIT
+"""
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/24"
+    next_hop = "192.168.1.2"
+[[nodes]]
+    name = "server"
+    type = "generic"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/23"
+    next_hop = "10.0.0.2"
+
+[[links]]
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "fw"
+    intf2 = "eth0"
+[[links]]
+    node1 = "fw"
+    intf1 = "eth1"
+    node2 = "r1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "r1"
+    intf1 = "eth1"
+    node2 = "s1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth1"
+    node2 = "h1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth2"
+    node2 = "h2"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth3"
+    node2 = "h3"
+    intf2 = "eth0"
+
+# Policy:
+#   1. Outgoing packets are always allowed.
+#   2. Incoming replies to past requests are allowed.
+#   3. Incoming connections are always denied. (violation)
+#   4. Incoming SSH connections are allowed.
+#   5. Incoming connections to h1 port 2222 are allowed.
+
+[[policies]]
+    type = "reachability"
+    final_node = "server"
+    reachable = true
+    [policies.communication]
+    protocol = "tcp"
+    pkt_dst = "10.0.0.1"
+    start_node = "h[123]"
+[[policies]]
+    type = "reply-reachability"
+    query_node = "server"
+    reachable = true
+    [policies.communication]
+    protocol = "tcp"
+    pkt_dst = "10.0.0.1"
+    start_node = "h[123]"
+[[policies]]
+    type = "reachability"
+    final_node = "h[123]|r1"
+    reachable = false
+    [policies.communication]
+    protocol = "tcp"
+    pkt_dst = "192.168.0.0/24"
+    start_node = "server"
+    owned_dst_only = true
+[[policies]]
+    type = "reachability"
+    final_node = "h[123]|r1"
+    reachable = true
+    [policies.communication]
+    protocol = "tcp"
+    pkt_dst = "192.168.0.0/24"
+    dst_port = 22
+    start_node = "server"
+    owned_dst_only = true
+[[policies]]
+    type = "reachability"
+    final_node = "h1"
+    reachable = true
+    [policies.communication]
+    protocol = "tcp"
+    pkt_dst = "192.168.0.1"
+    dst_port = 2222
+    start_node = "server"
