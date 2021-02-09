@@ -184,6 +184,8 @@ void ForwardingProcess::first_forward(State *state)
                       next_hop.get_l2_intf()->get_name()
                   ).second;
             set_src_ip(state, egress_intf->addr().get_value());
+        } else { // sender == receiver
+            set_src_ip(state, get_ec(state)->representative_addr().get_value());
         }
     }
 
