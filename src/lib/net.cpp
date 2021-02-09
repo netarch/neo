@@ -343,7 +343,6 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
     return;
 
 bad_packet:
-    Logger::warn("bad packet");
     pkt.clear();
 }
 

@@ -115,6 +115,7 @@ int Emulation::rewind(NodePacketHistory *nph)
     }
 
     Logger::info("==============  rewind ends  (" + node_name + ") ==============");
+    Logger::info(std::to_string(rewind_injections) + " rewind injections");
     return rewind_injections;
 }
 

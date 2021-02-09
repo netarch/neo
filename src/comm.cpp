@@ -1,6 +1,7 @@
 #include "comm.hpp"
 
 #include <cassert>
+#include <random>
 
 Communication::Communication()
     : protocol(0), owned_dst_only(false), initial_ec(nullptr),
@@ -62,9 +63,13 @@ void Communication::compute_ecs(const EqClasses& all_ECs,
         for (auto& port : dst_ports) {
             this->dst_ports.push_back(port);
         }
-        if (this->dst_ports.empty()) {
-            this->dst_ports.push_back(80);
-        }
+        uint16_t port;
+        std::default_random_engine generator;
+        std::uniform_int_distribution<uint16_t> distribution(10,49151);
+        do {
+            port = distribution(generator);
+        } while (dst_ports.count(port) > 0);
+        this->dst_ports.push_back(port);
     }
 }
 
