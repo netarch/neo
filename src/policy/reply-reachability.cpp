@@ -41,7 +41,7 @@ int ReplyReachabilityPolicy::check_violation(State *state)
         if ((mode == fwd_mode::ACCEPTED && query_nodes.count(rx_node) == 0)
                 || mode == fwd_mode::DROPPED) {
             // if the request is accepted by a wrong node or dropped
-            state->violated = true;
+            state->violated = reachable;
             state->choice_count = 0;
         } else {
             // If the request (or session construction packets) hasn't been
