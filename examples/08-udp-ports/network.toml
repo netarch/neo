@@ -61,8 +61,8 @@
 :OUTPUT ACCEPT [0:0]
 -A FORWARD -i eth1 -j ACCEPT
 -A FORWARD -i eth0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
--A FORWARD -i eth0 -p tcp --dport 22 -j ACCEPT
--A FORWARD -i eth0 -p tcp -d 192.168.0.1 --dport 2222 -j ACCEPT
+-A FORWARD -i eth0 -p udp --dport 22 -j ACCEPT
+-A FORWARD -i eth0 -p udp -d 192.168.0.1 --dport 2222 -j ACCEPT
 COMMIT
 """
     [[nodes.interfaces]]
@@ -119,7 +119,7 @@ COMMIT
 #   1. Outgoing packets are always allowed.
 #   2. Incoming replies to past requests are allowed.
 #   3. Incoming connections are always denied. (violation)
-#   4. Incoming SSH connections are allowed.
+#   4. Incoming port 22 connections are allowed.
 #   5. Incoming connections to h1 port 2222 are allowed.
 
 [[policies]]
@@ -127,7 +127,7 @@ COMMIT
     final_node = "server"
     reachable = true
     [policies.communication]
-    protocol = "tcp"
+    protocol = "udp"
     pkt_dst = "10.0.0.1"
     start_node = "h[123]"
 [[policies]]
@@ -135,7 +135,7 @@ COMMIT
     query_node = "server"
     reachable = true
     [policies.communication]
-    protocol = "tcp"
+    protocol = "udp"
     pkt_dst = "10.0.0.1"
     start_node = "h[123]"
 [[policies]]
@@ -143,7 +143,7 @@ COMMIT
     final_node = "h[123]|r1"
     reachable = false
     [policies.communication]
-    protocol = "tcp"
+    protocol = "udp"
     pkt_dst = "192.168.0.0/24"
     start_node = "server"
     owned_dst_only = true
@@ -152,7 +152,7 @@ COMMIT
     final_node = "h[123]|r1"
     reachable = true
     [policies.communication]
-    protocol = "tcp"
+    protocol = "udp"
     pkt_dst = "192.168.0.0/24"
     dst_port = 22
     start_node = "server"
@@ -162,7 +162,7 @@ COMMIT
     final_node = "h1"
     reachable = true
     [policies.communication]
-    protocol = "tcp"
+    protocol = "udp"
     pkt_dst = "192.168.0.1"
     dst_port = 2222
     start_node = "server"
