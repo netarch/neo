@@ -143,7 +143,7 @@ void Net::build_udp(const Packet& pkt, const uint8_t *src_mac,
               242,                              // identification number
               0,                                // fragmentation offset
               64,                               // TTL (time to live)
-              IPPROTO_TCP,                      // upper layer protocol
+              IPPROTO_UDP,                      // upper layer protocol
               0,                                // checksum (0: autofill)
               htonl(pkt.get_src_ip().get_value()),  // source address
               htonl(pkt.get_dst_ip().get_value()),  // destination address
@@ -202,7 +202,7 @@ void Net::build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
               42,                                   // identification number
               0,                                    // fragmentation offset
               64,                                   // TTL (time to live)
-              IPPROTO_TCP,                          // upper layer protocol
+              IPPROTO_ICMP,                         // upper layer protocol
               0,                                    // checksum (0: autofill)
               htonl(pkt.get_src_ip().get_value()),  // source address
               htonl(pkt.get_dst_ip().get_value()),  // destination address

@@ -331,10 +331,6 @@ void Plankton::initialize(State *state)
     set_process_id(state, pid::forwarding);
     openflow.init(state);   // openflow has to be initialized before forwarding
     forwarding.init(state, network, policy);
-
-//#ifdef ENABLE_DEBUG
-//    sleep(7);   // wait for wireshark to launch
-//#endif
 }
 
 void Plankton::process_switch(State *state) const

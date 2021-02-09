@@ -1,6 +1,7 @@
 #include "emulation.hpp"
 
 #include <csignal>
+#include <unistd.h>
 
 #include "middlebox.hpp"
 #include "mb-env/netns.hpp"
@@ -86,6 +87,10 @@ void Emulation::init(Middlebox *mb)
 
         emulated_mb = mb;
     }
+
+//#ifdef ENABLE_DEBUG
+//    sleep(30);   // wait for wireshark to launch
+//#endif
 }
 
 int Emulation::rewind(NodePacketHistory *nph)
