@@ -84,8 +84,9 @@
     final_node = "node name regex"
     repeat = 0                      # optional, default: # of final nodes
     [policies.communication]
-    protocol = "http" or "icmp-echo"
+    protocol = "tcp", "udp", or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    dst_port = 80                   # optional, default: all dst port ECs
     owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 [[policies]]
@@ -93,8 +94,9 @@
     final_node = "node name regex"
     reachable = true or false
     [policies.communication]
-    protocol = "http" or "icmp-echo"
+    protocol = "tcp", "udp", or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    dst_port = 80                   # optional, default: all dst port ECs
     owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 [[policies]]
@@ -102,8 +104,9 @@
     query_node = "node name regex"
     reachable = true or false
     [policies.communication]
-    protocol = "http" or "icmp-echo"
+    protocol = "tcp", "udp", or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    dst_port = 80                   # optional, default: all dst port ECs
     owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 [[policies]]
@@ -111,8 +114,9 @@
     waypoint = "node name regex"
     pass_through = true or false
     [policies.communication]
-    protocol = "http" or "icmp-echo"
+    protocol = "tcp", "udp", or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
+    dst_port = 80                   # optional, default: all dst port ECs
     owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
 
@@ -124,10 +128,13 @@
     type = "one-request"
     server_node = "node name regex"
     [[policies.communications]]
-    protocol = "http" or "icmp-echo"
+    protocol = "tcp", "udp", or "icmp-echo"
     pkt_dst = "x.x.x.x(/x)"
-    owned_dst_only = true or false  # optional, default: true
+    dst_port = 80                   # optional, default: all dst port ECs
+    owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
+
+## load balance multiple communications..
 
 #
 # Policies with multiple single-communication correlated policies (multiple,
