@@ -28,7 +28,7 @@ def confgen(lbs, servers, algorithm, repeat):
         load_balancer.add_interface(Interface('eth0', '8.0.%d.2/24' % lb))
         load_balancer.add_interface(Interface('eth1', '9.%d.0.1/16' % lb))
         load_balancer.add_static_route(Route('0.0.0.0/0', '8.0.%d.1' % lb))
-        load_balancer.set_timeout(200)
+        load_balancer.set_timeout(500)
         lb_config = ''
         lb_config += '-A -t 8.0.%d.2:80 -s %s' % (lb, algorithm)
         if algorithm == 'sh':

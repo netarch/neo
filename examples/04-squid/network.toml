@@ -48,7 +48,7 @@
     type = "middlebox"
     env = "netns"
     app = "squid"
-    timeout = 100
+    timeout = 200
     config = """
 http_port 80 accel
 visible_hostname p1

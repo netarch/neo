@@ -45,7 +45,7 @@ COMMIT
     fw.add_static_route(Route('10.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('11.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('12.0.0.0/8', '9.0.0.2'))
-    fw.set_timeout(200)
+    fw.set_timeout(500)
     fw.add_config('rp_filter', 0)
     if fault:
         fw.add_config('rules', fw_bad_rules)

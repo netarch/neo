@@ -60,7 +60,7 @@ COMMIT
         fw.add_interface(Interface('eth1', '9.%d.%d.9/30' % (X, Y)))
         fw.add_static_route(Route('10.%d.%d.0/24' % (X, Y), '9.%d.%d.10' % (X, Y)))
         fw.add_static_route(Route('0.0.0.0/0', '9.%d.%d.5' % (X, Y)))
-        fw.set_timeout(200)
+        fw.set_timeout(500)
         fw.add_config('rp_filter', 0)
         fw.add_config('rules', fw_rules)
         network.add_node(r1)
