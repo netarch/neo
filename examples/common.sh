@@ -48,3 +48,11 @@ build() {
     cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" -DCMAKE_BUILD_TYPE=Release
     cmake --build "${BUILD_DIR}" -j$(nproc)
 }
+
+cleanup() {
+    pushd "${PROJECT_DIR}"
+    git submodule update --init
+    git submodule foreach --recursive git clean -xdf
+    rm -rf "${BUILD_DIR}"
+    popd
+}
