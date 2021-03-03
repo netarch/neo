@@ -7,7 +7,7 @@ build
 
 for subnets in 5 10 15; do
     for hosts in 5 10 15; do
-        for procs in 1; do
+        for procs in 1 8 16 24; do
             name="$subnets-subnets.$hosts-hosts.DOP-$procs"
             msg "Verifying $name"
             ${CONFGEN[*]} --subnets $subnets --hosts $hosts > "$CONF"
