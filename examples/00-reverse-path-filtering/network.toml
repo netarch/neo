@@ -176,23 +176,26 @@ COMMIT
 #   1. Outgoing packets are always allowed. (This should fail due to the
 #      misconfiguration of fw.)
 #   2. Incoming packets are always denied, except for 3.
-#   3. Incoming replies to past requests are allowed.
+#   3. Incoming replies to past requests are allowed. (This should fail because
+#      policy 1 fails.)
 
 [[policies]]
     type = "reachability"
     final_node = "server"
     reachable = true
     [policies.communication]
-    protocol = "http"
+    protocol = "tcp"
     pkt_dst = "10.0.0.1"
+    dst_port = 80
     start_node = "h[123]"
 [[policies]]
     type = "reachability"
     final_node = "h[123]|s1|r[123]|fw"
     reachable = false
     [policies.communication]
-    protocol = "http"
+    protocol = "tcp"
     pkt_dst = "192.168.0.0/22"
+    dst_port = 80
     start_node = "server"
     owned_dst_only = true
 [[policies]]
@@ -200,6 +203,7 @@ COMMIT
     query_node = "server"
     reachable = true
     [policies.communication]
-    protocol = "http"
+    protocol = "tcp"
     pkt_dst = "10.0.0.1"
+    dst_port = 80
     start_node = "h[123]"

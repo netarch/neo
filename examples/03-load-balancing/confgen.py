@@ -57,8 +57,9 @@ def confgen(lbs, servers, algorithm, repeat):
         repeat = servers
     for lb in range(1, lbs + 1):
         policies.add_policy(LoadBalancePolicy(
-                protocol = 'http',
+                protocol = 'tcp',
                 pkt_dst = '8.0.%d.2' % lb,
+                dst_port = 80,
                 start_node = internet_node.name,
                 final_node = 'server%d\.[0-9]+' % lb,
                 repeat = repeat))

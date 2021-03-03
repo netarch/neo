@@ -129,10 +129,11 @@ class Openflow:
         return data
 
 class Communication:
-    def __init__(self, protocol=None, pkt_dst=None, owned_dst_only=None,
-                 start_node=None):
+    def __init__(self, protocol=None, pkt_dst=None, dst_port=None,
+                 owned_dst_only=None, start_node=None):
         self.protocol: str        = protocol
         self.pkt_dst: str         = pkt_dst
+        self.dst_port: int        = dst_port
         self.owned_dst_only: bool = owned_dst_only
         self.start_node: str      = start_node
 
@@ -142,6 +143,8 @@ class Communication:
             data.pop('protocol')
         if self.pkt_dst is None:
             data.pop('pkt_dst')
+        if self.dst_port is None:
+            data.pop('dst_port')
         if self.owned_dst_only is None:
             data.pop('owned_dst_only')
         if self.start_node is None:
@@ -158,12 +161,12 @@ class Policy:
 
 class LoadBalancePolicy(Policy):
     def __init__(self, protocol, pkt_dst, start_node, final_node, repeat,
-                 owned_dst_only=None):
+                 dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'loadbalance')
         self.final_node: str = final_node
         self.repeat: int = repeat
-        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
-                                           start_node)
+        self.communication = Communication(protocol, pkt_dst, dst_port,
+                                           owned_dst_only, start_node)
 
     def to_dict(self):
         data = self.__dict__
@@ -174,12 +177,12 @@ class LoadBalancePolicy(Policy):
 
 class ReachabilityPolicy(Policy):
     def __init__(self, protocol, pkt_dst, start_node, final_node, reachable,
-                 owned_dst_only=None):
+                 dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'reachability')
         self.final_node: str = final_node
         self.reachable: bool = reachable
-        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
-                                           start_node)
+        self.communication = Communication(protocol, pkt_dst, dst_port,
+                                           owned_dst_only, start_node)
 
     def to_dict(self):
         data = self.__dict__
@@ -188,12 +191,12 @@ class ReachabilityPolicy(Policy):
 
 class ReplyReachabilityPolicy(Policy):
     def __init__(self, protocol, pkt_dst, start_node, query_node, reachable,
-                 owned_dst_only=None):
+                 dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'reply-reachability')
         self.query_node: str = query_node
         self.reachable: bool = reachable
-        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
-                                           start_node)
+        self.communication = Communication(protocol, pkt_dst, dst_port,
+                                           owned_dst_only, start_node)
 
     def to_dict(self):
         data = self.__dict__
@@ -202,12 +205,12 @@ class ReplyReachabilityPolicy(Policy):
 
 class WaypointPolicy(Policy):
     def __init__(self, protocol, pkt_dst, start_node, waypoint, pass_through,
-                 owned_dst_only=None):
+                 dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'waypoint')
         self.waypoint: str = waypoint
         self.pass_through: bool = pass_through
-        self.communication = Communication(protocol, pkt_dst, owned_dst_only,
-                                           start_node)
+        self.communication = Communication(protocol, pkt_dst, dst_port,
+                                           owned_dst_only, start_node)
 
     def to_dict(self):
         data = self.__dict__

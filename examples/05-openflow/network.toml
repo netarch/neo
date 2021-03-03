@@ -68,14 +68,16 @@
     waypoint = "h1"
     pass_through = false
     [policies.communication]
-    protocol = "http"
+    protocol = "tcp"
     pkt_dst = "8.8.8.8"
+    dst_port = 80
     start_node = "h0"
 [[policies]]
     type = "waypoint"
     waypoint = "h2"
     pass_through = false
     [policies.communication]
-    protocol = "http"
+    protocol = "tcp"
     pkt_dst = "8.8.8.8"
+    dst_port = 80
     start_node = "h0"

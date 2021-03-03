@@ -142,6 +142,7 @@ cache_store_log stdio:/dev/stdout
     final_node = "server"
     reachable = true
     [policies.communication]
-    protocol = "http"
+    protocol = "tcp"
     pkt_dst = "10.0.1.2"
+    dst_port = 80
     start_node = "h[12]"
