@@ -5,10 +5,10 @@ source "${SCRIPT_DIR}/../common.sh"
 
 build
 
-for tenants in 5 10 15; do
+for tenants in 4 8 12; do
     for updates in 0 $((tenants / 2)) $tenants; do
         for servers in 1; do
-            for procs in 1 8 16 24; do
+            for procs in 1 4 8 16; do
                 name="$tenants-tenants.$updates-updates.$servers-servers.DOP-$procs"
                 msg "Verifying $name"
                 ${CONFGEN[*]} -t $tenants -u $updates -s $servers > "$CONF"

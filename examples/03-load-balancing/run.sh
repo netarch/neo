@@ -13,7 +13,7 @@ for lbs in 4 8 12; do
             else
                 repeat=$srvs
             fi
-            for procs in 1 8 16 24; do
+            for procs in 1 4 8 16; do
                 name="$lbs-lbs.$srvs-servers.$algo.repeat-$repeat.DOP-$procs"
                 msg "Verifying $name"
                 ${CONFGEN[*]} -l $lbs -s $srvs -a $algo -r $repeat > "$CONF"

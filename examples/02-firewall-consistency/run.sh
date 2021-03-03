@@ -7,7 +7,7 @@ build
 
 for apps in 4 8 12; do
     for hosts in 4 8 12; do
-        for procs in 1 8 16 24; do
+        for procs in 1 4 8 16; do
             name="$apps-apps.$hosts-hosts.DOP-$procs"
             msg "Verifying $name"
             ${CONFGEN[*]} --apps $apps --hosts $hosts > "$CONF"
