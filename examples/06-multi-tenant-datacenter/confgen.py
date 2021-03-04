@@ -6,7 +6,6 @@ from config import *
 
 def confgen(tenants, updates, servers):
     network = Network()
-    policies = Policies()
 
     ## firewall rules
     fw_rules = """
@@ -88,26 +87,27 @@ COMMIT
             tenant_sw.add_interface(Interface('eth%d' % (server_id + 1)))
             network.add_link(Link(server.name, 'eth0', tenant_sw.name, 'eth%d' % (server_id + 1)))
 
-        ## add policies
-        # private servers can initiate connections to the outside world and the
-        # replies from the outside world can reach the private subnets
-        policies.add_policy(ReplyReachabilityPolicy(
-            protocol = 'tcp',
-            pkt_dst = '8.1.0.2',
-            dst_port = 80,
-            start_node = 'server%d\..*' % tenant_id,
-            query_node = 'internet',
-            owned_dst_only = True,
-            reachable = True))
-        # private servers can't accept connections from the outside world
-        policies.add_policy(ReachabilityPolicy(
-            protocol = 'tcp',
-            pkt_dst = '10.%d.%d.0/24' % (X, Y),
-            dst_port = 80,
-            start_node = 'internet',
-            final_node = '(server%d\..*)|r%d\.2' % (tenant_id, tenant_id),
-            owned_dst_only = True,
-            reachable = False))
+    ## add policies
+    policies = Policies()
+    # private servers can initiate connections to the outside world and the
+    # replies from the outside world can reach the private subnets
+    policies.add_policy(ReplyReachabilityPolicy(
+        protocol = 'tcp',
+        pkt_dst = '8.1.0.2',
+        dst_port = 80,
+        start_node = 'server.*\..*',
+        query_node = 'internet',
+        owned_dst_only = True,
+        reachable = True))
+    # private servers can't accept connections from the outside world
+    policies.add_policy(ReachabilityPolicy(
+        protocol = 'tcp',
+        pkt_dst = '10.0.0.0/8',
+        dst_port = 80,
+        start_node = 'internet',
+        final_node = '(server.*\..*)|r.*\.2',
+        owned_dst_only = True,
+        reachable = False))
 
     ## add route updates
     openflow = Openflow()

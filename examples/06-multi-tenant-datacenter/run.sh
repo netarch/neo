@@ -7,15 +7,13 @@ build
 
 for tenants in 4 8 12; do
     for updates in 0 $((tenants / 2)) $tenants; do
-        for servers in 1; do
-            for procs in 1 4 8 16; do
-                name="$tenants-tenants.$updates-updates.$servers-servers.DOP-$procs"
-                msg "Verifying $name"
-                ${CONFGEN[*]} -t $tenants -u $updates -s $servers > "$CONF"
-                sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-                sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR/$name"
-                mv "$CONF" "$RESULTS_DIR/$name"
-            done
+        ${CONFGEN[*]} -t $tenants -u $updates -s 1 > "$CONF"
+        for procs in 1 4 8 16; do
+            name="$tenants-tenants.$updates-updates.DOP-$procs"
+            msg "Verifying $name"
+            sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
+            sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR/$name"
+            cp "$CONF" "$RESULTS_DIR/$name"
         done
     done
 done
