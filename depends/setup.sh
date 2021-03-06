@@ -173,7 +173,7 @@ install_cmake() {
     DIR="${TARBALL%.tar.gz}"
     curl -LO "$URL"
     tar xf "$TARBALL"
-    sudo cp -r "$DIR"/* /usr/local/
+    sudo rsync -av "$DIR"/* /usr/local/
     rm -rf "$TARBALL" "$DIR"
 }
 
@@ -193,7 +193,7 @@ main() {
         yay -S --needed --noconfirm --removemake ${experiment_depends[@]} $@
 
     elif [ "$DISTRO" = "ubuntu" ]; then
-        script_depends=(build-essential curl git bison)
+        script_depends=(build-essential curl git bison rsync)
         makedepends=(make cmake clang libnet1-dev)
         depends=(libnet1 ipvsadm squid)
         experiment_depends=(astyle python3-toml bc)

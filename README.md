@@ -37,7 +37,7 @@ are appreciated.
 
 ### CMake
 
-Please check the cmake version is at least 3.12 with `cmake --version`. If
+Please check that the cmake version is at least 3.12 with `cmake --version`. If
 `depends/setup.sh` was used, the version should be correct. Otherwise, you can
 install a newer version from the official pre-built releases. For example,
 
