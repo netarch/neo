@@ -56,6 +56,7 @@ If your distribution doesn't have SPIN as a package, you may install it from the
 
 ```sh
 $ cd neo
+$ git submodule update --init --recursive
 $ cmake -B build -S . -DCMAKE_BUILD_TYPE=Release    # Release or Debug
 $ cmake --build build -j$(nproc)
 $ sudo cmake --install build
