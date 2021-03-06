@@ -173,7 +173,7 @@ install_cmake() {
     DIR="${TARBALL%.tar.gz}"
     curl -LO "$URL"
     tar xf "$TARBALL"
-    sudo cp -r "$DIR"/* /usr/
+    sudo cp -r "$DIR"/* /usr/local/
     rm -rf "$TARBALL" "$DIR"
 }
 
