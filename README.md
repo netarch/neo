@@ -13,56 +13,46 @@ components.
 
 #### Table of Contents
 
-- [User's Guide](#users-guide)
-    - [Dependencies](#dependencies)
-    - [Install SPIN](#install-spin)
-    - [Install Plankton-neo](#install-plankton-neo)
-    - [Usage](#usage)
-- [Developer's Guide](#developers-guide)
+- [Environment setup](#environment-setup)
+    - [CMake](#cmake)
+    - [SPIN](#spin)
+- [Build and install Plankton-neo](#build-and-install-plankton-neo)
+- [Usage](#usage)
 
 
-## User's Guide
-
-### Dependencies
+## Environment setup
 
 The following dependencies are needed for Plankton-neo.
 
-- libnet
 - make
-- cmake
+- cmake (>= 3.12)
 - spin
+- libnet
 - modern C and C++ compilers (GCC or Clang)
 
-### Install SPIN
+`depends/setup.sh` can be used to set up the development environment, but
+additional packages may be installed and it may overwrite existing packages in
+the system. Some platforms may not yet be supported. Pull requests and issues
+are appreciated.
 
-#### Arch Linux
+### CMake
 
-SPIN is available as AUR packages. You can install it from
-[spin](https://aur.archlinux.org/packages/spin/) (latest release) or
-[spin-git](https://aur.archlinux.org/packages/spin-git/) (latest git commit).
-
-```sh
-$ git clone https://aur.archlinux.org/spin.git
-$ cd spin
-$ makepkg -srci
-```
-
-#### Ubuntu bionic and above
-
-Since Ubuntu bionic (18.04), SPIN can be installed as a distribution package.
+Please check the cmake version is at least 3.12 with `cmake --version`. If
+`depends/setup.sh` was used, the version should be correct. Otherwise, you can
+install a newer version from the official pre-built releases. For example,
 
 ```sh
-$ sudo apt install spin
+$ curl -LO "https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-x86_64.tar.gz"
+$ tar xf cmake-3.19.6-Linux-x86_64.tar.gz
+$ sudo cp -r cmake-3.19.6-Linux-x86_64/* /usr/
 ```
 
-#### Others
+### SPIN
 
-If your distribution doesn't have the package for SPIN, you may install it from
-the [official GitHub repository](https://github.com/nimble-code/Spin).
+If your distribution doesn't have SPIN as a package, you may install it from the
+[official GitHub repository](https://github.com/nimble-code/Spin).
 
-### Install Plankton-neo
-
-#### Build from source
+## Build and install Plankton-neo
 
 ```sh
 $ cd neo
@@ -71,7 +61,7 @@ $ cmake --build build -j$(nproc)
 $ sudo cmake --install build
 ```
 
-### Usage
+## Usage
 
 ```
 Usage: neo [OPTIONS] -i <file> -o <dir>
@@ -91,9 +81,3 @@ Examples:
 ```sh
 $ neo -fj8 -i examples/00-reverse-path-filtering/network.toml -o output
 ```
-
-## Developer's Guide
-
-`depends/setup.sh` can be used to set up the development environment. Pull
-requests and issues are appreciated.
-

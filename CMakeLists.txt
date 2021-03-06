@@ -1,11 +1,5 @@
-cmake_minimum_required(VERSION 3.10)
-
-if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
-    project(Neo VERSION 0.1 LANGUAGES C CXX)
-else()
-    project(Neo VERSION 0.1 HOMEPAGE_URL https://github.com/netarch/neo LANGUAGES C CXX)
-endif()
-
+cmake_minimum_required(VERSION 3.12)
+project(Neo VERSION 0.1 HOMEPAGE_URL https://github.com/netarch/neo LANGUAGES C CXX)
 include("CheckTypeSize")
 include("ExternalProject")
 

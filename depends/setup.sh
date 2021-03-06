@@ -163,6 +163,20 @@ aur_install() {
     rm -rf "$TARGET"
 }
 
+#
+# Install pre-built cmake manually
+#
+install_cmake() {
+    CMAKE_VER=3.19.6
+    URL="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz"
+    TARBALL="$(basename $URL)"
+    DIR="${TARBALL%.tar.gz}"
+    curl -LO "$URL"
+    tar xf "$TARBALL"
+    sudo cp -r "$DIR"/* /usr/
+    rm -rf "$TARBALL" "$DIR"
+}
+
 main() {
     DISTRO="$(get_distro)"
 
@@ -193,6 +207,7 @@ main() {
         for pkg in ${aur_pkgs[@]}; do
             aur_install "$pkg"
         done
+        install_cmake   # for ubuntu 18 (cmake 3.10)
 
     else
         die "Unsupported distribution: $DISTRO"
