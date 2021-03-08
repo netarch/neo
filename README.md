@@ -44,7 +44,7 @@ install a newer version from the official pre-built releases. For example,
 ```sh
 $ curl -LO "https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-x86_64.tar.gz"
 $ tar xf cmake-3.19.6-Linux-x86_64.tar.gz
-$ sudo cp -r cmake-3.19.6-Linux-x86_64/* /usr/
+$ sudo rsync -av cmake-3.19.6-Linux-x86_64/* /usr/
 ```
 
 ### SPIN
