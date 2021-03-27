@@ -1,11 +1,10 @@
 #pragma once
 
-#include <string>
-
 class Network;
 struct State;
 
 enum pid {
+    choose_comm,
     forwarding,
     openflow
 };

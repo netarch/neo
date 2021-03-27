@@ -223,6 +223,24 @@ class WaypointPolicy(Policy):
 
 # TODO: OneRequestPolicy (one-request)
 
+class MulticommLBPolicy(Policy):
+    def __init__(self, final_node, max_dispersion_index=None):
+        Policy.__init__(self, 'multicomm-lb')
+        self.final_node: str = final_node
+        self.max_dispersion_index: float = max_dispersion_index
+        self.communications: List[Communication] = list()
+
+    def add_communication(self, comm):
+        self.communications.append(comm)
+
+    def to_dict(self):
+        data = self.__dict__
+        if self.max_dispersion_index is None:
+            data.pop('max_dispersion_index')
+        if self.communications:
+            data['communications'] = [comm.to_dict() for comm in self.communications]
+        return data
+
 ##
 ## policies with multiple single-communication correlated policies
 ##

@@ -24,6 +24,7 @@
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
+#include "policy/multicomm-lb.hpp"
 #include "policy/one-request.hpp"
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
@@ -565,6 +566,37 @@ void Config::parse_onerequestpolicy(
     }
 }
 
+void Config::parse_multicommlbpolicy(
+    MulticommLBPolicy *policy,
+    const std::shared_ptr<cpptoml::table>& config,
+    const Network& network)
+{
+    assert(policy != nullptr);
+
+    auto final_regex = config->get_as<std::string>("final_node");
+    auto max_vmr = config->get_as<double>("max_dispersion_index");
+    auto comms_cfg = config->get_table_array("communications");
+
+    if (!final_regex) {
+        Logger::error("Missing final node");
+    }
+    if (!comms_cfg) {
+        Logger::error("Missing communications");
+    }
+
+    for (const auto& node : network.get_nodes()) {
+        if (std::regex_match(node.first, std::regex(*final_regex))) {
+            policy->final_nodes.insert(node.second);
+        }
+    }
+    policy->max_dispersion_index = max_vmr ? *max_vmr : 1;
+    for (const auto& comm_cfg : *comms_cfg) {
+        Communication comm;
+        Config::parse_communication(&comm, comm_cfg, network);
+        policy->comms.push_back(std::move(comm));
+    }
+}
+
 void Config::parse_correlated_policies(
     Policy *policy,
     const std::shared_ptr<cpptoml::table>& config,
@@ -673,6 +705,11 @@ void Config::parse_policies(
                 policy = new OneRequestPolicy();
                 Config::parse_onerequestpolicy(
                     static_cast<OneRequestPolicy *>(policy),
+                    cfg, network);
+            } else if (*type == "multicomm-lb") {
+                policy = new MulticommLBPolicy();
+                Config::parse_multicommlbpolicy(
+                    static_cast<MulticommLBPolicy *>(policy),
                     cfg, network);
             } else if (*type == "conditional") {
                 policy = new ConditionalPolicy();

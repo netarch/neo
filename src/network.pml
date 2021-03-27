@@ -26,7 +26,7 @@ typedef comm_state_t {
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
 
     /* plankton process */
-    unsigned process_id : 1;                        /* executing process */
+    unsigned process_id : 2;                        /* executing process */
 
     /* forwarding process */
     unsigned pkt_state : 4;                         /* packet state */
@@ -59,6 +59,9 @@ bool violated;              /* whether the policy has been violated */
 int comm;                   /* index of the executing communication */
 int num_comms;              /* number of concurrent communications */
 int correlated_policy_idx;  /* index of sequential correlated policies */
+
+/* multicomm-lb policy */
+int reach_counts[SIZEOF_VOID_P / SIZEOF_INT];       /* (ReachCounts *) */
 
 int choice;                 /* non-determinisic selection result */
 int choice_count;           /* non-determinisic selection range [0, choice_count) */

@@ -133,6 +133,16 @@
     dst_port = 80                   # optional, default: all dst port ECs
     owned_dst_only = true or false  # optional, default: false
     start_node = "node name regex"
+[[policies]]
+    type = "multicomm-lb"
+    final_node = "node name regex"
+    max_dispersion_index = 1        # optional, default: 1
+    [[policies.communications]]
+    protocol = "tcp", "udp", or "icmp-echo"
+    pkt_dst = "x.x.x.x(/x)"
+    dst_port = 80                   # optional, default: all dst port ECs
+    owned_dst_only = true or false  # optional, default: false
+    start_node = "node name regex"
 
 ## load balance multiple communications..
 

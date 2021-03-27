@@ -9,6 +9,7 @@ class PacketHistory;
 class Interface;
 class Choices;
 class OpenflowUpdateState;
+class ReachCounts;
 class Candidates;
 struct State;
 
@@ -69,6 +70,10 @@ int get_num_comms(State *);
 int set_num_comms(State *, int);
 int get_correlated_policy_idx(State *);
 int set_correlated_policy_idx(State *, int);
+
+// multicomm-lb policy
+ReachCounts *get_reach_counts(State *);
+ReachCounts *set_reach_counts(State *, ReachCounts&&);
 
 // general
 int get_choice(State *);

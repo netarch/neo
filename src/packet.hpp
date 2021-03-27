@@ -58,6 +58,11 @@ struct State;
         (x) == PS_UDP_REQ    || \
         (x) == PS_ICMP_ECHO_REQ \
 )
+#define PS_IS_LAST(x) (        \
+        (x) == PS_TCP_TERM_3 || \
+        (x) == PS_UDP_REP    || \
+        (x) == PS_ICMP_ECHO_REP \
+)
 #define PS_IS_TCP(x)       ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
 #define PS_IS_UDP(x)       ((x) >= PS_UDP_REQ && (x) <= PS_UDP_REP)
 #define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
@@ -71,6 +76,10 @@ struct State;
 #define PS_IS_NEXT(x, y) (  \
         (x) == (y) + 1 &&   \
         PS_SAME_PROTO(x, y) \
+)
+#define PS_LAST_PKT_STATE(x) ( \
+        PS_IS_TCP(x) ? PS_TCP_TERM_3 : \
+        (PS_IS_UDP(x) ? PS_UDP_REP : PS_ICMP_ECHO_REP) \
 )
 
 /*

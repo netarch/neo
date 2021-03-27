@@ -8,6 +8,7 @@
 #include "pkt-hist.hpp"
 #include "choices.hpp"
 #include "process/openflow.hpp"
+#include "policy/multicomm-lb.hpp"
 #include "candidates.hpp"
 #include "model.h"
 
@@ -22,6 +23,7 @@ public:
     std::unordered_set<Choices *, ChoicesHash, ChoicesEq> path_choices_hist;
     std::unordered_set<OpenflowUpdateState *,
         OFUpdateStateHash, OFUpdateStateEq> openflow_update_state_hist;
+    std::unordered_set<ReachCounts *, ReachCountsHash, ReachCountsEq> reach_counts_hist;
     std::unordered_set<Candidates *, CandHash, CandEq> candidates_hist;
 
     VariableHist() = default;
@@ -343,6 +345,25 @@ int get_correlated_policy_idx(State *state)
 int set_correlated_policy_idx(State *state, int correlated_policy_idx)
 {
     return state->correlated_policy_idx = correlated_policy_idx;
+}
+
+ReachCounts *get_reach_counts(State *state)
+{
+    ReachCounts *reach_counts;
+    memcpy(&reach_counts, state->reach_counts, sizeof(ReachCounts *));
+    return reach_counts;
+}
+
+ReachCounts *set_reach_counts(State *state, ReachCounts&& reach_counts)
+{
+    ReachCounts *new_reach_counts = new ReachCounts(std::move(reach_counts));
+    auto res = storage.reach_counts_hist.insert(new_reach_counts);
+    if (!res.second) {
+        delete new_reach_counts;
+        new_reach_counts = *(res.first);
+    }
+    memcpy(state->reach_counts, &new_reach_counts, sizeof(ReachCounts *));
+    return new_reach_counts;
 }
 
 int get_choice(State *state)

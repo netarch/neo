@@ -340,12 +340,24 @@ void Plankton::process_switch(State *state) const
     Node *current_node = get_pkt_location(state);
 
     switch (process_id) {
+        case pid::choose_comm:
+            if (state->choice_count == 1) {
+                set_process_id(state, pid::forwarding);
+                state->choice_count = 1;
+            }
+            break;
         case pid::forwarding:
-            if ((fwd_mode == fwd_mode::FIRST_COLLECT ||
-                    fwd_mode == fwd_mode::COLLECT_NHOPS) &&
-                    openflow.has_updates(state, current_node)) {
-                set_process_id(state, pid::openflow);
-                state->choice_count = 2; // whether to install an update or not
+            if (fwd_mode == fwd_mode::FIRST_COLLECT ||
+                    fwd_mode == fwd_mode::COLLECT_NHOPS ||
+                    fwd_mode == fwd_mode::ACCEPTED ||
+                    fwd_mode == fwd_mode::DROPPED) {
+                if (openflow.has_updates(state, current_node)) {
+                    set_process_id(state, pid::openflow);
+                    state->choice_count = 2; // whether to install an update or not
+                } else if (comm_choice.has_other_comms(state)) {
+                    set_process_id(state, pid::choose_comm);
+                    comm_choice.update_choice_count(state);
+                }
             }
             break;
         case pid::openflow:
@@ -364,6 +376,9 @@ void Plankton::exec_step(State *state)
     int process_id = get_process_id(state);
 
     switch (process_id) {
+        case pid::choose_comm: // choose the next communication
+            comm_choice.exec_step(state, network);
+            break;
         case pid::forwarding:
             forwarding.exec_step(state, network);
             break;
@@ -374,9 +389,8 @@ void Plankton::exec_step(State *state)
             Logger::error("Unknown process id " + std::to_string(process_id));
     }
 
-    this->process_switch(state);
-
     int policy_result = policy->check_violation(state);
+    this->process_switch(state);
 
     if (policy_result & POL_INIT_FWD) {
         forwarding.init(state, network, policy);

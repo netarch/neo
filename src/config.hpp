@@ -23,6 +23,7 @@ class ReachabilityPolicy;
 class ReplyReachabilityPolicy;
 class WaypointPolicy;
 class OneRequestPolicy;
+class MulticommLBPolicy;
 class ConditionalPolicy;
 class ConsistencyPolicy;
 class Policies;
@@ -66,6 +67,9 @@ private:
     static void parse_onerequestpolicy(OneRequestPolicy *,
                                        const std::shared_ptr<cpptoml::table>&,
                                        const Network&);
+    static void parse_multicommlbpolicy(MulticommLBPolicy *,
+                                        const std::shared_ptr<cpptoml::table>&,
+                                        const Network&);
     /* policies with multiple, correlated, single-communication policies */
     static void parse_correlated_policies(Policy *,
                                           const std::shared_ptr<cpptoml::table>&,

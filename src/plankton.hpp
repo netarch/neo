@@ -6,6 +6,7 @@
 #include "network.hpp"
 #include "eqclasses.hpp"
 #include "policy/policy.hpp"
+#include "process/choose_comm.hpp"
 #include "process/forwarding.hpp"
 #include "process/openflow.hpp"
 struct State;
@@ -22,6 +23,7 @@ private:
     std::set<uint16_t> dst_ports;       // policy-oblivious dst port ECs
 
     /* Plankton processes (all processes are enabled by default) */
+    ChooseCommProcess   comm_choice;
     ForwardingProcess   forwarding;
     OpenflowProcess     openflow;
 
