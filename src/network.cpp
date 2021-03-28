@@ -56,6 +56,10 @@ void Network::grow_and_set_l2_lan(Node *node, Interface *interface)
     }
 }
 
+Network(OpenflowProcess *ofp): openflow(ofp)
+{
+}
+
 Network::~Network()
 {
     for (const auto& node : nodes) {
@@ -82,12 +86,6 @@ const std::set<Link *, LinkCompare>& Network::get_links() const
 const std::unordered_set<Middlebox *>& Network::get_middleboxes() const
 {
     return middleboxes;
-}
-
-void Network::init(State *state, OpenflowProcess *ofp)
-{
-    set_fib(state, FIB());  // empty fib
-    this->openflow = ofp;
 }
 
 void Network::update_fib(State *state)

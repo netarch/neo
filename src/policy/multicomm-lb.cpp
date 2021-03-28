@@ -24,11 +24,10 @@ std::string MulticommLBPolicy::to_string() const
     return ret;
 }
 
-void MulticommLBPolicy::init(State *state)
+void MulticommLBPolicy::init(State *state, const Network *network) const
 {
+    Policy::init(state, network);
     set_violated(state, false);
-    set_comm(state, 0);
-    set_num_comms(state, this->comms.size());
 }
 
 static inline double compute_dispersion_index(

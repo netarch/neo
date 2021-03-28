@@ -12,6 +12,7 @@
 #include "stats.hpp"
 #include "config.hpp"
 #include "emulationmgr.hpp"
+#include "eqclassmgr.hpp"
 #include "lib/fs.hpp"
 #include "lib/ip.hpp"
 #include "lib/logger.hpp"
@@ -19,21 +20,49 @@
 #include "model.h"
 
 static bool verify_all_ECs = false;    // verify all ECs even if a violation is found
-static bool policy_violated = false;   // true if policy is violated
+static bool policy_violated = false;   // true when policy is violated
 static std::set<int> tasks;
 static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 
+/*
+ * signal handler used by the per-connection tasks
+ */
+static void worker_sig_handler(int sig)
+{
+    int pid, status;
+    switch (sig) {
+        case SIGCHLD:
+            while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+                if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+                    Logger::warn("Process " + std::to_string(pid) + " exited "
+                                 + std::to_string(WEXITSTATUS(status)));
+                }
+            }
+            break;
+        case SIGHUP:
+        case SIGINT:
+        case SIGQUIT:
+        case SIGTERM:
+            kill(-getpid(), sig);
+            while (wait(nullptr) != -1 || errno != ECHILD);
+            exit(0);
+    }
+}
+
+/*
+ * signal handler used by the main task and the policy tasks
+ */
 static void signal_handler(int sig, siginfo_t *siginfo,
                            void *ctx __attribute__((unused)))
 {
     int pid, status;
-
     switch (sig) {
         case SIGCHLD:
             while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
                 tasks.erase(pid);
                 if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    Logger::warn("Process " + std::to_string(pid) + " failed");
+                    Logger::warn("Process " + std::to_string(pid) + " exited "
+                                 + std::to_string(WEXITSTATUS(status)));
                 }
             }
             break;
@@ -56,16 +85,13 @@ static void signal_handler(int sig, siginfo_t *siginfo,
             for (int childpid : tasks) {
                 kill(childpid, sig);
             }
-            while (1) { // wait for all children to die out
-                if (wait(nullptr) == -1 && errno == ECHILD) {
-                    break;
-                };
-            };
-            exit(128 + sig);
+            // wait for all children to die out
+            while (wait(nullptr) != -1 || errno != ECHILD);
+            exit(0);
     }
 }
 
-Plankton::Plankton(): policy(nullptr)
+Plankton::Plankton(): network(&openflow), policy(nullptr)
 {
 }
 
@@ -104,41 +130,9 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, bool latency, size_t dop,
     }
     EmulationMgr::get().set_max_emulations(emulations);
     EmulationMgr::get().set_num_middleboxes(network.get_middleboxes().size());
-}
 
-void Plankton::compute_policy_oblivious_ecs()
-{
-    for (const auto& node : network.get_nodes()) {
-        for (const auto& intf : node.second->get_intfs_l3()) {
-            all_ECs.add_ec(intf.first);
-            owned_ECs.add_ec(intf.first);
-        }
-        for (const Route& route : node.second->get_rib()) {
-            all_ECs.add_ec(route.get_network());
-        }
-    }
-
-    for (const auto& update : openflow.get_updates()) {
-        for (const Route& update_route : update.second) {
-            all_ECs.add_ec(update_route.get_network());
-        }
-    }
-
-    for (const Middlebox *mb : network.get_middleboxes()) {
-        MB_App *app = mb->get_app();
-        std::set<IPNetwork<IPv4Address>> prefixes;
-        std::set<IPv4Address> addrs;
-        std::set<uint16_t> dst_ports;
-        Config::parse_appliance(app, prefixes, addrs, dst_ports);
-
-        for (const auto& prefix : prefixes) {
-            all_ECs.add_ec(prefix);
-        }
-        for (const auto& addr : addrs) {
-            all_ECs.add_ec(addr);
-        }
-        this->dst_ports = dst_ports;
-    }
+    // compute policy oblivious ECs
+    EqClassMgr::get().compute_policy_oblivious_ecs(network, openflow);
 }
 
 extern "C" int spin_main(int argc, const char *argv[]);
@@ -153,25 +147,12 @@ void Plankton::verify_exit(int status)
     exit(status);
 }
 
-static const int emulation_sigs[] = {SIGCHLD, SIGUSR1};
-
-static void emulation_sig_handler(int sig)
-{
-    int pid, status;
-    if (sig == SIGCHLD) {
-        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-            if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                Logger::warn("Process " + std::to_string(pid) + " failed");
-            }
-        }
-    }
-}
-
-void Plankton::verify_ec(Policy *policy)
+void Plankton::verify_conn()
 {
     const std::string logfile = std::to_string(getpid()) + ".log";
     const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
     static const char *spin_args[] = {
+        // See http://spinroot.com/spin/Man/Pan.html
         "neo",
         "-b",   // consider it error to exceed the depth limit
         "-E",   // suppress invalid end state errors
@@ -179,16 +160,16 @@ void Plankton::verify_ec(Policy *policy)
         suffix.c_str(),
     };
 
-    // register signal handlers for emulations
+    // register signal handlers
     struct sigaction action;
-    action.sa_handler = emulation_sig_handler;
+    action.sa_handler = worker_sig_handler;
     sigemptyset(&action.sa_mask);
-    for (size_t i = 0; i < sizeof(emulation_sigs) / sizeof(int); ++i) {
-        sigaddset(&action.sa_mask, emulation_sigs[i]);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, sigs[i]);
     }
     action.sa_flags = SA_NOCLDSTOP;
-    for (size_t i = 0; i < sizeof(emulation_sigs) / sizeof(int); ++i) {
-        sigaction(emulation_sigs[i], &action, nullptr);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaction(sigs[i], &action, nullptr);
     }
 
     // reset logger
@@ -205,9 +186,6 @@ void Plankton::verify_ec(Policy *policy)
     dup2(fd, STDERR_FILENO);
     close(fd);
 
-    // configure per OS process variables
-    this->policy = policy;
-
     // record time usage for this EC
     Stats::set_ec_t1();
 
@@ -218,46 +196,45 @@ void Plankton::verify_ec(Policy *policy)
 
 void Plankton::verify_policy(Policy *policy)
 {
-    Logger::info("====================");
-    Logger::info(std::to_string(policy->get_id()) + ". Verifying "
-                 + policy->to_string());
-    Logger::info("Packet ECs: " + std::to_string(policy->num_ecs()));
-    Logger::info("Communications: " + std::to_string(policy->num_comms()));
+    // cd to the policy working directory
+    const std::string policy_wd = fs::append(out_dir, std::to_string(policy->get_id()));
+    if (!fs::exists(policy_wd)) {
+        fs::mkdir(policy_wd);
+    }
+    fs::chdir(policy_wd);
 
     // reset static variables
     policy_violated = false;
     tasks.clear();
 
-    // cd to the policy working directory
-    const std::string policy_working_dir
-        = fs::append(out_dir, std::to_string(policy->get_id()));
-    if (!fs::exists(policy_working_dir)) {
-        fs::mkdir(policy_working_dir);
-    }
-    fs::chdir(policy_working_dir);
+    // configure per OS process variables
+    this->policy = policy;
+
+    // compute connection matrix (Cartesian product)
+    policy->compute_conn_matrix();
+
+    Logger::info("====================");
+    Logger::info(std::to_string(policy->get_id()) + ". Verifying policy "
+                 + policy->to_string());
+    Logger::info("Connection ECs: " + std::to_string(policy->num_conns()));
 
     Stats::set_policy_t1();
 
-    // fork for each combination of ECs for concurrent execution
-    while (policy->set_initial_ec()) {
+    // fork for each combination of concurrent connections
+    while ((!policy_violated || verify_all_ECs) && policy->set_conns()) {
         int childpid;
         if ((childpid = fork()) < 0) {
             Logger::error("fork()", errno);
         } else if (childpid == 0) {
-            verify_ec(policy);
+            verify_conn();  // connection kid dies here
         }
 
         tasks.insert(childpid);
         while (tasks.size() >= max_jobs) {
             pause();
         }
-
-        if (!verify_all_ECs && policy_violated) {
-            break;
-        }
     }
 
-    // wait until all EC are verified or terminated
     while (!tasks.empty()) {
         pause();
     }
@@ -272,13 +249,10 @@ void Plankton::verify_policy(Policy *policy)
 
 int Plankton::run()
 {
-    // compute ECs
-    this->compute_policy_oblivious_ecs();
-    for (Policy *policy : policies) {
-        policy->compute_ecs(all_ECs, owned_ECs, dst_ports);
-    }
+    // cd to the main working directory (output directory)
+    fs::chdir(out_dir);
 
-    // register signal handlers
+    // register signal handler
     struct sigaction action;
     action.sa_sigaction = signal_handler;
     sigemptyset(&action.sa_mask);
@@ -290,24 +264,18 @@ int Plankton::run()
         sigaction(sigs[i], &action, nullptr);
     }
 
-    // cd to the main working directory (output directory)
-    fs::chdir(out_dir);
-
     Stats::set_total_t1();
 
+    // fork for each policy to get their memory usage measurements
     for (Policy *policy : policies) {
         int childpid;
-
-        // fork for each policy to get their memory usage measurements
         if ((childpid = fork()) < 0) {
             Logger::error("fork()", errno);
         } else if (childpid == 0) {
-            verify_policy(policy);
+            verify_policy(policy);  // policy kid dies here
         }
 
         tasks.insert(childpid);
-
-        // wait until the policy finishes
         while (!tasks.empty()) {
             pause();
         }
@@ -325,12 +293,18 @@ int Plankton::run()
 
 void Plankton::initialize(State *state)
 {
-    network.init(state, &openflow);
-    policy->init(state); // this also initializes the communication settings
+    // processes
+    forwarding.init(state, network);
+    openflow.init(state);   // openflow has to be initialized before fib
 
-    set_process_id(state, pid::forwarding);
-    openflow.init(state);   // openflow has to be initialized before forwarding
-    forwarding.init(state, network, policy);
+    // policy (also initializes all per-connection states)
+    policy->init(state, &network);
+
+    // execution logic
+    set_choice(state, 0);
+    set_choice_count(state, 1);
+    set_conn(state, 0);
+    set_num_conns(state, policy->get_conns().size());
 }
 
 void Plankton::process_switch(State *state) const
@@ -376,7 +350,7 @@ void Plankton::exec_step(State *state)
     int process_id = get_process_id(state);
 
     switch (process_id) {
-        case pid::choose_comm: // choose the next communication
+        case pid::choose_comm: // choose the next connection
             comm_choice.exec_step(state, network);
             break;
         case pid::forwarding:
@@ -392,12 +366,9 @@ void Plankton::exec_step(State *state)
     int policy_result = policy->check_violation(state);
     this->process_switch(state);
 
-    if (policy_result & POL_INIT_FWD) {
-        forwarding.init(state, network, policy);
-    }
-    if (policy_result & POL_RESET_FWD) {
-        forwarding.reset(state, network);
-    }
+    //if (policy_result & POL_INIT_FWD) {
+    //    forwarding.init(state, network, policy);
+    //}
 }
 
 void Plankton::report(State *state)

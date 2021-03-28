@@ -14,18 +14,17 @@ std::string ReachabilityPolicy::to_string() const
     } else {
         ret += " -X-> [";
     }
-    for (Node *node : final_nodes) {
+    for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
     ret += " ]";
     return ret;
 }
 
-void ReachabilityPolicy::init(State *state)
+void ReachabilityPolicy::init(State *state, const Network *network) const
 {
+    Policy::init(state, network);
     set_violated(state, false);
-    set_comm(state, 0);
-    set_num_comms(state, 1);
 }
 
 int ReachabilityPolicy::check_violation(State *state)
@@ -35,7 +34,7 @@ int ReachabilityPolicy::check_violation(State *state)
     int pkt_state = get_pkt_state(state);
 
     if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(pkt_state)) {
-        reached = (final_nodes.count(get_rx_node(state)) > 0);
+        reached = (target_nodes.count(get_rx_node(state)) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;
     } else {

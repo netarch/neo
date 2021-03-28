@@ -2,34 +2,29 @@
 
 #include <vector>
 #include <string>
-#include <list>
 
-#include "comm.hpp"
-#include "lib/ip.hpp"
-#include "node.hpp"
-#include "network.hpp"
-#include "eqclasses.hpp"
-#include "eqclass.hpp"
+#include "connspec.hpp"
+#include "connmatrix.hpp"
+#include "conn.hpp"
+class Network;
 struct State;
 
 #define POL_NULL        0
 #define POL_INIT_FWD    1
-#define POL_RESET_FWD   2
 
 class Policy
 {
 protected:
     int id;
-
-    /* Simultaneously modelled communications. */
-    std::vector<Communication> comms;
-
+    std::vector<ConnSpec> conn_specs;   // specs of concurrent connections
+    ConnectionMatrix conn_matrix;       // conn matrix computed from spec
+    std::vector<Connection> conns;      // initial conns for verification
     /*
-     * If there is any correlated policy, all of them would be
-     * single-communication policies, and the number of communications of the
-     * main policy (comms) would be zero.
+     * If there is any correlated policy, conn_specs should be empty. There
+     * should be only one conn_spec within each correlated policy.
      */
     std::vector<Policy *> correlated_policies;
+    const Network *network;
 
 protected:
     friend class Config;
@@ -39,42 +34,31 @@ public:
     virtual ~Policy();
 
     int get_id() const;
-
-    int get_protocol(State *) const;
-    const std::vector<Node *>& get_start_nodes(State *) const;
-    uint16_t get_src_port(State *) const;
-    uint16_t get_dst_port(State *) const;
-
-    void compute_ecs(const EqClasses&, const EqClasses&, const std::set<uint16_t>&);
-    void add_ec(State *, const IPv4Address&);
-    EqClass *find_ec(State *, const IPv4Address&) const;
-    size_t num_ecs() const;     // number of initial ECs
-    size_t num_comms() const;   // number of initial communications
-
-    bool set_initial_ec();
-    EqClass *get_initial_ec(State *) const;
-
+    size_t num_conn_ecs() const;
+    void compute_conn_matrix();
+    bool set_conns();
+    const std::vector<Connection>& get_conns() const;
     void report(State *) const;
 
     virtual std::string to_string() const = 0;
-    virtual void init(State *) = 0;
+    virtual void init(State *, const Network *) const;
     virtual int check_violation(State *) = 0;
 };
 
 class Policies
 {
 private:
-    std::list<Policy *> policies;
+    std::vector<Policy *> policies;
 
 private:
     friend class Config;
 
 public:
-    typedef std::list<Policy *>::size_type size_type;
-    typedef std::list<Policy *>::iterator iterator;
-    typedef std::list<Policy *>::const_iterator const_iterator;
-    typedef std::list<Policy *>::reverse_iterator reverse_iterator;
-    typedef std::list<Policy *>::const_reverse_iterator const_reverse_iterator;
+    typedef std::vector<Policy *>::size_type size_type;
+    typedef std::vector<Policy *>::iterator iterator;
+    typedef std::vector<Policy *>::const_iterator const_iterator;
+    typedef std::vector<Policy *>::reverse_iterator reverse_iterator;
+    typedef std::vector<Policy *>::const_reverse_iterator const_reverse_iterator;
 
     Policies() = default;
     Policies(const Policies&) = delete;

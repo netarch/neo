@@ -8,8 +8,8 @@ class EqClass;
 
 /*
  * An EqClass (instance) is a set of ECRanges (a continuous range of IP
- * addresses), where any packet with the destination inside the ranges has the
- * same behavior within the current network configuration.
+ * addresses), where any packet with its destination (or source) inside the
+ * ranges has the same behavior. The ranges are disjoint.
  */
 class EqClass
 {

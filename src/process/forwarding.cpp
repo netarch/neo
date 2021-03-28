@@ -10,7 +10,6 @@
 #include "middlebox.hpp"
 #include "network.hpp"
 #include "payload.hpp"
-#include "policy/policy.hpp"
 #include "stats.hpp"
 #include "lib/net.hpp"
 #include "lib/logger.hpp"
@@ -27,93 +26,17 @@ ForwardingProcess::~ForwardingProcess()
     }
 }
 
-void ForwardingProcess::init(State *state, Network& network, Policy *policy)
+void ForwardingProcess::init(State *state, Network& network)
 {
     if (!enabled) {
         return;
     }
 
-    this->policy = policy;
-
-    uint8_t pkt_state = 0;
-    if (policy->get_protocol(state) == proto::tcp) {
-        pkt_state = PS_TCP_INIT_1;
-    } else if (policy->get_protocol(state) == proto::udp) {
-        pkt_state = PS_UDP_REQ;
-    } else if (policy->get_protocol(state) == proto::icmp_echo) {
-        pkt_state = PS_ICMP_ECHO_REQ;
-    } else {
-        Logger::error("Unknown protocol: " + std::to_string(policy->get_protocol(state)));
-    }
-    set_pkt_state(state, pkt_state);
-    set_fwd_mode(state, fwd_mode::PACKET_ENTRY);
-    set_ec(state, policy->get_initial_ec(state));
-    set_src_ip(state, 0);
-    set_seq(state, 0);
-    set_ack(state, 0);
-    set_src_port(state, policy->get_src_port(state));
-    set_dst_port(state, policy->get_dst_port(state));
-    set_src_node(state, nullptr);
-    set_tx_node(state, nullptr);
-    set_rx_node(state, nullptr);
     PacketHistory pkt_hist(network);
     set_pkt_hist(state, std::move(pkt_hist));
-    set_pkt_location(state, nullptr);
-    set_ingress_intf(state, nullptr);
-    set_path_choices(state, Choices());
-    Candidates candidates;
-    for (Node *start_node : policy->get_start_nodes(state)) {
-        candidates.add(FIB_IPNH(start_node, nullptr, start_node, nullptr));
-    }
-    set_candidates(state, std::move(candidates));
 
-    // update FIB
-    Logger::info("EC: " + get_ec(state)->to_string());
-    Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
-    network.update_fib(state);
-}
-
-void ForwardingProcess::reset(State *state, Network& network)
-{
-    if (!enabled) {
-        return;
-    }
-
-    uint8_t pkt_state = 0;
-    if (policy->get_protocol(state) == proto::tcp) {
-        pkt_state = PS_TCP_INIT_1;
-    } else if (policy->get_protocol(state) == proto::udp) {
-        pkt_state = PS_UDP_REQ;
-    } else if (policy->get_protocol(state) == proto::icmp_echo) {
-        pkt_state = PS_ICMP_ECHO_REQ;
-    } else {
-        Logger::error("Unknown protocol: " + std::to_string(policy->get_protocol(state)));
-    }
-    set_pkt_state(state, pkt_state);
-    set_fwd_mode(state, fwd_mode::PACKET_ENTRY);
-    set_ec(state, policy->get_initial_ec(state));
-    set_src_ip(state, 0);
-    set_seq(state, 0);
-    set_ack(state, 0);
-    set_src_port(state, policy->get_src_port(state));
-    set_dst_port(state, policy->get_dst_port(state));
-    set_src_node(state, nullptr);
-    set_tx_node(state, nullptr);
-    set_rx_node(state, nullptr);
-    // skip pkt_hist
-    set_pkt_location(state, nullptr);
-    set_ingress_intf(state, nullptr);
-    // skip path_choices
-    Candidates candidates;
-    for (Node *start_node : policy->get_start_nodes(state)) {
-        candidates.add(FIB_IPNH(start_node, nullptr, start_node, nullptr));
-    }
-    set_candidates(state, std::move(candidates));
-
-    // update FIB
-    Logger::info("EC: " + get_ec(state)->to_string());
-    Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
-    network.update_fib(state);
+    //Logger::info("EC: " + get_ec(state)->to_string());
+    //Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
 }
 
 void ForwardingProcess::exec_step(State *state, Network& network)
@@ -124,9 +47,6 @@ void ForwardingProcess::exec_step(State *state, Network& network)
 
     int mode = get_fwd_mode(state);
     switch (mode) {
-        case fwd_mode::PACKET_ENTRY:
-            packet_entry(state);
-            break;
         case fwd_mode::FIRST_COLLECT:
             first_collect(state);
             break;
@@ -147,22 +67,6 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             break;
         default:
             Logger::error("Unknown forwarding mode: " + std::to_string(mode));
-    }
-}
-
-void ForwardingProcess::packet_entry(State *state) const
-{
-    Node *entry = get_candidates(state)->at(state->choice).get_l3_node();
-    set_src_node(state, entry);
-    set_pkt_location(state, entry);
-    set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
-    state->choice_count = 1;    // deterministic choice
-
-    uint8_t pkt_state = get_pkt_state(state);
-    Logger::info("Packet (state: " + std::to_string(pkt_state) + ") started at "
-                 + entry->to_string());
-    if (PS_IS_FIRST(pkt_state)) {
-        set_tx_node(state, entry);
     }
 }
 
@@ -246,18 +150,18 @@ void ForwardingProcess::forward_packet(State *state)
 
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
-        int pkt_state = get_pkt_state(state);
+        int proto_state = get_pkt_state(state);
         Node *current_node = get_pkt_location(state);
         Node *tx_node = get_tx_node(state);
         Node *rx_node = get_rx_node(state);
-        if (PS_IS_FIRST(pkt_state)) {
+        if (PS_IS_FIRST(proto_state)) {
             // store the original receiving endpoint of the communication
             set_rx_node(state, current_node);
-        } else if (PS_IS_REQUEST_DIR(pkt_state) && current_node != rx_node) {
+        } else if (PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node) {
             Logger::warn("Inconsistent endpoints (current_node != rx_node)");
             dropped(state);
             return;
-        } else if (PS_IS_REPLY_DIR(pkt_state) && current_node != tx_node) {
+        } else if (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node) {
             Logger::warn("Inconsistent endpoints (current_node != tx_node)");
             dropped(state);
             return;
@@ -278,8 +182,8 @@ void ForwardingProcess::forward_packet(State *state)
 
 void ForwardingProcess::accepted(State *state, Network& network)
 {
-    uint8_t pkt_state = get_pkt_state(state);
-    switch (pkt_state) {
+    int proto_state = get_pkt_state(state);
+    switch (proto_state) {
         case PS_TCP_INIT_1:
             phase_transition(state, network, PS_TCP_INIT_2, true);
             break;
@@ -323,7 +227,7 @@ void ForwardingProcess::accepted(State *state, Network& network)
             state->choice_count = 0;
             break;
         default:
-            Logger::error("Unknown packet state " + std::to_string(pkt_state));
+            Logger::error("Unknown packet state " + std::to_string(proto_state));
     }
 }
 
@@ -348,7 +252,7 @@ void ForwardingProcess::phase_transition(
 
         // set the next EC
         if (PS_IS_FIRST(old_pkt_state)) {
-            policy->add_ec(state, src_ip);
+            //policy->add_ec(state, src_ip);
         }
         EqClass *next_ec = policy->find_ec(state, src_ip);
         set_ec(state, next_ec);
@@ -491,7 +395,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
         identify_comm(state, recv_pkt, comm, change_direction);
         assert(comm == state->comm); // same communication
 
-        // convert TCP flags to the real pkt_state
+        // convert TCP flags to the real proto_state
         Net::get().convert_pkt_state(recv_pkt, get_pkt_state(state), change_direction);
         Logger::info("Received packet: " + recv_pkt.to_string());
 
@@ -507,7 +411,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
         if (PS_IS_NEXT(recv_pkt.get_pkt_state(), get_pkt_state(state))) {
             Logger::error("Next phase (not implemented yet)");
             // TODO: map back the packet content to the spin vector
-            // src_ip, dst_ip, src_port, dst_port, seq, ack, pkt_state
+            // src_ip, dst_ip, src_port, dst_port, seq, ack, proto_state
 //            std::vector<FIB_IPNH> candidates(1, FIB_IPNH(mb, nullptr, mb, nullptr));
 //            set_candidates(state, candidates);
 //            if (get_fwd_mode(state) == fwd_mode::FIRST_COLLECT) {

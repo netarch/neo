@@ -14,13 +14,12 @@ std::string ConsistencyPolicy::to_string() const
     return ret;
 }
 
-void ConsistencyPolicy::init(State *state)
+void ConsistencyPolicy::init(State *state, const Network *network) const
 {
+    Policy::init(state, network);
     set_violated(state, false);
-    set_comm(state, 0);
-    set_num_comms(state, 1);
     set_correlated_policy_idx(state, 0);
-    correlated_policies[state->correlated_policy_idx]->init(state);
+    correlated_policies[0]->init(state, network);
 }
 
 int ConsistencyPolicy::check_violation(State *state)

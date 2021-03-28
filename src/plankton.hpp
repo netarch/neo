@@ -1,10 +1,8 @@
 #pragma once
 
 #include <string>
-#include <set>
 
 #include "network.hpp"
-#include "eqclasses.hpp"
 #include "policy/policy.hpp"
 #include "process/choose_comm.hpp"
 #include "process/forwarding.hpp"
@@ -19,10 +17,8 @@ private:
     std::string     out_dir;    // output directory
     Network         network;    // network information (inc. dataplane)
     Policies        policies;
-    EqClasses       all_ECs, owned_ECs; // policy-oblivious ECs
-    std::set<uint16_t> dst_ports;       // policy-oblivious dst port ECs
 
-    /* Plankton processes (all processes are enabled by default) */
+    /* processes */
     ChooseCommProcess   comm_choice;
     ForwardingProcess   forwarding;
     OpenflowProcess     openflow;
@@ -31,8 +27,7 @@ private:
     Policy  *policy;            // the policy being verified
 
     Plankton();
-    void compute_policy_oblivious_ecs();
-    void verify_ec(Policy *);
+    void verify_conn();
     void verify_policy(Policy *);
     void process_switch(State *) const;
 

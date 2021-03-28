@@ -23,7 +23,7 @@ private:
 
 public:
     std::string to_string() const override;
-    void init(State *) override;
+    void init(State *, const Network *) const override;
     int check_violation(State *) override;
 };
 

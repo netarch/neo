@@ -19,11 +19,10 @@ std::string OneRequestPolicy::to_string() const
     return ret;
 }
 
-void OneRequestPolicy::init(State *state)
+void OneRequestPolicy::init(State *state, const Network *network) const
 {
+    Policy::init(state, network);
     set_violated(state, true);
-    set_comm(state, 0);
-    set_num_comms(state, this->comms.size());
 }
 
 // TODO

@@ -10,7 +10,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(MAX_COMMS 2 CACHE STRING "Maximum number of communications")
+set(MAX_CONNS 2 CACHE STRING "Maximum number of communications")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror)
@@ -22,11 +22,19 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         add_compile_options(-Wno-stringop-overflow)
     endif()
 endif()
-add_compile_definitions(MAX_COMMS=${MAX_COMMS}
-                        SIZEOF_VOID_P=${SIZEOF_VOID_P}
-                        SIZEOF_INT=${SIZEOF_INT})
-set(SPIN_FLAGS -a -DNOBOUNDCHECK -DNOCOMP -DNOFAIR -DSAFETY -DSFH -DVECTORSZ=100
-    -DMAX_COMMS=${MAX_COMMS} -DSIZEOF_VOID_P=${SIZEOF_VOID_P}
+# See http://spinroot.com/spin/Man/Pan.html
+add_compile_definitions(
+    NIBIS
+    NOBOUNDCHECK
+    NOCOMP
+    NOFAIR
+    SAFETY
+    SFH
+    VECTORSZ=1024
+    MAX_CONNS=${MAX_CONNS}
+    SIZEOF_VOID_P=${SIZEOF_VOID_P}
+    SIZEOF_INT=${SIZEOF_INT})
+set(SPIN_FLAGS -a -DMAX_CONNS=${MAX_CONNS} -DSIZEOF_VOID_P=${SIZEOF_VOID_P}
     -DSIZEOF_INT=${SIZEOF_INT})
 
 #

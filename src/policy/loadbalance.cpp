@@ -16,12 +16,10 @@ std::string LoadBalancePolicy::to_string() const
     return ret;
 }
 
-void LoadBalancePolicy::init(State *state)
+void LoadBalancePolicy::init(State *state, const Network *network) const
 {
+    Policy::init(state, network);
     set_violated(state, true);
-    set_comm(state, 0);
-    set_num_comms(state, 1);
-    set_repetition(state, 0);
 
     visited.clear();
 }
@@ -47,9 +45,9 @@ int LoadBalancePolicy::check_violation(State *state)
                          + " times");
         } else if (get_repetition(state) < repetition) {
             // see each repetition as a different communication
-            comms[0].set_src_port(get_src_port(state) + 1);
+            //comms[0].set_src_port(get_src_port(state) + 1);
             // reset the forwarding process and repeat
-            return POL_RESET_FWD;
+            //return POL_RESET_FWD;
         }
     }
 

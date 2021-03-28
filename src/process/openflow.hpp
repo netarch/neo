@@ -69,7 +69,6 @@ public:
     std::map<Node *, std::set<FIB_IPNH>> get_installed_updates(State *) const;
     bool has_updates(State *, Node *) const;
 
-    void init(State *); // initialize the openflow process when system starts
-    void reset(State *); // reset the openflow process
+    void init(State *);
     void exec_step(State *, Network&) override;
 };

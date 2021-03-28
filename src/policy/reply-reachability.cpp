@@ -21,11 +21,10 @@ std::string ReplyReachabilityPolicy::to_string() const
     return ret;
 }
 
-void ReplyReachabilityPolicy::init(State *state)
+void ReplyReachabilityPolicy::init(State *state, const Network *network) const
 {
+    Policy::init(state, network);
     set_violated(state, false);
-    set_comm(state, 0);
-    set_num_comms(state, 1);
 }
 
 int ReplyReachabilityPolicy::check_violation(State *state)

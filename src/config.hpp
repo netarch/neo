@@ -16,14 +16,13 @@ class Squid;
 class Middlebox;
 class Link;
 class Network;
-class Communication;
+class ConnSpec;
 class Policy;
-class LoadBalancePolicy;
 class ReachabilityPolicy;
 class ReplyReachabilityPolicy;
 class WaypointPolicy;
 class OneRequestPolicy;
-class MulticommLBPolicy;
+class LoadBalancePolicy;
 class ConditionalPolicy;
 class ConsistencyPolicy;
 class Policies;
@@ -32,45 +31,51 @@ class OpenflowProcess;
 class Config
 {
 private:
-    // not thread-safe
+    /* config file table (not thread-safe) */
     static std::unordered_map<std::string, std::shared_ptr<cpptoml::table>> configs;
 
+    /* generic network node */
     static void parse_interface(Interface *, const std::shared_ptr<cpptoml::table>&);
     static void parse_route(Route *, const std::shared_ptr<cpptoml::table>&);
     static void parse_node(Node *, const std::shared_ptr<cpptoml::table>&);
 
+    /* middleboxes */
+    static void parse_appliance_config(MB_App *, const std::string&);
     static void parse_netfilter(NetFilter *, const std::shared_ptr<cpptoml::table>&);
     static void parse_ipvs(IPVS *, const std::shared_ptr<cpptoml::table>&);
     static void parse_squid(Squid *, const std::shared_ptr<cpptoml::table>&);
     static void parse_middlebox(Middlebox *, const std::shared_ptr<cpptoml::table>&);
 
+    /* network link */
     static void parse_link(Link *, const std::shared_ptr<cpptoml::table>&,
                            const std::map<std::string, Node *>&);
 
-    static void parse_communication(Communication *,
-                                    const std::shared_ptr<cpptoml::table>&,
-                                    const Network&);
-    /* single-communication policies */
-    static void parse_loadbalancepolicy(LoadBalancePolicy *,
-                                        const std::shared_ptr<cpptoml::table>&,
-                                        const Network&);
+    /* connection */
+    static void parse_conn_spec(ConnSpec *,
+                                const std::shared_ptr<cpptoml::table>&,
+                                const Network&);
+    static void parse_connections(Policy *,
+                                  const std::shared_ptr<cpptoml::table>&,
+                                  const Network&);
+    /* single-connection policies */
     static void parse_reachabilitypolicy(ReachabilityPolicy *,
                                          const std::shared_ptr<cpptoml::table>&,
                                          const Network&);
-    static void parse_replyreachabilitypolicy(ReplyReachabilityPolicy *,
+    static void parse_replyreachabilitypolicy(
+            ReplyReachabilityPolicy *,
             const std::shared_ptr<cpptoml::table>&,
             const Network&);
     static void parse_waypointpolicy(WaypointPolicy *,
                                      const std::shared_ptr<cpptoml::table>&,
                                      const Network&);
-    /* multi-communication policies */
+    /* multi-connection policies */
     static void parse_onerequestpolicy(OneRequestPolicy *,
                                        const std::shared_ptr<cpptoml::table>&,
                                        const Network&);
-    static void parse_multicommlbpolicy(MulticommLBPolicy *,
+    static void parse_loadbalancepolicy(LoadBalancePolicy *,
                                         const std::shared_ptr<cpptoml::table>&,
                                         const Network&);
-    /* policies with multiple, correlated, single-communication policies */
+    /* policies with multiple correlated sub-policies */
     static void parse_correlated_policies(Policy *,
                                           const std::shared_ptr<cpptoml::table>&,
                                           const Network&);
@@ -80,20 +85,17 @@ private:
     static void parse_consistencypolicy(ConsistencyPolicy *,
                                         const std::shared_ptr<cpptoml::table>&,
                                         const Network&);
+    /* helper function for parsing policy array to a vector */
+    static void parse_policy_array(std::vector<Policy *>&,
+                                   bool correlated,
+                                   const std::shared_ptr<cpptoml::table_array>&,
+                                   const Network&);
 
+    /* openflow updates */
     static void parse_openflow_update(Node **,
                                       Route *,
                                       const std::shared_ptr<cpptoml::table>&,
                                       const Network&);
-
-    static void parse_netfilter(const NetFilter *netfilter,
-                                std::set<IPNetwork<IPv4Address>>& prefixes,
-                                std::set<IPv4Address>& addrs,
-                                std::set<uint16_t>& dst_ports);
-    static void parse_ipvs(const IPVS *ipvs,
-                           std::set<IPNetwork<IPv4Address>>& prefixes,
-                           std::set<IPv4Address>& addrs,
-                           std::set<uint16_t>& dst_ports);
 
 public:
     static void start_parsing(const std::string& filename);
@@ -105,8 +107,4 @@ public:
     static void parse_openflow(OpenflowProcess *openflow,
                                const std::string& filename,
                                const Network& network);
-    static void parse_appliance(const MB_App *app,
-                                std::set<IPNetwork<IPv4Address>>& prefixes,
-                                std::set<IPv4Address>& addrs,
-                                std::set<uint16_t>& dst_ports);
 };

@@ -13,7 +13,6 @@ class Middlebox;
 struct State;
 
 enum fwd_mode {
-    PACKET_ENTRY,
     FIRST_COLLECT,
     FIRST_FORWARD,
     COLLECT_NHOPS,
@@ -22,18 +21,23 @@ enum fwd_mode {
     DROPPED
 };
 
+/* TODO:
+ * fwd 1st step: collect next hops and choose the collected next hops with spin
+ * by updating candidates (then continue to the 2nd step without looking at
+ * other processes)
+ * fwd 2nd step: forward packet and update the ingress interface (allow
+ * non-deterministic execution of other processes after this step)
+ */
+
 class ForwardingProcess : public Process
 {
 private:
-    Policy *policy;
-
     // all history packets
     std::unordered_set<Packet *, PacketHash, PacketEq> all_pkts;
     // history of node packet histories
     std::unordered_set<NodePacketHistory *, NodePacketHistoryHash,
         NodePacketHistoryEq> node_pkt_hist_hist;
 
-    void packet_entry(State *) const;
     void first_collect(State *);
     void first_forward(State *);
     void collect_next_hops(State *);
@@ -51,9 +55,6 @@ public:
     ForwardingProcess() = default;
     ~ForwardingProcess();
 
-    // initialize the forwarding process when system starts
     void init(State *, Network&, Policy *);
-    // reset the forwarding process without changing pkt_hist and path_choices
-    void reset(State *, Network&);
     void exec_step(State *, Network&) override;
 };

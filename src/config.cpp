@@ -5,7 +5,6 @@
 #include <utility>
 #include <regex>
 #include <typeinfo>
-#include <sstream>
 #include <cpptoml.hpp>
 
 #include "interface.hpp"
@@ -18,14 +17,14 @@
 #include "middlebox.hpp"
 #include "link.hpp"
 #include "network.hpp"
-#include "comm.hpp"
+#include "protocols.hpp"
+#include "connspec.hpp"
 #include "policy/policy.hpp"
-#include "policy/loadbalance.hpp"
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
-#include "policy/multicomm-lb.hpp"
 #include "policy/one-request.hpp"
+#include "policy/loadbalance.hpp"
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
 #include "process/openflow.hpp"
@@ -144,6 +143,44 @@ void Config::parse_node(Node *node,
     }
 }
 
+#define IPV4_PREF_REGEX "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d+\\b"
+#define IPV4_ADDR_REGEX "\\b(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})(?:[^/]|$)"
+#define PORT_REGEX "(?:port\\s+|\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:)(\\d+)\\b"
+
+static const std::regex ip_prefix_regex(IPV4_PREF_REGEX);
+static const std::regex ip_addr_regex(IPV4_ADDR_REGEX);
+static const std::regex port_regex(PORT_REGEX);
+
+void Config::parse_appliance_config(MB_App *app, const std::string& config)
+{
+    std::smatch match;
+    std::string subject;
+
+    // search for IP prefix patterns
+    subject = config;
+    while (std::regex_search(subject, match, ip_prefix_regex)) {
+        Logger::debug("Found \"" + match.str(0) + "\" when parsing middlebox");
+        app->ip_prefixes.emplace(match.str(0));
+        subject = match.suffix();
+    }
+
+    // search for IP address patterns
+    subject = config;
+    while (std::regex_search(subject, match, ip_addr_regex)) {
+        Logger::debug("Found \"" + match.str(1) + "\" when parsing middlebox");
+        app->ip_addrs.emplace(match.str(1));
+        subject = match.suffix();
+    }
+
+    // search for port patterns
+    subject = config;
+    while (std::regex_search(subject, match, port_regex)) {
+        Logger::debug("Found \"" + match.str(1) + "\" when parsing middlebox");
+        app->ports.insert(std::stoul(match.str(1)));
+        subject = match.suffix();
+    }
+}
+
 void Config::parse_netfilter(
     NetFilter *netfilter,
     const std::shared_ptr<cpptoml::table>& config)
@@ -165,6 +202,7 @@ void Config::parse_netfilter(
         Logger::error("Invalid rp_filter value: " + std::to_string(*rpf));
     }
     netfilter->rules = *rules;
+    Config::parse_appliance_config(netfilter, netfilter->rules);
 }
 
 void Config::parse_ipvs(
@@ -180,6 +218,7 @@ void Config::parse_ipvs(
     }
 
     ipvs->config = *ipvs_config;
+    Config::parse_appliance_config(ipvs, ipvs->config);
 }
 
 void Config::parse_squid(
@@ -195,6 +234,7 @@ void Config::parse_squid(
     }
 
     squid->config = *squid_config;
+    Config::parse_appliance_config(squid, squid->config);
 }
 
 void Config::parse_middlebox(
@@ -338,27 +378,28 @@ void Config::parse_network(Network *network, const std::string& filename)
     }
 }
 
-void Config::parse_communication(
-    Communication *comm,
+void Config::parse_conn_spec(
+    ConnSpec *conn_spec,
     const std::shared_ptr<cpptoml::table>& config,
     const Network& network)
 {
-    assert(comm != nullptr);
+    assert(conn_spec != nullptr);
 
     auto proto_str = config->get_as<std::string>("protocol");
-    auto pkt_dst_str = config->get_as<std::string>("pkt_dst");
-    auto dst_port = config->get_as<int>("dst_port");
-    auto owned_only = config->get_as<bool>("owned_dst_only");
-    auto start_regex = config->get_as<std::string>("start_node");
+    auto src_node_regex = config->get_as<std::string>("src_node");
+    auto dst_ip_str = config->get_as<std::string>("dst_ip");
+    auto src_port = config->get_as<int>("src_port");
+    auto dst_ports = config->get_array_of<int>("dst_port");
+    auto owned_dst_only = config->get_as<bool>("owned_dst_only");
 
     if (!proto_str) {
         Logger::error("Missing protocol");
     }
-    if (!pkt_dst_str) {
-        Logger::error("Missing packet destination");
+    if (!src_node_regex) {
+        Logger::error("Missing src_node");
     }
-    if (!start_regex) {
-        Logger::error("Missing start node");
+    if (!dst_ip_str) {
+        Logger::error("Missing dst_ip");
     }
 
     std::string proto_s = *proto_str;
@@ -367,71 +408,55 @@ void Config::parse_communication(
         return std::tolower(c);
     });
     if (proto_s == "tcp") {
-        comm->protocol = proto::tcp;
-        comm->src_port = 49152; // 49152 to 65535
-        if (dst_port) {
-            comm->dst_ports.push_back(*dst_port);
-        }
+        conn_spec->protocol = proto::tcp;
     } else if (proto_s == "udp") {
-        comm->protocol = proto::udp;
-        comm->src_port = 49152; // 49152 to 65535
-        if (dst_port) {
-            comm->dst_ports.push_back(*dst_port);
-        }
+        conn_spec->protocol = proto::udp;
     } else if (proto_s == "icmp-echo") {
-        comm->protocol = proto::icmp_echo;
+        conn_spec->protocol = proto::icmp_echo;
     } else {
         Logger::error("Unknown protocol: " + *proto_str);
     }
 
-    std::string dst_str = *pkt_dst_str;
-    if (dst_str.find('/') == std::string::npos) {
-        dst_str += "/32";
-    }
-    comm->pkt_dst = IPRange<IPv4Address>(dst_str);
-
-    comm->owned_dst_only = owned_only ? *owned_only : false;
-
     for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*start_regex))) {
-            comm->start_nodes.push_back(node.second);
+        if (std::regex_match(node.first, std::regex(*src_node_regex))) {
+            conn_spec->src_nodes.insert(node.second);
         }
     }
+
+    std::string ip_str = *dst_ip_str;
+    if (ip_str.find('/') == std::string::npos) {
+        ip_str += "/32";
+    }
+    conn_spec->dst_ip = IPRange<IPv4Address>(ip_str);
+
+    if (conn_spec->protocol == proto::tcp || conn_spec->protocol == proto::udp) {
+        conn_spec->src_port = src_port ? *src_port : 49152; // 49152 to 65535
+        if (dst_ports) {
+            for (const auto& dst_port : *dst_ports) {
+                conn_spec->dst_ports.insert(dst_port);
+            }
+        }
+    }
+
+    conn_spec->owned_dst_only = owned_dst_only ? *owned_dst_only : false;
 }
 
-void Config::parse_loadbalancepolicy(
-    LoadBalancePolicy *policy,
+void Config::parse_connections(
+    Policy *policy,
     const std::shared_ptr<cpptoml::table>& config,
     const Network& network)
 {
     assert(policy != nullptr);
 
-    auto final_regex = config->get_as<std::string>("final_node");
-    auto repeat = config->get_as<int>("repeat");
-    auto comm_cfg = config->get_table("communication");
-
-    if (!final_regex) {
-        Logger::error("Missing final node");
+    auto conns_cfg = config->get_table_array("connections");
+    if (!conns_cfg) {
+        Logger::error("Missing connections");
     }
-    if (!comm_cfg) {
-        Logger::error("Missing communication");
+    for (const auto& conn_cfg : *conns_cfg) {
+        ConnSpec conn;
+        Config::parse_conn_spec(&conn, conn_cfg, network);
+        policy->conn_specs.push_back(std::move(conn));
     }
-
-    for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*final_regex))) {
-            policy->final_nodes.insert(node.second);
-        }
-    }
-
-    if (repeat) {
-        policy->repetition = *repeat;
-    } else {
-        policy->repetition = policy->final_nodes.size();
-    }
-
-    Communication comm;
-    Config::parse_communication(&comm, comm_cfg, network);
-    policy->comms.push_back(std::move(comm));
 }
 
 void Config::parse_reachabilitypolicy(
@@ -441,31 +466,24 @@ void Config::parse_reachabilitypolicy(
 {
     assert(policy != nullptr);
 
-    auto final_regex = config->get_as<std::string>("final_node");
-    auto reachability = config->get_as<bool>("reachable");
-    auto comm_cfg = config->get_table("communication");
+    auto target_node_regex = config->get_as<std::string>("target_node");
+    auto reachable = config->get_as<bool>("reachable");
 
-    if (!final_regex) {
-        Logger::error("Missing final node");
+    if (!target_node_regex) {
+        Logger::error("Missing target_node");
     }
-    if (!reachability) {
-        Logger::error("Missing reachability");
-    }
-    if (!comm_cfg) {
-        Logger::error("Missing communication");
+    if (!reachable) {
+        Logger::error("Missing reachable");
     }
 
     for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*final_regex))) {
-            policy->final_nodes.insert(node.second);
+        if (std::regex_match(node.first, std::regex(*target_node_regex))) {
+            policy->target_nodes.insert(node.second);
         }
     }
-
-    policy->reachable = *reachability;
-
-    Communication comm;
-    Config::parse_communication(&comm, comm_cfg, network);
-    policy->comms.push_back(std::move(comm));
+    policy->reachable = *reachable;
+    Config::parse_connections(policy, config, network);
+    assert(policy->conn_specs.size() == 1);
 }
 
 void Config::parse_replyreachabilitypolicy(
@@ -475,31 +493,24 @@ void Config::parse_replyreachabilitypolicy(
 {
     assert(policy != nullptr);
 
-    auto query_regex = config->get_as<std::string>("query_node");
-    auto reachability = config->get_as<bool>("reachable");
-    auto comm_cfg = config->get_table("communication");
+    auto target_node_regex = config->get_as<std::string>("target_node");
+    auto reachable = config->get_as<bool>("reachable");
 
-    if (!query_regex) {
-        Logger::error("Missing query node");
+    if (!target_node_regex) {
+        Logger::error("Missing target_node");
     }
-    if (!reachability) {
-        Logger::error("Missing reachability");
-    }
-    if (!comm_cfg) {
-        Logger::error("Missing communication");
+    if (!reachable) {
+        Logger::error("Missing reachable");
     }
 
     for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*query_regex))) {
-            policy->query_nodes.insert(node.second);
+        if (std::regex_match(node.first, std::regex(*target_node_regex))) {
+            policy->target_nodes.insert(node.second);
         }
     }
-
-    policy->reachable = *reachability;
-
-    Communication comm;
-    Config::parse_communication(&comm, comm_cfg, network);
-    policy->comms.push_back(std::move(comm));
+    policy->reachable = *reachable;
+    Config::parse_connections(policy, config, network);
+    assert(policy->conn_specs.size() == 1);
 }
 
 void Config::parse_waypointpolicy(
@@ -509,31 +520,24 @@ void Config::parse_waypointpolicy(
 {
     assert(policy != nullptr);
 
-    auto wp_regex = config->get_as<std::string>("waypoint");
-    auto through = config->get_as<bool>("pass_through");
-    auto comm_cfg = config->get_table("communication");
+    auto target_node_regex = config->get_as<std::string>("target_node");
+    auto pass_through = config->get_as<bool>("pass_through");
 
-    if (!wp_regex) {
-        Logger::error("Missing waypoint");
+    if (!target_node_regex) {
+        Logger::error("Missing target_node");
     }
-    if (!through) {
+    if (!pass_through) {
         Logger::error("Missing pass_through");
-    }
-    if (!comm_cfg) {
-        Logger::error("Missing communication");
     }
 
     for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*wp_regex))) {
-            policy->waypoints.insert(node.second);
+        if (std::regex_match(node.first, std::regex(*target_node_regex))) {
+            policy->target_nodes.insert(node.second);
         }
     }
-
-    policy->pass_through = *through;
-
-    Communication comm;
-    Config::parse_communication(&comm, comm_cfg, network);
-    policy->comms.push_back(std::move(comm));
+    policy->pass_through = *pass_through;
+    Config::parse_connections(policy, config, network);
+    assert(policy->conn_specs.size() == 1);
 }
 
 void Config::parse_onerequestpolicy(
@@ -543,58 +547,43 @@ void Config::parse_onerequestpolicy(
 {
     assert(policy != nullptr);
 
-    auto server_regex = config->get_as<std::string>("server_node");
-    auto comms_cfg = config->get_table_array("communications");
+    auto target_node_regex = config->get_as<std::string>("target_node");
 
-    if (!server_regex) {
-        Logger::error("Missing server node");
-    }
-    if (!comms_cfg) {
-        Logger::error("Missing communications");
+    if (!target_node_regex) {
+        Logger::error("Missing target_node");
     }
 
     for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*server_regex))) {
-            policy->server_nodes.insert(node.second);
+        if (std::regex_match(node.first, std::regex(*target_node_regex))) {
+            policy->target_nodes.insert(node.second);
         }
     }
-
-    for (const auto& comm_cfg : *comms_cfg) {
-        Communication comm;
-        Config::parse_communication(&comm, comm_cfg, network);
-        policy->comms.push_back(std::move(comm));
-    }
+    Config::parse_connections(policy, config, network);
+    assert(policy->conn_specs.size() >= 1);
 }
 
-void Config::parse_multicommlbpolicy(
-    MulticommLBPolicy *policy,
+void Config::parse_loadbalancepolicy(
+    LoadBalancePolicy *policy,
     const std::shared_ptr<cpptoml::table>& config,
     const Network& network)
 {
     assert(policy != nullptr);
 
-    auto final_regex = config->get_as<std::string>("final_node");
+    auto target_node_regex = config->get_as<std::string>("target_node");
     auto max_vmr = config->get_as<double>("max_dispersion_index");
-    auto comms_cfg = config->get_table_array("communications");
 
-    if (!final_regex) {
-        Logger::error("Missing final node");
-    }
-    if (!comms_cfg) {
-        Logger::error("Missing communications");
+    if (!target_node_regex) {
+        Logger::error("Missing target_node");
     }
 
     for (const auto& node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(*final_regex))) {
-            policy->final_nodes.insert(node.second);
+        if (std::regex_match(node.first, std::regex(*target_node_regex))) {
+            policy->target_nodes.insert(node.second);
         }
     }
     policy->max_dispersion_index = max_vmr ? *max_vmr : 1;
-    for (const auto& comm_cfg : *comms_cfg) {
-        Communication comm;
-        Config::parse_communication(&comm, comm_cfg, network);
-        policy->comms.push_back(std::move(comm));
-    }
+    Config::parse_connections(policy, config, network);
+    assert(policy->conn_specs.size() >= 1);
 }
 
 void Config::parse_correlated_policies(
@@ -610,40 +599,7 @@ void Config::parse_correlated_policies(
         Logger::error("Missing correlated policies");
     }
 
-    for (const auto& cfg : *policies_config) {
-        Policy *correlated_policy = nullptr;
-
-        auto type = cfg->get_as<std::string>("type");
-        if (!type) {
-            Logger::error("Missing policy type");
-        }
-
-        if (*type == "loadbalance") {
-            correlated_policy = new LoadBalancePolicy(true);
-            Config::parse_loadbalancepolicy(
-                static_cast<LoadBalancePolicy *>(correlated_policy),
-                cfg, network);
-        } else if (*type == "reachability") {
-            correlated_policy = new ReachabilityPolicy(true);
-            Config::parse_reachabilitypolicy(
-                static_cast<ReachabilityPolicy *>(correlated_policy),
-                cfg, network);
-        } else if (*type == "reply-reachability") {
-            correlated_policy = new ReplyReachabilityPolicy(true);
-            Config::parse_replyreachabilitypolicy(
-                static_cast<ReplyReachabilityPolicy *>(correlated_policy),
-                cfg, network);
-        } else if (*type == "waypoint") {
-            correlated_policy = new WaypointPolicy(true);
-            Config::parse_waypointpolicy(
-                static_cast<WaypointPolicy *>(correlated_policy),
-                cfg, network);
-        } else {
-            Logger::error("Unsupported policy type: " + *type);
-        }
-
-        policy->correlated_policies.push_back(correlated_policy);
-    }
+    Config::parse_policy_array(policy->correlated_policies, true, policies_config, network);
 }
 
 void Config::parse_conditionalpolicy(
@@ -666,6 +622,64 @@ void Config::parse_consistencypolicy(
     parse_correlated_policies(policy, config, network);
 }
 
+void Config::parse_policy_array(
+    std::vector<Policy *>& policies,
+    bool correlated,
+    const std::shared_ptr<cpptoml::table_array>& policies_config,
+    const Network& network)
+{
+    for (const auto& cfg : *policies_config) {
+        Policy *policy = nullptr;
+
+        auto type = cfg->get_as<std::string>("type");
+        if (!type) {
+            Logger::error("Missing policy type");
+        }
+
+        if (*type == "reachability") {
+            policy = new ReachabilityPolicy(correlated);
+            Config::parse_reachabilitypolicy(
+                static_cast<ReachabilityPolicy *>(policy),
+                cfg, network);
+        } else if (*type == "reply-reachability") {
+            policy = new ReplyReachabilityPolicy(correlated);
+            Config::parse_replyreachabilitypolicy(
+                static_cast<ReplyReachabilityPolicy *>(policy),
+                cfg, network);
+        } else if (*type == "waypoint") {
+            policy = new WaypointPolicy(correlated);
+            Config::parse_waypointpolicy(
+                static_cast<WaypointPolicy *>(policy),
+                cfg, network);
+        } else if (!correlated && *type == "one-request") {
+            policy = new OneRequestPolicy();
+            Config::parse_onerequestpolicy(
+                static_cast<OneRequestPolicy *>(policy),
+                cfg, network);
+        } else if (!correlated && *type == "loadbalance") {
+            policy = new LoadBalancePolicy();
+            Config::parse_loadbalancepolicy(
+                static_cast<LoadBalancePolicy *>(policy),
+                cfg, network);
+        } else if (!correlated && *type == "conditional") {
+            policy = new ConditionalPolicy();
+            Config::parse_conditionalpolicy(
+                static_cast<ConditionalPolicy *>(policy),
+                cfg, network);
+        } else if (!correlated && *type == "consistency") {
+            policy = new ConsistencyPolicy();
+            Config::parse_consistencypolicy(
+                static_cast<ConsistencyPolicy *>(policy),
+                cfg, network);
+        } else {
+            Logger::error("Unknown policy type: " + *type);
+        }
+
+        assert(policy->conn_specs.size() <= MAX_CONNS);
+        policies.push_back(policy);
+    }
+}
+
 void Config::parse_policies(
     Policies *policies, const std::string& filename, const Network& network)
 {
@@ -673,61 +687,7 @@ void Config::parse_policies(
     auto policies_config = config->get_table_array("policies");
 
     if (policies_config) {
-        for (const auto& cfg : *policies_config) {
-            Policy *policy = nullptr;
-
-            auto type = cfg->get_as<std::string>("type");
-            if (!type) {
-                Logger::error("Missing policy type");
-            }
-
-            if (*type == "loadbalance") {
-                policy = new LoadBalancePolicy();
-                Config::parse_loadbalancepolicy(
-                    static_cast<LoadBalancePolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "reachability") {
-                policy = new ReachabilityPolicy();
-                Config::parse_reachabilitypolicy(
-                    static_cast<ReachabilityPolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "reply-reachability") {
-                policy = new ReplyReachabilityPolicy();
-                Config::parse_replyreachabilitypolicy(
-                    static_cast<ReplyReachabilityPolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "waypoint") {
-                policy = new WaypointPolicy();
-                Config::parse_waypointpolicy(
-                    static_cast<WaypointPolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "one-request") {
-                policy = new OneRequestPolicy();
-                Config::parse_onerequestpolicy(
-                    static_cast<OneRequestPolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "multicomm-lb") {
-                policy = new MulticommLBPolicy();
-                Config::parse_multicommlbpolicy(
-                    static_cast<MulticommLBPolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "conditional") {
-                policy = new ConditionalPolicy();
-                Config::parse_conditionalpolicy(
-                    static_cast<ConditionalPolicy *>(policy),
-                    cfg, network);
-            } else if (*type == "consistency") {
-                policy = new ConsistencyPolicy();
-                Config::parse_consistencypolicy(
-                    static_cast<ConsistencyPolicy *>(policy),
-                    cfg, network);
-            } else {
-                Logger::error("Unknown policy type: " + *type);
-            }
-
-            assert(policy->comms.size() <= MAX_COMMS);
-            policies->policies.push_back(policy);
-        }
+        Config::parse_policy_array(policies->policies, false, policies_config, network);
     }
 
     if (policies->policies.size() == 1) {
@@ -802,81 +762,5 @@ void Config::parse_openflow(OpenflowProcess *openflow,
         Logger::info("Loaded " + std::to_string(openflow->num_updates())
                      + " openflow updates for "
                      + std::to_string(openflow->num_nodes()) + " nodes");
-    }
-}
-
-static const std::regex ip_prefix_regex("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+");
-static const std::regex ip_regex("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+");
-static const std::regex ip_port_regex("[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+:[0-9]+");
-static const std::regex port_regex("[0-9]+");
-
-void Config::parse_netfilter(
-    const NetFilter *netfilter,
-    std::set<IPNetwork<IPv4Address>>& prefixes,
-    std::set<IPv4Address>& addrs,
-    std::set<uint16_t>& dst_ports)
-{
-    std::string line, token;
-    std::stringstream config(netfilter->rules);
-    while (std::getline(config, line)) {
-        if (line.empty() || line[0] != '-') {
-            continue;
-        }
-        std::stringstream line_ss(line);
-        while (std::getline(line_ss, token, ' ')) {
-            if (std::regex_match(token, ip_prefix_regex)) {
-                prefixes.insert(IPNetwork<IPv4Address>(token));
-            } else if (std::regex_match(token, ip_regex)) {
-                addrs.emplace(token);
-            } else if (std::regex_match(token, ip_port_regex)) {
-                size_t colon_pos = token.find(':');
-                addrs.emplace(token.substr(0, colon_pos));
-                dst_ports.insert(std::stoi(token.substr(colon_pos + 1)));
-            } else if (std::regex_match(token, port_regex)) {
-                dst_ports.insert(std::stoi(token));
-            }
-        }
-    }
-}
-
-void Config::parse_ipvs(
-    const IPVS *ipvs,
-    std::set<IPNetwork<IPv4Address>>& prefixes,
-    std::set<IPv4Address>& addrs,
-    std::set<uint16_t>& dst_ports)
-{
-    std::string line, token;
-    std::stringstream config(ipvs->config);
-    while (std::getline(config, line)) {
-        if (line.empty() || line[0] != '-') {
-            continue;
-        }
-        std::stringstream line_ss(line);
-        while (std::getline(line_ss, token, ' ')) {
-            if (std::regex_match(token, ip_prefix_regex)) {
-                prefixes.insert(IPNetwork<IPv4Address>(token));
-            } else if (std::regex_match(token, ip_regex)) {
-                addrs.emplace(token);
-            } else if (std::regex_match(token, ip_port_regex)) {
-                size_t colon_pos = token.find(':');
-                addrs.emplace(token.substr(0, colon_pos));
-                dst_ports.insert(std::stoi(token.substr(colon_pos + 1)));
-            } else if (std::regex_match(token, port_regex)) {
-                dst_ports.insert(std::stoi(token));
-            }
-        }
-    }
-}
-
-void Config::parse_appliance(
-    const MB_App *app,
-    std::set<IPNetwork<IPv4Address>>& prefixes,
-    std::set<IPv4Address>& addrs,
-    std::set<uint16_t>& dst_ports)
-{
-    if (typeid(*app) == typeid(NetFilter)) {
-        Config::parse_netfilter(static_cast<const NetFilter *>(app), prefixes, addrs, dst_ports);
-    } else if (typeid(*app) == typeid(IPVS)) {
-        Config::parse_ipvs(static_cast<const IPVS *>(app), prefixes, addrs, dst_ports);
     }
 }

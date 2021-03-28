@@ -39,7 +39,7 @@ private:
     void grow_and_set_l2_lan(Node *, Interface *);
 
 public:
-    Network() = default;
+    Network(OpenflowProcess *);
     Network(const Network&) = delete;
     Network(Network&&) = default;
     ~Network();
@@ -51,7 +51,6 @@ public:
     const std::set<Link *, LinkCompare>& get_links() const;
     const std::unordered_set<Middlebox *>& get_middleboxes() const;
 
-    void init(State *, OpenflowProcess *ofp = nullptr);
     void update_fib(State *);   // update FIB according to the current EC
 
     // The failure agent/process is not implemented yet, but if a link fails,
