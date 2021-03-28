@@ -78,7 +78,7 @@ void ForwardingProcess::first_collect(State *state)
 
 void ForwardingProcess::first_forward(State *state)
 {
-    if (PS_IS_FIRST(get_pkt_state(state))) {
+    if (PS_IS_FIRST(get_proto_state(state))) {
         // update the source IP address according to the egress interface
         Candidates *candidates = get_candidates(state);
         FIB_IPNH next_hop = candidates->at(state->choice);
@@ -150,7 +150,7 @@ void ForwardingProcess::forward_packet(State *state)
 
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
-        int proto_state = get_pkt_state(state);
+        int proto_state = get_proto_state(state);
         Node *current_node = get_pkt_location(state);
         Node *tx_node = get_tx_node(state);
         Node *rx_node = get_rx_node(state);
@@ -182,7 +182,7 @@ void ForwardingProcess::forward_packet(State *state)
 
 void ForwardingProcess::accepted(State *state, Network& network)
 {
-    int proto_state = get_pkt_state(state);
+    int proto_state = get_proto_state(state);
     switch (proto_state) {
         case PS_TCP_INIT_1:
             phase_transition(state, network, PS_TCP_INIT_2, true);
@@ -239,10 +239,10 @@ void ForwardingProcess::dropped(State *state) const
 }
 
 void ForwardingProcess::phase_transition(
-    State *state, Network& network, uint8_t next_pkt_state, bool change_direction)
+    State *state, Network& network, uint8_t next_proto_state, bool change_direction)
 {
-    int old_pkt_state = get_pkt_state(state);
-    set_pkt_state(state, next_pkt_state);
+    int old_proto_state = get_proto_state(state);
+    set_proto_state(state, next_proto_state);
     set_fwd_mode(state, fwd_mode::PACKET_ENTRY);
 
     // update packet EC, src IP, src/dst ports, and FIB
@@ -251,7 +251,7 @@ void ForwardingProcess::phase_transition(
         EqClass *old_ec = get_ec(state);
 
         // set the next EC
-        if (PS_IS_FIRST(old_pkt_state)) {
+        if (PS_IS_FIRST(old_proto_state)) {
             //policy->add_ec(state, src_ip);
         }
         EqClass *next_ec = policy->find_ec(state, src_ip);
@@ -274,13 +274,13 @@ void ForwardingProcess::phase_transition(
     }
 
     // compute seq and ack numbers
-    if (PS_IS_TCP(old_pkt_state)) {
+    if (PS_IS_TCP(old_proto_state)) {
         uint32_t seq = get_seq(state);
         uint32_t ack = get_ack(state);
         uint32_t payload_size = PayloadMgr::get().get_payload(state)->get_size();
         if (payload_size > 0) {
             seq += payload_size;
-        } else if (PS_HAS_SYN(old_pkt_state) || PS_HAS_FIN(old_pkt_state)) {
+        } else if (PS_HAS_SYN(old_proto_state) || PS_HAS_FIN(old_proto_state)) {
             seq += 1;
         }
         if (change_direction) {
@@ -396,7 +396,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
         assert(comm == state->comm); // same communication
 
         // convert TCP flags to the real proto_state
-        Net::get().convert_pkt_state(recv_pkt, get_pkt_state(state), change_direction);
+        Net::get().convert_proto_state(recv_pkt, get_proto_state(state), change_direction);
         Logger::info("Received packet: " + recv_pkt.to_string());
 
         // find the next hop
@@ -408,7 +408,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
         }
 
         // next phase (if the middlebox is not "in the middle")
-        if (PS_IS_NEXT(recv_pkt.get_pkt_state(), get_pkt_state(state))) {
+        if (PS_IS_NEXT(recv_pkt.get_proto_state(), get_proto_state(state))) {
             Logger::error("Next phase (not implemented yet)");
             // TODO: map back the packet content to the spin vector
             // src_ip, dst_ip, src_port, dst_port, seq, ack, proto_state
@@ -423,7 +423,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
 //            exec_step(state, network);  /* should be accepted by now */
 //
 //            // update seq and ack according to the received packet
-//            if (PS_HAS_SYN(recv_pkt.get_pkt_state())) {
+//            if (PS_HAS_SYN(recv_pkt.get_proto_state())) {
 //                uint32_t seq = recv_pkt.get_seq(), ack = recv_pkt.get_ack();
 //                set_seq(state, seq);
 //                set_ack(state, ack);
@@ -439,7 +439,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
     // if there is no response when the injected packet is destined to the
     // middlebox, assume the sent packet is accepted if it's an ACK
     if (next_hops.empty() && mb->has_ip(new_pkt->get_dst_ip())
-            && new_pkt->get_pkt_state() == PS_TCP_INIT_3) {
+            && new_pkt->get_proto_state() == PS_TCP_INIT_3) {
         next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
     }
 

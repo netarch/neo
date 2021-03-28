@@ -31,9 +31,9 @@ int ReachabilityPolicy::check_violation(State *state)
 {
     bool reached;
     int mode = get_fwd_mode(state);
-    int pkt_state = get_pkt_state(state);
+    int proto_state = get_proto_state(state);
 
-    if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(pkt_state)) {
+    if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(proto_state)) {
         reached = (target_nodes.count(get_rx_node(state)) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;

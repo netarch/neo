@@ -9,7 +9,7 @@
 
 Packet::Packet()
     : interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0), dst_port(0),
-      seq(0), ack(0), pkt_state(0), payload(nullptr)
+      seq(0), ack(0), proto_state(0), payload(nullptr)
 {
 }
 
@@ -22,54 +22,54 @@ Packet::Packet(State *state)
     this->src_ip = ::get_src_ip(state);
     this->dst_ip = ::get_ec(state)->representative_addr();
     // packet state
-    this->pkt_state = ::get_pkt_state(state);
+    this->proto_state = ::get_proto_state(state);
 
-    if (PS_IS_TCP(pkt_state)) {
+    if (PS_IS_TCP(proto_state)) {
         // TCP
         this->src_port = ::get_src_port(state);
         this->dst_port = ::get_dst_port(state);
         this->seq = ::get_seq(state);
         this->ack = ::get_ack(state);
         this->payload = PayloadMgr::get().get_payload(state);
-    } else if (PS_IS_UDP(pkt_state)) {
+    } else if (PS_IS_UDP(proto_state)) {
         // UDP
         this->src_port = ::get_src_port(state);
         this->dst_port = ::get_dst_port(state);
         this->payload = PayloadMgr::get().get_payload(state);
-    } else if (PS_IS_ICMP_ECHO(pkt_state)) {
+    } else if (PS_IS_ICMP_ECHO(proto_state)) {
         // ICMP (do nothing)
     } else {
-        Logger::error("Unsupported packet state " + std::to_string(pkt_state));
+        Logger::error("Unsupported packet state " + std::to_string(proto_state));
     }
 }
 
 Packet::Packet(Interface *intf)
     : interface(intf), src_ip(0U), dst_ip(0U), src_port(0), dst_port(0),
-      seq(0), ack(0), pkt_state(PS_ICMP_ECHO_REP), payload(nullptr)
+      seq(0), ack(0), proto_state(PS_ICMP_ECHO_REP), payload(nullptr)
 {
 }
 
 std::string Packet::to_string() const
 {
-    int pkt_state = this->pkt_state;
+    int proto_state = this->proto_state;
     std::string ret;
 
     if (interface) {
         ret += interface->to_string() + ": ";
     }
     ret += "{ " + src_ip.to_string();
-    if (PS_IS_TCP(pkt_state) || PS_IS_UDP(pkt_state)) {
+    if (PS_IS_TCP(proto_state) || PS_IS_UDP(proto_state)) {
         ret += ":" + std::to_string(src_port);
     }
     ret += " -> " + dst_ip.to_string();
-    if (PS_IS_TCP(pkt_state) || PS_IS_UDP(pkt_state)) {
+    if (PS_IS_TCP(proto_state) || PS_IS_UDP(proto_state)) {
         ret += ":" + std::to_string(dst_port);
     }
-    ret += " (state: " + std::to_string(pkt_state) + ")";
-    if (PS_IS_TCP(pkt_state)) {
+    ret += " (state: " + std::to_string(proto_state) + ")";
+    if (PS_IS_TCP(proto_state)) {
         ret += " [" + std::to_string(seq) + "/" + std::to_string(ack) + " (seq/ack)]";
     }
-    if (PS_IS_TCP(pkt_state) || PS_IS_UDP(pkt_state)) {
+    if (PS_IS_TCP(proto_state) || PS_IS_UDP(proto_state)) {
         ret += " payload size: " +
                (payload ? std::to_string(payload->get_size()) : std::string("0"));
     }
@@ -112,9 +112,9 @@ uint32_t Packet::get_ack() const
     return ack;
 }
 
-uint8_t Packet::get_pkt_state() const
+uint8_t Packet::get_proto_state() const
 {
-    return pkt_state;
+    return proto_state;
 }
 
 Payload *Packet::get_payload() const
@@ -128,7 +128,7 @@ void Packet::clear()
     src_ip = dst_ip = 0U;
     src_port = dst_port = 0;
     seq = ack = 0;
-    pkt_state = 0;
+    proto_state = 0;
     payload = nullptr;
 }
 
@@ -172,9 +172,9 @@ void Packet::set_ack_no(uint32_t n)
     ack = n;
 }
 
-void Packet::set_pkt_state(uint8_t s)
+void Packet::set_proto_state(uint8_t s)
 {
-    pkt_state = s;
+    proto_state = s;
 }
 
 bool operator==(const Packet& a, const Packet& b)
@@ -186,7 +186,7 @@ bool operator==(const Packet& a, const Packet& b)
             a.dst_port == b.dst_port &&
             a.seq == b.seq &&
             a.ack == b.ack &&
-            a.pkt_state == b.pkt_state &&
+            a.proto_state == b.proto_state &&
             a.payload == b.payload);
 }
 
@@ -200,7 +200,7 @@ size_t PacketHash::operator()(Packet *const& p) const
     hash::hash_combine(value, std::hash<uint16_t>()   (p->dst_port));
     hash::hash_combine(value, std::hash<uint32_t>()   (p->seq));
     hash::hash_combine(value, std::hash<uint32_t>()   (p->ack));
-    hash::hash_combine(value, std::hash<uint8_t>()    (p->pkt_state));
+    hash::hash_combine(value, std::hash<uint8_t>()    (p->proto_state));
     hash::hash_combine(value, std::hash<Payload *>()(p->payload));
     return value;
 }

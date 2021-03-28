@@ -27,9 +27,9 @@ void LoadBalancePolicy::init(State *state, const Network *network) const
 int LoadBalancePolicy::check_violation(State *state)
 {
     int mode = get_fwd_mode(state);
-    int pkt_state = get_pkt_state(state);
+    int proto_state = get_proto_state(state);
 
-    if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(pkt_state)) {
+    if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(proto_state)) {
         Node *rx_node = get_rx_node(state);
         if (final_nodes.count(rx_node)) {
             visited.insert(rx_node);

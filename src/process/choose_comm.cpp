@@ -12,7 +12,7 @@
 static bool is_finished(State *state, int comm)
 {
     return ((state->comm_state[comm].fwd_mode == fwd_mode::ACCEPTED &&
-             PS_IS_LAST(state->comm_state[comm].pkt_state)) ||
+             PS_IS_LAST(state->comm_state[comm].proto_state)) ||
             state->comm_state[comm].fwd_mode == fwd_mode::DROPPED);
 }
 

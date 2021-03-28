@@ -43,10 +43,10 @@ public:
      * It deserializes the buffer into packet. If the buffer is ill-formed, the
      * packet would be empty.
      * NOTE: if the packet is a TCP or UDP packet, it should later be passed to
-     * convert_pkt_state to fully deserialize the packet content.
+     * convert_proto_state to fully deserialize the packet content.
      */
     void deserialize(Packet&, const PktBuffer&) const;
-    void convert_pkt_state(Packet&, uint8_t old_pkt_state,
+    void convert_proto_state(Packet&, uint8_t old_proto_state,
                            bool change_direction) const;
 
     std::string mac_to_str(const uint8_t *) const;

@@ -57,9 +57,9 @@ int MulticommLBPolicy::check_violation(State *state)
 {
 
     int mode = get_fwd_mode(state);
-    int pkt_state = get_pkt_state(state);
+    int proto_state = get_proto_state(state);
 
-    if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(pkt_state)) {
+    if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(proto_state)) {
         Node *rx_node = get_rx_node(state);
         ReachCounts new_reach_counts(*get_reach_counts(state));
         new_reach_counts.increase(rx_node);
@@ -76,7 +76,7 @@ int MulticommLBPolicy::check_violation(State *state)
         set_reach_counts(state, std::move(new_reach_counts));
 
         // so that the communication won't be chosen
-        set_pkt_state(state, PS_LAST_PKT_STATE(pkt_state));
+        set_proto_state(state, PS_LAST_PKT_STATE(proto_state));
     }
 
     return POL_NULL;

@@ -30,10 +30,10 @@ int OneRequestPolicy::check_violation(State *state __attribute__((unused)))
 {
     //bool reached;
     //int mode = state->comm_state[state->comm].fwd_mode;
-    //uint8_t pkt_state = state->comm_state[state->comm].pkt_state;
+    //uint8_t proto_state = state->comm_state[state->comm].proto_state;
 
     //if (mode == fwd_mode::ACCEPTED &&
-    //        (pkt_state == PS_TCP_L7_REQ || pkt_state == PS_ICMP_ECHO_REQ)) {
+    //        (proto_state == PS_TCP_L7_REQ || proto_state == PS_ICMP_ECHO_REQ)) {
     //    Node *rx_node;
     //    memcpy(&rx_node, state->comm_state[state->comm].rx_node,
     //           sizeof(Node *));

@@ -36,7 +36,7 @@ class PayloadKey
 {
 private:
     EqClass *ec;
-    uint8_t pkt_state;
+    uint8_t proto_state;
 
     friend class PayloadMgr;
     friend class PayloadKeyHash;

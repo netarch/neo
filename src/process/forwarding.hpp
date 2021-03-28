@@ -45,7 +45,7 @@ private:
     void accepted(State *, Network&);
     void dropped(State *) const;
 
-    void phase_transition(State *, Network&, uint8_t next_pkt_state,
+    void phase_transition(State *, Network&, uint8_t next_proto_state,
                           bool change_direction);
     void identify_comm(State *, const Packet&, int& comm,
                        bool& change_direction) const;
