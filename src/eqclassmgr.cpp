@@ -6,6 +6,7 @@
 #include "network.hpp"
 #include "middlebox.hpp"
 #include "process/openflow.hpp"
+#include "lib/logger.hpp"
 
 EqClassMgr::~EqClassMgr()
 {
@@ -182,6 +183,7 @@ EqClass *EqClassMgr::find_ec(const IPv4Address& ip) const
 {
     auto it = allranges.find(ECRange(ip, ip));
     if (it == allranges.end()) {
+        Logger::error("Cannot find the EC of " + ip.to_string());
         return nullptr;
     }
     return it->get_ec();

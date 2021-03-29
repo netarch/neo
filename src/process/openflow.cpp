@@ -75,7 +75,7 @@ std::map<Node *, std::set<FIB_IPNH>> OpenflowProcess::get_installed_updates(
                                       State *state) const
 {
     std::map<Node *, std::set<FIB_IPNH>> installed_updates;
-    EqClass *ec = get_ec(state);
+    EqClass *ec = get_dst_ip_ec(state);
     OpenflowUpdateState *update_state = get_openflow_update_state(state);
 
     size_t node_order = 0;
@@ -135,7 +135,8 @@ void OpenflowProcess::init(State *state)
     set_openflow_update_state(state, OpenflowUpdateState(this->updates.size()));
 }
 
-void OpenflowProcess::exec_step(State *state, Network& network __attribute__((unused)))
+void OpenflowProcess::exec_step(State *state,
+        const Network& network __attribute__((unused)))
 {
     if (!enabled) {
         return;
@@ -187,7 +188,7 @@ void OpenflowProcess::install_update(State *state)
 
     // check route precedence (longest prefix match)
     RoutingTable of_rib = current_node->get_rib();
-    EqClass *ec = get_ec(state);
+    EqClass *ec = get_dst_ip_ec(state);
     for (size_t i = 0; i < num_installed; ++i) {
         if (all_updates[i].relevant_to_ec(*ec)) {
             of_rib.insert(all_updates[i]);

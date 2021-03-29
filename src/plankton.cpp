@@ -345,6 +345,7 @@ void Plankton::exec_step(State *state)
     this->check_to_switch_process(state);
 }
 
+// TODO: check execution logic
 void Plankton::check_to_switch_process(State *state) const
 {
     int process_id = get_process_id(state);

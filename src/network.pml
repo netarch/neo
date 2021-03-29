@@ -11,7 +11,7 @@ typedef conn_state_t {
     unsigned process_id : 2;                        /* executing process */
 
     /* flow information */
-    unsigned proto_state : 4;                       /* protocol state (orig. pkt_state) */
+    unsigned proto_state : 4;                       /* protocol state */
     int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int dst_ip_ec[SIZEOF_VOID_P / SIZEOF_INT];      /* (EqClass *) */
     unsigned src_port : 16;                         /* (uint16_t) */

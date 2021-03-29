@@ -70,5 +70,5 @@ public:
     bool has_updates(State *, Node *) const;
 
     void init(State *);
-    void exec_step(State *, Network&) override;
+    void exec_step(State *, const Network&) override;
 };

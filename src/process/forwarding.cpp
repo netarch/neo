@@ -3,9 +3,11 @@
 #include <cassert>
 #include <typeinfo>
 #include <utility>
+#include <optional>
 
 #include "candidates.hpp"
 #include "choices.hpp"
+#include "eqclassmgr.hpp"
 #include "fib.hpp"
 #include "middlebox.hpp"
 #include "network.hpp"
@@ -27,7 +29,7 @@ ForwardingProcess::~ForwardingProcess()
     }
 }
 
-void ForwardingProcess::init(State *state, Network& network)
+void ForwardingProcess::init(State *state, const Network& network)
 {
     if (!enabled) {
         return;
@@ -37,7 +39,7 @@ void ForwardingProcess::init(State *state, Network& network)
     set_pkt_hist(state, std::move(pkt_hist));
 }
 
-void ForwardingProcess::exec_step(State *state, Network& network)
+void ForwardingProcess::exec_step(State *state, const Network& network)
 {
     if (!enabled) {
         return;
@@ -61,7 +63,7 @@ void ForwardingProcess::exec_step(State *state, Network& network)
             accepted(state, network);
             break;
         case fwd_mode::DROPPED:
-            dropped(state);
+            state->choice_count = 0;
             break;
         default:
             Logger::error("Unknown forwarding mode: " + std::to_string(mode));
@@ -86,9 +88,7 @@ void ForwardingProcess::first_forward(State *state)
                       next_hop.get_l2_intf()->get_name()
                   ).second;
             set_src_ip(state, egress_intf->addr().get_value());
-        } else { // sender == receiver
-            set_src_ip(state, get_dst_ip_ec(state)->representative_addr().get_value());
-        }
+        } // else: sender == receiver
     }
 
     forward_packet(state);
@@ -109,7 +109,9 @@ void ForwardingProcess::collect_next_hops(State *state)
     }
 
     if (next_hops.empty()) {
-        dropped(state);
+        Logger::info("Packet dropped by " + current_node->to_string());
+        set_fwd_mode(state, fwd_mode::DROPPED);
+        state->choice_count = 0;
         return;
     }
 
@@ -119,8 +121,8 @@ void ForwardingProcess::collect_next_hops(State *state)
     std::optional<FIB_IPNH> choice = choices->get_choice(ec, current_node);
 
     // in case of multipath, use the past choice if it's been made
-    if (next_hops.size() > 1 && choice) {
-        candidates.add(choice.value());
+    if (next_hops.size() > 1 && choice && next_hops.count(*choice) > 0) {
+        candidates.add(*choice);
     } else {
         for (const FIB_IPNH& next_hop : next_hops) {
             candidates.add(next_hop);
@@ -153,7 +155,7 @@ void ForwardingProcess::forward_packet(State *state)
         Node *tx_node = get_tx_node(state);
         Node *rx_node = get_rx_node(state);
         if (PS_IS_FIRST(proto_state)) {
-            // store the original receiving endpoint of the communication
+            // store the original receiving endpoint of the connection
             set_rx_node(state, current_node);
         } else if (PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node) {
             Logger::error("Inconsistent endpoints (current_node != rx_node)");
@@ -174,7 +176,7 @@ void ForwardingProcess::forward_packet(State *state)
     }
 }
 
-void ForwardingProcess::accepted(State *state, Network& network)
+void ForwardingProcess::accepted(State *state, const Network& network)
 {
     int proto_state = get_proto_state(state);
     switch (proto_state) {
@@ -221,51 +223,14 @@ void ForwardingProcess::accepted(State *state, Network& network)
             state->choice_count = 0;
             break;
         default:
-            Logger::error("Unknown packet state " + std::to_string(proto_state));
+            Logger::error("Unknown protocol state " + std::to_string(proto_state));
     }
-}
-
-void ForwardingProcess::dropped(State *state) const
-{
-    Logger::info("Packet dropped by " + get_pkt_location(state)->to_string());
-    set_fwd_mode(state, fwd_mode::DROPPED);
-    state->choice_count = 0;
 }
 
 void ForwardingProcess::phase_transition(
-    State *state, Network& network, uint8_t next_proto_state, bool change_direction)
+    State *state, const Network& network, uint8_t next_proto_state, bool change_direction)
 {
     int old_proto_state = get_proto_state(state);
-    set_proto_state(state, next_proto_state);
-    set_fwd_mode(state, fwd_mode::PACKET_ENTRY);
-
-    // update packet EC, src IP, src/dst ports, and FIB
-    if (change_direction) {
-        uint32_t src_ip = get_src_ip(state);
-        EqClass *old_ec = get_dst_ip_ec(state);
-
-        // set the next EC
-        if (PS_IS_FIRST(old_proto_state)) {
-            //policy->add_ec(state, src_ip);
-        }
-        EqClass *next_ec = policy->find_ec(state, src_ip);
-        set_ec(state, next_ec);
-        Logger::info("EC: " + next_ec->to_string());
-
-        // set the next src IP
-        uint32_t next_src_ip = old_ec->representative_addr().get_value();
-        set_src_ip(state, next_src_ip);
-
-        // update src port and dst port
-        uint16_t src_port = get_src_port(state);
-        uint16_t dst_port = get_dst_port(state);
-        set_src_port(state, dst_port);
-        set_dst_port(state, src_port);
-        Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
-
-        // update FIB according to the new EC
-        network.update_fib(state);
-    }
 
     // compute seq and ack numbers
     if (PS_IS_TCP(old_proto_state)) {
@@ -284,20 +249,40 @@ void ForwardingProcess::phase_transition(
         set_ack(state, ack);
     }
 
-    // update candidates as the start node
-    Node *start_node = change_direction ? get_pkt_location(state) : get_src_node(state);
-    Candidates candidates;
-    candidates.add(FIB_IPNH(start_node, nullptr, start_node, nullptr));
-    set_candidates(state, std::move(candidates));
+    set_proto_state(state, next_proto_state);
 
-    set_src_node(state, nullptr);
+    // update src/dst IP, src node, src/dst ports, FIB, and pkt loc
+    if (change_direction) {
+        uint32_t src_ip = get_src_ip(state);
+        EqClass *dst_ip_ec = get_dst_ip_ec(state);
+        // the next src IP
+        set_src_ip(state, dst_ip_ec->representative_addr().get_value());
+        // the next dst IP EC
+        EqClass *next_dst_ip_ec = EqClassMgr::get().find_ec(src_ip);
+        set_dst_ip_ec(state, next_dst_ip_ec);
+        Logger::info("EC: " + next_dst_ip_ec->to_string());
+        // src node
+        set_src_node(state, get_pkt_location(state));
+        // src port and dst port
+        uint16_t src_port = get_src_port(state);
+        uint16_t dst_port = get_dst_port(state);
+        set_src_port(state, dst_port);
+        set_dst_port(state, src_port);
+        // FIB
+        network.update_fib(state);
+    } else {
+        set_pkt_location(state, get_src_node(state));
+    }
+
+    set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
     set_ingress_intf(state, nullptr);
+    reset_candidates(state);
 }
 
-void ForwardingProcess::identify_comm(
-    State *state, const Packet& pkt, int& comm, bool& change_direction) const
+void ForwardingProcess::identify_conn(
+    State *state, const Packet& pkt, int& conn, bool& change_direction) const
 {
-    for (comm = 0; comm < state->num_comms; ++comm) {
+    for (conn = 0; conn < state->num_conns; ++conn) {
         EqClass *ec = get_dst_ip_ec(state);
         uint32_t src_ip = get_src_ip(state);
         uint16_t src_port = get_src_port(state);
@@ -306,31 +291,31 @@ void ForwardingProcess::identify_comm(
         if (ec->contains(pkt.get_dst_ip()) && pkt.get_src_ip() == src_ip
                 && pkt.get_src_port() == src_port
                 && pkt.get_dst_port() == dst_port) {
-            // same communication, same direction
+            // same connection, same direction
             change_direction = false;
             return;
         } else if (ec->contains(pkt.get_src_ip()) && pkt.get_dst_ip() == src_ip
                    && pkt.get_dst_port() == src_port
                    && pkt.get_src_port() == dst_port) {
-            // same communication, different direction
+            // same connection, different direction
             change_direction = true;
             return;
         }
-        // TODO: match NAT'd packet to the original communication, by matching
+        // TODO: match NAT'd packet to the original connection, by matching
         // the seq/ack numbers?
     }
 
-    comm = -1;  // new communication or NAT
-    Logger::error("New communication or NAT (not implemented)");
+    conn = -1;  // new connection or NAT
+    Logger::error("New connection or NAT (not implemented)");
     //// NAT (network address translation)
     //// NOTE: we only handle the destination IP rewriting for now.
     //EqClass *ec;
-    //memcpy(&ec, state->comm_state[state->comm].ec, sizeof(EqClass *));
+    //memcpy(&ec, state->conn_state[state->conn].ec, sizeof(EqClass *));
     //if (!ec->contains(recv_pkt.get_dst_ip())) {
     //    // set the next EC
     //    policy->add_ec(state, recv_pkt.get_dst_ip());
     //    EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
-    //    memcpy(state->comm_state[state->comm].ec, &next_ec, sizeof(EqClass *));
+    //    memcpy(state->conn_state[state->conn].ec, &next_ec, sizeof(EqClass *));
     //    Logger::info("NAT EC: " + next_ec->to_string());
     //    // update FIB according to the new EC
     //    network.update_fib(state);
@@ -341,7 +326,7 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
 {
     Stats::set_overall_lat_t1();
 
-    // check state's pkt_hist and rewind the middlebox state
+    // check out current pkt_hist and rewind the middlebox state
     PacketHistory *pkt_hist = get_pkt_hist(state);
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
     Stats::set_rewind_lat_t1();
@@ -383,11 +368,11 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
             continue;
         }
 
-        // identify communication
-        int comm;
+        // identify connection
+        int conn;
         bool change_direction;
-        identify_comm(state, recv_pkt, comm, change_direction);
-        assert(comm == state->comm); // same communication
+        identify_conn(state, recv_pkt, conn, change_direction);
+        assert(conn == state->conn); // same connection
 
         // convert TCP flags to the real proto_state
         Net::get().convert_proto_state(recv_pkt, get_proto_state(state), change_direction);
@@ -424,9 +409,9 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
 //            }
 //
 //            // update src_node and ingress_intf (as in packet_entry)
-//            memcpy(state->comm_state[state->comm].src_node, mb, sizeof(Node *));
+//            memcpy(state->conn_state[state->conn].src_node, mb, sizeof(Node *));
 //            Interface *ingress_intf = recv_pkt.get_intf();
-//            memcpy(state->comm_state[state->comm].ingress_intf, &ingress_intf, sizeof(Interface *));
+//            memcpy(state->conn_state[state->conn].ingress_intf, &ingress_intf, sizeof(Interface *));
         }
     }
 

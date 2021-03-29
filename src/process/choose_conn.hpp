@@ -15,5 +15,5 @@ public:
     bool has_other_conns(State *) const;
     void update_choice_count(State *) const;
 
-    void exec_step(State *, Network&) override;
+    void exec_step(State *, const Network&) override;
 };

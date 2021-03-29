@@ -1,33 +1,31 @@
 #pragma once
 
 #include <unordered_set>
-#include <optional>
 
 #include "process/process.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
-class Policy;
 class Network;
 class FIB_IPNH;
 class Middlebox;
 struct State;
 
-enum fwd_mode {
-    FIRST_COLLECT,
-    FIRST_FORWARD,
-    COLLECT_NHOPS,
-    FORWARD_PACKET,
-    ACCEPTED,
-    DROPPED
-};
-
-/* TODO:
+/* TODO (check execution logic):
  * fwd 1st step: collect next hops and choose the collected next hops with spin
  * by updating candidates (then continue to the 2nd step without looking at
  * other processes)
  * fwd 2nd step: forward packet and update the ingress interface (allow
  * non-deterministic execution of other processes after this step)
  */
+
+enum fwd_mode {
+    FIRST_COLLECT,  // -> FIRST_FORWARD
+    FIRST_FORWARD,  // -> COLLECT_NHOPS, ACCEPTED
+    COLLECT_NHOPS,  // -> FORWARD_PACKET, DROPPED
+    FORWARD_PACKET, // -> COLLECT_NHOPS, ACCEPTED
+    ACCEPTED,       // -> FIRST_COLLECT, (end)
+    DROPPED         // -> (end)
+};
 
 class ForwardingProcess : public Process
 {
@@ -42,12 +40,11 @@ private:
     void first_forward(State *);
     void collect_next_hops(State *);
     void forward_packet(State *);
-    void accepted(State *, Network&);
-    void dropped(State *) const;
+    void accepted(State *, const Network&);
 
-    void phase_transition(State *, Network&, uint8_t next_proto_state,
+    void phase_transition(State *, const Network&, uint8_t next_proto_state,
                           bool change_direction);
-    void identify_comm(State *, const Packet&, int& comm,
+    void identify_conn(State *, const Packet&, int& conn,
                        bool& change_direction) const;
     std::set<FIB_IPNH> inject_packet(State *, Middlebox *);
 
@@ -55,6 +52,6 @@ public:
     ForwardingProcess() = default;
     ~ForwardingProcess();
 
-    void init(State *, Network&);
-    void exec_step(State *, Network&) override;
+    void init(State *, const Network&);
+    void exec_step(State *, const Network&) override;
 };

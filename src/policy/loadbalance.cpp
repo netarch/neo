@@ -72,7 +72,7 @@ int LoadBalancePolicy::check_violation(State *state)
         }
         set_reach_counts(state, std::move(new_reach_counts));
 
-        // so that the communication won't be chosen
+        // so that the connection won't be chosen
         set_proto_state(state, PS_LAST_PKT_STATE(proto_state));
         // TODO: is_executable = false
     }

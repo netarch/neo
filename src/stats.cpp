@@ -62,13 +62,12 @@ void Stats::output_policy_stats(int nodes, int links, Policy *policy)
         Logger::error("Failed to open " + filename);
     }
 
-    outfile << "# of nodes, # of links, Policy, # of ECs, # of communications, "
+    outfile << "# of nodes, # of links, Policy, # of connection ECs, "
             "Time (microseconds), Memory (kilobytes)" << std::endl
             << nodes << ", "
             << links << ", "
             << policy->get_id() << ", "
-            << policy->num_ecs() << ", "
-            << policy->num_comms() << ", "
+            << policy->num_conn_ecs() << ", "
             << policy_time.count() << ", "
             << policy_maxrss << std::endl;
 }
