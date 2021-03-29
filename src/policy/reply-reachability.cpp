@@ -1,23 +1,20 @@
 #include "policy/reply-reachability.hpp"
 
 #include "node.hpp"
-#include "packet.hpp"
+#include "protocols.hpp"
 #include "process/forwarding.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
 std::string ReplyReachabilityPolicy::to_string() const
 {
-    std::string ret = "reply-reachability " + comms[0].start_nodes_str();
-    ret += " -> [";
-    for (Node *node : query_nodes) {
+    std::string ret = "Reply-reachability:\n"
+        "\treachable: " + std::to_string(reachable) + "\n"
+        "\ttarget_nodes: [";
+    for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
-    if (reachable) {
-        ret += " ] ---> original sender";
-    } else {
-        ret += " ] -X-> original sender";
-    }
+    ret += " ]\n\t" + conns_str();
     return ret;
 }
 
@@ -37,7 +34,7 @@ int ReplyReachabilityPolicy::check_violation(State *state)
             (PS_IS_ICMP_ECHO(proto_state) && proto_state < PS_ICMP_ECHO_REP)) {
         // request
         Node *rx_node = get_rx_node(state);
-        if ((mode == fwd_mode::ACCEPTED && query_nodes.count(rx_node) == 0)
+        if ((mode == fwd_mode::ACCEPTED && target_nodes.count(rx_node) == 0)
                 || mode == fwd_mode::DROPPED) {
             // if the request is accepted by a wrong node or dropped
             state->violated = reachable;

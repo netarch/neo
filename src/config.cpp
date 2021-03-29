@@ -389,7 +389,7 @@ void Config::parse_conn_spec(
     auto src_node_regex = config->get_as<std::string>("src_node");
     auto dst_ip_str = config->get_as<std::string>("dst_ip");
     auto src_port = config->get_as<int>("src_port");
-    auto dst_ports = config->get_array_of<int>("dst_port");
+    auto dst_ports = config->get_array_of<int64_t>("dst_port");
     auto owned_dst_only = config->get_as<bool>("owned_dst_only");
 
     if (!proto_str) {

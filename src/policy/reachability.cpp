@@ -1,23 +1,21 @@
 #include "policy/reachability.hpp"
 
 #include "node.hpp"
-#include "packet.hpp"
+#include "network.hpp"
+#include "protocols.hpp"
 #include "process/forwarding.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
 std::string ReachabilityPolicy::to_string() const
 {
-    std::string ret = "reachability " + comms[0].start_nodes_str();
-    if (reachable) {
-        ret += " ---> [";
-    } else {
-        ret += " -X-> [";
-    }
+    std::string ret = "Reachability:\n"
+        "\treachable: " + std::to_string(reachable) + "\n"
+        "\ttarget_nodes: [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
-    ret += " ]";
+    ret += " ]\n\t" + conns_str();
     return ret;
 }
 

@@ -5,6 +5,7 @@
 
 #include "eqclass.hpp"
 #include "packet.hpp"
+#include "protocols.hpp"
 #include "lib/hash.hpp"
 #include "model-access.hpp"
 #include "model.h"
@@ -47,7 +48,7 @@ bool operator==(const Payload& a, const Payload& b)
 
 PayloadKey::PayloadKey(State *state)
 {
-    this->ec = get_ec(state);
+    this->ec = get_dst_ip_ec(state);
     this->proto_state = get_proto_state(state);
 }
 

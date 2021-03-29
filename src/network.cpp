@@ -56,7 +56,7 @@ void Network::grow_and_set_l2_lan(Node *node, Interface *interface)
     }
 }
 
-Network(OpenflowProcess *ofp): openflow(ofp)
+Network::Network(OpenflowProcess *ofp): openflow(ofp)
 {
 }
 
@@ -88,10 +88,10 @@ const std::unordered_set<Middlebox *>& Network::get_middleboxes() const
     return middleboxes;
 }
 
-void Network::update_fib(State *state)
+void Network::update_fib(State *state) const
 {
     FIB fib;
-    EqClass *ec = get_ec(state);
+    EqClass *ec = get_dst_ip_ec(state);
     IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops from routing tables

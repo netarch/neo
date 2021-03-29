@@ -216,7 +216,7 @@ void Plankton::verify_policy(Policy *policy)
     Logger::info("====================");
     Logger::info(std::to_string(policy->get_id()) + ". Verifying policy "
                  + policy->to_string());
-    Logger::info("Connection ECs: " + std::to_string(policy->num_conns()));
+    Logger::info("Connection ECs: " + std::to_string(policy->num_conn_ecs()));
 
     Stats::set_policy_t1();
 
@@ -297,24 +297,62 @@ void Plankton::initialize(State *state)
     forwarding.init(state, network);
     openflow.init(state);   // openflow has to be initialized before fib
 
-    // policy (also initializes all per-connection states)
+    // policy (also initializes all connection states)
     policy->init(state, &network);
 
     // execution logic
     set_choice(state, 0);
     set_choice_count(state, 1);
-    set_conn(state, 0);
-    set_num_conns(state, policy->get_conns().size());
 }
 
-void Plankton::process_switch(State *state) const
+void Plankton::reinit(State *state)
+{
+    // processes
+    forwarding.init(state, network);
+    openflow.init(state);   // openflow has to be initialized before fib
+
+    // policy (also initializes all connection states)
+    policy->reinit(state, &network);
+
+    // execution logic
+    set_choice(state, 0);
+    set_choice_count(state, 1);
+}
+
+void Plankton::exec_step(State *state)
+{
+    int process_id = get_process_id(state);
+
+    switch (process_id) {
+        case pid::choose_conn: // choose the next connection
+            conn_choice.exec_step(state, network);
+            break;
+        case pid::forwarding:
+            forwarding.exec_step(state, network);
+            break;
+        case pid::openflow:
+            openflow.exec_step(state, network);
+            break;
+        default:
+            Logger::error("Unknown process id " + std::to_string(process_id));
+    }
+
+    int policy_result = policy->check_violation(state);
+    if (policy_result & POL_REINIT_DP) {
+        reinit(state);
+    }
+
+    this->check_to_switch_process(state);
+}
+
+void Plankton::check_to_switch_process(State *state) const
 {
     int process_id = get_process_id(state);
     int fwd_mode = get_fwd_mode(state);
     Node *current_node = get_pkt_location(state);
 
     switch (process_id) {
-        case pid::choose_comm:
+        case pid::choose_conn:
             if (state->choice_count == 1) {
                 set_process_id(state, pid::forwarding);
                 state->choice_count = 1;
@@ -328,9 +366,9 @@ void Plankton::process_switch(State *state) const
                 if (openflow.has_updates(state, current_node)) {
                     set_process_id(state, pid::openflow);
                     state->choice_count = 2; // whether to install an update or not
-                } else if (comm_choice.has_other_comms(state)) {
-                    set_process_id(state, pid::choose_comm);
-                    comm_choice.update_choice_count(state);
+                } else if (conn_choice.has_other_conns(state)) {
+                    set_process_id(state, pid::choose_conn);
+                    conn_choice.update_choice_count(state);
                 }
             }
             break;
@@ -343,32 +381,6 @@ void Plankton::process_switch(State *state) const
         default:
             Logger::error("Unknown process id " + std::to_string(process_id));
     }
-}
-
-void Plankton::exec_step(State *state)
-{
-    int process_id = get_process_id(state);
-
-    switch (process_id) {
-        case pid::choose_comm: // choose the next connection
-            comm_choice.exec_step(state, network);
-            break;
-        case pid::forwarding:
-            forwarding.exec_step(state, network);
-            break;
-        case pid::openflow:
-            openflow.exec_step(state, network);
-            break;
-        default:
-            Logger::error("Unknown process id " + std::to_string(process_id));
-    }
-
-    int policy_result = policy->check_violation(state);
-    this->process_switch(state);
-
-    //if (policy_result & POL_INIT_FWD) {
-    //    forwarding.init(state, network, policy);
-    //}
 }
 
 void Plankton::report(State *state)

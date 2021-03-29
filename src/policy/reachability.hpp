@@ -4,7 +4,6 @@
 
 #include "policy/policy.hpp"
 class Node;
-class Network;
 struct State;
 
 /*

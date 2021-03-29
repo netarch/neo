@@ -10,6 +10,7 @@
 #include "middlebox.hpp"
 #include "network.hpp"
 #include "payload.hpp"
+#include "protocols.hpp"
 #include "stats.hpp"
 #include "lib/net.hpp"
 #include "lib/logger.hpp"
@@ -34,9 +35,6 @@ void ForwardingProcess::init(State *state, Network& network)
 
     PacketHistory pkt_hist(network);
     set_pkt_hist(state, std::move(pkt_hist));
-
-    //Logger::info("EC: " + get_ec(state)->to_string());
-    //Logger::info("dst_port: " + std::to_string(get_dst_port(state)));
 }
 
 void ForwardingProcess::exec_step(State *state, Network& network)
@@ -89,7 +87,7 @@ void ForwardingProcess::first_forward(State *state)
                   ).second;
             set_src_ip(state, egress_intf->addr().get_value());
         } else { // sender == receiver
-            set_src_ip(state, get_ec(state)->representative_addr().get_value());
+            set_src_ip(state, get_dst_ip_ec(state)->representative_addr().get_value());
         }
     }
 
@@ -116,7 +114,7 @@ void ForwardingProcess::collect_next_hops(State *state)
     }
 
     Candidates candidates;
-    EqClass *ec = get_ec(state);
+    EqClass *ec = get_dst_ip_ec(state);
     Choices *choices = get_path_choices(state);
     std::optional<FIB_IPNH> choice = choices->get_choice(ec, current_node);
 
@@ -141,7 +139,7 @@ void ForwardingProcess::forward_packet(State *state)
     // in case of multipath, remember the path choice
     if (candidates->size() > 1) {
         Choices new_choices(*get_path_choices(state));
-        new_choices.add_choice(get_ec(state), current_node, candidates->at(state->choice));
+        new_choices.add_choice(get_dst_ip_ec(state), current_node, candidates->at(state->choice));
         set_path_choices(state, std::move(new_choices));
     }
 
@@ -158,13 +156,9 @@ void ForwardingProcess::forward_packet(State *state)
             // store the original receiving endpoint of the communication
             set_rx_node(state, current_node);
         } else if (PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node) {
-            Logger::warn("Inconsistent endpoints (current_node != rx_node)");
-            dropped(state);
-            return;
+            Logger::error("Inconsistent endpoints (current_node != rx_node)");
         } else if (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node) {
-            Logger::warn("Inconsistent endpoints (current_node != tx_node)");
-            dropped(state);
-            return;
+            Logger::error("Inconsistent endpoints (current_node != tx_node)");
         }
 
         Logger::info("Packet delivered at " + current_node->to_string());
@@ -248,7 +242,7 @@ void ForwardingProcess::phase_transition(
     // update packet EC, src IP, src/dst ports, and FIB
     if (change_direction) {
         uint32_t src_ip = get_src_ip(state);
-        EqClass *old_ec = get_ec(state);
+        EqClass *old_ec = get_dst_ip_ec(state);
 
         // set the next EC
         if (PS_IS_FIRST(old_proto_state)) {
@@ -304,7 +298,7 @@ void ForwardingProcess::identify_comm(
     State *state, const Packet& pkt, int& comm, bool& change_direction) const
 {
     for (comm = 0; comm < state->num_comms; ++comm) {
-        EqClass *ec = get_ec(state);
+        EqClass *ec = get_dst_ip_ec(state);
         uint32_t src_ip = get_src_ip(state);
         uint16_t src_port = get_src_port(state);
         uint16_t dst_port = get_dst_port(state);

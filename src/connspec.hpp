@@ -18,7 +18,6 @@ private:
     int                     protocol;
     std::set<Node *>        src_nodes;
     IPRange<IPv4Address>    dst_ip;
-    std::set<EqClass *>     dst_ip_ecs;
     uint16_t                src_port;
     std::set<uint16_t>      dst_ports;
     bool                    owned_dst_only;
@@ -30,5 +29,5 @@ private:
 public:
     ConnSpec(ConnSpec&&) = default;
     void update_policy_ecs() const;
-    std::set<Connection> compute_connections();
+    std::set<Connection> compute_connections() const;
 };

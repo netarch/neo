@@ -7,13 +7,13 @@ class Node;
 struct State;
 
 /*
- * For the specified communications, only one of the requests of those
- * communications should eventually be accepted by one of server_nodes.
+ * For the specified connections, only one of the requests of those connections
+ * should eventually be accepted by one of target_nodes.
  */
 class OneRequestPolicy : public Policy
 {
 private:
-    std::unordered_set<Node *> server_nodes;
+    std::unordered_set<Node *> target_nodes;
 
 private:
     friend class Config;

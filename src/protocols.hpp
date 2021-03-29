@@ -1,10 +1,20 @@
 #pragma once
 
+#include <string>
+
 enum proto {
     tcp,
     udp,
     icmp_echo
 };
+
+static inline std::string proto_str(int n)
+{
+    return n == proto::tcp ? "TCP" :
+        n == proto::udp ? "UDP" :
+        n == proto::icmp_echo ? "ICMP" :
+        "(unknown)";
+}
 
 /*
  * Protocol state

@@ -51,6 +51,7 @@ Interface *get_ingress_intf(State *);
 Interface *set_ingress_intf(State *, Interface *);
 Candidates *get_candidates(State *);
 Candidates *set_candidates(State *, Candidates&&);
+Candidates *reset_candidates(State *);
 // per-flow data plane state
 FIB *get_fib(State *);
 FIB *set_fib(State *, FIB&&);

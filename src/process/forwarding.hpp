@@ -55,6 +55,6 @@ public:
     ForwardingProcess() = default;
     ~ForwardingProcess();
 
-    void init(State *, Network&, Policy *);
+    void init(State *, Network&);
     void exec_step(State *, Network&) override;
 };

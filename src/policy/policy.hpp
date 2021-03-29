@@ -10,7 +10,7 @@ class Network;
 struct State;
 
 #define POL_NULL        0
-#define POL_INIT_FWD    1
+#define POL_REINIT_DP   1
 
 class Policy
 {
@@ -24,7 +24,6 @@ protected:
      * should be only one conn_spec within each correlated policy.
      */
     std::vector<Policy *> correlated_policies;
-    const Network *network;
 
 protected:
     friend class Config;
@@ -38,10 +37,13 @@ public:
     void compute_conn_matrix();
     bool set_conns();
     const std::vector<Connection>& get_conns() const;
+    std::string conns_str() const;
     void report(State *) const;
 
     virtual std::string to_string() const = 0;
     virtual void init(State *, const Network *) const;
+    // reinit should only be used by policies with correlated sub-policies
+    virtual void reinit(State *, const Network *) const;
     virtual int check_violation(State *) = 0;
 };
 

@@ -4,7 +4,7 @@
 
 #include "network.hpp"
 #include "policy/policy.hpp"
-#include "process/choose_comm.hpp"
+#include "process/choose_conn.hpp"
 #include "process/forwarding.hpp"
 #include "process/openflow.hpp"
 struct State;
@@ -19,7 +19,7 @@ private:
     Policies        policies;
 
     /* processes */
-    ChooseCommProcess   comm_choice;
+    ChooseConnProcess   conn_choice;
     ForwardingProcess   forwarding;
     OpenflowProcess     openflow;
 
@@ -29,7 +29,7 @@ private:
     Plankton();
     void verify_conn();
     void verify_policy(Policy *);
-    void process_switch(State *) const;
+    void check_to_switch_process(State *) const;
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -45,6 +45,7 @@ public:
 
     /***** functions used by the Promela network model *****/
     void initialize(State *);
+    void reinit(State *); // used by policies with correlated sub-policies
     void exec_step(State *);
     void report(State *);
     void verify_exit(int);

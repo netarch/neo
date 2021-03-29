@@ -5,21 +5,22 @@
 
 std::string ConsistencyPolicy::to_string() const
 {
-    std::string ret = "consistency of ";
+    std::string ret = "Consistency of:\n";
     for (Policy *p : correlated_policies) {
-        ret += p->to_string() + ", ";
+        ret += p->to_string() + "\n";
     }
-    ret.pop_back();
-    ret.pop_back();
     return ret;
 }
 
 void ConsistencyPolicy::init(State *state, const Network *network) const
 {
-    Policy::init(state, network);
-    set_violated(state, false);
     set_correlated_policy_idx(state, 0);
-    correlated_policies[0]->init(state, network);
+    correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
+}
+
+void ConsistencyPolicy::reinit(State *state, const Network *network) const
+{
+    correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
 }
 
 int ConsistencyPolicy::check_violation(State *state)
@@ -42,9 +43,7 @@ int ConsistencyPolicy::check_violation(State *state)
         // next subpolicy
         if ((size_t)state->correlated_policy_idx + 1 < correlated_policies.size()) {
             ++state->correlated_policy_idx;
-            state->choice_count = 1;
-            correlated_policies[state->correlated_policy_idx]->init(state);
-            return POL_INIT_FWD;
+            return POL_REINIT_DP;
         } else {    // we have checked all the subpolicies
             state->violated = false;
             state->choice_count = 0;

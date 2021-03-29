@@ -51,7 +51,7 @@ void EqClassMgr::split_intersected_ec(EqClass *ec, const ECRange& range, bool ow
         } // else: non-overlapped range, do nothing (stay in the original EC)
     }
 
-    assert(!new_ec.empty());
+    assert(!new_ec->empty());
     all_ECs.insert(new_ec);
     if (owned || owned_ECs.count(ec) > 0) {
         owned_ECs.insert(new_ec);

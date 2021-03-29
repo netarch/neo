@@ -18,7 +18,7 @@ void ConnectionMatrix::clear()
 
 void ConnectionMatrix::reset()
 {
-    for (i = 0; i < product.size(); ++i) {
+    for (size_t i = 0; i < product.size(); ++i) {
         itrs[i] = product[i].begin();
     }
     traversed_all = false;
@@ -30,7 +30,7 @@ void ConnectionMatrix::add(std::set<Connection>&& conns)
     itrs.push_back(product.back().begin());
 }
 
-std::vector<Connection> get_next_conns()
+std::vector<Connection> ConnectionMatrix::get_next_conns()
 {
     std::vector<Connection> conns;
 

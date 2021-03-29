@@ -2,6 +2,7 @@
 
 #include "eqclass.hpp"
 #include "interface.hpp"
+#include "protocols.hpp"
 #include "payload.hpp"
 #include "lib/hash.hpp"
 #include "model-access.hpp"
@@ -20,7 +21,7 @@ Packet::Packet(State *state)
     this->interface = ::get_ingress_intf(state);
     // IP
     this->src_ip = ::get_src_ip(state);
-    this->dst_ip = ::get_ec(state)->representative_addr();
+    this->dst_ip = ::get_dst_ip_ec(state)->representative_addr();
     // packet state
     this->proto_state = ::get_proto_state(state);
 

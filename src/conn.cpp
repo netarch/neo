@@ -1,18 +1,29 @@
-#include "comm.hpp"
+#include "conn.hpp"
 
+#include "network.hpp"
 #include "protocols.hpp"
 #include "process/process.hpp"
 #include "process/forwarding.hpp"
+#include "choices.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
-Connection::Connection()
-    : protocol(0), owned_dst_only(false), initial_ec(nullptr),
-      src_port(0), dst_port(0)
+Connection::Connection(int protocol, Node *src_node, EqClass *dst_ip_ec,
+                       uint16_t src_port, uint16_t dst_port)
+    : protocol(protocol), src_node(src_node), dst_ip_ec(dst_ip_ec),
+      src_port(src_port), dst_port(dst_port)
 {
 }
 
-void init(State *state, size_t conn_idx, const Network& network) const
+std::string Connection::to_string() const
+{
+    std::string ret = "[" + proto_str(protocol) + "] "
+        + src_node->get_name() + ":" + std::to_string(src_port)
+        + " --> " + dst_ip_ec->to_string() + ":" + std::to_string(dst_port);
+    return ret;
+}
+
+void Connection::init(State *state, size_t conn_idx, const Network& network) const
 {
     int orig_conn = get_conn(state);
     set_conn(state, conn_idx);
@@ -44,11 +55,44 @@ void init(State *state, size_t conn_idx, const Network& network) const
     set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
     set_pkt_location(state, src_node);
     set_ingress_intf(state, nullptr);
-    set_candidates(state, nullptr);
+    reset_candidates(state);
 
     network.update_fib(state);
     set_path_choices(state, Choices());
 
     // restore the original conn idx
     set_conn(state, orig_conn);
+}
+
+bool operator<(const Connection& a, const Connection& b)
+{
+    if (a.protocol < b.protocol) {
+        return true;
+    } else if (a.protocol > b.protocol) {
+        return false;
+    }
+
+    if (a.src_node < b.src_node) {
+        return true;
+    } else if (a.src_node > b.src_node) {
+        return false;
+    }
+
+    if (a.dst_ip_ec < b.dst_ip_ec) {
+        return true;
+    } else if (a.dst_ip_ec > b.dst_ip_ec) {
+        return false;
+    }
+
+    if (a.src_port < b.src_port) {
+        return true;
+    } else if (a.src_port > b.src_port) {
+        return false;
+    }
+
+    if (a.dst_port < b.dst_port) {
+        return true;
+    }
+
+    return false;
 }

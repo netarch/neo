@@ -4,7 +4,7 @@ class Network;
 struct State;
 
 enum pid {
-    choose_comm,
+    choose_conn,
     forwarding,
     openflow
 };

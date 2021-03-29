@@ -12,7 +12,7 @@
 #include "choices.hpp"
 #include "pkt-hist.hpp"
 #include "process/openflow.hpp"
-#include "policy/multiconn-lb.hpp"
+#include "policy/loadbalance.hpp"
 #include "model.h"
 
 
@@ -65,7 +65,7 @@ bool get_is_executable(State *state)
 
 bool set_is_executable(State *state, bool is_executable)
 {
-    return state->conn_state[state->conn].is_executable = is_executable;
+    return (state->conn_state[state->conn].is_executable = is_executable);
 }
 
 int get_process_id(State *state)
@@ -255,6 +255,12 @@ Candidates *set_candidates(State *state, Candidates&& candidates)
     return new_candidates;
 }
 
+Candidates *reset_candidates(State *state)
+{
+    memset(state->conn_state[state->conn].candidates, 0, sizeof(Candidates *));
+    return nullptr;
+}
+
 FIB *get_fib(State *state)
 {
     FIB *fib;
@@ -378,7 +384,7 @@ bool get_violated(State *state)
 
 bool set_violated(State *state, bool violated)
 {
-    return state->violated = violated;
+    return (state->violated = violated);
 }
 
 int get_correlated_policy_idx(State *state)

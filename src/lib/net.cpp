@@ -14,6 +14,7 @@
 #include "packet.hpp"
 #include "payload.hpp"
 #include "pktbuffer.hpp"
+#include "protocols.hpp"
 #include "lib/logger.hpp"
 
 Net::Net()

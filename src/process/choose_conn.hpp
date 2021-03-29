@@ -5,14 +5,14 @@ class Network;
 struct State;
 
 /*
- * Choose the next communication non-deterministically
+ * Choose the next connection non-deterministically
  */
-class ChooseCommProcess : public Process
+class ChooseConnProcess : public Process
 {
 public:
-    ChooseCommProcess() = default;
+    ChooseConnProcess() = default;
 
-    bool has_other_comms(State *) const;
+    bool has_other_conns(State *) const;
     void update_choice_count(State *) const;
 
     void exec_step(State *, Network&) override;

@@ -1,5 +1,6 @@
 #include "policy/policy.hpp"
 
+#include <cassert>
 #include <csignal>
 #include <unistd.h>
 
@@ -100,6 +101,15 @@ const std::vector<Connection>& Policy::get_conns() const
     return conns;
 }
 
+std::string Policy::conns_str() const
+{
+    std::string ret = "concurrent connections:";
+    for (const Connection& conn : conns) {
+        ret += "\n\t" + conn.to_string();
+    }
+    return ret;
+}
+
 void Policy::report(State *state) const
 {
     if (get_violated(state)) {
@@ -112,12 +122,17 @@ void Policy::report(State *state) const
 
 void Policy::init(State *state, const Network *network) const
 {
-    this->network = network;
-
     // per-connection state
     for (size_t i = 0; i < conns.size(); ++i) {
         conns[i].init(state, i, *network);
     }
+    set_conn(state, 0);
+    set_num_conns(state, conns.size());
+}
+
+void Policy::reinit(State *state, const Network *network) const
+{
+    this->init(state, network);
 }
 
 /******************************************************************************/
