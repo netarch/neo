@@ -10,7 +10,7 @@
 
 EqClassMgr::~EqClassMgr()
 {
-    for (EqClass *const& ec : all_ECs) {
+    for (EqClass * const& ec : all_ECs) {
         delete ec;
     }
 }

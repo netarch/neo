@@ -42,8 +42,8 @@ void ChooseConnProcess::update_choice_count(State *state) const
     set_choice_count(state, active_conns);
 }
 
-void ChooseConnProcess::exec_step(State *state,
-        const Network& network __attribute__((unused)))
+void ChooseConnProcess::exec_step(
+    State *state, const Network& network __attribute__((unused)))
 {
     if (!enabled) {
         return;

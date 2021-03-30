@@ -28,8 +28,9 @@ Connection::Connection(const Packet& pkt, Node *src_node)
 std::string Connection::to_string() const
 {
     std::string ret = "[" + proto_str(protocol) + "] "
-        + src_node->get_name() + ":" + std::to_string(src_port)
-        + " --> " + dst_ip_ec->to_string() + ":" + std::to_string(dst_port);
+                      + src_node->get_name() + ":" + std::to_string(src_port)
+                      + " --> " + dst_ip_ec->to_string() + ":"
+                      + std::to_string(dst_port);
     return ret;
 }
 

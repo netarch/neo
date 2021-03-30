@@ -39,8 +39,8 @@ private:
     void phase_transition(State *, const Network&, uint8_t next_proto_state,
                           bool opposite_dir) const;
     void inject_packet(State *, Middlebox *, const Network&);
-    std::map<int, std::vector<Packet>> process_recv_pkts(
-            State *, Middlebox *, std::vector<Packet>&&, const Network&) const;
+    void process_recv_pkts(State *, Middlebox *, std::vector<Packet>&&,
+                           const Network&) const;
     void identify_conn(State *, const Packet&, int& conn, bool& is_new,
                        bool& opposite_dir, bool& next_phase) const;
     void check_seq_ack(State *, const Packet&, int conn, bool is_new,

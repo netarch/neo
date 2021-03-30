@@ -12,8 +12,9 @@
 std::string LoadBalancePolicy::to_string() const
 {
     std::string ret = "Loadbalance:\n"
-        "\tmax_dispersion_index: " + std::to_string(max_dispersion_index) + "\n"
-        "\ttarget_nodes: [";
+                      "\tmax_dispersion_index: "
+                      + std::to_string(max_dispersion_index) + "\n"
+                      "\ttarget_nodes: [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }

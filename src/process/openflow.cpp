@@ -135,8 +135,8 @@ void OpenflowProcess::init(State *state)
     set_openflow_update_state(state, OpenflowUpdateState(this->updates.size()));
 }
 
-void OpenflowProcess::exec_step(State *state,
-        const Network& network __attribute__((unused)))
+void OpenflowProcess::exec_step(
+    State *state, const Network& network __attribute__((unused)))
 {
     if (!enabled) {
         return;

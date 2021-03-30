@@ -61,10 +61,10 @@ private:
     static void parse_reachabilitypolicy(ReachabilityPolicy *,
                                          const std::shared_ptr<cpptoml::table>&,
                                          const Network&);
-    static void parse_replyreachabilitypolicy(
-            ReplyReachabilityPolicy *,
-            const std::shared_ptr<cpptoml::table>&,
-            const Network&);
+    static void
+    parse_replyreachabilitypolicy(ReplyReachabilityPolicy *,
+                                  const std::shared_ptr<cpptoml::table>&,
+                                  const Network&);
     static void parse_waypointpolicy(WaypointPolicy *,
                                      const std::shared_ptr<cpptoml::table>&,
                                      const Network&);

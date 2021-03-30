@@ -301,7 +301,7 @@ void Plankton::initialize(State *state)
     // policy (also initializes all connection states)
     policy->init(state, &network);
 
-    // execution logic
+    // control logic
     set_choice(state, 0);
     set_choice_count(state, 1);
 }
@@ -315,7 +315,7 @@ void Plankton::reinit(State *state)
     // policy (also initializes all connection states)
     policy->reinit(state, &network);
 
-    // execution logic
+    // control logic
     set_choice(state, 0);
     set_choice_count(state, 1);
 }
@@ -346,7 +346,7 @@ void Plankton::exec_step(State *state)
     this->check_to_switch_process(state);
 }
 
-// TODO: check execution logic
+// TODO: check control logic
 void Plankton::check_to_switch_process(State *state) const
 {
     int process_id = get_process_id(state);

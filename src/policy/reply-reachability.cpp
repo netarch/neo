@@ -9,8 +9,8 @@
 std::string ReplyReachabilityPolicy::to_string() const
 {
     std::string ret = "Reply-reachability:\n"
-        "\treachable: " + std::to_string(reachable) + "\n"
-        "\ttarget_nodes: [";
+                      "\treachable: " + std::to_string(reachable) + "\n"
+                      "\ttarget_nodes: [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }

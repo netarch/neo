@@ -10,8 +10,8 @@
 std::string ReachabilityPolicy::to_string() const
 {
     std::string ret = "Reachability:\n"
-        "\treachable: " + std::to_string(reachable) + "\n"
-        "\ttarget_nodes: [";
+                      "\treachable: " + std::to_string(reachable) + "\n"
+                      "\ttarget_nodes: [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }

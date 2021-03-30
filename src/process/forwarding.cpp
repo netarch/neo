@@ -317,9 +317,7 @@ void ForwardingProcess::inject_packet(
 
     // inject packet
     std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
-    std::map<int, std::vector<Packet>> conn_to_pkts_map
-        = process_recv_pkts(state, mb, std::move(recv_pkts), network);
-    //update_conn_states(state, conn_to_pkts_map); // next hop candidates (and fwd_modes)
+    process_recv_pkts(state, mb, std::move(recv_pkts), network);
 
     //// logging
     //std::string nhops_str;
@@ -333,13 +331,10 @@ void ForwardingProcess::inject_packet(
     Stats::set_overall_latency();
 }
 
-// Note: later when switching connection to one with fwd_mode::FORWARD_PACKET,
-// remember to update choice_count according to the candidate size
-
 /*
  * No multicast.
  */
-std::map<int, std::vector<Packet>> ForwardingProcess::process_recv_pkts(
+void ForwardingProcess::process_recv_pkts(
     State *state, Middlebox *mb, std::vector<Packet>&& recv_pkts,
     const Network& network) const
 {
@@ -363,7 +358,7 @@ std::map<int, std::vector<Packet>> ForwardingProcess::process_recv_pkts(
                      + recv_pkt.to_string());
         conn_to_pkts_map[conn].push_back(recv_pkt);
 
-        // map the packet info (5-tuple + seq/ack + FIB + execution logic) back
+        // map the packet info (5-tuple + seq/ack + FIB + control logic) back
         // to the system state
         recv_pkt.update_conn(state, conn, network);
 
@@ -413,6 +408,24 @@ std::map<int, std::vector<Packet>> ForwardingProcess::process_recv_pkts(
     }
 
     // control logic
+    // is_executable, conn, choice_count
+    // TODO: if the current_conn is executable, continue executing this conn;
+    // otherwise, pick another executable conn to run.
+    //int current_conn = get_conn(state), active_conn;
+    //if (conn_to_pkts_map.empty()) {
+    //    // dropped
+    //    Logger::info("Packet dropped by " + mb->to_string());
+    //    set_fwd_mode(state, fwd_mode::DROPPED);
+    //    set_is_executable(state, false);
+    //    //state->choice_count = 0;
+    //    //return;
+    //} else if (conn_to_pkts_map.count(current_conn) == 0) {
+    //    // paused
+    //    set_is_executable(state, false);
+    //    active_conn = conn_to_pkts_map.begin()->first;
+    //} else {
+    //    active_conn = current_conn;
+    //}
 
     // if there is no response when the injected packet is destined to the
     // middlebox, assume the sent packet is accepted if it's an ACK
@@ -421,7 +434,9 @@ std::map<int, std::vector<Packet>> ForwardingProcess::process_recv_pkts(
     //    next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
     //}
 
-    return conn_to_pkts_map;
+// Note: later when switching connection to one with fwd_mode::FORWARD_PACKET,
+// remember to update choice_count according to the candidate size
+
 }
 
 /*
@@ -459,10 +474,10 @@ void ForwardingProcess::identify_conn(
             }
             return;
         } else if (pkt.get_dst_ip() == src_ip
-                && dst_ip_ec->contains(pkt.get_src_ip())
-                && pkt.get_dst_port() == src_port
-                && pkt.get_src_port() == dst_port
-                && PS_SAME_PROTO(pkt.get_proto_state(), proto_state)) {
+                   && dst_ip_ec->contains(pkt.get_src_ip())
+                   && pkt.get_dst_port() == src_port
+                   && pkt.get_src_port() == dst_port
+                   && PS_SAME_PROTO(pkt.get_proto_state(), proto_state)) {
             // same connection, opposite direction
             opposite_dir = true;
             if (pkt.get_proto_state() == proto_state + 1) {

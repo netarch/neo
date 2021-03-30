@@ -111,6 +111,8 @@ void Packet::update_conn(State *state, int conn, const Network& network) const
     int orig_conn = get_conn(state);
     set_conn(state, conn);
 
+    EqClass *old_dst_ip_ec = ::get_dst_ip_ec(state);
+
     ::set_is_executable(state, true);
     ::set_process_id(state, pid::forwarding);
 
@@ -122,7 +124,9 @@ void Packet::update_conn(State *state, int conn, const Network& network) const
     ::set_seq(state, seq);
     ::set_ack(state, ack);
 
-    network.update_fib(state);
+    if (old_dst_ip_ec != ::get_dst_ip_ec(state)) {
+        network.update_fib(state);
+    }
 
     set_conn(state, orig_conn);
 }

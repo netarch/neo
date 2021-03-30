@@ -16,7 +16,7 @@ struct State;
 
 /* per-connection state variables */
 
-// execution logic
+// control logic
 bool get_is_executable(State *);
 bool set_is_executable(State *, bool);
 int get_process_id(State *);
@@ -61,7 +61,7 @@ Choices *set_path_choices(State *, Choices&&);
 
 /* non-connection specific, system-wide state variables */
 
-// execution logic
+// control logic
 int get_choice(State *);
 int set_choice(State *, int);
 int get_choice_count(State *);

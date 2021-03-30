@@ -11,9 +11,9 @@ enum proto {
 static inline std::string proto_str(int n)
 {
     return n == proto::tcp ? "TCP" :
-        n == proto::udp ? "UDP" :
-        n == proto::icmp_echo ? "ICMP" :
-        "(unknown)";
+           n == proto::udp ? "UDP" :
+           n == proto::icmp_echo ? "ICMP" :
+           "(unknown)";
 }
 
 /*

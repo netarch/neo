@@ -6,9 +6,10 @@
  */
 
 typedef conn_state_t {
-    /* execution logic */
+    /* control logic */
     bool is_executable;
     unsigned process_id : 2;                        /* executing process */
+    /* TODO: move process_id outside of conn_state */
 
     /* flow information */
     unsigned proto_state : 4;                       /* protocol state */
@@ -36,7 +37,7 @@ typedef conn_state_t {
 /* connection state */
 conn_state_t conn_state[MAX_CONNS];
 
-/* execution logic */
+/* control logic */
 int choice;                 /* non-determinisic selection result */
 int choice_count;           /* non-determinisic selection range [0, choice_count) */
 int conn;                   /* index of the currently active connection */
