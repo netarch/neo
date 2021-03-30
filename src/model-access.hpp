@@ -16,6 +16,8 @@ struct State;
 
 /* per-connection state variables */
 
+void print_conn_states(State *);
+
 // control logic
 bool get_is_executable(State *);
 bool set_is_executable(State *, bool);

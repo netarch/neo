@@ -105,6 +105,5 @@ void Network::update_fib(State *state) const
         fib.set_ipnhs(pair.first, std::move(pair.second));
     }
 
-    FIB *new_fib = set_fib(state, std::move(fib));
-    Logger::debug(new_fib->to_string());
+    set_fib(state, std::move(fib));
 }

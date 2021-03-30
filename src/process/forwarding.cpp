@@ -172,6 +172,8 @@ void ForwardingProcess::forward_packet(State *state)
                      + ingress_intf->to_string());
         set_fwd_mode(state, fwd_mode::COLLECT_NHOPS);
         state->choice_count = 1;
+
+        // TODO: change process_id if necessary?
     }
 }
 

@@ -4,15 +4,17 @@
 #include <utility>
 #include <unordered_set>
 
-#include "eqclass.hpp"
-#include "node.hpp"
-#include "interface.hpp"
 #include "candidates.hpp"
-#include "fib.hpp"
 #include "choices.hpp"
+#include "eqclass.hpp"
+#include "fib.hpp"
+#include "interface.hpp"
+#include "node.hpp"
 #include "pkt-hist.hpp"
+#include "protocols.hpp"
 #include "process/openflow.hpp"
 #include "policy/loadbalance.hpp"
+#include "lib/logger.hpp"
 #include "model.h"
 
 
@@ -57,6 +59,29 @@ VariableHist::~VariableHist()
 
 static VariableHist storage;
 
+
+void print_conn_states(State *state)
+{
+    Logger::info("Current connections:");
+    int orig_conn = get_conn(state);
+    for (int conn = 0; conn < get_num_conns(state); ++conn) {
+        set_conn(state, conn);
+        uint32_t src_ip = get_src_ip(state);
+        std::string str = (conn == orig_conn ? "  * " : "  - ")
+            + std::to_string(conn)
+            + ": [" + std::string(PS_STR(get_proto_state(state)))
+            + ":" + std::to_string(get_proto_state(state)) + "] "
+            + get_src_node(state)->get_name() + "("
+            + (src_ip == 0 ? std::string("null") : IPv4Address(src_ip).to_string())
+            + "):" + std::to_string(get_src_port(state))
+            + " --> " + get_dst_ip_ec(state)->to_string() + ":"
+            + std::to_string(get_dst_port(state))
+            + " (loc: " + get_pkt_location(state)->get_name() + ") executable: "
+            + std::string(get_is_executable(state) ? "true" : "false");
+        Logger::info(str);
+    }
+    set_conn(state, orig_conn);
+}
 
 bool get_is_executable(State *state)
 {

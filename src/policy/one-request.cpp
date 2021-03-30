@@ -8,12 +8,11 @@
 
 std::string OneRequestPolicy::to_string() const
 {
-    std::string ret = "One-request:\n"
-                      "\ttarget_nodes: [";
+    std::string ret = "One-request: [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
-    ret += " ]\n\t" + conns_str();
+    ret += " ]";
     return ret;
 }
 

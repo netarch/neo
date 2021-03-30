@@ -103,10 +103,11 @@ const std::vector<Connection>& Policy::get_conns() const
 
 std::string Policy::conns_str() const
 {
-    std::string ret = "concurrent connections:";
+    std::string ret;
     for (const Connection& conn : conns) {
-        ret += "\n\t" + conn.to_string();
+        ret += conn.to_string() + "\n";
     }
+    ret.pop_back();
     return ret;
 }
 
@@ -128,6 +129,8 @@ void Policy::init(State *state, const Network *network) const
     }
     set_conn(state, 0);
     set_num_conns(state, conns.size());
+
+    print_conn_states(state);
 }
 
 void Policy::reinit(State *state, const Network *network) const

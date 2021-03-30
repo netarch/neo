@@ -98,3 +98,9 @@ static inline std::string proto_str(int n)
         PS_IS_TCP(x) ? proto::tcp :                     \
         (PS_IS_UDP(x) ? proto::udp : proto::icmp_echo)  \
 )
+#define PS_STR(x) (                     \
+        PS_IS_TCP(x) ? "TCP" :          \
+        (PS_IS_UDP(x) ? "UDP" :         \
+         (PS_IS_ICMP_ECHO(x) ? "ICMP" : \
+          "(unknown)"))                 \
+)

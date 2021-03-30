@@ -343,7 +343,7 @@ void Plankton::exec_step(State *state)
         reinit(state);
     }
 
-    this->check_to_switch_process(state);
+    //this->check_to_switch_process(state);
 }
 
 // TODO: check control logic
@@ -361,8 +361,7 @@ void Plankton::check_to_switch_process(State *state) const
             }
             break;
         case pid::forwarding:
-            if (fwd_mode == fwd_mode::FIRST_COLLECT ||
-                    fwd_mode == fwd_mode::COLLECT_NHOPS ||
+            if (fwd_mode == fwd_mode::COLLECT_NHOPS ||
                     fwd_mode == fwd_mode::ACCEPTED ||
                     fwd_mode == fwd_mode::DROPPED) {
                 if (openflow.has_updates(state, current_node)) {

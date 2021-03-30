@@ -8,13 +8,13 @@
 
 std::string WaypointPolicy::to_string() const
 {
-    std::string ret = "Waypoint:\n"
-                      "\tpass_through: " + std::to_string(pass_through) + "\n"
-                      "\ttarget_nodes: [";
+    std::string ret = "Waypoint (";
+    ret += pass_through ? "O" : "X";
+    ret += "): [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
-    ret += " ]\n\t" + conns_str();
+    ret += " ]";
     return ret;
 }
 
