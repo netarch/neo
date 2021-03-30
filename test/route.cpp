@@ -9,7 +9,7 @@
 
 TEST_CASE("route")
 {
-    Network network;
+    Network network(nullptr);
     const std::string input_filename = "networks/route.toml";
     REQUIRE_NOTHROW(Config::start_parsing(input_filename));
     REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));

@@ -7,7 +7,7 @@
 
 TEST_CASE("node")
 {
-    Network network;
+    Network network(nullptr);
     const std::string input_filename = "networks/node.toml";
     REQUIRE_NOTHROW(Config::start_parsing(input_filename));
     REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));
