@@ -402,7 +402,7 @@ std::map<int, std::vector<Packet>> ForwardingProcess::process_recv_pkts(
         Candidates candidates;
         FIB_IPNH next_hop = mb->get_ipnh(recv_pkt.get_intf()->get_name(),
                                          recv_pkt.get_dst_ip());
-        if (next_hop->get_l3_node()) {
+        if (next_hop.get_l3_node()) {
             candidates.add(next_hop);
         } else {
             Logger::warn("No next hop found");

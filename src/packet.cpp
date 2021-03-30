@@ -1,10 +1,11 @@
 #include "packet.hpp"
 
-#include "interface.hpp"
-#include "protocols.hpp"
-#include "payload.hpp"
-#include "network.hpp"
 #include "eqclassmgr.hpp"
+#include "interface.hpp"
+#include "network.hpp"
+#include "payload.hpp"
+#include "protocols.hpp"
+#include "process/process.hpp"
 #include "lib/hash.hpp"
 #include "model-access.hpp"
 #include "model.h"
@@ -114,7 +115,7 @@ void Packet::update_conn(State *state, int conn, const Network& network) const
     ::set_process_id(state, pid::forwarding);
 
     ::set_proto_state(state, proto_state);
-    ::set_src_ip(state, src_ip);
+    ::set_src_ip(state, src_ip.get_value());
     ::set_dst_ip_ec(state, EqClassMgr::get().find_ec(dst_ip));
     ::set_src_port(state, src_port);
     ::set_dst_port(state, dst_port);

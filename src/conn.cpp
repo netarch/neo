@@ -1,6 +1,7 @@
 #include "conn.hpp"
 
 #include "packet.hpp"
+#include "eqclassmgr.hpp"
 #include "network.hpp"
 #include "protocols.hpp"
 #include "process/process.hpp"
@@ -12,7 +13,7 @@
 Connection::Connection(int protocol, Node *src_node, EqClass *dst_ip_ec,
                        uint16_t src_port, uint16_t dst_port)
     : protocol(protocol), src_node(src_node), dst_ip_ec(dst_ip_ec),
-      src_port(src_port), dst_port(dst_port), src_ip(0), seq(0), ack(0)
+      src_port(src_port), dst_port(dst_port), src_ip(0U), seq(0), ack(0)
 {
 }
 
@@ -51,7 +52,7 @@ void Connection::init(State *state, size_t conn_idx, const Network& network) con
         Logger::error("Unknown protocol: " + std::to_string(protocol));
     }
     set_proto_state(state, proto_state);
-    set_src_ip(state, src_ip.value());
+    set_src_ip(state, src_ip.get_value());
     set_dst_ip_ec(state, dst_ip_ec);
     set_src_port(state, src_port);
     set_dst_port(state, dst_port);
