@@ -48,13 +48,13 @@ void ForwardingProcess::exec_step(State *state, const Network& network)
     int mode = get_fwd_mode(state);
     switch (mode) {
         case fwd_mode::FIRST_COLLECT:
-            first_collect(state);
+            first_collect(state, network);
             break;
         case fwd_mode::FIRST_FORWARD:
             first_forward(state);
             break;
         case fwd_mode::COLLECT_NHOPS:
-            collect_next_hops(state);
+            collect_next_hops(state, network);
             break;
         case fwd_mode::FORWARD_PACKET:
             forward_packet(state);
@@ -70,9 +70,9 @@ void ForwardingProcess::exec_step(State *state, const Network& network)
     }
 }
 
-void ForwardingProcess::first_collect(State *state)
+void ForwardingProcess::first_collect(State *state, const Network& network)
 {
-    collect_next_hops(state);
+    collect_next_hops(state, network);
     set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
 }
 
@@ -94,20 +94,19 @@ void ForwardingProcess::first_forward(State *state)
     forward_packet(state);
 }
 
-void ForwardingProcess::collect_next_hops(State *state)
+void ForwardingProcess::collect_next_hops(State *state, const Network& network)
 {
-    std::set<FIB_IPNH> next_hops;
     Node *current_node = get_pkt_location(state);
 
-    if (typeid(*current_node) == typeid(Node)) {
-        // current_node is a Node; look up next hops from the fib
-        FIB *fib = get_fib(state);
-        next_hops = fib->lookup(current_node);
-    } else {
-        // current_node is a Middlebox; inject packet to get next hops
-        next_hops = inject_packet(state, static_cast<Middlebox *>(current_node));
+    if (typeid(*current_node) == typeid(Middlebox)) {
+        // current_node is a Middlebox; inject packet to update next hops
+        inject_packet(state, static_cast<Middlebox *>(current_node), network);
+        return;
     }
 
+    // current_node is a Node; look up next hops from FIB
+
+    std::set<FIB_IPNH> next_hops = get_fib(state)->lookup(current_node);
     if (next_hops.empty()) {
         Logger::info("Packet dropped by " + current_node->to_string());
         set_fwd_mode(state, fwd_mode::DROPPED);
@@ -228,7 +227,8 @@ void ForwardingProcess::accepted(State *state, const Network& network)
 }
 
 void ForwardingProcess::phase_transition(
-    State *state, const Network& network, uint8_t next_proto_state, bool change_direction)
+    State *state, const Network& network, uint8_t next_proto_state,
+    bool change_direction) const
 {
     int old_proto_state = get_proto_state(state);
 
@@ -236,7 +236,8 @@ void ForwardingProcess::phase_transition(
     if (PS_IS_TCP(old_proto_state)) {
         uint32_t seq = get_seq(state);
         uint32_t ack = get_ack(state);
-        uint32_t payload_size = PayloadMgr::get().get_payload(state)->get_size();
+        Payload *pl = PayloadMgr::get().get_payload(state);
+        uint32_t payload_size = pl ? pl->get_size() : 0;
         if (payload_size > 0) {
             seq += payload_size;
         } else if (PS_HAS_SYN(old_proto_state) || PS_HAS_FIN(old_proto_state)) {
@@ -279,50 +280,8 @@ void ForwardingProcess::phase_transition(
     reset_candidates(state);
 }
 
-void ForwardingProcess::identify_conn(
-    State *state, const Packet& pkt, int& conn, bool& change_direction) const
-{
-    for (conn = 0; conn < state->num_conns; ++conn) {
-        EqClass *ec = get_dst_ip_ec(state);
-        uint32_t src_ip = get_src_ip(state);
-        uint16_t src_port = get_src_port(state);
-        uint16_t dst_port = get_dst_port(state);
-
-        if (ec->contains(pkt.get_dst_ip()) && pkt.get_src_ip() == src_ip
-                && pkt.get_src_port() == src_port
-                && pkt.get_dst_port() == dst_port) {
-            // same connection, same direction
-            change_direction = false;
-            return;
-        } else if (ec->contains(pkt.get_src_ip()) && pkt.get_dst_ip() == src_ip
-                   && pkt.get_dst_port() == src_port
-                   && pkt.get_src_port() == dst_port) {
-            // same connection, different direction
-            change_direction = true;
-            return;
-        }
-        // TODO: match NAT'd packet to the original connection, by matching
-        // the seq/ack numbers?
-    }
-
-    conn = -1;  // new connection or NAT
-    Logger::error("New connection or NAT (not implemented)");
-    //// NAT (network address translation)
-    //// NOTE: we only handle the destination IP rewriting for now.
-    //EqClass *ec;
-    //memcpy(&ec, state->conn_state[state->conn].ec, sizeof(EqClass *));
-    //if (!ec->contains(recv_pkt.get_dst_ip())) {
-    //    // set the next EC
-    //    policy->add_ec(state, recv_pkt.get_dst_ip());
-    //    EqClass *next_ec = policy->find_ec(state, recv_pkt.get_dst_ip());
-    //    memcpy(state->conn_state[state->conn].ec, &next_ec, sizeof(EqClass *));
-    //    Logger::info("NAT EC: " + next_ec->to_string());
-    //    // update FIB according to the new EC
-    //    network.update_fib(state);
-    //}
-}
-
-std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
+void ForwardingProcess::inject_packet(
+    State *state, Middlebox *mb, const Network& network)
 {
     Stats::set_overall_lat_t1();
 
@@ -358,79 +317,217 @@ std::set<FIB_IPNH> ForwardingProcess::inject_packet(State *state, Middlebox *mb)
 
     // inject packet
     std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
+    std::map<int, std::vector<Packet>> conn_to_pkts_map
+        = process_recv_pkts(state, mb, std::move(recv_pkts), network);
+    //update_conn_states(state, conn_to_pkts_map); // next hop candidates (and fwd_modes)
 
-    std::set<FIB_IPNH> next_hops;
+    //// logging
+    //std::string nhops_str;
+    //nhops_str += mb->to_string() + " -> [";
+    //for (const FIB_IPNH& nhop : next_hops) {
+    //    nhops_str += " " + nhop.to_string();
+    //}
+    //nhops_str += " ]";
+    //Logger::info(nhops_str);
 
-    // process received packets
+    Stats::set_overall_latency();
+}
+
+// Note: later when switching connection to one with fwd_mode::FORWARD_PACKET,
+// remember to update choice_count according to the candidate size
+
+/*
+ * No multicast.
+ */
+std::map<int, std::vector<Packet>> ForwardingProcess::process_recv_pkts(
+    State *state, Middlebox *mb, std::vector<Packet>&& recv_pkts,
+    const Network& network) const
+{
+    std::map<int, std::vector<Packet>> conn_to_pkts_map;
+
     for (Packet& recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
             Logger::info("Received packet: (empty)");
             continue;
         }
 
-        // identify connection
+        // identify connection and sanitize packet
         int conn;
-        bool change_direction;
-        identify_conn(state, recv_pkt, conn, change_direction);
-        assert(conn == state->conn); // same connection
+        bool is_new, opposite_dir, next_phase;
+        identify_conn(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
+        int old_proto_state = state->conn_state[conn].proto_state;
+        Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
+                                       next_phase, old_proto_state);
+        check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir);
+        Logger::info("Received packet [conn " + std::to_string(conn) + "]: "
+                     + recv_pkt.to_string());
+        conn_to_pkts_map[conn].push_back(recv_pkt);
 
-        // convert TCP flags to the real proto_state
-        Net::get().convert_proto_state(recv_pkt, get_proto_state(state), change_direction);
-        Logger::info("Received packet: " + recv_pkt.to_string());
+        // map the packet info (5-tuple + seq/ack + FIB + execution logic) back
+        // to the system state
+        recv_pkt.update_conn(state, conn, network);
 
-        // find the next hop
-        FIB_IPNH next_hop = mb->get_ipnh(recv_pkt.get_intf()->get_name(), recv_pkt.get_dst_ip());
-        if (next_hop.get_l3_node()) {
-            next_hops.insert(next_hop);
+        // set conn (and recover it later)
+        int orig_conn = get_conn(state);
+        set_conn(state, conn);
+
+        // update the remaining connection state variables based on the inferred
+        // connection info
+        if (is_new) {
+            set_num_conns(state, get_num_conns(state) + 1);
+            set_src_node(state, mb);
+            set_tx_node(state, mb);
+            set_rx_node(state, nullptr);
+            set_pkt_location(state, mb);
+            set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
+            set_ingress_intf(state, nullptr);
+            set_path_choices(state, Choices());
+        } else if (next_phase) {
+            if (opposite_dir) {
+                set_src_node(state, mb);
+            } else {
+                set_pkt_location(state, get_src_node(state));
+            }
+            set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
+            set_ingress_intf(state, nullptr);
+        } else {    // same phase (middlebox is not an endpoint)
+            // If the middlebox is the initial start node (not in-band
+            // creation), then the packet can't be sent because the ingress
+            // interface is null (exception at netns).
+            assert(get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS);
+            set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
+        }
+
+        // find the next hop and set candidates
+        Candidates candidates;
+        FIB_IPNH next_hop = mb->get_ipnh(recv_pkt.get_intf()->get_name(),
+                                         recv_pkt.get_dst_ip());
+        if (next_hop->get_l3_node()) {
+            candidates.add(next_hop);
         } else {
             Logger::warn("No next hop found");
         }
+        set_candidates(state, std::move(candidates));
 
-        // next phase (if the middlebox is not "in the middle")
-        if (PS_IS_NEXT(recv_pkt.get_proto_state(), get_proto_state(state))) {
-            Logger::error("Next phase (not implemented yet)");
-            // TODO: map back the packet content to the spin vector
-            // src_ip, dst_ip, src_port, dst_port, seq, ack, proto_state
-//            std::vector<FIB_IPNH> candidates(1, FIB_IPNH(mb, nullptr, mb, nullptr));
-//            set_candidates(state, candidates);
-//            if (get_fwd_mode(state) == fwd_mode::FIRST_COLLECT) {
-//                set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
-//            } else {
-//                set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
-//            }
-//            exec_step(state, network);
-//            exec_step(state, network);  /* should be accepted by now */
-//
-//            // update seq and ack according to the received packet
-//            if (PS_HAS_SYN(recv_pkt.get_proto_state())) {
-//                uint32_t seq = recv_pkt.get_seq(), ack = recv_pkt.get_ack();
-//                set_seq(state, seq);
-//                set_ack(state, ack);
-//            }
-//
-//            // update src_node and ingress_intf (as in packet_entry)
-//            memcpy(state->conn_state[state->conn].src_node, mb, sizeof(Node *));
-//            Interface *ingress_intf = recv_pkt.get_intf();
-//            memcpy(state->conn_state[state->conn].ingress_intf, &ingress_intf, sizeof(Interface *));
-        }
+        set_conn(state, orig_conn);
     }
+
+    // control logic
 
     // if there is no response when the injected packet is destined to the
     // middlebox, assume the sent packet is accepted if it's an ACK
-    if (next_hops.empty() && mb->has_ip(new_pkt->get_dst_ip())
-            && new_pkt->get_proto_state() == PS_TCP_INIT_3) {
-        next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
+    //if (next_hops.empty() && mb->has_ip(new_pkt->get_dst_ip())
+    //        && new_pkt->get_proto_state() == PS_TCP_INIT_3) {
+    //    next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
+    //}
+
+    return conn_to_pkts_map;
+}
+
+/*
+ * It makes sure the 5-tuple values of the received packet comply with the
+ * system.
+ */
+void ForwardingProcess::identify_conn(
+    State *state, const Packet& pkt, int& conn, bool& is_new,
+    bool& opposite_dir, bool& next_phase) const
+{
+    int orig_conn = get_conn(state);
+
+    for (conn = 0; conn < get_num_conns(state); ++conn) {
+        set_conn(state, conn);
+        uint32_t src_ip = get_src_ip(state);
+        EqClass *dst_ip_ec = get_dst_ip_ec(state);
+        uint16_t src_port = get_src_port(state);
+        uint16_t dst_port = get_dst_port(state);
+        uint8_t proto_state = get_proto_state(state);
+        set_conn(state, orig_conn);
+
+        if (pkt.get_src_ip() == src_ip
+                && dst_ip_ec->contains(pkt.get_dst_ip())
+                && pkt.get_src_port() == src_port
+                && pkt.get_dst_port() == dst_port
+                && PS_SAME_PROTO(pkt.get_proto_state(), proto_state)) {
+            // same connection, same direction
+            opposite_dir = false;
+            if (pkt.get_proto_state() == proto_state) {
+                next_phase = false;
+            } else if (pkt.get_proto_state() == proto_state + 1) {
+                next_phase = true;
+            } else {
+                Logger::error("Invalid received proto_state");
+            }
+            return;
+        } else if (pkt.get_dst_ip() == src_ip
+                && dst_ip_ec->contains(pkt.get_src_ip())
+                && pkt.get_dst_port() == src_port
+                && pkt.get_src_port() == dst_port
+                && PS_SAME_PROTO(pkt.get_proto_state(), proto_state)) {
+            // same connection, opposite direction
+            opposite_dir = true;
+            if (pkt.get_proto_state() == proto_state + 1) {
+                next_phase = true;
+            } else {
+                Logger::error("Invalid received proto_state");
+            }
+            return;
+        }
     }
 
-    // logging
-    std::string nhops_str;
-    nhops_str += mb->to_string() + " -> [";
-    for (const FIB_IPNH& nhop : next_hops) {
-        nhops_str += " " + nhop.to_string();
+    // new connection (NAT'd packets are also treated as new connections)
+    if (conn >= MAX_CONNS) {
+        Logger::error("Exceeding the maximum number of connections");
     }
-    nhops_str += " ]";
-    Logger::info(nhops_str);
+    is_new = true;
+    opposite_dir = false;
+    next_phase = false;
+}
 
-    Stats::set_overall_latency();
-    return next_hops;
+/*
+ * It makes sure the seq/ack numbers of the received packet comply with the
+ * system.
+ */
+void ForwardingProcess::check_seq_ack(
+    State *state, const Packet& pkt, int conn, bool is_new, bool opposite_dir) const
+{
+    // verify seq/ack numbers if it's a TCP packet
+    if (PS_IS_TCP(pkt.get_proto_state())) {
+        int orig_conn = get_conn(state);
+        set_conn(state, conn);
+
+        if (is_new) { // new connection (SYN)
+            assert(pkt.get_ack() == 0);
+        } else {
+            uint8_t old_proto_state = get_proto_state(state);
+            if (pkt.get_proto_state() == old_proto_state) {
+                // seq/ack should remain the same
+                assert(pkt.get_seq() == get_seq(state));
+                assert(pkt.get_ack() == get_ack(state));
+            } else if (pkt.get_proto_state() == old_proto_state + 1) {
+                // next phase
+                uint32_t old_seq = get_seq(state);
+                uint32_t old_ack = get_ack(state);
+                Payload *pl = PayloadMgr::get().get_payload(state);
+                uint32_t old_payload_size = pl ? pl->get_size() : 0;
+                if (old_payload_size > 0) {
+                    old_seq += old_payload_size;
+                } else if (PS_HAS_SYN(old_proto_state) || PS_HAS_FIN(old_proto_state)) {
+                    old_seq += 1;
+                }
+                if (opposite_dir) {
+                    if (pkt.get_proto_state() != PS_TCP_INIT_2) {
+                        assert(pkt.get_seq() == old_ack);
+                    }
+                    assert(pkt.get_ack() == old_seq);
+                } else {
+                    assert(pkt.get_seq() == old_seq);
+                    assert(pkt.get_ack() == old_ack);
+                }
+            } else {
+                Logger::error("Invalid protocol state");
+            }
+        }
+
+        set_conn(state, orig_conn);
+    }
 }

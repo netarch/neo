@@ -1,5 +1,6 @@
 #include "conn.hpp"
 
+#include "packet.hpp"
 #include "network.hpp"
 #include "protocols.hpp"
 #include "process/process.hpp"
@@ -11,7 +12,15 @@
 Connection::Connection(int protocol, Node *src_node, EqClass *dst_ip_ec,
                        uint16_t src_port, uint16_t dst_port)
     : protocol(protocol), src_node(src_node), dst_ip_ec(dst_ip_ec),
-      src_port(src_port), dst_port(dst_port)
+      src_port(src_port), dst_port(dst_port), src_ip(0), seq(0), ack(0)
+{
+}
+
+Connection::Connection(const Packet& pkt, Node *src_node)
+    : protocol(PS_TO_PROTO(pkt.get_proto_state())), src_node(src_node),
+      dst_ip_ec(EqClassMgr::get().find_ec(pkt.get_dst_ip())),
+      src_port(pkt.get_src_port()), dst_port(pkt.get_dst_port()),
+      src_ip(pkt.get_src_ip()), seq(pkt.get_seq()), ack(pkt.get_ack())
 {
 }
 
@@ -42,12 +51,12 @@ void Connection::init(State *state, size_t conn_idx, const Network& network) con
         Logger::error("Unknown protocol: " + std::to_string(protocol));
     }
     set_proto_state(state, proto_state);
-    set_src_ip(state, 0);
+    set_src_ip(state, src_ip.value());
     set_dst_ip_ec(state, dst_ip_ec);
     set_src_port(state, src_port);
     set_dst_port(state, dst_port);
-    set_seq(state, 0);
-    set_ack(state, 0);
+    set_seq(state, seq);
+    set_ack(state, ack);
     set_src_node(state, src_node);
     set_tx_node(state, src_node);
     set_rx_node(state, nullptr);

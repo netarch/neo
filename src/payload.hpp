@@ -35,7 +35,8 @@ bool operator==(const Payload&, const Payload&);
 class PayloadKey
 {
 private:
-    EqClass *ec;
+    EqClass *dst_ip_ec;
+    uint16_t dst_port;
     uint8_t proto_state;
 
     friend class PayloadMgr;

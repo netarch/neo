@@ -16,8 +16,8 @@ typedef conn_state_t {
     int dst_ip_ec[SIZEOF_VOID_P / SIZEOF_INT];      /* (EqClass *) */
     unsigned src_port : 16;                         /* (uint16_t) */
     unsigned dst_port : 16;                         /* (uint16_t) */
-    int seq[4 / SIZEOF_INT];                        /* (uint32_t) */
-    int ack[4 / SIZEOF_INT];                        /* (uint32_t) */
+    int seq[4 / SIZEOF_INT];                        /* (uint32_t), raw seq num */
+    int ack[4 / SIZEOF_INT];                        /* (uint32_t), raw ack num */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int tx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
     int rx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */

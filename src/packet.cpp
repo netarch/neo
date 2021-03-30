@@ -1,9 +1,10 @@
 #include "packet.hpp"
 
-#include "eqclass.hpp"
 #include "interface.hpp"
 #include "protocols.hpp"
 #include "payload.hpp"
+#include "network.hpp"
+#include "eqclassmgr.hpp"
 #include "lib/hash.hpp"
 #include "model-access.hpp"
 #include "model.h"
@@ -17,37 +18,18 @@ Packet::Packet()
 Packet::Packet(State *state)
     : Packet()  // make sure all members are initialized
 {
-    // ingress interface
     this->interface = ::get_ingress_intf(state);
-    // IP
+
     this->src_ip = ::get_src_ip(state);
     this->dst_ip = ::get_dst_ip_ec(state)->representative_addr();
-    // packet state
+
+    this->src_port = ::get_src_port(state);
+    this->dst_port = ::get_dst_port(state);
+    this->seq = ::get_seq(state);
+    this->ack = ::get_ack(state);
+
     this->proto_state = ::get_proto_state(state);
-
-    if (PS_IS_TCP(proto_state)) {
-        // TCP
-        this->src_port = ::get_src_port(state);
-        this->dst_port = ::get_dst_port(state);
-        this->seq = ::get_seq(state);
-        this->ack = ::get_ack(state);
-        this->payload = PayloadMgr::get().get_payload(state);
-    } else if (PS_IS_UDP(proto_state)) {
-        // UDP
-        this->src_port = ::get_src_port(state);
-        this->dst_port = ::get_dst_port(state);
-        this->payload = PayloadMgr::get().get_payload(state);
-    } else if (PS_IS_ICMP_ECHO(proto_state)) {
-        // ICMP (do nothing)
-    } else {
-        Logger::error("Unsupported packet state " + std::to_string(proto_state));
-    }
-}
-
-Packet::Packet(Interface *intf)
-    : interface(intf), src_ip(0U), dst_ip(0U), src_port(0), dst_port(0),
-      seq(0), ack(0), proto_state(PS_ICMP_ECHO_REP), payload(nullptr)
-{
+    this->payload = PayloadMgr::get().get_payload(state);
 }
 
 std::string Packet::to_string() const
@@ -121,6 +103,27 @@ uint8_t Packet::get_proto_state() const
 Payload *Packet::get_payload() const
 {
     return payload;
+}
+
+void Packet::update_conn(State *state, int conn, const Network& network) const
+{
+    int orig_conn = get_conn(state);
+    set_conn(state, conn);
+
+    ::set_is_executable(state, true);
+    ::set_process_id(state, pid::forwarding);
+
+    ::set_proto_state(state, proto_state);
+    ::set_src_ip(state, src_ip);
+    ::set_dst_ip_ec(state, EqClassMgr::get().find_ec(dst_ip));
+    ::set_src_port(state, src_port);
+    ::set_dst_port(state, dst_port);
+    ::set_seq(state, seq);
+    ::set_ack(state, ack);
+
+    network.update_fib(state);
+
+    set_conn(state, orig_conn);
 }
 
 void Packet::clear()

@@ -66,8 +66,9 @@ void Net::build_tcp(const Packet& pkt, const uint8_t *src_mac,
             break;
     }
 
-    const uint8_t *payload = pkt.get_payload()->get();
-    uint32_t payload_size = pkt.get_payload()->get_size();
+    Payload *pl = pkt.get_payload();
+    const uint8_t *payload = pl ? pl->get() : nullptr;
+    uint32_t payload_size = pl ? pl->get_size() : 0;
 
     tag = libnet_build_tcp(
               pkt.get_src_port(),           // source port
@@ -122,8 +123,9 @@ void Net::build_udp(const Packet& pkt, const uint8_t *src_mac,
                     const uint8_t *dst_mac) const
 {
     libnet_ptag_t tag;
-    const uint8_t *payload = pkt.get_payload()->get();
-    uint32_t payload_size = pkt.get_payload()->get_size();
+    Payload *pl = pkt.get_payload();
+    const uint8_t *payload = pl ? pl->get() : nullptr;
+    uint32_t payload_size = pl ? pl->get_size() : 0;
 
     tag = libnet_build_udp(
               pkt.get_src_port(),           // source port
@@ -283,7 +285,7 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
         uint8_t ip_proto;
         memcpy(&ip_proto, buffer + 23, 1);
         if (ip_proto == IPPROTO_TCP) {          // TCP packets
-            // source and destination TCP port
+            // source and destination port
             uint16_t src_port, dst_port;
             memcpy(&src_port, buffer + 34, 2);
             memcpy(&dst_port, buffer + 36, 2);
@@ -305,15 +307,15 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
             pkt.set_proto_state(flags | 0x80U);
             /*
              * NOTE:
-             * Store the TCP flags in proto_state for now, which will be converted
-             * to the real proto_state in ForwardingProcess (calling
+             * Store the TCP flags in proto_state for now, which will be
+             * converted to the real proto_state in ForwardingProcess (calling
              * Net::convert_proto_state), because the knowledge of the current
              * connection state is required to interprete the proto_state. The
              * highest bit of the variable is used to indicate unconverted TCP
              * flags.
              */
         } else if (ip_proto == IPPROTO_UDP) {   // UDP packets
-            // source and destination TCP port
+            // source and destination port
             uint16_t src_port, dst_port;
             memcpy(&src_port, buffer + 34, 2);
             memcpy(&dst_port, buffer + 36, 2);
@@ -321,6 +323,16 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
             dst_port = ntohs(dst_port);
             pkt.set_src_port(src_port);
             pkt.set_dst_port(dst_port);
+            // UDP proto_state
+            pkt.set_proto_state(PS_UDP_REQ);
+            /*
+             * NOTE:
+             * Since UDP is connection-less, there is no way to know the actual
+             * proto_state. Store PS_UDP_REQ for now, which will be converted to
+             * the correct state in ForwardingProcess (calling
+             * Net::convert_proto_state) based on the connection matching
+             * information.
+             */
         } else if (ip_proto == IPPROTO_ICMP) {  // ICMP packets
             // ICMP type
             uint8_t icmp_type;
@@ -348,12 +360,16 @@ bad_packet:
 }
 
 void Net::convert_proto_state(
-    Packet& pkt, uint8_t old_proto_state, bool change_direction) const
+    Packet& pkt, bool is_new, bool change_direction, bool next_phase,
+    uint8_t old_proto_state) const
 {
     // the highest bit (0x80) is used to indicate unconverted TCP flags
-    if (PS_IS_TCP(old_proto_state) && pkt.get_proto_state() & 0x80U) {
+    if (pkt.get_proto_state() & 0x80U) {
         uint8_t proto_state = 0;
         uint8_t flags = pkt.get_proto_state() & (~0x80U);
+        if (is_new) {
+            assert(flags == TH_SYN);
+        }
         if (flags == TH_SYN) {
             proto_state = PS_TCP_INIT_1;
         } else if (flags == (TH_SYN | TH_ACK)) {
@@ -365,12 +381,14 @@ void Net::convert_proto_state(
                 case PS_TCP_L7_REP:
                 case PS_TCP_TERM_2:
                     proto_state = old_proto_state + 1;
+                    assert(change_direction);
                     break;
                 case PS_TCP_INIT_3:
                 case PS_TCP_L7_REQ_A:
                 case PS_TCP_L7_REP_A:
                 case PS_TCP_TERM_3:
                     proto_state = old_proto_state;
+                    assert(!change_direction);
                     break;
                 default:
                     Logger::error("Invalid TCP flags: " + std::to_string(flags));
@@ -380,25 +398,32 @@ void Net::convert_proto_state(
                 case PS_TCP_INIT_3:
                 case PS_TCP_L7_REQ_A:
                     proto_state = old_proto_state + 1;
+                    assert(!change_direction);
                     break;
                 case PS_TCP_L7_REQ:
                 case PS_TCP_L7_REP:
                     proto_state = old_proto_state;
+                    assert(!change_direction);
                     break;
                 default:
                     Logger::error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else if (flags == (TH_FIN | TH_ACK)) {
-            if (change_direction) {
-                proto_state = old_proto_state + 1;
-            } else {
-                proto_state = old_proto_state;
-            }
             switch (old_proto_state) {
                 case PS_TCP_L7_REP_A:
+                    proto_state = old_proto_state + 1;
+                    assert(change_direction);
+                    break;
                 case PS_TCP_TERM_1:
+                    if (change_direction) {
+                        proto_state = old_proto_state + 1;
+                    } else {
+                        proto_state = old_proto_state;
+                    }
+                    break;
                 case PS_TCP_TERM_2:
-                case PS_TCP_TERM_3:
+                    proto_state = old_proto_state;
+                    assert(!change_direction);
                     break;
                 default:
                     Logger::error("Invalid TCP flags: " + std::to_string(flags));
@@ -406,18 +431,25 @@ void Net::convert_proto_state(
         } else {
             Logger::error("Invalid TCP flags: " + std::to_string(flags));
         }
-        pkt.set_proto_state(proto_state);
-    } else if (PS_IS_UDP(old_proto_state)) {
-        uint8_t proto_state;
-        if (change_direction) {
-            proto_state = old_proto_state + 1;
-            if (!PS_SAME_PROTO(proto_state, old_proto_state)) {
-                Logger::error("Change direction after receiving reply");
-            }
-        } else {
-            proto_state = old_proto_state;
+        if (!is_new) {
+            assert(proto_state == old_proto_state + (next_phase ? 1 : 0));
         }
         pkt.set_proto_state(proto_state);
+    } else if (PS_IS_UDP(pkt.get_proto_state())) {
+        if (is_new) {
+            pkt.set_proto_state(PS_UDP_REQ);
+            return;
+        }
+        if (change_direction) {
+            pkt.set_proto_state(old_proto_state + 1);
+            assert(old_proto_state + 1 == PS_UDP_REP);
+        } else {
+            pkt.set_proto_state(old_proto_state);
+        }
+    } else if (PS_IS_ICMP_ECHO(pkt.get_proto_state())) {
+        if (is_new) {
+            assert(pkt.get_proto_state() == PS_ICMP_ECHO_REQ);
+        }
     }
 }
 

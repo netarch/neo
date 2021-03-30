@@ -1,6 +1,8 @@
 #pragma once
 
 #include <unordered_set>
+#include <map>
+#include <vector>
 
 #include "process/process.hpp"
 #include "packet.hpp"
@@ -9,14 +11,6 @@ class Network;
 class FIB_IPNH;
 class Middlebox;
 struct State;
-
-/* TODO (check execution logic):
- * fwd 1st step: collect next hops and choose the collected next hops with spin
- * by updating candidates (then continue to the 2nd step without looking at
- * other processes)
- * fwd 2nd step: forward packet and update the ingress interface (allow
- * non-deterministic execution of other processes after this step)
- */
 
 enum fwd_mode {
     FIRST_COLLECT,  // -> FIRST_FORWARD
@@ -36,17 +30,21 @@ private:
     std::unordered_set<NodePacketHistory *, NodePacketHistoryHash,
         NodePacketHistoryEq> node_pkt_hist_hist;
 
-    void first_collect(State *);
+    void first_collect(State *, const Network&);
     void first_forward(State *);
-    void collect_next_hops(State *);
+    void collect_next_hops(State *, const Network&);
     void forward_packet(State *);
     void accepted(State *, const Network&);
 
     void phase_transition(State *, const Network&, uint8_t next_proto_state,
-                          bool change_direction);
-    void identify_conn(State *, const Packet&, int& conn,
-                       bool& change_direction) const;
-    std::set<FIB_IPNH> inject_packet(State *, Middlebox *);
+                          bool opposite_dir) const;
+    void inject_packet(State *, Middlebox *, const Network&);
+    std::map<int, std::vector<Packet>> process_recv_pkts(
+            State *, Middlebox *, std::vector<Packet>&&, const Network&) const;
+    void identify_conn(State *, const Packet&, int& conn, bool& is_new,
+                       bool& opposite_dir, bool& next_phase) const;
+    void check_seq_ack(State *, const Packet&, int conn, bool is_new,
+                       bool opposite_dir) const;
 
 public:
     ForwardingProcess() = default;

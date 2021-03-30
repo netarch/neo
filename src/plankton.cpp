@@ -29,6 +29,7 @@ static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
  */
 static void worker_sig_handler(int sig)
 {
+    // SIGUSR1 is used for unblocking the emulation listener thread
     int pid, status;
     switch (sig) {
         case SIGCHLD:

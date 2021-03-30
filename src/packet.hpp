@@ -5,6 +5,7 @@
 #include "lib/ip.hpp"
 class Interface;
 class Payload;
+class Network;
 struct State;
 
 /*
@@ -38,7 +39,6 @@ private:
 public:
     Packet();
     Packet(State *);
-    Packet(Interface *);    // dummy packet, used unblocking listener thread
     Packet(const Packet&) = default;
     Packet(Packet&&) = default;
 
@@ -55,6 +55,7 @@ public:
     uint32_t get_ack() const;
     uint8_t get_proto_state() const;
     Payload *get_payload() const;
+    void update_conn(State *, int conn, const Network&) const;
     void clear();
     bool empty() const;
     void set_intf(Interface *);
