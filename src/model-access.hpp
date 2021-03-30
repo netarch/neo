@@ -19,8 +19,6 @@ struct State;
 // control logic
 bool get_is_executable(State *);
 bool set_is_executable(State *, bool);
-int get_process_id(State *);
-int set_process_id(State *, int);
 // flow information
 int get_proto_state(State *);
 int set_proto_state(State *, int);
@@ -62,6 +60,8 @@ Choices *set_path_choices(State *, Choices&&);
 /* non-connection specific, system-wide state variables */
 
 // control logic
+int get_process_id(State *);
+int set_process_id(State *, int);
 int get_choice(State *);
 int set_choice(State *, int);
 int get_choice_count(State *);

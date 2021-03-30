@@ -411,6 +411,7 @@ void ForwardingProcess::process_recv_pkts(
     // is_executable, conn, choice_count
     // TODO: if the current_conn is executable, continue executing this conn;
     // otherwise, pick another executable conn to run.
+
     //int current_conn = get_conn(state), active_conn;
     //if (conn_to_pkts_map.empty()) {
     //    // dropped

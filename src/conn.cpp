@@ -40,7 +40,6 @@ void Connection::init(State *state, size_t conn_idx, const Network& network) con
     set_conn(state, conn_idx);
 
     set_is_executable(state, true);
-    set_process_id(state, pid::forwarding);
 
     int proto_state = 0;
     if (protocol == proto::tcp) {

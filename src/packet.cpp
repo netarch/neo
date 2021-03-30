@@ -114,7 +114,6 @@ void Packet::update_conn(State *state, int conn, const Network& network) const
     EqClass *old_dst_ip_ec = ::get_dst_ip_ec(state);
 
     ::set_is_executable(state, true);
-    ::set_process_id(state, pid::forwarding);
 
     ::set_proto_state(state, proto_state);
     ::set_src_ip(state, src_ip.get_value());

@@ -68,16 +68,6 @@ bool set_is_executable(State *state, bool is_executable)
     return (state->conn_state[state->conn].is_executable = is_executable);
 }
 
-int get_process_id(State *state)
-{
-    return state->conn_state[state->conn].process_id;
-}
-
-int set_process_id(State *state, int process_id)
-{
-    return state->conn_state[state->conn].process_id = process_id;
-}
-
 int get_proto_state(State *state)
 {
     return state->conn_state[state->conn].proto_state;
@@ -297,6 +287,16 @@ Choices *set_path_choices(State *state, Choices&& path_choices)
     }
     memcpy(state->conn_state[state->conn].path_choices, &new_path_choices, sizeof(Choices *));
     return new_path_choices;
+}
+
+int get_process_id(State *state)
+{
+    return state->process_id;
+}
+
+int set_process_id(State *state, int process_id)
+{
+    return state->process_id = process_id;
 }
 
 int get_choice(State *state)
