@@ -105,6 +105,7 @@ void NetNS::set_interfaces(const Node& node)
 
 //#ifdef ENABLE_DEBUG
 //        system(("wireshark -k -i " + intf->get_name() + " &").c_str());
+//        sleep(4);
 //#endif
     }
 

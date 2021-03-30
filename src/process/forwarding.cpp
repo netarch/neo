@@ -416,22 +416,22 @@ void ForwardingProcess::process_recv_pkts(
     // otherwise, pick another executable conn to run.
 
     //int current_conn = get_conn(state), active_conn;
-    //if (conn_to_pkts_map.empty()) {
-    //    // dropped
-    //    Logger::info("Packet dropped by " + mb->to_string());
-    //    set_fwd_mode(state, fwd_mode::DROPPED);
-    //    set_is_executable(state, false);
-    //    //state->choice_count = 0;
-    //    //return;
+    if (conn_to_pkts_map.empty()) {
+        // dropped
+        Logger::info("Packet dropped by " + mb->to_string());
+        set_fwd_mode(state, fwd_mode::DROPPED);
+        set_is_executable(state, false);
+        state->choice_count = 0;
+        return;
     //} else if (conn_to_pkts_map.count(current_conn) == 0) {
     //    // paused
     //    set_is_executable(state, false);
     //    active_conn = conn_to_pkts_map.begin()->first;
     //} else {
     //    active_conn = current_conn;
-    //}
+    }
 
-    // if there is no response when the injected packet is destined to the
+    // If there is no response when the injected packet is destined to the
     // middlebox, assume the sent packet is accepted if it's an ACK
     //if (next_hops.empty() && mb->has_ip(new_pkt->get_dst_ip())
     //        && new_pkt->get_proto_state() == PS_TCP_INIT_3) {

@@ -181,29 +181,29 @@ COMMIT
 
 [[policies]]
     type = "reachability"
-    final_node = "server"
+    target_node = "server"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "tcp"
-    pkt_dst = "10.0.0.1"
+    src_node = "h[123]"
+    dst_ip = "10.0.0.1"
     dst_port = 80
-    start_node = "h[123]"
 [[policies]]
     type = "reachability"
-    final_node = "h[123]|s1|r[123]|fw"
+    target_node = "h[123]|s1|r[123]|fw"
     reachable = false
-    [policies.communication]
+    [[policies.connections]]
     protocol = "tcp"
-    pkt_dst = "192.168.0.0/22"
+    src_node = "server"
+    dst_ip = "192.168.0.0/22"
     dst_port = 80
-    start_node = "server"
     owned_dst_only = true
 [[policies]]
     type = "reply-reachability"
-    query_node = "server"
+    target_node = "server"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "tcp"
-    pkt_dst = "10.0.0.1"
+    src_node = "h[123]"
+    dst_ip = "10.0.0.1"
     dst_port = 80
-    start_node = "h[123]"
