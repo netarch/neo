@@ -123,19 +123,24 @@ void Policy::report(State *state) const
 
 void Policy::init(State *state, const Network *network) const
 {
-    // per-connection state
-    for (size_t i = 0; i < conns.size(); ++i) {
-        conns[i].init(state, i, *network);
+    if (correlated_policies.empty()) {
+        // per-connection states
+        for (size_t i = 0; i < conns.size(); ++i) {
+            conns[i].init(state, i, *network);
+        }
+        set_conn(state, 0);
+        set_num_conns(state, conns.size());
+        print_conn_states(state);
+    } else {
+        correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
     }
-    set_conn(state, 0);
-    set_num_conns(state, conns.size());
-
-    print_conn_states(state);
 }
 
-void Policy::reinit(State *state, const Network *network) const
+// reinit should only be overwritten by policies with correlated sub-policies
+void Policy::reinit(State *state __attribute__((unused)),
+                    const Network *network __attribute__((unused))) const
 {
-    this->init(state, network);
+    Logger::error("This shouldn't be called");
 }
 
 /******************************************************************************/

@@ -15,12 +15,12 @@ std::string ConsistencyPolicy::to_string() const
 void ConsistencyPolicy::init(State *state, const Network *network) const
 {
     set_correlated_policy_idx(state, 0);
-    correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
+    Policy::init(state, network);
 }
 
 void ConsistencyPolicy::reinit(State *state, const Network *network) const
 {
-    correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
+    Policy::init(state, network);
 }
 
 int ConsistencyPolicy::check_violation(State *state)

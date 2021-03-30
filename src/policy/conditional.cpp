@@ -15,12 +15,12 @@ std::string ConditionalPolicy::to_string() const
 void ConditionalPolicy::init(State *state, const Network *network) const
 {
     set_correlated_policy_idx(state, 0);
-    correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
+    Policy::init(state, network);
 }
 
 void ConditionalPolicy::reinit(State *state, const Network *network) const
 {
-    correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
+    Policy::init(state, network);
 }
 
 int ConditionalPolicy::check_violation(State *state)

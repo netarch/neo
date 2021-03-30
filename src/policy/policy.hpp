@@ -42,7 +42,6 @@ public:
 
     virtual std::string to_string() const = 0;
     virtual void init(State *, const Network *) const;
-    // reinit should only be used by policies with correlated sub-policies
     virtual void reinit(State *, const Network *) const;
     virtual int check_violation(State *) = 0;
 };

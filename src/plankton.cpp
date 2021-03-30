@@ -302,6 +302,7 @@ void Plankton::initialize(State *state)
     policy->init(state, &network);
 
     // control logic
+    set_process_id(state, pid::forwarding);
     set_choice(state, 0);
     set_choice_count(state, 1);
 }
@@ -316,6 +317,7 @@ void Plankton::reinit(State *state)
     policy->reinit(state, &network);
 
     // control logic
+    set_process_id(state, pid::forwarding);
     set_choice(state, 0);
     set_choice_count(state, 1);
 }
