@@ -93,12 +93,12 @@ bool set_is_executable(State *state, bool is_executable)
     return (state->conn_state[state->conn].is_executable = is_executable);
 }
 
-int get_proto_state(State *state)
+uint8_t get_proto_state(State *state)
 {
     return state->conn_state[state->conn].proto_state;
 }
 
-int set_proto_state(State *state, int proto_state)
+uint8_t set_proto_state(State *state, int proto_state)
 {
     return state->conn_state[state->conn].proto_state = proto_state;
 }

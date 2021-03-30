@@ -41,7 +41,7 @@ void Connection::init(State *state, size_t conn_idx, const Network& network) con
 
     set_is_executable(state, true);
 
-    int proto_state = 0;
+    uint8_t proto_state = 0;
     if (protocol == proto::tcp) {
         proto_state = PS_TCP_INIT_1;
     } else if (protocol == proto::udp) {

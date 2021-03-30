@@ -263,7 +263,6 @@ void ForwardingProcess::phase_transition(
         // the next dst IP EC
         EqClass *next_dst_ip_ec = EqClassMgr::get().find_ec(src_ip);
         set_dst_ip_ec(state, next_dst_ip_ec);
-        Logger::info("EC: " + next_dst_ip_ec->to_string());
         // src node
         set_src_node(state, get_pkt_location(state));
         // src port and dst port
@@ -352,7 +351,7 @@ void ForwardingProcess::process_recv_pkts(
         int conn;
         bool is_new, opposite_dir, next_phase;
         identify_conn(state, recv_pkt, conn, is_new, opposite_dir);
-        int old_proto_state = state->conn_state[conn].proto_state;
+        uint8_t old_proto_state = state->conn_state[conn].proto_state;
         Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir, old_proto_state);
         check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
         check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
@@ -409,6 +408,8 @@ void ForwardingProcess::process_recv_pkts(
         set_conn(state, orig_conn);
     }
 
+    print_conn_states(state);
+
     // control logic
     // is_executable, conn, choice_count
     // TODO: if the current_conn is executable, continue executing this conn;
@@ -450,6 +451,7 @@ void ForwardingProcess::identify_conn(
     State *state, const Packet& pkt, int& conn, bool& is_new, bool& opposite_dir) const
 {
     int orig_conn = get_conn(state);
+    is_new = false;
 
     for (conn = 0; conn < get_num_conns(state); ++conn) {
         set_conn(state, conn);
@@ -503,7 +505,7 @@ void ForwardingProcess::identify_conn(
  * system.
  */
 void ForwardingProcess::check_proto_state(
-    const Packet& pkt, bool is_new, bool old_proto_state, bool& next_phase) const
+    const Packet& pkt, bool is_new, uint8_t old_proto_state, bool& next_phase) const
 {
     if (is_new) {
         assert(PS_IS_FIRST(pkt.get_proto_state()));
