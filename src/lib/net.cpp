@@ -360,8 +360,7 @@ bad_packet:
 }
 
 void Net::convert_proto_state(
-    Packet& pkt, bool is_new, bool change_direction, bool next_phase,
-    uint8_t old_proto_state) const
+    Packet& pkt, bool is_new, bool change_direction, uint8_t old_proto_state) const
 {
     // the highest bit (0x80) is used to indicate unconverted TCP flags
     if (pkt.get_proto_state() & 0x80U) {
@@ -431,16 +430,11 @@ void Net::convert_proto_state(
         } else {
             Logger::error("Invalid TCP flags: " + std::to_string(flags));
         }
-        if (!is_new) {
-            assert(proto_state == old_proto_state + (next_phase ? 1 : 0));
-        }
         pkt.set_proto_state(proto_state);
     } else if (PS_IS_UDP(pkt.get_proto_state())) {
         if (is_new) {
             pkt.set_proto_state(PS_UDP_REQ);
-            return;
-        }
-        if (change_direction) {
+        } else if (change_direction) {
             pkt.set_proto_state(old_proto_state + 1);
             assert(old_proto_state + 1 == PS_UDP_REP);
         } else {

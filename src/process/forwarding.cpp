@@ -351,11 +351,11 @@ void ForwardingProcess::process_recv_pkts(
         // identify connection and sanitize packet
         int conn;
         bool is_new, opposite_dir, next_phase;
-        identify_conn(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
+        identify_conn(state, recv_pkt, conn, is_new, opposite_dir);
         int old_proto_state = state->conn_state[conn].proto_state;
-        Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
-                                       next_phase, old_proto_state);
-        check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir);
+        Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir, old_proto_state);
+        check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
+        check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
         Logger::info("Received packet [conn " + std::to_string(conn) + "]: "
                      + recv_pkt.to_string());
         conn_to_pkts_map[conn].push_back(recv_pkt);
@@ -447,8 +447,7 @@ void ForwardingProcess::process_recv_pkts(
  * system.
  */
 void ForwardingProcess::identify_conn(
-    State *state, const Packet& pkt, int& conn, bool& is_new,
-    bool& opposite_dir, bool& next_phase) const
+    State *state, const Packet& pkt, int& conn, bool& is_new, bool& opposite_dir) const
 {
     int orig_conn = get_conn(state);
 
@@ -458,36 +457,35 @@ void ForwardingProcess::identify_conn(
         EqClass *dst_ip_ec = get_dst_ip_ec(state);
         uint16_t src_port = get_src_port(state);
         uint16_t dst_port = get_dst_port(state);
-        uint8_t proto_state = get_proto_state(state);
+        int conn_protocol = PS_TO_PROTO(get_proto_state(state));
         set_conn(state, orig_conn);
+
+        /*
+         * Note that at this moment we have not converted the received packet's
+         * proto_state, so only protocol type is compared.
+         */
+        int pkt_protocol;
+        if (pkt.get_proto_state() & 0x80U) {
+            pkt_protocol = proto::tcp;
+        } else {
+            pkt_protocol = PS_TO_PROTO(pkt.get_proto_state());
+        }
 
         if (pkt.get_src_ip() == src_ip
                 && dst_ip_ec->contains(pkt.get_dst_ip())
                 && pkt.get_src_port() == src_port
                 && pkt.get_dst_port() == dst_port
-                && PS_SAME_PROTO(pkt.get_proto_state(), proto_state)) {
+                && pkt_protocol == conn_protocol) {
             // same connection, same direction
             opposite_dir = false;
-            if (pkt.get_proto_state() == proto_state) {
-                next_phase = false;
-            } else if (pkt.get_proto_state() == proto_state + 1) {
-                next_phase = true;
-            } else {
-                Logger::error("Invalid received proto_state");
-            }
             return;
         } else if (pkt.get_dst_ip() == src_ip
                    && dst_ip_ec->contains(pkt.get_src_ip())
                    && pkt.get_dst_port() == src_port
                    && pkt.get_src_port() == dst_port
-                   && PS_SAME_PROTO(pkt.get_proto_state(), proto_state)) {
+                   && pkt_protocol == conn_protocol) {
             // same connection, opposite direction
             opposite_dir = true;
-            if (pkt.get_proto_state() == proto_state + 1) {
-                next_phase = true;
-            } else {
-                Logger::error("Invalid received proto_state");
-            }
             return;
         }
     }
@@ -498,7 +496,27 @@ void ForwardingProcess::identify_conn(
     }
     is_new = true;
     opposite_dir = false;
-    next_phase = false;
+}
+
+/*
+ * It makes sure the protocol state of the received packet comply with the
+ * system.
+ */
+void ForwardingProcess::check_proto_state(
+    const Packet& pkt, bool is_new, bool old_proto_state, bool& next_phase) const
+{
+    if (is_new) {
+        assert(PS_IS_FIRST(pkt.get_proto_state()));
+        next_phase = false;
+    } else {
+        if (pkt.get_proto_state() == old_proto_state + 1) {
+            next_phase = true;
+        } else if (pkt.get_proto_state() == old_proto_state) {
+            next_phase = false;
+        } else {
+            Logger::error("Invalid protocol state");
+        }
+    }
 }
 
 /*
@@ -506,44 +524,40 @@ void ForwardingProcess::identify_conn(
  * system.
  */
 void ForwardingProcess::check_seq_ack(
-    State *state, const Packet& pkt, int conn, bool is_new, bool opposite_dir) const
+    State *state, const Packet& pkt, int conn, bool is_new, bool opposite_dir,
+    bool next_phase) const
 {
     // verify seq/ack numbers if it's a TCP packet
     if (PS_IS_TCP(pkt.get_proto_state())) {
         int orig_conn = get_conn(state);
         set_conn(state, conn);
 
-        if (is_new) { // new connection (SYN)
+        if (is_new) {               // new connection (SYN)
             assert(pkt.get_ack() == 0);
-        } else {
+        } else if (next_phase) {    // old connection; next phase
             uint8_t old_proto_state = get_proto_state(state);
-            if (pkt.get_proto_state() == old_proto_state) {
-                // seq/ack should remain the same
-                assert(pkt.get_seq() == get_seq(state));
-                assert(pkt.get_ack() == get_ack(state));
-            } else if (pkt.get_proto_state() == old_proto_state + 1) {
-                // next phase
-                uint32_t old_seq = get_seq(state);
-                uint32_t old_ack = get_ack(state);
-                Payload *pl = PayloadMgr::get().get_payload(state);
-                uint32_t old_payload_size = pl ? pl->get_size() : 0;
-                if (old_payload_size > 0) {
-                    old_seq += old_payload_size;
-                } else if (PS_HAS_SYN(old_proto_state) || PS_HAS_FIN(old_proto_state)) {
-                    old_seq += 1;
-                }
-                if (opposite_dir) {
-                    if (pkt.get_proto_state() != PS_TCP_INIT_2) {
-                        assert(pkt.get_seq() == old_ack);
-                    }
-                    assert(pkt.get_ack() == old_seq);
-                } else {
-                    assert(pkt.get_seq() == old_seq);
-                    assert(pkt.get_ack() == old_ack);
-                }
-            } else {
-                Logger::error("Invalid protocol state");
+            uint32_t old_seq = get_seq(state);
+            uint32_t old_ack = get_ack(state);
+            Payload *pl = PayloadMgr::get().get_payload(state);
+            uint32_t old_payload_size = pl ? pl->get_size() : 0;
+            if (old_payload_size > 0) {
+                old_seq += old_payload_size;
+            } else if (PS_HAS_SYN(old_proto_state) || PS_HAS_FIN(old_proto_state)) {
+                old_seq += 1;
             }
+            if (opposite_dir) {
+                if (pkt.get_proto_state() != PS_TCP_INIT_2) {
+                    assert(pkt.get_seq() == old_ack);
+                }
+                assert(pkt.get_ack() == old_seq);
+            } else {
+                assert(pkt.get_seq() == old_seq);
+                assert(pkt.get_ack() == old_ack);
+            }
+        } else {                    // old connection; same phase
+            // seq/ack should remain the same
+            assert(pkt.get_seq() == get_seq(state));
+            assert(pkt.get_ack() == get_ack(state));
         }
 
         set_conn(state, orig_conn);

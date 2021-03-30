@@ -47,7 +47,7 @@ public:
      */
     void deserialize(Packet&, const PktBuffer&) const;
     void convert_proto_state(Packet&, bool is_new, bool change_direction,
-                             bool next_phase, uint8_t old_proto_state) const;
+                             uint8_t old_proto_state) const;
 
     std::string mac_to_str(const uint8_t *) const;
 
