@@ -92,22 +92,22 @@ COMMIT
     # private servers can initiate connections to the outside world and the
     # replies from the outside world can reach the private subnets
     policies.add_policy(ReplyReachabilityPolicy(
+        target_node = 'internet',
+        reachable = True,
         protocol = 'tcp',
-        pkt_dst = '8.1.0.2',
+        src_node = 'server.*\..*',
+        dst_ip = '8.1.0.2',
         dst_port = 80,
-        start_node = 'server.*\..*',
-        query_node = 'internet',
-        owned_dst_only = True,
-        reachable = True))
+        owned_dst_only = True))
     # private servers can't accept connections from the outside world
     policies.add_policy(ReachabilityPolicy(
+        target_node = '(server.*\..*)|r.*\.2',
+        reachable = False,
         protocol = 'tcp',
-        pkt_dst = '10.0.0.0/8',
+        src_node = 'internet',
+        dst_ip = '10.0.0.0/8',
         dst_port = 80,
-        start_node = 'internet',
-        final_node = '(server.*\..*)|r.*\.2',
-        owned_dst_only = True,
-        reachable = False))
+        owned_dst_only = True))
 
     ## add route updates
     openflow = Openflow()

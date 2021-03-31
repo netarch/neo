@@ -181,36 +181,36 @@ def confgen(apps, hosts, fault):
         # access2
         policies.add_policy(ConsistencyPolicy([
             ReachabilityPolicy(
+                target_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
+                reachable = True,
                 protocol = 'tcp',
-                pkt_dst = '11.%d.%d.0/24' % (second, third),
+                src_node = hosts_acc1,
+                dst_ip = '11.%d.%d.0/24' % (second, third),
                 dst_port = 80,
-                owned_dst_only = True,
-                start_node = hosts_acc1,
-                final_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
-                reachable = True)
+                owned_dst_only = True)
             ]))
         # In the same application, hosts under access2 can reach hosts under
         # access1
         policies.add_policy(ConsistencyPolicy([
             ReachabilityPolicy(
+                target_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
+                reachable = True,
                 protocol = 'tcp',
-                pkt_dst = '10.%d.%d.0/24' % (second, third),
+                src_node = hosts_acc2,
+                dst_ip = '10.%d.%d.0/24' % (second, third),
                 dst_port = 80,
-                owned_dst_only = True,
-                start_node = hosts_acc2,
-                final_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
-                reachable = True)
+                owned_dst_only = True)
             ]))
         # Hosts of an application cannot reach hosts of other applications
         policies.add_policy(ConsistencyPolicy([
             ReachabilityPolicy(
+                target_node = hosts_other_apps,
+                reachable = False,
                 protocol = 'tcp',
-                pkt_dst = '10.0.0.0/7',
+                src_node = 'app%d-host[0-9]+' % app,
+                dst_ip = '10.0.0.0/7',
                 dst_port = 80,
-                owned_dst_only = True,
-                start_node = 'app%d-host[0-9]+' % app,
-                final_node = hosts_other_apps,
-                reachable = False)
+                owned_dst_only = True)
             ]))
 
     ## output as TOML

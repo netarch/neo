@@ -124,59 +124,59 @@ COMMIT
     policies = Policies()
     # public subnets can initiate connections to the outside world
     policies.add_policy(ReachabilityPolicy(
+        target_node = 'internet',
+        reachable = True,
         protocol = 'tcp',
-        pkt_dst = '8.0.0.1',
+        src_node = 'public.*-host.*',
+        dst_ip = '8.0.0.1',
         dst_port = 80,
-        start_node = 'public.*-host.*',
-        final_node = 'internet',
-        owned_dst_only = True,
-        reachable = True))
+        owned_dst_only = True))
     # public subnets can accept connections from the outside world
     policies.add_policy(ReachabilityPolicy(
+        target_node = '(public.*-host.*)|gw',
+        reachable = True,
         protocol = 'tcp',
-        pkt_dst = '12.0.0.0/8',
+        src_node = 'internet',
+        dst_ip = '12.0.0.0/8',
         dst_port = 80,
-        start_node = 'internet',
-        final_node = '(public.*-host.*)|gw',
-        owned_dst_only = True,
-        reachable = True))
+        owned_dst_only = True))
     # private subnets can initiate connections to the outside world and replies
     # from the outside world can reach the private subnets
     policies.add_policy(ReplyReachabilityPolicy(
+        target_node = 'internet',
+        reachable = True,
         protocol = 'tcp',
-        pkt_dst = '8.0.0.1',
+        src_node = 'private.*-host.*',
+        dst_ip = '8.0.0.1',
         dst_port = 80,
-        start_node = 'private.*-host.*',
-        query_node = 'internet',
-        owned_dst_only = True,
-        reachable = True))
+        owned_dst_only = True))
     # private subnets can't accept connections from the outside world
     policies.add_policy(ReachabilityPolicy(
+        target_node = '(private.*-host.*)|gw',
+        reachable = False,
         protocol = 'tcp',
-        pkt_dst = '11.0.0.0/8',
+        src_node = 'internet',
+        dst_ip = '11.0.0.0/8',
         dst_port = 80,
-        start_node = 'internet',
-        final_node = '(private.*-host.*)|gw',
-        owned_dst_only = True,
-        reachable = False))
+        owned_dst_only = True))
     # quarantined subnets can't initiate connections to the outside world
     policies.add_policy(ReachabilityPolicy(
+        target_node = 'internet',
+        reachable = False,
         protocol = 'tcp',
-        pkt_dst = '8.0.0.1',
+        src_node = 'quarantined.*-host.*',
+        dst_ip = '8.0.0.1',
         dst_port = 80,
-        start_node = 'quarantined.*-host.*',
-        final_node = 'internet',
-        owned_dst_only = True,
-        reachable = False))
+        owned_dst_only = True))
     # quarantined subnets can't accept connections from the outside world
     policies.add_policy(ReachabilityPolicy(
+        target_node = '(quarantined.*-host.*)|gw',
+        reachable = False,
         protocol = 'tcp',
-        pkt_dst = '10.0.0.0/8',
+        src_node = 'internet',
+        dst_ip = '10.0.0.0/8',
         dst_port = 80,
-        start_node = 'internet',
-        final_node = '(quarantined.*-host.*)|gw',
-        owned_dst_only = True,
-        reachable = False))
+        owned_dst_only = True))
 
     ## output as TOML
     output_toml(network, None, policies)

@@ -124,45 +124,45 @@ COMMIT
 
 [[policies]]
     type = "reachability"
-    final_node = "server"
+    target_node = "server"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "udp"
-    pkt_dst = "10.0.0.1"
-    start_node = "h[123]"
+    src_node = "h[123]"
+    dst_ip = "10.0.0.1"
 [[policies]]
     type = "reply-reachability"
-    query_node = "server"
+    target_node = "server"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "udp"
-    pkt_dst = "10.0.0.1"
-    start_node = "h[123]"
+    src_node = "h[123]"
+    dst_ip = "10.0.0.1"
 [[policies]]
     type = "reachability"
-    final_node = "h[123]|r1"
+    target_node = "h[123]|r1"
     reachable = false
-    [policies.communication]
+    [[policies.connections]]
     protocol = "udp"
-    pkt_dst = "192.168.0.0/24"
-    start_node = "server"
+    src_node = "server"
+    dst_ip = "192.168.0.0/24"
     owned_dst_only = true
 [[policies]]
     type = "reachability"
-    final_node = "h[123]|r1"
+    target_node = "h[123]|r1"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "udp"
-    pkt_dst = "192.168.0.0/24"
+    src_node = "server"
+    dst_ip = "192.168.0.0/24"
     dst_port = 22
-    start_node = "server"
     owned_dst_only = true
 [[policies]]
     type = "reachability"
-    final_node = "h1"
+    target_node = "h1"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "udp"
-    pkt_dst = "192.168.0.1"
+    src_node = "server"
+    dst_ip = "192.168.0.1"
     dst_port = 2222
-    start_node = "server"

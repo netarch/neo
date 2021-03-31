@@ -128,121 +128,94 @@ class Openflow:
             data['openflow'] = {'updates': [update.to_dict() for update in self.updates]}
         return data
 
-class Communication:
-    def __init__(self, protocol=None, pkt_dst=None, dst_port=None,
-                 owned_dst_only=None, start_node=None):
+class Connection:
+    def __init__(self, protocol, src_node, dst_ip, src_port=None, dst_port=None,
+                 owned_dst_only=None):
         self.protocol: str        = protocol
-        self.pkt_dst: str         = pkt_dst
+        self.src_node: str        = src_node
+        self.dst_ip: str          = dst_ip
+        self.src_port: int        = src_port
         self.dst_port: int        = dst_port
         self.owned_dst_only: bool = owned_dst_only
-        self.start_node: str      = start_node
 
     def to_dict(self):
         data = self.__dict__
-        if self.protocol is None:
-            data.pop('protocol')
-        if self.pkt_dst is None:
-            data.pop('pkt_dst')
+        if self.src_port is None:
+            data.pop('src_port')
         if self.dst_port is None:
             data.pop('dst_port')
         if self.owned_dst_only is None:
             data.pop('owned_dst_only')
-        if self.start_node is None:
-            data.pop('start_node')
         return data
 
 class Policy:
     def __init__(self, type):
         self.type: str = type
+        self.connections: List[Connection] = list()
 
-##
-## single-communication policies
-##
-
-class LoadBalancePolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, final_node, repeat,
-                 dst_port=None, owned_dst_only=None):
-        Policy.__init__(self, 'loadbalance')
-        self.final_node: str = final_node
-        self.repeat: int = repeat
-        self.communication = Communication(protocol, pkt_dst, dst_port,
-                                           owned_dst_only, start_node)
+    def add_connection(self, conn):
+        self.connections.append(conn)
 
     def to_dict(self):
         data = self.__dict__
-        if self.repeat is None:
-            data.pop('repeat')
-        data['communication'] = self.communication.to_dict()
+        if self.connections:
+            data['connections'] = [conn.to_dict() for conn in self.connections]
         return data
+
+##
+## single-connection policies
+##
 
 class ReachabilityPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, final_node, reachable,
-                 dst_port=None, owned_dst_only=None):
+    def __init__(self, target_node, reachable, protocol, src_node, dst_ip,
+                 src_port=None, dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'reachability')
-        self.final_node: str = final_node
+        self.target_node: str = target_node
         self.reachable: bool = reachable
-        self.communication = Communication(protocol, pkt_dst, dst_port,
-                                           owned_dst_only, start_node)
-
-    def to_dict(self):
-        data = self.__dict__
-        data['communication'] = self.communication.to_dict()
-        return data
+        self.add_connection(Connection(protocol, src_node, dst_ip, src_port,
+                                       dst_port, owned_dst_only))
 
 class ReplyReachabilityPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, query_node, reachable,
-                 dst_port=None, owned_dst_only=None):
+    def __init__(self, target_node, reachable, protocol, src_node, dst_ip,
+                 src_port=None, dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'reply-reachability')
-        self.query_node: str = query_node
+        self.target_node: str = target_node
         self.reachable: bool = reachable
-        self.communication = Communication(protocol, pkt_dst, dst_port,
-                                           owned_dst_only, start_node)
-
-    def to_dict(self):
-        data = self.__dict__
-        data['communication'] = self.communication.to_dict()
-        return data
+        self.add_connection(Connection(protocol, src_node, dst_ip, src_port,
+                                       dst_port, owned_dst_only))
 
 class WaypointPolicy(Policy):
-    def __init__(self, protocol, pkt_dst, start_node, waypoint, pass_through,
-                 dst_port=None, owned_dst_only=None):
+    def __init__(self, target_node, pass_through, protocol, src_node, dst_ip,
+                 src_port=None, dst_port=None, owned_dst_only=None):
         Policy.__init__(self, 'waypoint')
-        self.waypoint: str = waypoint
+        self.target_node: str = target_node
         self.pass_through: bool = pass_through
-        self.communication = Communication(protocol, pkt_dst, dst_port,
-                                           owned_dst_only, start_node)
-
-    def to_dict(self):
-        data = self.__dict__
-        data['communication'] = self.communication.to_dict()
-        return data
+        self.add_connection(Connection(protocol, src_node, dst_ip, src_port,
+                                       dst_port, owned_dst_only))
 
 ##
-## multi-communication policies
+## multi-connection policies
 ##
 
-# TODO: OneRequestPolicy (one-request)
+class OneRequestPolicy(Policy):
+    def __init__(self, target_node):
+        Policy.__init__(self, 'one-request')
+        self.target_node: str = target_node
 
-class MulticommLBPolicy(Policy):
-    def __init__(self, final_node, max_dispersion_index=None):
-        Policy.__init__(self, 'multicomm-lb')
-        self.final_node: str = final_node
-        self.max_dispersion_index: float = max_dispersion_index
-        self.communications: List[Communication] = list()
-
-    def add_communication(self, comm):
-        self.communications.append(comm)
+class LoadBalancePolicy(Policy):
+    def __init__(self, target_node, max_dispersion_index=None):
+        Policy.__init__(self, 'loadbalance')
+        self.target_node: str = target_node
+        self.max_dispersion_index: int = max_dispersion_index
 
     def to_dict(self):
-        data = self.__dict__
+        data = Policy.to_dict(self)
         if self.max_dispersion_index is None:
             data.pop('max_dispersion_index')
-        if self.communications:
-            data['communications'] = [comm.to_dict() for comm in self.communications]
         return data
 
 ##
-## policies with multiple single-communication correlated policies
+## policies with multiple single-connection correlated policies
 ##
 
 class ConditionalPolicy(Policy):
@@ -251,7 +224,7 @@ class ConditionalPolicy(Policy):
         self.correlated_policies: List[Policy] = correlated_policies
 
     def to_dict(self):
-        data = self.__dict__
+        data = Policy.to_dict(self)
         if self.correlated_policies:
             data['correlated_policies'] = [policy.to_dict()
                     for policy in self.correlated_policies]
@@ -263,7 +236,7 @@ class ConsistencyPolicy(Policy):
         self.correlated_policies: List[Policy] = correlated_policies
 
     def to_dict(self):
-        data = self.__dict__
+        data = Policy.to_dict(self)
         if self.correlated_policies:
             data['correlated_policies'] = [policy.to_dict()
                     for policy in self.correlated_policies]
