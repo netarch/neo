@@ -423,12 +423,12 @@ void ForwardingProcess::process_recv_pkts(
         set_is_executable(state, false);
         state->choice_count = 0;
         return;
-    //} else if (conn_to_pkts_map.count(current_conn) == 0) {
-    //    // paused
-    //    set_is_executable(state, false);
-    //    active_conn = conn_to_pkts_map.begin()->first;
-    //} else {
-    //    active_conn = current_conn;
+        //} else if (conn_to_pkts_map.count(current_conn) == 0) {
+        //    // paused
+        //    set_is_executable(state, false);
+        //    active_conn = conn_to_pkts_map.begin()->first;
+        //} else {
+        //    active_conn = current_conn;
     }
 
     // If there is no response when the injected packet is destined to the

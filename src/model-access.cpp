@@ -68,16 +68,16 @@ void print_conn_states(State *state)
         set_conn(state, conn);
         uint32_t src_ip = get_src_ip(state);
         std::string str = (conn == orig_conn ? "  * " : "  - ")
-            + std::to_string(conn)
-            + ": [" + std::string(PS_STR(get_proto_state(state)))
-            + ":" + std::to_string(get_proto_state(state)) + "] "
-            + get_src_node(state)->get_name() + "("
-            + (src_ip == 0 ? std::string("null") : IPv4Address(src_ip).to_string())
-            + "):" + std::to_string(get_src_port(state))
-            + " --> " + get_dst_ip_ec(state)->to_string() + ":"
-            + std::to_string(get_dst_port(state))
-            + " (loc: " + get_pkt_location(state)->get_name() + ") executable: "
-            + std::string(get_is_executable(state) ? "true" : "false");
+                          + std::to_string(conn)
+                          + ": [" + std::string(PS_STR(get_proto_state(state)))
+                          + ":" + std::to_string(get_proto_state(state)) + "] "
+                          + get_src_node(state)->get_name() + "("
+                          + (src_ip == 0 ? std::string("null") : IPv4Address(src_ip).to_string())
+                          + "):" + std::to_string(get_src_port(state))
+                          + " --> " + get_dst_ip_ec(state)->to_string() + ":"
+                          + std::to_string(get_dst_port(state))
+                          + " (loc: " + get_pkt_location(state)->get_name() + ") executable: "
+                          + std::string(get_is_executable(state) ? "true" : "false");
         Logger::info(str);
     }
     set_conn(state, orig_conn);
