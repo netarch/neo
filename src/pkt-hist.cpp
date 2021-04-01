@@ -74,6 +74,10 @@ bool operator==(const PacketHistory& a, const PacketHistory& b)
 
 size_t NodePacketHistoryHash::operator()(NodePacketHistory *const& nph) const
 {
+    if (nph == nullptr) {
+        return 0;
+    }
+
     size_t value = 0;
     std::hash<Packet *> pkt_hf;
     std::hash<NodePacketHistory *> nph_hf;
@@ -85,12 +89,25 @@ size_t NodePacketHistoryHash::operator()(NodePacketHistory *const& nph) const
 bool NodePacketHistoryEq::operator()(NodePacketHistory *const& a,
                                      NodePacketHistory *const& b) const
 {
+    if (a == b) {
+        return true;
+    } else if (a == nullptr || b == nullptr) {
+        return false;
+    }
     return *a == *b;
 }
 
 bool NodePacketHistoryComp::operator()(NodePacketHistory *const& a,
                                        NodePacketHistory *const& b) const
 {
+    if (a == b) {
+        return false;
+    } else if (a == nullptr) {
+        return true;
+    } else if (b == nullptr) {
+        return false;
+    }
+
     std::list<Packet *> a_pkts = a->get_packets();
     std::list<Packet *> b_pkts = b->get_packets();
 
