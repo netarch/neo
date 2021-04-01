@@ -6,8 +6,11 @@
  */
 
 typedef conn_state_t {
-    /* control logic */
-    bool is_executable;
+    /* control state */
+    unsigned executable : 2;
+    /* 2: executable, not entering a middlebox
+     * 1: executable, about to enter a middlebox
+     * 0: not executable (missing packet) */
 
     /* flow information */
     unsigned proto_state : 4;                       /* (uint8_t) */
@@ -35,7 +38,7 @@ typedef conn_state_t {
 /* connection state */
 conn_state_t conn_state[MAX_CONNS];
 
-/* control logic */
+/* control state */
 unsigned process_id : 2;    /* executing process */
 int choice;                 /* non-determinisic selection result */
 int choice_count;           /* non-determinisic selection range [0, choice_count) */

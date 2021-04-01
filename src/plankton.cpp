@@ -301,7 +301,7 @@ void Plankton::initialize(State *state)
     // policy (also initializes all connection states)
     policy->init(state, &network);
 
-    // control logic
+    // control state
     set_process_id(state, pid::forwarding);
     set_choice(state, 0);
     set_choice_count(state, 1);
@@ -316,7 +316,7 @@ void Plankton::reinit(State *state)
     // policy (also initializes all connection states)
     policy->reinit(state, &network);
 
-    // control logic
+    // control state
     set_process_id(state, pid::forwarding);
     set_choice(state, 0);
     set_choice_count(state, 1);
@@ -345,40 +345,39 @@ void Plankton::exec_step(State *state)
         reinit(state);
     }
 
-    //this->check_to_switch_process(state);
+    this->check_to_switch_process(state);
 }
 
-// TODO: check control logic
 void Plankton::check_to_switch_process(State *state) const
 {
+    if (get_executable(state) != 2) {
+        /* 2: executable, not entering a middlebox
+         * 1: executable, about to enter a middlebox
+         * 0: not executable (missing packet) */
+        set_process_id(state, pid::choose_conn);
+        conn_choice.update_choice_count(state);
+        return;
+    }
+
     int process_id = get_process_id(state);
     int fwd_mode = get_fwd_mode(state);
     Node *current_node = get_pkt_location(state);
 
     switch (process_id) {
         case pid::choose_conn:
-            if (state->choice_count == 1) {
-                set_process_id(state, pid::forwarding);
-                state->choice_count = 1;
-            }
+            set_process_id(state, pid::forwarding);
             break;
         case pid::forwarding:
-            if (fwd_mode == fwd_mode::COLLECT_NHOPS ||
-                    fwd_mode == fwd_mode::ACCEPTED ||
-                    fwd_mode == fwd_mode::DROPPED) {
-                if (openflow.has_updates(state, current_node)) {
-                    set_process_id(state, pid::openflow);
-                    state->choice_count = 2; // whether to install an update or not
-                } else if (conn_choice.has_other_conns(state)) {
-                    set_process_id(state, pid::choose_conn);
-                    conn_choice.update_choice_count(state);
-                }
+            if ((fwd_mode == fwd_mode::COLLECT_NHOPS ||
+                        fwd_mode == fwd_mode::FIRST_COLLECT) &&
+                    openflow.has_updates(state, current_node)) {
+                set_process_id(state, pid::openflow);
+                state->choice_count = 2; // whether to install an update or not
             }
             break;
         case pid::openflow:
             if (state->choice_count == 1) {
                 set_process_id(state, pid::forwarding);
-                state->choice_count = 1;
             }
             break;
         default:

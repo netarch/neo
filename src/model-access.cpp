@@ -62,12 +62,11 @@ static VariableHist storage;
 
 void print_conn_states(State *state)
 {
-    Logger::info("Current connections:");
     int orig_conn = get_conn(state);
     for (int conn = 0; conn < get_num_conns(state); ++conn) {
         set_conn(state, conn);
         uint32_t src_ip = get_src_ip(state);
-        std::string str = (conn == orig_conn ? "  * " : "  - ")
+        std::string str = (conn == orig_conn ? "* " : "- ")
                           + std::to_string(conn)
                           + ": [" + std::string(PS_STR(get_proto_state(state)))
                           + ":" + std::to_string(get_proto_state(state)) + "] "
@@ -77,20 +76,20 @@ void print_conn_states(State *state)
                           + " --> " + get_dst_ip_ec(state)->to_string() + ":"
                           + std::to_string(get_dst_port(state))
                           + " (loc: " + get_pkt_location(state)->get_name() + ") executable: "
-                          + std::string(get_is_executable(state) ? "true" : "false");
+                          + std::to_string(get_executable(state));
         Logger::info(str);
     }
     set_conn(state, orig_conn);
 }
 
-bool get_is_executable(State *state)
+int get_executable(State *state)
 {
-    return state->conn_state[state->conn].is_executable;
+    return state->conn_state[state->conn].executable;
 }
 
-bool set_is_executable(State *state, bool is_executable)
+int set_executable(State *state, int executable)
 {
-    return (state->conn_state[state->conn].is_executable = is_executable);
+    return (state->conn_state[state->conn].executable = executable);
 }
 
 uint8_t get_proto_state(State *state)

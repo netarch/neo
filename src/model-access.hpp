@@ -18,9 +18,9 @@ struct State;
 
 void print_conn_states(State *);
 
-// control logic
-bool get_is_executable(State *);
-bool set_is_executable(State *, bool);
+// control state
+int get_executable(State *);
+int set_executable(State *, int);
 // flow information
 uint8_t get_proto_state(State *);
 uint8_t set_proto_state(State *, int);
@@ -61,7 +61,7 @@ Choices *set_path_choices(State *, Choices&&);
 
 /* non-connection specific, system-wide state variables */
 
-// control logic
+// control state
 int get_process_id(State *);
 int set_process_id(State *, int);
 int get_choice(State *);

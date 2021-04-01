@@ -63,7 +63,7 @@ void ForwardingProcess::exec_step(State *state, const Network& network)
             accepted(state, network);
             break;
         case fwd_mode::DROPPED:
-            state->choice_count = 0;
+            set_executable(state, 0);
             break;
         default:
             Logger::error("Unknown forwarding mode: " + std::to_string(mode));
@@ -97,20 +97,18 @@ void ForwardingProcess::first_forward(State *state)
 void ForwardingProcess::collect_next_hops(State *state, const Network& network)
 {
     Node *current_node = get_pkt_location(state);
-
     if (typeid(*current_node) == typeid(Middlebox)) {
         // current_node is a Middlebox; inject packet to update next hops
         inject_packet(state, static_cast<Middlebox *>(current_node), network);
         return;
-    }
-
-    // current_node is a Node; look up next hops from FIB
+    } // else: current_node is a Node; look up next hops from FIB
 
     std::set<FIB_IPNH> next_hops = get_fib(state)->lookup(current_node);
     if (next_hops.empty()) {
-        Logger::info("Packet dropped by " + current_node->to_string());
+        Logger::info("Connection " + std::to_string(get_conn(state)) +
+                     " dropped by " + current_node->to_string());
         set_fwd_mode(state, fwd_mode::DROPPED);
-        state->choice_count = 0;
+        set_executable(state, 0);
         return;
     }
 
@@ -166,14 +164,16 @@ void ForwardingProcess::forward_packet(State *state)
         set_fwd_mode(state, fwd_mode::ACCEPTED);
         state->choice_count = 1;
     } else {
+        if (typeid(*next_hop) == typeid(Middlebox)) {
+            set_executable(state, 1);
+        }
+
         set_pkt_location(state, next_hop);
         set_ingress_intf(state, ingress_intf);
         Logger::info("Packet forwarded to " + next_hop->to_string() + ", "
                      + ingress_intf->to_string());
         set_fwd_mode(state, fwd_mode::COLLECT_NHOPS);
         state->choice_count = 1;
-
-        // TODO: change process_id if necessary?
     }
 }
 
@@ -232,6 +232,16 @@ void ForwardingProcess::phase_transition(
     State *state, const Network& network, uint8_t next_proto_state,
     bool change_direction) const
 {
+    // check if the new src_node is a middlebox
+    // if it is, do not inject packet and mark the connection as "not
+    // executable" (missing packet)
+    Node *new_src_node = change_direction ? get_pkt_location(state) : get_src_node(state);
+    if (typeid(*new_src_node) == typeid(Middlebox)) {
+        Logger::debug("Freeze conn " + std::to_string(get_conn(state)));
+        set_executable(state, 0);
+        return;
+    }
+
     int old_proto_state = get_proto_state(state);
 
     // compute seq and ack numbers
@@ -339,8 +349,6 @@ void ForwardingProcess::process_recv_pkts(
     State *state, Middlebox *mb, std::vector<Packet>&& recv_pkts,
     const Network& network) const
 {
-    std::map<int, std::vector<Packet>> conn_to_pkts_map;
-
     for (Packet& recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
             Logger::info("Received packet: (empty)");
@@ -357,7 +365,6 @@ void ForwardingProcess::process_recv_pkts(
         check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
         Logger::info("Received packet [conn " + std::to_string(conn) + "]: "
                      + recv_pkt.to_string());
-        conn_to_pkts_map[conn].push_back(recv_pkt);
 
         // map the packet info (5-tuple + seq/ack + FIB + control logic) back
         // to the system state
@@ -387,9 +394,6 @@ void ForwardingProcess::process_recv_pkts(
             set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
             set_ingress_intf(state, nullptr);
         } else {    // same phase (middlebox is not an endpoint)
-            // If the middlebox is the initial start node (not in-band
-            // creation), then the packet can't be sent because the ingress
-            // interface is null (exception at netns).
             assert(get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS);
             set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
         }
@@ -410,37 +414,18 @@ void ForwardingProcess::process_recv_pkts(
 
     print_conn_states(state);
 
-    // control logic
-    // is_executable, conn, choice_count
-    // TODO: if the current_conn is executable, continue executing this conn;
-    // otherwise, pick another executable conn to run.
-
-    //int current_conn = get_conn(state), active_conn;
-    if (conn_to_pkts_map.empty()) {
-        // dropped
-        Logger::info("Packet dropped by " + mb->to_string());
-        set_fwd_mode(state, fwd_mode::DROPPED);
-        set_is_executable(state, false);
-        state->choice_count = 0;
-        return;
-        //} else if (conn_to_pkts_map.count(current_conn) == 0) {
-        //    // paused
-        //    set_is_executable(state, false);
-        //    active_conn = conn_to_pkts_map.begin()->first;
-        //} else {
-        //    active_conn = current_conn;
+    // control logic:
+    // if the current connection isn't updated, assume the packet is accepted
+    if (get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS) {
+        set_executable(state, 2);
+        set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
+        Candidates candidates;
+        candidates.add(FIB_IPNH(mb, nullptr, mb, nullptr));
+        set_candidates(state, std::move(candidates));
     }
 
-    // If there is no response when the injected packet is destined to the
-    // middlebox, assume the sent packet is accepted if it's an ACK
-    //if (next_hops.empty() && mb->has_ip(new_pkt->get_dst_ip())
-    //        && new_pkt->get_proto_state() == PS_TCP_INIT_3) {
-    //    next_hops.insert(FIB_IPNH(mb, nullptr, mb, nullptr));
-    //}
-
-// Note: later when switching connection to one with fwd_mode::FORWARD_PACKET,
-// remember to update choice_count according to the candidate size
-
+    // update choice_count for the current connection
+    set_choice_count(state, get_candidates(state)->size());
 }
 
 /*

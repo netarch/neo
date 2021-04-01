@@ -2,44 +2,57 @@
 
 #include <cassert>
 
-//#include "network.hpp"
+#include "candidates.hpp"
 #include "protocols.hpp"
 #include "process/forwarding.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
-static inline bool is_executable(State *state, int conn)
+static inline int get_conn_executable(State *state, int conn)
 {
-    return state->conn_state[conn].is_executable;
+    return state->conn_state[conn].executable;
 }
 
-bool ChooseConnProcess::has_other_conns(State *state) const
+static inline int get_conn_fwd_mode(State *state, int conn)
 {
-    int num_conns = get_num_conns(state);
-    int current_conn = get_conn(state);
+    return state->conn_state[conn].fwd_mode;
+}
 
-    for (int conn = 0; conn < num_conns; ++conn) {
-        if (conn != current_conn && is_executable(state, conn)) {
-            return true;
+static inline std::vector<std::vector<int>> get_conn_map(State *state)
+{
+    std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
+    for (int conn = 0; conn < get_num_conns(state); ++conn) {
+        int exec = get_conn_executable(state, conn);
+        if (exec == 0 && get_conn_fwd_mode(state, conn) == fwd_mode::DROPPED) {
+            continue;
         }
+        conn_map[exec].push_back(conn);
     }
-
-    return false;
+    return conn_map;
 }
 
 void ChooseConnProcess::update_choice_count(State *state) const
 {
-    int num_conns = get_num_conns(state);
-    int active_conns = 0;
-
-    for (int conn = 0; conn < num_conns; ++conn) {
-        if (is_executable(state, conn)) {
-            active_conns++;
-        }
+    if (!enabled) {
+        return;
     }
 
-    set_choice_count(state, active_conns);
+    std::vector<std::vector<int>> conn_map = get_conn_map(state);
+    /* 2: executable, not entering a middlebox
+     * 1: executable, about to enter a middlebox
+     * 0: not executable (missing packet) */
+
+    if (!conn_map[2].empty()) {
+        set_choice_count(state, 1);
+    } else if (!conn_map[1].empty()) {
+        set_choice_count(state, conn_map[1].size());
+    } else if (!conn_map[0].empty()) {
+        set_choice_count(state, 1);
+    } else {
+        // every connection is dropped
+        set_choice_count(state, 0);
+    }
 }
 
 void ChooseConnProcess::exec_step(
@@ -49,18 +62,34 @@ void ChooseConnProcess::exec_step(
         return;
     }
 
-    // switch to the chosen connection
     int choice = get_choice(state);
-    int num_conns = get_num_conns(state);
+    std::vector<std::vector<int>> conn_map = get_conn_map(state);
+    /* 2: executable, not entering a middlebox
+     * 1: executable, about to enter a middlebox
+     * 0: not executable (missing packet) */
 
-    for (int conn = 0; conn < num_conns; ++conn) {
-        if (is_executable(state, conn)) {
-            if (choice-- == 0) {
-                set_conn(state, conn);
-                break;
-            }
-        }
+    if (!conn_map[2].empty()) {
+        assert(choice == 0);
+        set_conn(state, conn_map[2][0]);
+    } else if (!conn_map[1].empty()) {
+        set_conn(state, conn_map[1][choice]);
+        set_executable(state, 2);
+    } else if (!conn_map[0].empty()) {
+        // pick the first connection that's not dropped and drop it
+        assert(choice == 0);
+        set_conn(state, conn_map[0][0]);
+        Logger::info("Connection " + std::to_string(conn_map[0][0]) +
+                     " dropped by " + get_pkt_location(state)->to_string());
+        set_fwd_mode(state, fwd_mode::DROPPED);
+    } else {
+        Logger::error("No executable connection");
     }
-    assert(choice == -1);   // a connection must be chosen
-    set_choice_count(state, 1); // back to forwarding
+
+    // update choice_count for the connection chosen
+    if (get_fwd_mode(state) == fwd_mode::FORWARD_PACKET ||
+            get_fwd_mode(state) == fwd_mode::FIRST_FORWARD) {
+        set_choice_count(state, get_candidates(state)->size());
+    } else {
+        set_choice_count(state, 1);
+    }
 }

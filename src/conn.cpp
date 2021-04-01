@@ -39,7 +39,7 @@ void Connection::init(State *state, size_t conn_idx, const Network& network) con
     int orig_conn = get_conn(state);
     set_conn(state, conn_idx);
 
-    set_is_executable(state, true);
+    set_executable(state, 2);
 
     uint8_t proto_state = 0;
     if (protocol == proto::tcp) {
