@@ -369,7 +369,7 @@ void Plankton::check_to_switch_process(State *state) const
             break;
         case pid::forwarding:
             if ((fwd_mode == fwd_mode::COLLECT_NHOPS ||
-                        fwd_mode == fwd_mode::FIRST_COLLECT) &&
+                    fwd_mode == fwd_mode::FIRST_COLLECT) &&
                     openflow.has_updates(state, current_node)) {
                 set_process_id(state, pid::openflow);
                 state->choice_count = 2; // whether to install an update or not
