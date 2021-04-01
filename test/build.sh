@@ -30,6 +30,7 @@ usage()
     -d, --debug         Enable debugging
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
+    --clang             Use Clang compiler
     --max-comms N       Maximum number of concurrent communications
 EOF
 }
@@ -44,6 +45,8 @@ parse_params() {
             CMAKE_ARGS+=('-DENABLE_TESTS=ON') ;;
         -c | --coverage)
             CMAKE_ARGS+=('-DENABLE_COVERAGE=ON') ;;
+        --clang)
+            CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++') ;;
         --max-comms)
             CMAKE_ARGS+=("-DMAX_COMMS=${2-}")
             shift
