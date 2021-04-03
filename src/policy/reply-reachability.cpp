@@ -8,7 +8,7 @@
 
 std::string ReplyReachabilityPolicy::to_string() const
 {
-    std::string ret = "Reply-reachability (";
+    std::string ret = "ReplyReachability (";
     ret += reachable ? "O" : "X";
     ret += "): [";
     for (Node *node : target_nodes) {

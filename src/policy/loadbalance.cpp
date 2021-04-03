@@ -1,11 +1,9 @@
 #include "policy/loadbalance.hpp"
 
-#include <stdexcept>
-
 #include "node.hpp"
+#include "reachcounts.hpp"
 #include "protocols.hpp"
 #include "process/forwarding.hpp"
-#include "lib/hash.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
@@ -72,52 +70,8 @@ int LoadBalancePolicy::check_violation(State *state)
         set_reach_counts(state, std::move(new_reach_counts));
 
         // so that the connection won't be chosen
-        set_proto_state(state, PS_LAST_PROTO_STATE(proto_state));
-        // TODO: is_executable = false
+        set_executable(state, 0);
     }
 
     return POL_NULL;
-}
-
-/******************************************************************************/
-
-std::string ReachCounts::to_string() const
-{
-    std::string ret = "Current reach counts:";
-    for (const auto& pair : this->counts) {
-        ret += "\n\t" + pair.first->to_string() + ": " + std::to_string(pair.second);
-    }
-    return ret;
-}
-
-int ReachCounts::operator[](Node *const& node) const
-{
-    try {
-        return this->counts.at(node);
-    } catch (const std::out_of_range& err) {
-        return 0;
-    }
-}
-
-void ReachCounts::increase(Node *const& node)
-{
-    this->counts[node]++;
-}
-
-size_t ReachCountsHash::operator()(const ReachCounts *const& rc) const
-{
-    size_t value = 0;
-    std::hash<Node *> node_hf;
-    std::hash<int> int_hf;
-    for (const auto& entry : rc->counts) {
-        hash::hash_combine(value, node_hf(entry.first));
-        hash::hash_combine(value, int_hf(entry.second));
-    }
-    return value;
-}
-
-bool ReachCountsEq::operator()(const ReachCounts *const& a,
-                               const ReachCounts *const& b) const
-{
-    return a->counts == b->counts;
 }

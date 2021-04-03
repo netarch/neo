@@ -10,6 +10,7 @@
 #include "fib.hpp"
 #include "interface.hpp"
 #include "node.hpp"
+#include "reachcounts.hpp"
 #include "pkt-hist.hpp"
 #include "protocols.hpp"
 #include "process/openflow.hpp"
