@@ -16,7 +16,8 @@ Emulation::Emulation()
 
 Emulation::~Emulation()
 {
-    this->teardown();
+    delete listener;
+    delete env;
 }
 
 void Emulation::listen_packets()
@@ -81,6 +82,10 @@ void Emulation::init(Middlebox *mb)
         sigset_t mask, old_mask;
         sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
+        sigaddset(&mask, SIGHUP);
+        sigaddset(&mask, SIGINT);
+        sigaddset(&mask, SIGQUIT);
+        sigaddset(&mask, SIGTERM);
         pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
         listener = new std::thread(&Emulation::listen_packets, this);
         pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
@@ -108,6 +113,7 @@ int Emulation::rewind(NodePacketHistory *nph)
     // reset middlebox state
     if (!nph || !nph->contains(node_pkt_hist)) {
         env->run(mb_app_reset, emulated_mb->get_app());
+        Logger::info("Reset " + emulated_mb->get_name());
     }
 
     // replay history
@@ -146,14 +152,14 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
         // listening thread has acquired the lock but before it calls the
         // notification function, in which case, the attempt of wait_for's
         // acquiring the lock will block until the listening thread releases it.
-        Logger::info("Timeout!");
+        Logger::info("Timed out!");
     }
     /*
      * NOTE:
      * We don't process the read packets in the critical section (i.e., here).
-     * Instead, we process the read packets in ForwardingProcess (the caller),
-     * which is also because the knowledge of the current connection state is
-     * required to process it correctly, as mentioned in lib/net.cpp.
+     * Instead, we process the read packets in ForwardingProcess, which is also
+     * because the knowledge of the current connection state is required to
+     * process it correctly, as mentioned in lib/net.cpp.
      */
 
     // return the received packets
