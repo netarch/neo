@@ -22,7 +22,6 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
-    timeout = 100               # microseconds
     rp_filter = 0               # optional (0..2), default: 0
     # 0 - No source validation.
     # 1 - Strict mode as defined in RFC3704 Strict Reverse Path
@@ -39,14 +38,12 @@
     type = "middlebox"
     env = "netns"
     app = "ipvs"
-    timeout = 100               # microseconds
     config = "<string>"
 [[nodes]]
     name = "<string>"
     type = "middlebox"
     env = "netns"
     app = "squid"
-    timeout = 100               # microseconds
     config = "<string>"
 
 # undirected (only need to specify once for each link)

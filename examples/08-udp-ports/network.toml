@@ -53,7 +53,6 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
-    timeout = 200
     rules = """
 *filter
 :INPUT DROP [0:0]

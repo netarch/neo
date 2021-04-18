@@ -89,7 +89,6 @@
     type = "middlebox"
     env = "netns"
     app = "netfilter"
-    timeout = 200
     rp_filter = 1   # misconfiguration, should be 0
     rules = """
 *filter
