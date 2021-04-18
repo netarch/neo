@@ -154,10 +154,15 @@ void ForwardingProcess::forward_packet(State *state)
         if (PS_IS_FIRST(proto_state)) {
             // store the original receiving endpoint of the connection
             set_rx_node(state, current_node);
-        } else if (PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node) {
-            Logger::error("Inconsistent endpoints (current_node != rx_node)");
-        } else if (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node) {
-            Logger::error("Inconsistent endpoints (current_node != tx_node)");
+        } else if ((PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node)
+                || (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node)) {
+            // inconsistent endpoints: dropped by middlebox
+            Logger::info("Inconsistent endpoints");
+            Logger::info("Connection " + std::to_string(get_conn(state)) +
+                         " dropped by " + current_node->to_string());
+            set_fwd_mode(state, fwd_mode::DROPPED);
+            set_executable(state, 0);
+            return;
         }
 
         Logger::info("Packet delivered at " + current_node->to_string());
