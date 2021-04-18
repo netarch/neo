@@ -57,9 +57,9 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
     if (!recv_pkts.empty()) {
         long long err = Stats::get_pkt_latencies().back().count() / 1000 - latency_avg.count();
         latency_avg += std::chrono::microseconds(err >> 2);
-        latency_mdev += std::chrono::microseconds((abs(err) - latency_mdev.count()) >> 2);
+        latency_mdev += std::chrono::microseconds((std::abs(err) - latency_mdev.count()) >> 2);
         timeout = latency_avg + latency_mdev * 4;
-        Logger::debug("drop timeout: " + std::to_string(timeout.count()));
+        Logger::debug("Drop timeout: " + std::to_string(timeout.count()));
     }
     return recv_pkts;
 }
