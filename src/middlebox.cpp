@@ -29,6 +29,13 @@ std::chrono::microseconds Middlebox::get_timeout() const
     return timeout;
 }
 
+void Middlebox::increase_latency_estimate_by_DOP(size_t DOP)
+{
+    latency_avg *= DOP;
+    latency_mdev *= DOP;
+    timeout = latency_avg + latency_mdev * 4;
+}
+
 int Middlebox::rewind(NodePacketHistory *nph)
 {
     emulation = EmulationMgr::get().get_emulation(this, nph);

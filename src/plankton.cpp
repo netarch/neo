@@ -209,6 +209,12 @@ void Plankton::verify_policy(Policy *policy)
     // compute connection matrix (Cartesian product)
     policy->compute_conn_matrix();
 
+    // update latency estimate by DOP
+    size_t DOP = std::min(policy->num_conn_ecs(), max_jobs);
+    for (Middlebox *mb : network.get_middleboxes()) {
+        mb->increase_latency_estimate_by_DOP(DOP);
+    }
+
     Logger::info("====================");
     Logger::info(std::to_string(policy->get_id()) + ". Verifying policy "
                  + policy->to_string());

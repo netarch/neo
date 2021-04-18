@@ -16,7 +16,7 @@ private:
     Emulation *emulation;
     std::string env;
     MB_App *app;    // appliance
-    std::chrono::microseconds timeout;
+    std::chrono::microseconds latency_avg, latency_mdev, timeout;
 
 private:
     friend class Config;
@@ -32,6 +32,7 @@ public:
     std::string get_env() const;
     MB_App *get_app() const;
     std::chrono::microseconds get_timeout() const;
+    void increase_latency_estimate_by_DOP(size_t DOP);
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
