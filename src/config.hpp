@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
 #include <unordered_map>
-#include <set>
+#include <string>
+#include <chrono>
+#include <map>
 #include <cpptoml.hpp>
 
 #include "lib/ip.hpp"
@@ -33,6 +34,9 @@ class Config
 private:
     /* config file table (not thread-safe) */
     static std::unordered_map<std::string, std::shared_ptr<cpptoml::table>> configs;
+    /* packet latency estimate */
+    static std::chrono::microseconds latency_avg, latency_mdev;
+    static bool got_latency_estimate;
 
     /* generic network node */
     static void parse_interface(Interface *, const std::shared_ptr<cpptoml::table>&);
@@ -45,6 +49,7 @@ private:
     static void parse_ipvs(IPVS *, const std::shared_ptr<cpptoml::table>&);
     static void parse_squid(Squid *, const std::shared_ptr<cpptoml::table>&);
     static void parse_middlebox(Middlebox *, const std::shared_ptr<cpptoml::table>&);
+    static void estimate_latency();
 
     /* network link */
     static void parse_link(Link *, const std::shared_ptr<cpptoml::table>&,

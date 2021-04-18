@@ -1,6 +1,7 @@
 #include "config.hpp"
 
 #include <cassert>
+#include <csignal>
 #include <string>
 #include <utility>
 #include <regex>
@@ -28,8 +29,12 @@
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
 #include "process/openflow.hpp"
+#include "stats.hpp"
 
 std::unordered_map<std::string, std::shared_ptr<cpptoml::table>> Config::configs;
+std::chrono::microseconds Config::latency_avg;
+std::chrono::microseconds Config::latency_mdev;
+bool Config::got_latency_estimate = false;
 
 void Config::start_parsing(const std::string& filename)
 {
@@ -243,20 +248,20 @@ void Config::parse_middlebox(
 {
     assert(middlebox != nullptr);
 
+    if (!Config::got_latency_estimate) {
+        Config::estimate_latency();
+    }
+
     Config::parse_node(middlebox, config);
 
     auto environment = config->get_as<std::string>("env");
     auto appliance = config->get_as<std::string>("app");
-    auto timeout = config->get_as<long>("timeout");
 
     if (!environment) {
         Logger::error("Missing environment");
     }
     if (!appliance) {
         Logger::error("Missing appliance");
-    }
-    if (!timeout) {
-        Logger::error("Missing timeout");
     }
 
     if (*environment == "netns") {
@@ -278,10 +283,124 @@ void Config::parse_middlebox(
         Logger::error("Unknown appliance: " + *appliance);
     }
 
-    if (*timeout < 0) {
-        Logger::error("Invalid timeout: " + std::to_string(*timeout));
+    middlebox->latency_avg = Config::latency_avg;
+    middlebox->latency_mdev = Config::latency_mdev;
+}
+
+void Config::estimate_latency()
+{
+    /*
+     * [192.168.1.2/24]                        [192.168.2.2/24]
+     * (node1)-------------------(mb)-------------------(node2)
+     *            [192.168.1.1/24]  [192.168.2.1/24]
+     */
+    Network network(nullptr);
+
+    Middlebox *mb = new Middlebox();
+    mb->name = "mb";
+    Interface *mb_eth0 = new Interface();
+    mb_eth0->name = "eth0";
+    mb_eth0->ipv4 = "192.168.1.1/24";
+    mb_eth0->is_switchport = false;
+    Interface *mb_eth1 = new Interface();
+    mb_eth1->name = "eth1";
+    mb_eth1->ipv4 = "192.168.2.1/24";
+    mb_eth1->is_switchport = false;
+    mb->add_interface(mb_eth0);
+    mb->add_interface(mb_eth1);
+    mb->env = "netns";
+    NetFilter *nf = new NetFilter();
+    mb->app = nf;
+    nf->rp_filter = 0;
+    nf->rules = "*filter\n"
+        ":INPUT ACCEPT [0:0]\n"
+        ":FORWARD ACCEPT [0:0]\n"
+        ":OUTPUT ACCEPT [0:0]\n"
+        "COMMIT\n";
+    Config::parse_appliance_config(nf, nf->rules);
+    network.add_middlebox(mb);
+    network.add_node(mb);
+
+    Node *node1 = new Node(), *node2 = new Node();
+    node1->name = "node1";
+    node2->name = "node2";
+    Interface *node1_eth0 = new Interface();
+    node1_eth0->name = "eth0";
+    node1_eth0->ipv4 = "192.168.1.2/24";
+    node1_eth0->is_switchport = false;
+    Interface *node2_eth0 = new Interface();
+    node2_eth0->name = "eth0";
+    node2_eth0->ipv4 = "192.168.2.2/24";
+    node2_eth0->is_switchport = false;
+    node1->add_interface(node1_eth0);
+    node2->add_interface(node2_eth0);
+    network.add_node(node1);
+    network.add_node(node2);
+
+    Link *link = new Link();
+    link->node1 = mb;
+    link->node2 = node1;
+    link->intf1 = mb_eth0;
+    link->intf2 = node1_eth0;
+    if (link->node1 > link->node2) {
+        std::swap(link->node1, link->node2);
+        std::swap(link->intf1, link->intf2);
     }
-    middlebox->timeout = std::chrono::microseconds(*timeout);
+    network.add_link(link);
+    link = new Link();
+    link->node1 = mb;
+    link->node2 = node2;
+    link->intf1 = mb_eth1;
+    link->intf2 = node2_eth0;
+    if (link->node1 > link->node2) {
+        std::swap(link->node1, link->node2);
+        std::swap(link->intf1, link->intf2);
+    }
+    network.add_link(link);
+
+    // register signal handler
+    struct sigaction action, *oldaction = nullptr;
+    action.sa_handler = [](int){};
+    sigemptyset(&action.sa_mask);
+    sigaddset(&action.sa_mask, SIGUSR1);
+    action.sa_flags = SA_NOCLDSTOP;
+    sigaction(SIGUSR1, &action, oldaction);
+
+    Emulation emulation;
+    emulation.init(mb);
+    mb->emulation = &emulation;
+
+    // inject packets
+    Packet packet(mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0, PS_TCP_INIT_1);
+    for (int i = 0; i < 10; ++i) {
+        emulation.send_pkt(packet, false /* no timeout */);
+        packet.set_src_port(packet.get_src_port() + 1);
+    }
+
+    // calculate latency average and mean deviation
+    const std::vector<std::chrono::nanoseconds>& pkt_latencies = Stats::get_pkt_latencies();
+    Config::latency_avg = std::chrono::microseconds::zero();
+    for (const auto& lat : pkt_latencies) {
+        Config::latency_avg += std::chrono::microseconds(lat.count() / 1000);
+    }
+    Config::latency_avg /= pkt_latencies.size();
+    std::chrono::nanoseconds err;
+    Config::latency_mdev = std::chrono::microseconds::zero();
+    for (const auto& lat : pkt_latencies) {
+        err = (lat >= latency_avg ? lat - latency_avg : latency_avg - lat);
+        Config::latency_mdev += std::chrono::microseconds(err.count() / 1000);
+    }
+    Config::latency_mdev /= pkt_latencies.size();
+
+    Logger::debug("latency_avg:  " + std::to_string(Config::latency_avg.count()));
+    Logger::debug("latency_mdev: " + std::to_string(Config::latency_mdev.count()));
+
+    // reset signal handler
+    sigaction(SIGUSR1, oldaction, nullptr);
+
+    emulation.teardown();
+    Stats::clear_latencies();
+    Config::got_latency_estimate = true;
 }
 
 void Config::parse_link(

@@ -92,10 +92,6 @@ void Emulation::init(Middlebox *mb)
 
         emulated_mb = mb;
     }
-
-//#ifdef ENABLE_DEBUG
-//    sleep(30);   // wait for wireshark to launch
-//#endif
 }
 
 int Emulation::rewind(NodePacketHistory *nph)
@@ -130,30 +126,33 @@ int Emulation::rewind(NodePacketHistory *nph)
     return rewind_injections;
 }
 
-std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
+std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool timeout)
 {
     std::unique_lock<std::mutex> lck(mtx);
     recv_pkts.clear();
 
-    // inject packet
-    Logger::info("Injecting packet: " + pkt.to_string());
     env->inject_packet(pkt);
 
-    Stats::set_pkt_lat_t1();
+    if (timeout) {
+        Stats::set_pkt_lat_t1();
+        std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
+        Stats::set_pkt_latency();
 
-    // wait for timeout
-    std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
-
-    Stats::set_pkt_latency();
-
-    // logging
-    if (status == std::cv_status::timeout && recv_pkts.empty()) {
-        // It is possible that the condition variable's timeout occurs after the
-        // listening thread has acquired the lock but before it calls the
-        // notification function, in which case, the attempt of wait_for's
-        // acquiring the lock will block until the listening thread releases it.
-        Logger::info("Timed out!");
+        // logging
+        if (status == std::cv_status::timeout && recv_pkts.empty()) {
+            // It is possible that the condition variable's timeout occurs after
+            // the listening thread has acquired the lock but before it calls
+            // the notification function, in which case, the attempt of
+            // wait_for's acquiring the lock will block until the listening
+            // thread releases it.
+            Logger::info("Timed out!");
+        }
+    } else {
+        Stats::set_pkt_lat_t1();
+        cv.wait(lck);
+        Stats::set_pkt_latency();
     }
+
     /*
      * NOTE:
      * We don't process the read packets in the critical section (i.e., here).

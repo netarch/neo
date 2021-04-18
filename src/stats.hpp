@@ -9,8 +9,6 @@ class Policy;
 class Stats
 {
 private:
-    static bool record_latencies;   // true if latencies should be recorded
-
     /*
      * main process measurements
      */
@@ -57,10 +55,10 @@ public:
     /*
      * control functions
      */
-    static void enable_latency_recording();
     static void output_main_stats();
     static void output_policy_stats(int nodes, int links, Policy *);
     static void output_ec_stats();
+    static void clear_latencies();
 
     /*
      * main process measurements
@@ -93,4 +91,9 @@ public:
     static void set_rewind_injection_count(int);
     static void set_pkt_lat_t1();
     static void set_pkt_latency();
+
+    /*
+     * getter functions
+     */
+    static const std::vector<std::chrono::nanoseconds>& get_pkt_latencies();
 };

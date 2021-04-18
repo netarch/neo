@@ -327,6 +327,7 @@ void ForwardingProcess::inject_packet(
     set_pkt_hist(state, std::move(new_pkt_hist));
 
     // inject packet
+    Logger::info("Injecting packet: " + new_pkt->to_string());
     std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
     process_recv_pkts(state, mb, std::move(recv_pkts), network);
 

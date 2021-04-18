@@ -86,7 +86,6 @@ static void signal_handler(int sig, siginfo_t *siginfo,
             for (int childpid : tasks) {
                 kill(childpid, sig);
             }
-            // wait for all children to die out
             while (wait(nullptr) != -1 || errno != ECHILD);
             exit(0);
     }
@@ -102,15 +101,11 @@ Plankton& Plankton::get()
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, bool latency, size_t dop,
-                    int emulations, const std::string& input_file,
-                    const std::string& output_dir)
+void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, int emulations,
+                    const std::string& input_file, const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = dop;
-    if (latency) {
-        Stats::enable_latency_recording();
-    }
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }

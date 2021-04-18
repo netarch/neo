@@ -39,6 +39,9 @@ private:
 public:
     Packet();
     Packet(State *);
+    Packet(Interface *intf, IPv4Address src_ip, IPv4Address dst_ip,
+           uint16_t src_port, uint16_t dst_port, uint32_t seq, uint32_t ack,
+           uint8_t proto_state);
     Packet(const Packet&) = default;
     Packet(Packet&&) = default;
 

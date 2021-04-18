@@ -12,7 +12,6 @@ using namespace std::chrono;
 
 /********************* private definitions *********************/
 
-bool Stats::record_latencies = false;    // no latency recording by defualt
 std::chrono::high_resolution_clock::time_point Stats::total_t1;
 std::chrono::microseconds Stats::total_time;
 long Stats::total_maxrss;
@@ -41,11 +40,6 @@ Stats::get_duration(const high_resolution_clock::time_point& t1)
 }
 
 /********************* control functions *********************/
-
-void Stats::enable_latency_recording()
-{
-    record_latencies = true;
-}
 
 void Stats::output_main_stats()
 {
@@ -83,18 +77,24 @@ void Stats::output_ec_stats()
     outfile << "Time (microseconds), Memory (kilobytes)" << std::endl
             << ec_time.count() << ", " << ec_maxrss << std::endl;
 
-    if (record_latencies) {
-        outfile << "Overall latency (nanoseconds), "
-                "Rewind latency (nanoseconds), "
-                "Rewind injection count, "
-                "Packet latency (nanoseconds)" << std::endl;
-        for (size_t i = 0; i < overall_latencies.size(); ++i) {
-            outfile << overall_latencies[i].count() << ", "
-                    << rewind_latencies[i].count() << ", "
-                    << rewind_injection_count[i] << ", "
-                    << pkt_latencies[i].count() << std::endl;
-        }
+    outfile << "Overall latency (nanoseconds), "
+            "Rewind latency (nanoseconds), "
+            "Rewind injection count, "
+            "Packet latency (nanoseconds)" << std::endl;
+    for (size_t i = 0; i < overall_latencies.size(); ++i) {
+        outfile << overall_latencies[i].count() << ", "
+                << rewind_latencies[i].count() << ", "
+                << rewind_injection_count[i] << ", "
+                << pkt_latencies[i].count() << std::endl;
     }
+}
+
+void Stats::clear_latencies()
+{
+    overall_latencies.clear();
+    rewind_latencies.clear();
+    rewind_injection_count.clear();
+    pkt_latencies.clear();
 }
 
 /********************* main process measurements *********************/
@@ -164,52 +164,45 @@ void Stats::set_ec_maxrss()
 
 void Stats::set_overall_lat_t1()
 {
-    if (record_latencies) {
-        overall_lat_t1 = high_resolution_clock::now();
-    }
+    overall_lat_t1 = high_resolution_clock::now();
 }
 
 void Stats::set_overall_latency()
 {
-    if (record_latencies) {
-        auto overall_latency = duration_cast<nanoseconds>(get_duration(overall_lat_t1));
-        overall_latencies.push_back(overall_latency);
-    }
+    auto overall_latency = duration_cast<nanoseconds>(get_duration(overall_lat_t1));
+    overall_latencies.push_back(overall_latency);
 }
 
 void Stats::set_rewind_lat_t1()
 {
-    if (record_latencies) {
-        rewind_lat_t1 = high_resolution_clock::now();
-    }
+    rewind_lat_t1 = high_resolution_clock::now();
 }
 
 void Stats::set_rewind_latency()
 {
-    if (record_latencies) {
-        auto rewind_latency = duration_cast<nanoseconds>(get_duration(rewind_lat_t1));
-        rewind_latencies.push_back(rewind_latency);
-    }
+    auto rewind_latency = duration_cast<nanoseconds>(get_duration(rewind_lat_t1));
+    rewind_latencies.push_back(rewind_latency);
 }
 
 void Stats::set_rewind_injection_count(int count)
 {
-    if (record_latencies) {
-        rewind_injection_count.push_back(count);
-    }
+    rewind_injection_count.push_back(count);
 }
 
 void Stats::set_pkt_lat_t1()
 {
-    if (record_latencies) {
-        pkt_lat_t1 = high_resolution_clock::now();
-    }
+    pkt_lat_t1 = high_resolution_clock::now();
 }
 
 void Stats::set_pkt_latency()
 {
-    if (record_latencies) {
-        auto pkt_latency = duration_cast<nanoseconds>(get_duration(pkt_lat_t1));
-        pkt_latencies.push_back(pkt_latency);
-    }
+    auto pkt_latency = duration_cast<nanoseconds>(get_duration(pkt_lat_t1));
+    pkt_latencies.push_back(pkt_latency);
+}
+
+/************************* getter functions *************************/
+
+const std::vector<std::chrono::nanoseconds>& Stats::get_pkt_latencies()
+{
+    return Stats::pkt_latencies;
 }

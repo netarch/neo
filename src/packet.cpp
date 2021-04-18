@@ -33,6 +33,15 @@ Packet::Packet(State *state)
     this->payload = PayloadMgr::get().get_payload(state);
 }
 
+Packet::Packet(Interface *intf, IPv4Address src_ip, IPv4Address dst_ip,
+               uint16_t src_port, uint16_t dst_port, uint32_t seq, uint32_t ack,
+               uint8_t proto_state)
+    : interface(intf), src_ip(src_ip), dst_ip(dst_ip), src_port(src_port),
+      dst_port(dst_port), seq(seq), ack(ack), proto_state(proto_state),
+      payload(nullptr)
+{
+}
+
 std::string Packet::to_string() const
 {
     int proto_state = this->proto_state;
