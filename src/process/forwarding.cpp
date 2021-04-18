@@ -154,8 +154,8 @@ void ForwardingProcess::forward_packet(State *state)
         if (PS_IS_FIRST(proto_state)) {
             // store the original receiving endpoint of the connection
             set_rx_node(state, current_node);
-        } else if ((PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node)
-                || (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node)) {
+        } else if ((PS_IS_REQUEST_DIR(proto_state) && current_node != rx_node) ||
+                   (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node)) {
             // inconsistent endpoints: dropped by middlebox
             Logger::info("Inconsistent endpoints");
             Logger::info("Connection " + std::to_string(get_conn(state)) +
