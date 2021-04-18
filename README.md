@@ -83,7 +83,6 @@ Options:
     -h, --help           print this help message
     -a, --all            verify all ECs after violation
     -f, --force          remove pre-existent output directory
-    -l, --latency        measure packet injection latencies
     -j, --jobs <N>       number of parallel tasks
     -e, --emulations <N> maximum number of emulation instances
     -i, --input <file>   network configuration file
