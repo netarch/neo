@@ -376,18 +376,18 @@ void Config::estimate_latency()
 
     // calculate latency average and mean deviation
     const std::vector<std::chrono::nanoseconds>& pkt_latencies = Stats::get_pkt_latencies();
-    Config::latency_avg = std::chrono::microseconds::zero();
+    long long avg = 0;
     for (const auto& lat : pkt_latencies) {
-        Config::latency_avg += std::chrono::microseconds(lat.count() / 1000);
+        avg += lat.count() / 1000 + 1;
     }
-    Config::latency_avg /= pkt_latencies.size();
-    std::chrono::nanoseconds err;
-    Config::latency_mdev = std::chrono::microseconds::zero();
+    avg /= pkt_latencies.size();
+    Config::latency_avg = std::chrono::microseconds(avg);
+    long long mdev = 0;
     for (const auto& lat : pkt_latencies) {
-        err = (lat >= latency_avg ? lat - latency_avg : latency_avg - lat);
-        Config::latency_mdev += std::chrono::microseconds(err.count() / 1000);
+        mdev += std::abs(lat.count() / 1000 + 1 - avg);
     }
-    Config::latency_mdev /= pkt_latencies.size();
+    mdev /= pkt_latencies.size();
+    Config::latency_mdev = std::chrono::microseconds(mdev);
 
     // reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);

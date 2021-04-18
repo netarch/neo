@@ -61,7 +61,7 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
     assert(emulation->get_mb() == this);
     std::vector<Packet> recv_pkts = emulation->send_pkt(pkt);
     if (!recv_pkts.empty()) {
-        long long err = Stats::get_pkt_latencies().back().count() / 1000 - latency_avg.count();
+        long long err = Stats::get_pkt_latencies().back().count() / 1000 + 1 - latency_avg.count();
         latency_avg += std::chrono::microseconds(err >> 2);
         latency_mdev += std::chrono::microseconds((std::abs(err) - latency_mdev.count()) >> 2);
         update_timeout();
