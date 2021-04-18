@@ -310,10 +310,10 @@ void Config::estimate_latency()
     mb->app = nf;
     nf->rp_filter = 0;
     nf->rules = "*filter\n"
-        ":INPUT ACCEPT [0:0]\n"
-        ":FORWARD ACCEPT [0:0]\n"
-        ":OUTPUT ACCEPT [0:0]\n"
-        "COMMIT\n";
+                ":INPUT ACCEPT [0:0]\n"
+                ":FORWARD ACCEPT [0:0]\n"
+                ":OUTPUT ACCEPT [0:0]\n"
+                "COMMIT\n";
     Config::parse_appliance_config(nf, nf->rules);
     network.add_middlebox(mb);
     network.add_node(mb);
@@ -357,7 +357,7 @@ void Config::estimate_latency()
 
     // register signal handler
     struct sigaction action, *oldaction = nullptr;
-    action.sa_handler = [](int){};
+    action.sa_handler = [](int) {};
     sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGUSR1);
     action.sa_flags = SA_NOCLDSTOP;
