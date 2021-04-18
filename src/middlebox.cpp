@@ -1,7 +1,9 @@
 #include "middlebox.hpp"
 
 #include <cassert>
+#include <cstdlib>
 
+#include "stats.hpp"
 #include "emulationmgr.hpp"
 
 Middlebox::Middlebox()
@@ -51,7 +53,15 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph)
 std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
 {
     assert(emulation->get_mb() == this);
-    return emulation->send_pkt(pkt);
+    std::vector<Packet> recv_pkts = emulation->send_pkt(pkt);
+    if (!recv_pkts.empty()) {
+        long long err = Stats::get_pkt_latencies().back().count() / 1000 - latency_avg.count();
+        latency_avg += std::chrono::microseconds(err >> 2);
+        latency_mdev += std::chrono::microseconds((abs(err) - latency_mdev.count()) >> 2);
+        timeout = latency_avg + latency_mdev * 4;
+        Logger::debug("drop timeout: " + std::to_string(timeout.count()));
+    }
+    return recv_pkts;
 }
 
 std::set<FIB_IPNH> Middlebox::get_ipnhs(

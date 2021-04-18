@@ -164,7 +164,6 @@ void Config::parse_appliance_config(MB_App *app, const std::string& config)
     // search for IP prefix patterns
     subject = config;
     while (std::regex_search(subject, match, ip_prefix_regex)) {
-        Logger::debug("Found \"" + match.str(0) + "\" when parsing middlebox");
         app->ip_prefixes.emplace(match.str(0));
         subject = match.suffix();
     }
@@ -172,7 +171,6 @@ void Config::parse_appliance_config(MB_App *app, const std::string& config)
     // search for IP address patterns
     subject = config;
     while (std::regex_search(subject, match, ip_addr_regex)) {
-        Logger::debug("Found \"" + match.str(1) + "\" when parsing middlebox");
         app->ip_addrs.emplace(match.str(1));
         subject = match.suffix();
     }
@@ -180,7 +178,6 @@ void Config::parse_appliance_config(MB_App *app, const std::string& config)
     // search for port patterns
     subject = config;
     while (std::regex_search(subject, match, port_regex)) {
-        Logger::debug("Found \"" + match.str(1) + "\" when parsing middlebox");
         app->ports.insert(std::stoul(match.str(1)));
         subject = match.suffix();
     }
@@ -391,9 +388,6 @@ void Config::estimate_latency()
         Config::latency_mdev += std::chrono::microseconds(err.count() / 1000);
     }
     Config::latency_mdev /= pkt_latencies.size();
-
-    Logger::debug("latency_avg:  " + std::to_string(Config::latency_avg.count()));
-    Logger::debug("latency_mdev: " + std::to_string(Config::latency_mdev.count()));
 
     // reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);
