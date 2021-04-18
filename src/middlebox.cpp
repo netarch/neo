@@ -31,11 +31,17 @@ std::chrono::microseconds Middlebox::get_timeout() const
     return timeout;
 }
 
+void Middlebox::update_timeout()
+{
+    timeout = latency_avg + latency_mdev * DOP;
+}
+
 void Middlebox::increase_latency_estimate_by_DOP(size_t DOP)
 {
     latency_avg *= DOP;
     latency_mdev *= DOP;
-    timeout = latency_avg + latency_mdev * 3;
+    this->DOP = DOP;
+    update_timeout();
 }
 
 int Middlebox::rewind(NodePacketHistory *nph)
@@ -58,7 +64,7 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
         long long err = Stats::get_pkt_latencies().back().count() / 1000 - latency_avg.count();
         latency_avg += std::chrono::microseconds(err >> 2);
         latency_mdev += std::chrono::microseconds((std::abs(err) - latency_mdev.count()) >> 2);
-        timeout = latency_avg + latency_mdev * 3;
+        update_timeout();
         Logger::debug("Drop timeout: " + std::to_string(timeout.count()));
     }
     return recv_pkts;

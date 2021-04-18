@@ -17,6 +17,7 @@ private:
     std::string env;
     MB_App *app;    // appliance
     std::chrono::microseconds latency_avg, latency_mdev, timeout;
+    size_t DOP;
 
 private:
     friend class Config;
@@ -32,6 +33,7 @@ public:
     std::string get_env() const;
     MB_App *get_app() const;
     std::chrono::microseconds get_timeout() const;
+    void update_timeout();
     void increase_latency_estimate_by_DOP(size_t DOP);
 
     int rewind(NodePacketHistory *);

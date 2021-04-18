@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <set>
-#include <list>
+#include <thread>
 
 #include "stats.hpp"
 #include "config.hpp"
@@ -105,7 +105,7 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, int emulations,
                     const std::string& input_file, const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
-    max_jobs = dop;
+    max_jobs = std::min(dop, size_t(std::thread::hardware_concurrency()));
     if (rm_out_dir && fs::exists(output_dir)) {
         fs::remove(output_dir);
     }
