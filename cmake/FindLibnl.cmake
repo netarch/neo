@@ -26,10 +26,11 @@ This will define the following variables:
 
 #]=======================================================================]
 
+set(LIBNL_VERSION 3.4.0)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Libnl REQUIRED IMPORTED_TARGET
-                  libnl-3.0>=3.5.0
-                  libnl-genl-3.0>=3.5.0)
+                  libnl-3.0>=${LIBNL_VERSION}
+                  libnl-genl-3.0>=${LIBNL_VERSION})
 
 if(Libnl_FOUND AND NOT TARGET Libnl::Libnl)
     add_library(Libnl::Libnl ALIAS PkgConfig::Libnl)
