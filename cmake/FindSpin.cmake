@@ -39,6 +39,6 @@ find_package_handle_standard_args(Spin
     VERSION_VAR Spin_VERSION)
 
 if(Spin_FOUND AND NOT TARGET Spin::Spin)
-    add_executable(Spin::Spin IMPORTED GLOBAL)
+    add_executable(Spin::Spin IMPORTED)
     set_target_properties(Spin::Spin PROPERTIES IMPORTED_LOCATION "${Spin_EXECUTABLE}")
 endif()

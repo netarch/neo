@@ -182,7 +182,7 @@ main() {
 
     if [ "$DISTRO" = "arch" ]; then
         makedepends=(make cmake clang spin-git)
-        depends=(libnet ipvsadm squid)
+        depends=(libnet libnl ipvsadm squid)
         experiment_depends=(astyle python-toml bc)
 
         if ! pacman -Q yay >/dev/null 2>&1; then
@@ -194,8 +194,8 @@ main() {
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_depends=(build-essential curl git bison rsync)
-        makedepends=(make cmake clang libnet1-dev)
-        depends=(libnet1 ipvsadm squid)
+        makedepends=(make cmake clang libnet1-dev libnl-3-dev libnl-genl-3-dev)
+        depends=(libnet1 libnl-3-200 libnl-genl-3-200 ipvsadm squid)
         experiment_depends=(astyle python3-toml bc)
         aur_pkgs=(spin-git)
 

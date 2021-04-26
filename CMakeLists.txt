@@ -69,6 +69,7 @@ add_subdirectory(third_party/cpptoml)
 add_subdirectory(third_party/spdlog)
 add_subdirectory(third_party/xxhash)
 find_package(Libnet REQUIRED)
+find_package(Libnl REQUIRED)
 find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -118,7 +119,7 @@ target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE spin_model cpptoml xxhash Libnet::Libnet
-    Threads::Threads)
+    Libnl::Libnl Threads::Threads)
 
 #
 # main target
