@@ -14,6 +14,7 @@ static void usage(const std::string& progname)
               "    -h, --help           print this help message\n"
               "    -a, --all            verify all ECs after violation\n"
               "    -f, --force          remove pre-existent output directory\n"
+              "    -d, --dropmon        use drop monitor instead of timer\n"
               "    -j, --jobs <N>       number of parallel tasks\n"
               "    -e, --emulations <N> maximum number of emulation instances\n"
               "    -i, --input <file>   network configuration file\n"
@@ -21,16 +22,17 @@ static void usage(const std::string& progname)
 }
 
 static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
-                       size_t& max_jobs, int& emulations,
+                       bool& dropmon, size_t& max_jobs, int& emulations,
                        std::string& input_file, std::string& output_dir)
 {
     int opt;
-    const char *optstring = "hafj:e:i:o:";
+    const char *optstring = "hafdj:e:i:o:";
 
     const struct option longopts[] = {
         {"help",       no_argument,       0, 'h'},
         {"all",        no_argument,       0, 'a'},
         {"force",      no_argument,       0, 'f'},
+        {"dropmon",    no_argument,       0, 'd'},
         {"jobs",       required_argument, 0, 'j'},
         {"emulations", required_argument, 0, 'e'},
         {"input",      required_argument, 0, 'i'},
@@ -48,6 +50,9 @@ static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
                 break;
             case 'f':
                 rm_out_dir = true;
+                break;
+            case 'd':
+                dropmon = true;
                 break;
             case 'j':
                 max_jobs = atoi(optarg);
@@ -83,13 +88,13 @@ static void parse_args(int argc, char **argv, bool& all_ECs, bool& rm_out_dir,
 
 int main(int argc, char **argv)
 {
-    bool all_ECs = false, rm_out_dir = false;
+    bool all_ECs = false, rm_out_dir = false, dropmon = false;
     size_t max_jobs = 1;
     int emulations = -1;
     std::string input_file, output_dir;
-    parse_args(argc, argv, all_ECs, rm_out_dir, max_jobs, emulations, input_file, output_dir);
+    parse_args(argc, argv, all_ECs, rm_out_dir, dropmon, max_jobs, emulations, input_file, output_dir);
 
     Plankton& plankton = Plankton::get();
-    plankton.init(all_ECs, rm_out_dir, max_jobs, emulations, input_file, output_dir);
+    plankton.init(all_ECs, rm_out_dir, dropmon, max_jobs, emulations, input_file, output_dir);
     return plankton.run();
 }

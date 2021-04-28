@@ -50,5 +50,5 @@ public:
 
     void init(Middlebox *);  // initialize and start the emulation
     int rewind(NodePacketHistory *);
-    std::vector<Packet> send_pkt(const Packet&, bool timeout = true);
+    std::vector<Packet> send_pkt(const Packet&);
 };

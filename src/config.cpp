@@ -16,6 +16,7 @@
 #include "mb-app/ipvs.hpp"
 #include "mb-app/squid.hpp"
 #include "middlebox.hpp"
+#include "lib/dropmon.hpp"
 #include "link.hpp"
 #include "network.hpp"
 #include "protocols.hpp"
@@ -245,7 +246,7 @@ void Config::parse_middlebox(
 {
     assert(middlebox != nullptr);
 
-    if (!Config::got_latency_estimate) {
+    if (!Config::got_latency_estimate && !DropMon::get().is_enabled()) {
         Config::estimate_latency();
     }
 
@@ -369,10 +370,13 @@ void Config::estimate_latency()
 
     // inject packets
     Packet packet(mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0, PS_TCP_INIT_1);
+    assert(DropMon::get().enabled == false);
+    DropMon::get().enabled = true;  // temporarily disable timeout
     for (int i = 0; i < 10; ++i) {
-        emulation.send_pkt(packet, false /* no timeout */);
+        emulation.send_pkt(packet);
         packet.set_src_port(packet.get_src_port() + 1);
     }
+    DropMon::get().enabled = false;
 
     // calculate latency average and mean deviation
     const std::vector<std::chrono::nanoseconds>& pkt_latencies = Stats::get_pkt_latencies();

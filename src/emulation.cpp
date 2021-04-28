@@ -6,6 +6,7 @@
 #include "middlebox.hpp"
 #include "mb-env/netns.hpp"
 #include "lib/logger.hpp"
+#include "lib/dropmon.hpp"
 #include "stats.hpp"
 
 Emulation::Emulation()
@@ -126,14 +127,18 @@ int Emulation::rewind(NodePacketHistory *nph)
     return rewind_injections;
 }
 
-std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool timeout)
+std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
 {
     std::unique_lock<std::mutex> lck(mtx);
     recv_pkts.clear();
 
     env->inject_packet(pkt);
 
-    if (timeout) {
+    if (DropMon::get().is_enabled()) {  // use drop monitor
+        Stats::set_pkt_lat_t1();
+        cv.wait(lck);
+        Stats::set_pkt_latency();
+    } else {                            // use timeout
         Stats::set_pkt_lat_t1();
         std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
         Stats::set_pkt_latency();
@@ -147,10 +152,6 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool timeout)
             // thread releases it.
             Logger::info("Timed out!");
         }
-    } else {
-        Stats::set_pkt_lat_t1();
-        cv.wait(lck);
-        Stats::set_pkt_latency();
     }
 
     /*

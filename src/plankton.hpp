@@ -38,8 +38,9 @@ public:
 
     static Plankton& get();
 
-    void init(bool all_ECs, bool rm_out_dir, size_t dop, int emulations,
-              const std::string& input_file, const std::string& output_dir);
+    void init(bool all_ECs, bool rm_out_dir, bool dropmon, size_t dop,
+              int emulations, const std::string& input_file,
+              const std::string& output_dir);
     int run();
 
     /***** functions used by the Promela network model *****/

@@ -16,6 +16,7 @@
 #include "lib/fs.hpp"
 #include "lib/ip.hpp"
 #include "lib/logger.hpp"
+#include "lib/dropmon.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
@@ -87,6 +88,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
                 kill(childpid, sig);
             }
             while (wait(nullptr) != -1 || errno != ECHILD);
+            DropMon::get().stop();
             exit(0);
     }
 }
@@ -101,8 +103,9 @@ Plankton& Plankton::get()
     return instance;
 }
 
-void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, int emulations,
-                    const std::string& input_file, const std::string& output_dir)
+void Plankton::init(bool all_ECs, bool rm_out_dir, bool dropmon, size_t dop,
+                    int emulations, const std::string& input_file,
+                    const std::string& output_dir)
 {
     verify_all_ECs = all_ECs;
     max_jobs = std::min(dop, size_t(std::thread::hardware_concurrency()));
@@ -114,6 +117,10 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, size_t dop, int emulations,
     out_dir = fs::realpath(output_dir);
     Logger::enable_console_logging();
     Logger::enable_file_logging(fs::append(out_dir, "main.log"));
+
+    if (dropmon) {
+        DropMon::get().init();
+    }
 
     Config::start_parsing(in_file);
     Config::parse_network(&network, in_file);
@@ -266,6 +273,7 @@ int Plankton::run()
         sigaction(sigs[i], &action, nullptr);
     }
 
+    DropMon::get().start();
     Stats::set_total_t1();
 
     // fork for each policy to get their memory usage measurements
@@ -286,6 +294,7 @@ int Plankton::run()
     Stats::set_total_time();
     Stats::set_total_maxrss();
     Stats::output_main_stats();
+    DropMon::get().stop();
 
     return 0;
 }

@@ -105,7 +105,8 @@ private:
 public:
     static void start_parsing(const std::string& filename);
     static void finish_parsing(const std::string& filename);
-    static void parse_network(Network *network, const std::string& filename);
+    static void parse_network(Network *network,
+                              const std::string& filename);
     static void parse_policies(Policies *policies,
                                const std::string& filename,
                                const Network& network);
