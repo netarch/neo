@@ -253,9 +253,14 @@ NetNS::~NetNS()
         return;
     }
 
+    // enter the isolated netns
+    if (setns(new_net, CLONE_NEWNET) < 0) {
+        Logger::error("setns()", errno);
+    }
+
     // epoll
-    delete [] events;
     close(epollfd);
+    delete [] events;
     // delete the created tap devices
     for (const auto& tap : tapfds) {
         close(tap.second);
@@ -263,6 +268,11 @@ NetNS::~NetNS()
     // delete the allocated ethernet addresses
     for (const auto& mac : tapmacs) {
         delete [] mac.second;
+    }
+
+    // return to the original netns
+    if (setns(old_net, CLONE_NEWNET) < 0) {
+        Logger::error("setns()", errno);
     }
     // remove the new network namespace
     close(new_net);
