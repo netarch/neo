@@ -34,10 +34,12 @@ public:
 
     static DropMon& get();
 
-    bool is_enabled() const;
-    void init();        // set family and enabled
-    void start() const; // start kernel drop_monitor
-    void stop() const;  // stop kernel drop_monitor
-    void connect();
-    void disconnect();
+    bool    is_enabled() const;
+    void    init();         // set family and enabled
+    void    start() const;  // start kernel drop_monitor
+    void    stop() const;   // stop kernel drop_monitor
+
+    void    connect();
+    void    disconnect();
+    void    recv() const;
 };

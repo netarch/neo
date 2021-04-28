@@ -78,9 +78,7 @@ DropMon::DropMon(): family(0), enabled(false), dm_sock(nullptr)
 
 DropMon::~DropMon()
 {
-    if (enabled && dm_sock) {
-        disconnect();
-    }
+    disconnect();
 }
 
 DropMon& DropMon::get()
@@ -119,7 +117,7 @@ void DropMon::start() const
     genl_connect(sock);
 
     //set_alert_mode(sock);
-    //set_queue_length(sock, 100);
+    //set_queue_length(sock, 1000);
 
     struct nl_msg *msg = new_msg(NET_DM_CMD_START, NLM_F_REQUEST|NLM_F_ACK, 0);
     //set_sw_hw_drops(msg);
@@ -148,20 +146,27 @@ void DropMon::stop() const
     Logger::info("Drop monitor stopped");
 }
 
+static int alert_handler(struct nl_msg *msg __attribute__((unused)),
+                         void *arg __attribute__((unused)))
+{
+    Logger::debug("alert_handler");
+    return NL_OK;
+}
+
 void DropMon::connect()
 {
     if (!enabled) {
         return;
     }
 
-    if (dm_sock) {
-        Logger::warn("drop_monitor: already connected");
-        return;
+    if (dm_sock) {  // connected
+        Logger::error("dropmon socket already connected");
     }
 
     dm_sock = nl_socket_alloc();
+    //nl_socket_set_nonblocking(dm_sock);
     nl_join_groups(dm_sock, NET_DM_GRP_ALERT);
-    // TODO: callback
+    nl_socket_modify_cb(dm_sock, NL_CB_VALID, NL_CB_CUSTOM, alert_handler, nullptr);
     genl_connect(dm_sock);
 }
 
@@ -171,10 +176,24 @@ void DropMon::disconnect()
         return;
     }
 
-    if (!dm_sock) {
+    nl_socket_free(dm_sock);
+    dm_sock = nullptr;
+}
+
+void DropMon::recv() const
+{
+    if (!enabled) {
         return;
     }
 
-    nl_socket_free(dm_sock);
-    dm_sock = nullptr;
+    if (!dm_sock) {
+        Logger::error("dropmon socket not connected");
+    }
+
+    Logger::debug("DropMon::recvvvvvvvv");
+
+    int err = nl_recvmsgs_default(dm_sock);
+    if (err < 0) {
+        Logger::error("nl_recvmsgs_default: " + std::string(nl_geterror(err)));
+    }
 }
