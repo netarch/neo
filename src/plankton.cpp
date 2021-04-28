@@ -11,12 +11,12 @@
 
 #include "stats.hpp"
 #include "config.hpp"
+#include "dropmon.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
 #include "lib/fs.hpp"
 #include "lib/ip.hpp"
 #include "lib/logger.hpp"
-#include "lib/dropmon.hpp"
 #include "model-access.hpp"
 #include "model.h"
 
@@ -188,6 +188,10 @@ void Plankton::verify_conn()
     dup2(fd, STDOUT_FILENO);
     dup2(fd, STDERR_FILENO);
     close(fd);
+
+    // connect to dropmon socket if enabled
+    //DropMon::get().connect(policy->get_conns()); // TODO
+    DropMon::get().connect();
 
     // record time usage for this EC
     Stats::set_ec_t1();

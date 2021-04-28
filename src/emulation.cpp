@@ -3,10 +3,10 @@
 #include <csignal>
 #include <unistd.h>
 
+#include "dropmon.hpp"
 #include "middlebox.hpp"
 #include "mb-env/netns.hpp"
 #include "lib/logger.hpp"
-#include "lib/dropmon.hpp"
 #include "stats.hpp"
 
 Emulation::Emulation()
@@ -36,6 +36,13 @@ void Emulation::listen_packets()
         }
     }
 }
+
+//void Emulation::listen_drops()
+//{
+//    while (!stop_listener) {
+//        DropMon::get().recv();
+//    }
+//}
 
 void Emulation::teardown()
 {
@@ -79,7 +86,7 @@ void Emulation::init(Middlebox *mb)
         env->init(*mb);
         env->run(mb_app_init, mb->get_app());
 
-        // spawn the listener thread
+        // spawn the listener thread (block all signals but SIGUSR1)
         sigset_t mask, old_mask;
         sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);

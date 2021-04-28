@@ -1,10 +1,12 @@
-#include "lib/dropmon.hpp"
+#include "dropmon.hpp"
 
 #include <netlink/netlink.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
 #include <linux/net_dropmon.h>
+#include <csignal>
 
+#include "policy/policy.hpp"
 #include "lib/logger.hpp"
 
 struct nl_msg *DropMon::new_msg(uint8_t cmd, int flags, size_t hdrlen) const
@@ -72,7 +74,7 @@ void DropMon::set_sw_hw_drops(struct nl_msg *msg) const
     }
 }
 
-DropMon::DropMon(): family(0), enabled(false), dm_sock(nullptr)
+DropMon::DropMon(): family(0), enabled(false), dm_sock(nullptr), listener(nullptr)
 {
 }
 
@@ -146,11 +148,20 @@ void DropMon::stop() const
     Logger::info("Drop monitor stopped");
 }
 
-static int alert_handler(struct nl_msg *msg __attribute__((unused)),
-                         void *arg __attribute__((unused)))
+void DropMon::spawn(Policy *policy, DropMonPipes& dm_read_pipes)
 {
-    Logger::debug("alert_handler");
-    return NL_OK;
+    while (policy->set_conns()) {
+    }
+
+    policy->reset_conn_matrix();
+
+    int childpid;
+    if ((childpid = fork()) < 0) {
+        Logger::error("fork()", errno);
+    } else if (childpid == 0) {
+        // dropmon process
+        //DropMon::get().
+    }
 }
 
 void DropMon::connect()
@@ -166,8 +177,21 @@ void DropMon::connect()
     dm_sock = nl_socket_alloc();
     //nl_socket_set_nonblocking(dm_sock);
     nl_join_groups(dm_sock, NET_DM_GRP_ALERT);
-    nl_socket_modify_cb(dm_sock, NL_CB_VALID, NL_CB_CUSTOM, alert_handler, nullptr);
+    nl_socket_modify_cb(dm_sock, NL_CB_SEQ_CHECK, NL_CB_CUSTOM, DropMon::seq_check, nullptr);
+    nl_socket_modify_cb(dm_sock, NL_CB_VALID, NL_CB_CUSTOM, DropMon::alert_handler, nullptr);
     genl_connect(dm_sock);
+
+    // spawn the drop listener thread (block all signals but SIGUSR1)
+    sigset_t mask, old_mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGHUP);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGQUIT);
+    sigaddset(&mask, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
+    listener = new std::thread(&DropMon::recvmsg, this);
+    pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
 }
 
 void DropMon::disconnect()
@@ -176,24 +200,48 @@ void DropMon::disconnect()
         return;
     }
 
+    if (listener) {
+        stop_listener = true;
+        auto tid = listener->native_handle();
+        pthread_kill(tid, SIGUSR1);
+        if (listener->joinable()) {
+            listener->join();
+        }
+    }
+    delete listener;
     nl_socket_free(dm_sock);
     dm_sock = nullptr;
 }
 
-void DropMon::recv() const
+void DropMon::recvmsg()
 {
-    if (!enabled) {
-        return;
-    }
-
     if (!dm_sock) {
         Logger::error("dropmon socket not connected");
     }
 
-    Logger::debug("DropMon::recvvvvvvvv");
+    Logger::debug("CALL -- DropMon::recvmsg");
 
-    int err = nl_recvmsgs_default(dm_sock);
-    if (err < 0) {
-        Logger::error("nl_recvmsgs_default: " + std::string(nl_geterror(err)));
+    while (!stop_listener) {
+        // receive the drop msgs (it will block if there is no drop)
+        int err = nl_recvmsgs_default(dm_sock);
+        if (err < 0) {
+            if (err == -NLE_INTR) {
+                Logger::warn("drop listener thread interrupted");
+            } else {
+                Logger::warn("nl_recvmsgs_default: " + std::string(nl_geterror(err)));
+            }
+        }
     }
+}
+
+int DropMon::seq_check(struct nl_msg *msg __attribute__((unused)), void *arg __attribute__((unused)))
+{
+    Logger::debug("seq_check"); // TODO
+    return NL_OK;
+}
+
+int DropMon::alert_handler(struct nl_msg *msg __attribute__((unused)), void *arg __attribute__((unused)))
+{
+    Logger::debug("alert_handler"); // TODO
+    return NL_OK;
 }

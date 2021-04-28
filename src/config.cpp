@@ -8,6 +8,7 @@
 #include <typeinfo>
 #include <cpptoml.hpp>
 
+#include "dropmon.hpp"
 #include "interface.hpp"
 #include "route.hpp"
 #include "node.hpp"
@@ -16,7 +17,6 @@
 #include "mb-app/ipvs.hpp"
 #include "mb-app/squid.hpp"
 #include "middlebox.hpp"
-#include "lib/dropmon.hpp"
 #include "link.hpp"
 #include "network.hpp"
 #include "protocols.hpp"

@@ -4,8 +4,8 @@
 #include <cstdlib>
 
 #include "stats.hpp"
+#include "dropmon.hpp"
 #include "emulationmgr.hpp"
-#include "lib/dropmon.hpp"
 
 Middlebox::Middlebox()
     : emulation(nullptr), app(nullptr)

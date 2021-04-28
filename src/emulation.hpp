@@ -24,11 +24,11 @@ private:
     Middlebox *emulated_mb; // currently emulated middlebox node
     NodePacketHistory *node_pkt_hist;
 
-    std::thread *listener;          // listener thread
-    std::atomic<bool> stop_listener;
-    std::vector<Packet> recv_pkts;  // received packets (race)
-    std::mutex mtx;                 // lock for accessing recv_pkts
-    std::condition_variable cv;     // for reading recv_pkts
+    std::thread *listener;              // listener thread
+    std::atomic<bool> stop_listener;    // loop control flag
+    std::vector<Packet> recv_pkts;      // received packets (race)
+    std::mutex mtx;                     // lock for accessing recv_pkts
+    std::condition_variable cv;         // for reading recv_pkts
 
     void listen_packets();
     void teardown();
