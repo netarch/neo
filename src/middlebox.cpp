@@ -4,11 +4,10 @@
 #include <cstdlib>
 
 #include "stats.hpp"
-#include "dropmon.hpp"
 #include "emulationmgr.hpp"
 
 Middlebox::Middlebox()
-    : emulation(nullptr), app(nullptr)
+    : emulation(nullptr), app(nullptr), dropmon(false), DOP(1)
 {
 }
 
@@ -30,6 +29,11 @@ MB_App *Middlebox::get_app() const
 std::chrono::microseconds Middlebox::get_timeout() const
 {
     return timeout;
+}
+
+bool Middlebox::dropmon_enabled() const
+{
+    return dropmon;
 }
 
 void Middlebox::update_timeout()
@@ -61,7 +65,7 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
 {
     assert(emulation->get_mb() == this);
     std::vector<Packet> recv_pkts = emulation->send_pkt(pkt);
-    if (!recv_pkts.empty() && !DropMon::get().is_enabled()) {
+    if (!recv_pkts.empty() && !dropmon) {
         long long err = Stats::get_pkt_latencies().back().count() / 1000 + 1 - latency_avg.count();
         latency_avg += std::chrono::microseconds(err >> 2);
         latency_mdev += std::chrono::microseconds((std::abs(err) - latency_mdev.count()) >> 2);

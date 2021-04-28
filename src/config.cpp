@@ -8,7 +8,6 @@
 #include <typeinfo>
 #include <cpptoml.hpp>
 
-#include "dropmon.hpp"
 #include "interface.hpp"
 #include "route.hpp"
 #include "node.hpp"
@@ -242,11 +241,12 @@ void Config::parse_squid(
 
 void Config::parse_middlebox(
     Middlebox *middlebox,
-    const std::shared_ptr<cpptoml::table>& config)
+    const std::shared_ptr<cpptoml::table>& config,
+    bool dropmon)
 {
     assert(middlebox != nullptr);
 
-    if (!Config::got_latency_estimate && !DropMon::get().is_enabled()) {
+    if (!Config::got_latency_estimate && !dropmon) {
         Config::estimate_latency();
     }
 
@@ -283,6 +283,7 @@ void Config::parse_middlebox(
 
     middlebox->latency_avg = Config::latency_avg;
     middlebox->latency_mdev = Config::latency_mdev;
+    middlebox->dropmon = dropmon;
 }
 
 void Config::estimate_latency()
@@ -370,13 +371,13 @@ void Config::estimate_latency()
 
     // inject packets
     Packet packet(mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0, PS_TCP_INIT_1);
-    assert(DropMon::get().enabled == false);
-    DropMon::get().enabled = true;  // temporarily disable timeout
+    assert(emulation.dropmon == false);
+    emulation.dropmon = true;       // temporarily disable timeout
     for (int i = 0; i < 10; ++i) {
         emulation.send_pkt(packet);
         packet.set_src_port(packet.get_src_port() + 1);
     }
-    DropMon::get().enabled = false;
+    emulation.dropmon = false;
 
     // calculate latency average and mean deviation
     const std::vector<std::chrono::nanoseconds>& pkt_latencies = Stats::get_pkt_latencies();
@@ -448,7 +449,8 @@ void Config::parse_link(
     }
 }
 
-void Config::parse_network(Network *network, const std::string& filename)
+void Config::parse_network(
+    Network *network, const std::string& filename, bool dropmon)
 {
     assert(network != nullptr);
 
@@ -465,7 +467,7 @@ void Config::parse_network(Network *network, const std::string& filename)
                 Config::parse_node(node, cfg);
             } else if (*type == "middlebox") {
                 node = new Middlebox();
-                Config::parse_middlebox(static_cast<Middlebox *>(node), cfg);
+                Config::parse_middlebox(static_cast<Middlebox *>(node), cfg, dropmon);
                 network->add_middlebox(static_cast<Middlebox *>(node));
             } else {
                 Logger::error("Unknown node type: " + *type);

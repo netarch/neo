@@ -403,6 +403,12 @@ std::vector<Packet> NetNS::read_packets() const
     return pkts;
 }
 
+std::string NetNS::packet_drop()
+{
+    // TODO
+    return "";
+}
+
 /************* Code for creating a veth pair *************
  *********************************************************
     struct nl_sock *sock;

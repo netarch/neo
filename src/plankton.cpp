@@ -11,7 +11,6 @@
 
 #include "stats.hpp"
 #include "config.hpp"
-#include "dropmon.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
 #include "lib/fs.hpp"
@@ -88,7 +87,6 @@ static void signal_handler(int sig, siginfo_t *siginfo,
                 kill(childpid, sig);
             }
             while (wait(nullptr) != -1 || errno != ECHILD);
-            DropMon::get().stop();
             exit(0);
     }
 }
@@ -118,12 +116,8 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, bool dropmon, size_t dop,
     Logger::enable_console_logging();
     Logger::enable_file_logging(fs::append(out_dir, "main.log"));
 
-    if (dropmon) {
-        DropMon::get().init();
-    }
-
     Config::start_parsing(in_file);
-    Config::parse_network(&network, in_file);
+    Config::parse_network(&network, in_file, dropmon);
     Config::parse_openflow(&openflow, in_file, network);
     Config::parse_policies(&policies, in_file, network);
     Config::finish_parsing(in_file);
@@ -188,10 +182,6 @@ void Plankton::verify_conn()
     dup2(fd, STDOUT_FILENO);
     dup2(fd, STDERR_FILENO);
     close(fd);
-
-    // connect to dropmon socket if enabled
-    //DropMon::get().connect(policy->get_conns()); // TODO
-    DropMon::get().connect();
 
     // record time usage for this EC
     Stats::set_ec_t1();
@@ -277,7 +267,6 @@ int Plankton::run()
         sigaction(sigs[i], &action, nullptr);
     }
 
-    DropMon::get().start();
     Stats::set_total_t1();
 
     // fork for each policy to get their memory usage measurements
@@ -298,7 +287,6 @@ int Plankton::run()
     Stats::set_total_time();
     Stats::set_total_maxrss();
     Stats::output_main_stats();
-    DropMon::get().stop();
 
     return 0;
 }

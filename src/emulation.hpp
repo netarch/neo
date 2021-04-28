@@ -3,6 +3,7 @@
  * An emulation instance consists of:
  *     - a network environment (e.g., network namespace) where the appliance runs.
  *     - a listener thread for reading packets asynchronously.
+ *     - a listener thread for monitoring packet drops asynchronously.
  */
 #pragma once
 
@@ -23,14 +24,17 @@ private:
     MB_Env *env;            // environment
     Middlebox *emulated_mb; // currently emulated middlebox node
     NodePacketHistory *node_pkt_hist;
+    bool dropmon;
 
-    std::thread *listener;              // listener thread
-    std::atomic<bool> stop_listener;    // loop control flag
+    std::thread *packet_listener;
+    std::thread *drop_listener;
+    std::atomic<bool> stop_listener;    // loop control flag for threads
     std::vector<Packet> recv_pkts;      // received packets (race)
     std::mutex mtx;                     // lock for accessing recv_pkts
     std::condition_variable cv;         // for reading recv_pkts
 
     void listen_packets();
+    void listen_drops();
     void teardown();
 
 private:

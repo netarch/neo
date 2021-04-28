@@ -48,7 +48,7 @@ private:
     static void parse_netfilter(NetFilter *, const std::shared_ptr<cpptoml::table>&);
     static void parse_ipvs(IPVS *, const std::shared_ptr<cpptoml::table>&);
     static void parse_squid(Squid *, const std::shared_ptr<cpptoml::table>&);
-    static void parse_middlebox(Middlebox *, const std::shared_ptr<cpptoml::table>&);
+    static void parse_middlebox(Middlebox *, const std::shared_ptr<cpptoml::table>&, bool);
     static void estimate_latency();
 
     /* network link */
@@ -106,7 +106,8 @@ public:
     static void start_parsing(const std::string& filename);
     static void finish_parsing(const std::string& filename);
     static void parse_network(Network *network,
-                              const std::string& filename);
+                              const std::string& filename,
+                              bool dropmon);
     static void parse_policies(Policies *policies,
                                const std::string& filename,
                                const Network& network);
