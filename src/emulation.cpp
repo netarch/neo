@@ -43,11 +43,11 @@ void Emulation::listen_drops()
     std::string intf;
 
     while (!stop_listener) {
-        // TODO: sleep for a while
-        intf = env->packet_drop();
+        // TODO
+        sleep(1);
+        //intf = env->packet_drop();
 
         if (!intf.empty()) {
-            Logger::debug("Packet dropped at " + intf);
             std::unique_lock<std::mutex> lck(mtx);
             recv_pkts.clear();
             cv.notify_all();

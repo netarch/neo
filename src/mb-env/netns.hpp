@@ -20,7 +20,6 @@ private:
     std::string xtables_lockpath;
     std::unordered_map<Interface *, int> tapfds;        // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> tapmacs; // intf --> mac addr
-    std::unordered_map<std::string, int> drops;         // intf --> drops
 
     void set_env_vars();
     void set_interfaces(const Node&);
@@ -36,5 +35,4 @@ public:
     void run(void (*)(MB_App *), MB_App *) override;
     size_t inject_packet(const Packet&) override;
     std::vector<Packet> read_packets() const override;
-    std::string packet_drop() override;
 };
