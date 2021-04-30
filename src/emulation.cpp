@@ -1,8 +1,8 @@
 #include "emulation.hpp"
 
 #include <csignal>
-#include <unistd.h>
 
+#include "dropmon.hpp"
 #include "middlebox.hpp"
 #include "mb-env/netns.hpp"
 #include "lib/logger.hpp"
@@ -34,23 +34,23 @@ void Emulation::listen_packets()
             std::unique_lock<std::mutex> lck(mtx);
             recv_pkts = pkts;
             cv.notify_all();
+            Logger::debug("packet_listener: received packet(s)");
         }
     }
 }
 
 void Emulation::listen_drops()
 {
-    std::string intf;
+    bool dropped;
 
     while (!stop_listener) {
-        // TODO
-        sleep(1);
-        //intf = env->packet_drop();
+        dropped = DropMon::get().is_dropped();
 
-        if (!intf.empty()) {
+        if (dropped) {
             std::unique_lock<std::mutex> lck(mtx);
             recv_pkts.clear();
             cv.notify_all();
+            Logger::debug("drop_listener: packet dropped");
         }
     }
 }
@@ -165,6 +165,8 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
 {
     std::unique_lock<std::mutex> lck(mtx);
     recv_pkts.clear();
+    DropMon::get().start_listening_for(pkt);
+    Logger::debug("Start listening for sent packet");
 
     env->inject_packet(pkt);
 
@@ -187,6 +189,9 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
             Logger::info("Timed out!");
         }
     }
+
+    DropMon::get().stop_listening();
+    Logger::debug("Stop listening for sent packet");
 
     /*
      * NOTE:

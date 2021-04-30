@@ -11,6 +11,7 @@
 
 #include "stats.hpp"
 #include "config.hpp"
+#include "dropmon.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
 #include "lib/fs.hpp"
@@ -87,6 +88,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
                 kill(childpid, sig);
             }
             while (wait(nullptr) != -1 || errno != ECHILD);
+            DropMon::get().stop();
             exit(0);
     }
 }
@@ -127,6 +129,8 @@ void Plankton::init(bool all_ECs, bool rm_out_dir, bool dropmon, size_t dop,
     }
     EmulationMgr::get().set_max_emulations(emulations);
     EmulationMgr::get().set_num_middleboxes(network.get_middleboxes().size());
+
+    DropMon::get().init(dropmon);
 
     // compute policy oblivious ECs
     EqClassMgr::get().compute_policy_oblivious_ecs(network, openflow);
@@ -182,6 +186,9 @@ void Plankton::verify_conn()
     dup2(fd, STDOUT_FILENO);
     dup2(fd, STDERR_FILENO);
     close(fd);
+
+    // spawn a dropmon thread (will be joined and disconnected on exit)
+    DropMon::get().connect();
 
     // record time usage for this EC
     Stats::set_ec_t1();
@@ -267,6 +274,7 @@ int Plankton::run()
         sigaction(sigs[i], &action, nullptr);
     }
 
+    DropMon::get().start();
     Stats::set_total_t1();
 
     // fork for each policy to get their memory usage measurements
@@ -287,6 +295,7 @@ int Plankton::run()
     Stats::set_total_time();
     Stats::set_total_maxrss();
     Stats::output_main_stats();
+    DropMon::get().stop();
 
     return 0;
 }
