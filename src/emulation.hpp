@@ -30,6 +30,7 @@ private:
     std::thread *drop_listener;
     std::atomic<bool> stop_listener;    // loop control flag for threads
     std::vector<Packet> recv_pkts;      // received packets (race)
+    std::atomic<uint64_t> drop_ts;      // kernel drop timestamp
     std::mutex mtx;                     // lock for accessing recv_pkts
     std::condition_variable cv;         // for reading recv_pkts
 

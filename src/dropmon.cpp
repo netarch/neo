@@ -13,7 +13,7 @@
 
 DropMon::DropMon()
     : family(0), enabled(false), dm_sock(nullptr), listener(nullptr),
-      stop_listener(false), sent_pkt_changed(false), pkt_dropped(false)
+      stop_listener(false), sent_pkt_changed(false), drop_ts(0)
 {
 }
 
@@ -151,11 +151,11 @@ void DropMon::stop_listening()
 
     // reset the drop flag
     std::unique_lock<std::mutex> drop_lck(drop_mtx);
-    pkt_dropped = false;
+    drop_ts = 0;
     drop_lck.unlock();
 }
 
-bool DropMon::is_dropped()
+uint64_t DropMon::is_dropped()
 {
     if (!enabled) {
         return false;
@@ -163,7 +163,7 @@ bool DropMon::is_dropped()
 
     std::unique_lock<std::mutex> lck(drop_mtx);
     drop_cv.wait(lck);
-    return pkt_dropped;
+    return drop_ts;
 }
 
 
@@ -178,9 +178,10 @@ void DropMon::listen_msgs()
     }
 
     Packet sent_pkt, dropped_pkt;
+    uint64_t ts;
 
     while (!stop_listener) {
-        dropped_pkt = recv_msg(dm_sock);
+        dropped_pkt = recv_msg(dm_sock, ts);
 
         if (sent_pkt_changed) {
             std::unique_lock<std::mutex> lck(pkt_mtx);
@@ -189,20 +190,20 @@ void DropMon::listen_msgs()
             lck.unlock();
         }
 
-        if (!dropped_pkt.empty()) {
+        if (!sent_pkt.empty()) {
             if (dropped_pkt.same_header(sent_pkt)) {
                 std::unique_lock<std::mutex> lck(drop_mtx);
-                pkt_dropped = true;
+                drop_ts = ts;
                 drop_cv.notify_all();
             }
         }
     }
 }
 
-struct nl_msg *DropMon::new_msg(uint8_t cmd, int flags, size_t hdrlen) const
-{
+struct nl_msg *DropMon::new_msg(uint8_t cmd, int flags, size_t hdrlen) const {
     struct nl_msg *msg = nlmsg_alloc();
-    if (!msg) {
+    if (!msg)
+    {
         Logger::error("nlmsg_alloc failed");
     }
     genlmsg_put(msg, 0, NL_AUTO_SEQ, family, hdrlen, flags, cmd, 1);
@@ -262,7 +263,7 @@ static struct nla_policy net_dm_policy[NET_DM_ATTR_MAX + 1] = {
     [NET_DM_ATTR_FLOW_ACTION_COOKIE]    = { 0, 0, 0 },
 };
 
-Packet DropMon::recv_msg(struct nl_sock *sock) const
+Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t& ts) const
 {
     int nbytes, err;
     struct sockaddr_nl addr;    // message source address
@@ -303,9 +304,10 @@ Packet DropMon::recv_msg(struct nl_sock *sock) const
     Net::get().deserialize(pkt, (const uint8_t *)payload);
 
     // timestamp
-    if (attrs[NET_DM_ATTR_TIMESTAMP]) {
-        uint64_t ns = nla_get_u64(attrs[NET_DM_ATTR_TIMESTAMP]);
-        Logger::debug("Drop timestamp: " + std::to_string(ns));
+    if (!pkt.empty() && attrs[NET_DM_ATTR_TIMESTAMP]) {
+        ts = nla_get_u64(attrs[NET_DM_ATTR_TIMESTAMP]);
+    } else {
+        ts = 0;
     }
 
 out_free:

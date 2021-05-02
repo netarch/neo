@@ -31,25 +31,28 @@ private:
     static long                        ec_maxrss;  // kilobytes
 
     /*
-     * latency measurements
+     * latency measurements (nanoseconds)
      */
-    static std::chrono::high_resolution_clock::time_point overall_lat_t1;
-    static std::chrono::high_resolution_clock::time_point rewind_lat_t1;
-    static std::chrono::high_resolution_clock::time_point pkt_lat_t1;
+    static uint64_t overall_lat_t1;
+    static uint64_t rewind_lat_t1;
+    static uint64_t pkt_lat_t1;
     // time for ForwardingProcess::inject_packet()
-    static std::vector<std::chrono::nanoseconds>   overall_latencies;
+    static std::vector<std::pair<uint64_t, uint64_t>>   overall_latencies;
     // time for rewinding the middlebox state
-    static std::vector<std::chrono::nanoseconds>   rewind_latencies;
+    static std::vector<std::pair<uint64_t, uint64_t>>   rewind_latencies;
     // number of packet injections when rewinding (-1 means no rewind occured)
-    static std::vector<int>                        rewind_injection_count;
+    static std::vector<int>                             rewind_injection_count;
     // time between injecting the actual target packet and getting the result
-    static std::vector<std::chrono::nanoseconds>   pkt_latencies;
+    static std::vector<std::pair<uint64_t, uint64_t>>   pkt_latencies;
+    // time between injecting the packet and getting dropped in kernel
+    static std::vector<std::pair<uint64_t, uint64_t>>   kernel_drop_latencies;
 
     /*
      * helper functions
      */
     static std::chrono::high_resolution_clock::duration
     get_duration(const std::chrono::high_resolution_clock::time_point&);
+    static uint64_t get_duration(uint64_t);
 
 public:
     /*
@@ -90,10 +93,10 @@ public:
     static void set_rewind_latency();
     static void set_rewind_injection_count(int);
     static void set_pkt_lat_t1();
-    static void set_pkt_latency();
+    static void set_pkt_latency(uint64_t drop_ts = 0);
 
     /*
      * getter functions
      */
-    static const std::vector<std::chrono::nanoseconds>& get_pkt_latencies();
+    static const std::vector<std::pair<uint64_t, uint64_t>>& get_pkt_latencies();
 };

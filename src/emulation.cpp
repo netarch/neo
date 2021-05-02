@@ -40,14 +40,15 @@ void Emulation::listen_packets()
 
 void Emulation::listen_drops()
 {
-    bool dropped;
+    uint64_t ts;
 
     while (!stop_listener) {
-        dropped = DropMon::get().is_dropped();
+        ts = DropMon::get().is_dropped();
 
-        if (dropped) {
+        if (ts) {
             std::unique_lock<std::mutex> lck(mtx);
             recv_pkts.clear();
+            drop_ts = ts;
             cv.notify_all();
         }
     }
@@ -163,16 +164,16 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
 {
     std::unique_lock<std::mutex> lck(mtx);
     recv_pkts.clear();
+    drop_ts = 0;
     DropMon::get().start_listening_for(pkt);
 
+    Stats::set_pkt_lat_t1();
     env->inject_packet(pkt);
 
     if (dropmon) {                  // use drop monitor
-        Stats::set_pkt_lat_t1();
         cv.wait(lck);
-        Stats::set_pkt_latency();
+        Stats::set_pkt_latency(drop_ts);
     } else {                        // use timeout
-        Stats::set_pkt_lat_t1();
         std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
         Stats::set_pkt_latency();
 

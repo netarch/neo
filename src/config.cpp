@@ -380,16 +380,16 @@ void Config::estimate_latency()
     emulation.dropmon = false;
 
     // calculate latency average and mean deviation
-    const std::vector<std::chrono::nanoseconds>& pkt_latencies = Stats::get_pkt_latencies();
+    const std::vector<std::pair<uint64_t, uint64_t>>& pkt_latencies = Stats::get_pkt_latencies();
     long long avg = 0;
     for (const auto& lat : pkt_latencies) {
-        avg += lat.count() / 1000 + 1;
+        avg += lat.second / 1000 + 1;
     }
     avg /= pkt_latencies.size();
     Config::latency_avg = std::chrono::microseconds(avg);
     long long mdev = 0;
     for (const auto& lat : pkt_latencies) {
-        mdev += std::abs(lat.count() / 1000 + 1 - avg);
+        mdev += std::abs((long long)(lat.second / 1000 + 1) - avg);
     }
     mdev /= pkt_latencies.size();
     Config::latency_mdev = std::chrono::microseconds(mdev);
