@@ -15,7 +15,7 @@ check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror -O2)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Wno-dynamic-class-memaccess)
+    add_compile_options(-Wno-dynamic-class-memaccess -Wno-c99-designator)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
             AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
