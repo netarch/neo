@@ -107,7 +107,7 @@ public:
     static void finish_parsing(const std::string& filename);
     static void parse_network(Network *network,
                               const std::string& filename,
-                              bool dropmon);
+                              bool dropmon = false);
     static void parse_policies(Policies *policies,
                                const std::string& filename,
                                const Network& network);
