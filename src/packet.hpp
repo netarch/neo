@@ -61,6 +61,8 @@ public:
     void update_conn(State *, int conn, const Network&) const;
     void clear();
     bool empty() const;
+    bool same_flow_as(const Packet&) const;
+    bool same_header(const Packet&) const;
     void set_intf(Interface *);
     void set_src_ip(const IPv4Address&);
     void set_dst_ip(const IPv4Address&);

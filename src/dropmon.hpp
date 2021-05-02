@@ -29,14 +29,14 @@ private:
     std::condition_variable drop_cv;    // for reading pkt_dropped
 
     void            listen_msgs();
-    static int      alert_handler(struct nl_msg *, void *);
-    struct nl_msg * new_msg(uint8_t cmd, int flags, size_t hdrlen) const;
+    struct nl_msg  *new_msg(uint8_t cmd, int flags, size_t hdrlen) const;
     void            del_msg(struct nl_msg *) const;
     void            send_msg(struct nl_sock *, struct nl_msg *) const;
-    //void            recv_msg(struct nl_sock *, struct nl_msg *) const; // TODO
+    void            send_msg_async(struct nl_sock *, struct nl_msg *) const;
+    Packet          recv_msg(struct nl_sock *) const;
     void            set_alert_mode(struct nl_sock *) const;
     void            set_queue_length(struct nl_sock *, int) const;
-    void            set_sw_hw_drops(struct nl_msg *) const;
+    void            get_stats(struct nl_sock *) const;
     DropMon();
 
 private:

@@ -72,7 +72,7 @@ static inline std::string proto_str(int n)
         (x) == PS_UDP_REP    || \
         (x) == PS_ICMP_ECHO_REP \
 )
-#define PS_IS_TCP(x)       ((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3)
+#define PS_IS_TCP(x)       (((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3) || ((x) & 0x80U))
 #define PS_IS_UDP(x)       ((x) >= PS_UDP_REQ && (x) <= PS_UDP_REP)
 #define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
 #define PS_HAS_SYN(x)      ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)

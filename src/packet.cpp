@@ -151,7 +151,26 @@ void Packet::clear()
 
 bool Packet::empty() const
 {
-    return interface == nullptr;
+    return (interface == nullptr &&
+            src_ip.get_value() == 0 &&
+            dst_ip.get_value() == 0 &&
+            src_port == 0 &&
+            dst_port == 0 &&
+            seq == 0 && ack == 0);
+}
+
+bool Packet::same_flow_as(const Packet& other) const
+{
+    return (src_ip == other.src_ip &&
+            dst_ip == other.dst_ip &&
+            src_port == other.src_port &&
+            dst_port == other.dst_port &&
+            PS_TO_PROTO(proto_state) == PS_TO_PROTO(other.proto_state));
+}
+
+bool Packet::same_header(const Packet& other) const
+{
+    return (same_flow_as(other) && seq == other.seq && ack == other.ack);
 }
 
 void Packet::set_intf(Interface *intf)

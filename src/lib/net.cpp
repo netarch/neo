@@ -258,16 +258,17 @@ void Net::free(uint8_t *buffer) const
     libnet_adv_free_packet(l, buffer);
 }
 
-void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
+void Net::deserialize(Packet& pkt, const uint8_t *buffer) const
 {
-    const uint8_t *buffer = pb.get_buffer();
-
     // filter out irrelevant frames
     const uint8_t *dst_mac = buffer;
+    const uint8_t *src_mac = buffer + 6;
     uint8_t id_mac[6] = ID_ETH_ADDR;
-    if (memcmp(dst_mac, id_mac, 6) != 0) {
+    if (memcmp(dst_mac, id_mac, 6) != 0 && memcmp(src_mac, id_mac, 6) != 0) {
         goto bad_packet;
     }
+
+    pkt.clear();
 
     uint16_t ethertype;
     memcpy(&ethertype, buffer + 12, 2);
@@ -352,11 +353,18 @@ void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
         goto bad_packet;
     }
 
-    pkt.set_intf(pb.get_intf());
     return;
 
 bad_packet:
     pkt.clear();
+}
+
+void Net::deserialize(Packet& pkt, const PktBuffer& pb) const
+{
+    deserialize(pkt, pb.get_buffer());
+    if (!pkt.empty()) {
+        pkt.set_intf(pb.get_intf());
+    }
 }
 
 void Net::convert_proto_state(

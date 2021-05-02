@@ -1,12 +1,13 @@
 #include "dropmon.hpp"
 
-#include <unistd.h> // sleep
 #include <netlink/netlink.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
 #include <linux/net_dropmon.h>
 #include <csignal>
+#include <cassert>
 
+#include "lib/net.hpp"
 #include "lib/logger.hpp"
 
 
@@ -51,14 +52,12 @@ void DropMon::start() const
 
     struct nl_sock *sock = nl_socket_alloc();
     genl_connect(sock);
-    //set_alert_mode(sock);
+    set_alert_mode(sock);
     //set_queue_length(sock, 1000);
-    struct nl_msg *msg = new_msg(NET_DM_CMD_START, NLM_F_REQUEST|NLM_F_ACK, 0);
-    //set_sw_hw_drops(msg);
+    struct nl_msg *msg = new_msg(NET_DM_CMD_START, NLM_F_REQUEST | NLM_F_ACK, 0);
     send_msg(sock, msg);
     del_msg(msg);
     nl_socket_free(sock);
-    Logger::info("Drop monitor started");
 }
 
 void DropMon::stop() const
@@ -69,12 +68,10 @@ void DropMon::stop() const
 
     struct nl_sock *sock = nl_socket_alloc();
     genl_connect(sock);
-    struct nl_msg *msg = new_msg(NET_DM_CMD_STOP, NLM_F_REQUEST|NLM_F_ACK, 0);
-    //set_sw_hw_drops(msg);
+    struct nl_msg *msg = new_msg(NET_DM_CMD_STOP, NLM_F_REQUEST | NLM_F_ACK, 0);
     send_msg(sock, msg);
     del_msg(msg);
     nl_socket_free(sock);
-    Logger::info("Drop monitor stopped");
 }
 
 void DropMon::connect()
@@ -88,15 +85,15 @@ void DropMon::connect()
     }
 
     dm_sock = nl_socket_alloc();
-    nl_socket_disable_seq_check(dm_sock);
-    //nl_socket_modify_cb(dm_sock, NL_CB_VALID, NL_CB_CUSTOM, DropMon::alert_handler, nullptr);
+    //nl_socket_disable_seq_check(dm_sock);
     nl_join_groups(dm_sock, NET_DM_GRP_ALERT);
     genl_connect(dm_sock);
 
-    // spawn the drop listener thread (block all signals but SIGUSR1)
+    // spawn the drop listener thread
     sigset_t mask, old_mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGUSR1);
     sigaddset(&mask, SIGHUP);
     sigaddset(&mask, SIGINT);
     sigaddset(&mask, SIGQUIT);
@@ -114,7 +111,7 @@ void DropMon::disconnect()
 
     if (listener) {
         stop_listener = true;
-        pthread_kill(listener->native_handle(), SIGUSR1);
+        get_stats(dm_sock); // in order to break out nl_recv
         if (listener->joinable()) {
             listener->join();
         }
@@ -138,7 +135,6 @@ void DropMon::start_listening_for(const Packet& sent_pkt)
     this->sent_pkt = sent_pkt;
     sent_pkt_changed = true;
     lck.unlock();
-    pthread_kill(listener->native_handle(), SIGUSR1);
 }
 
 void DropMon::stop_listening()
@@ -152,7 +148,6 @@ void DropMon::stop_listening()
     this->sent_pkt.clear();
     sent_pkt_changed = true;
     lck.unlock();
-    pthread_kill(listener->native_handle(), SIGUSR1);
 
     // reset the drop flag
     std::unique_lock<std::mutex> drop_lck(drop_mtx);
@@ -172,10 +167,9 @@ bool DropMon::is_dropped()
 }
 
 
-/******************************************************************************/
-/* private helper functions */
-/******************************************************************************/
-
+/**
+ * private helper functions
+ */
 
 void DropMon::listen_msgs()
 {
@@ -183,38 +177,20 @@ void DropMon::listen_msgs()
         Logger::error("dropmon socket not connected");
     }
 
-    Packet pkt;
+    Packet sent_pkt, dropped_pkt;
 
     while (!stop_listener) {
-        if (sent_pkt_changed) { // switch mode if sent_pkt is modified
+        dropped_pkt = recv_msg(dm_sock);
+
+        if (sent_pkt_changed) {
             std::unique_lock<std::mutex> lck(pkt_mtx);
-            pkt = sent_pkt;
+            sent_pkt = this->sent_pkt;
             sent_pkt_changed = false;
             lck.unlock();
-            Logger::debug("Switch listening mode: " + std::to_string(!pkt.empty()));
         }
 
-        if (pkt.empty()) {  // no packet sent; ignore all drop messages
-            // receive the drop msgs (it will block if there is no drop)
-            int err = nl_recvmsgs_default(dm_sock);
-            if (err < 0) {
-                if (err == -NLE_INTR) {
-                    Logger::warn("drop listener thread interrupted");
-                } else {
-                    Logger::error("nl_recvmsgs_default: " + std::string(nl_geterror(err)));
-                }
-            }
-        } else {            // check for the sent packet drop message
-            std::unique_lock<std::mutex> lck(drop_mtx);
-            bool dropped = pkt_dropped;
-            lck.unlock();
-
-            if (dropped) {
-                sleep(1);
-            } else {
-                // TODO: receive netlink messages; check with sent_pkt
-
-                // if the sent_pkt is dropped:
+        if (!dropped_pkt.empty()) {
+            if (dropped_pkt.same_header(sent_pkt)) {
                 std::unique_lock<std::mutex> lck(drop_mtx);
                 pkt_dropped = true;
                 drop_cv.notify_all();
@@ -223,22 +199,13 @@ void DropMon::listen_msgs()
     }
 }
 
-int DropMon::alert_handler(struct nl_msg *msg __attribute__((unused)),
-                           void *arg __attribute__((unused)))
-{
-    //Logger::debug("alert_handler"); // TODO
-    return NL_OK;
-}
-
-
-
 struct nl_msg *DropMon::new_msg(uint8_t cmd, int flags, size_t hdrlen) const
 {
     struct nl_msg *msg = nlmsg_alloc();
     if (!msg) {
         Logger::error("nlmsg_alloc failed");
     }
-    genlmsg_put(msg, 0, NL_AUTO_SEQ, family, hdrlen, flags, cmd, 2);
+    genlmsg_put(msg, 0, NL_AUTO_SEQ, family, hdrlen, flags, cmd, 1);
     return msg;
 }
 
@@ -260,39 +227,117 @@ void DropMon::send_msg(struct nl_sock *sock, struct nl_msg *msg) const
     }
 }
 
+void DropMon::send_msg_async(struct nl_sock *sock, struct nl_msg *msg) const
+{
+    int err;
+    err = nl_send_auto(sock, msg);
+    if (err < 0) {
+        Logger::error("nl_send_auto: " + std::string(nl_geterror(err)));
+    }
+}
+
+static struct nla_policy net_dm_policy[NET_DM_ATTR_MAX + 1] = {
+    [NET_DM_ATTR_UNSPEC]                = { 0, 0, 0 },
+    [NET_DM_ATTR_ALERT_MODE]            = { .type = NLA_U8,     0, 0 },
+    [NET_DM_ATTR_PC]                    = { .type = NLA_U64,    0, 0 },
+    [NET_DM_ATTR_SYMBOL]                = { .type = NLA_STRING, 0, 0 },
+    [NET_DM_ATTR_IN_PORT]               = { .type = NLA_NESTED, 0, 0 },
+    [NET_DM_ATTR_TIMESTAMP]             = { .type = NLA_U64,    0, 0 },
+    [NET_DM_ATTR_PROTO]                 = { .type = NLA_U16,    0, 0 },
+    [NET_DM_ATTR_PAYLOAD]               = { .type = NLA_UNSPEC, 0, 0 },
+    [NET_DM_ATTR_PAD]                   = { 0, 0, 0 },
+    [NET_DM_ATTR_TRUNC_LEN]             = { .type = NLA_U32,    0, 0 },
+    [NET_DM_ATTR_ORIG_LEN]              = { .type = NLA_U32,    0, 0 },
+    [NET_DM_ATTR_QUEUE_LEN]             = { .type = NLA_U32,    0, 0 },
+    [NET_DM_ATTR_STATS]                 = { .type = NLA_NESTED, 0, 0 },
+    [NET_DM_ATTR_HW_STATS]              = { .type = NLA_NESTED, 0, 0 },
+    [NET_DM_ATTR_ORIGIN]                = { .type = NLA_U16,    0, 0 },
+    [NET_DM_ATTR_HW_TRAP_GROUP_NAME]    = { .type = NLA_STRING, 0, 0 },
+    [NET_DM_ATTR_HW_TRAP_NAME]          = { .type = NLA_STRING, 0, 0 },
+    [NET_DM_ATTR_HW_ENTRIES]            = { .type = NLA_NESTED, 0, 0 },
+    [NET_DM_ATTR_HW_ENTRY]              = { .type = NLA_NESTED, 0, 0 },
+    [NET_DM_ATTR_HW_TRAP_COUNT]         = { .type = NLA_U32,    0, 0 },
+    [NET_DM_ATTR_SW_DROPS]              = { 0, 0, 0 },
+    [NET_DM_ATTR_HW_DROPS]              = { 0, 0, 0 },
+    [NET_DM_ATTR_FLOW_ACTION_COOKIE]    = { 0, 0, 0 },
+};
+
+Packet DropMon::recv_msg(struct nl_sock *sock) const
+{
+    int nbytes, err;
+    struct sockaddr_nl addr;    // message source address
+    struct nlmsghdr *nlh;       // message buffer
+    struct nlattr *attrs[NET_DM_ATTR_MAX + 1];
+    Packet pkt;
+    void *payload;
+
+    // receive netlink messages (Note: nl_recv will retry on EINTR)
+    nbytes = nl_recv(sock, &addr, (unsigned char **)&nlh, nullptr);
+    if (nbytes < 0) {
+        Logger::error("nl_recv: " + std::string(nl_geterror(nbytes)));
+    } else if (nbytes == 0) {
+        Logger::warn("nl_recv: socket disconnected");
+        goto out_free;
+    }
+    // filter out ACKs and error messages
+    if (nlh->nlmsg_type == NLMSG_ERROR) {
+        goto out_free;
+    }
+    // filter dropped packet alerts
+    if (genlmsg_hdr(nlh)->cmd != NET_DM_CMD_PACKET_ALERT) {
+        goto out_free;
+    }
+
+    // parse genetlink message attributes
+    err = genlmsg_parse(nlh, 0, attrs, NET_DM_ATTR_MAX, net_dm_policy);
+    if (err < 0) {
+        Logger::warn("genlmsg_parse: " + std::string(nl_geterror(err)));
+        goto out_free;
+    }
+    // filter out messages without packet payload
+    if (!attrs[NET_DM_ATTR_PAYLOAD]) {
+        goto out_free;
+    }
+    // deserialize packet
+    payload = nla_data(attrs[NET_DM_ATTR_PAYLOAD]);
+    Net::get().deserialize(pkt, (const uint8_t *)payload);
+
+    // timestamp
+    if (attrs[NET_DM_ATTR_TIMESTAMP]) {
+        uint64_t ns = nla_get_u64(attrs[NET_DM_ATTR_TIMESTAMP]);
+        Logger::debug("Drop timestamp: " + std::to_string(ns));
+    }
+
+out_free:
+    free(nlh);
+    return pkt;
+}
+
 void DropMon::set_alert_mode(struct nl_sock *sock) const
 {
-    struct nl_msg *msg = new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST|NLM_F_ACK, 0);
+    struct nl_msg *msg = new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
     int err = nla_put_u8(msg, NET_DM_ATTR_ALERT_MODE, NET_DM_ALERT_MODE_PACKET);
     if (err < 0) {
         Logger::error("nla_put_u8: " + std::string(nl_geterror(err)));
     }
     send_msg(sock, msg);
     del_msg(msg);
-    Logger::info("Set dropmon alert mode: packet");
 }
 
 void DropMon::set_queue_length(struct nl_sock *sock, int qlen) const
 {
-    struct nl_msg *msg = new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST|NLM_F_ACK, 0);
+    struct nl_msg *msg = new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
     int err = nla_put_u32(msg, NET_DM_ATTR_QUEUE_LEN, qlen);
     if (err < 0) {
         Logger::error("nla_put_u32: " + std::string(nl_geterror(err)));
     }
     send_msg(sock, msg);
     del_msg(msg);
-    Logger::info("Set dropmon queue length: " + std::to_string(qlen));
 }
 
-void DropMon::set_sw_hw_drops(struct nl_msg *msg) const
+void DropMon::get_stats(struct nl_sock *sock) const
 {
-    int err;
-    err = nla_put_flag(msg, NET_DM_ATTR_SW_DROPS);
-    if (err < 0) {
-        Logger::error("nla_put_flag: " + std::string(nl_geterror(err)));
-    }
-    err = nla_put_flag(msg, NET_DM_ATTR_HW_DROPS);
-    if (err < 0) {
-        Logger::error("nla_put_flag: " + std::string(nl_geterror(err)));
-    }
+    struct nl_msg *msg = new_msg(NET_DM_CMD_STATS_GET, NLM_F_REQUEST, 0);
+    send_msg_async(sock, msg);
+    del_msg(msg);
 }
