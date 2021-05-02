@@ -4,6 +4,7 @@
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
 #include <linux/net_dropmon.h>
+#include <linux/version.h>
 #include <csignal>
 #include <cassert>
 
@@ -260,7 +261,9 @@ static struct nla_policy net_dm_policy[NET_DM_ATTR_MAX + 1] = {
     [NET_DM_ATTR_HW_TRAP_COUNT]         = { .type = NLA_U32,    0, 0 },
     [NET_DM_ATTR_SW_DROPS]              = { 0, 0, 0 },
     [NET_DM_ATTR_HW_DROPS]              = { 0, 0, 0 },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,7,0)
     [NET_DM_ATTR_FLOW_ACTION_COOKIE]    = { 0, 0, 0 },
+#endif
 };
 
 Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t& ts) const
