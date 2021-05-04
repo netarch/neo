@@ -27,12 +27,19 @@ The following dependencies are needed for Plankton-neo.
 - cmake (>= 3.12)
 - spin (>= 6.5.2)
 - libnet
-- modern C and C++ compilers (GCC or Clang)
+- libnl
+- modern C and C++ compilers
+- Linux kernel (>= 5.4)
 
-`depends/setup.sh` can be used to set up the development environment, but
-additional packages may be installed and it may overwrite existing packages in
-the system. Some platforms may not yet be supported. Pull requests and issues
-are appreciated.
+`depends/setup.sh` can be used to set up the development environment, which
+installs all the needed packages automatically, but it only has support for Arch
+Linux and Ubuntu for now. Pull requests and issues are appreciated.
+
+Since Plankton-neo requires Linux version to be at least 5.4 for [per-packet
+drop monitoring](https://github.com/torvalds/linux/commit/ca30707dee2bc8bc81cfd8b4277fe90f7ca6df1f),
+and Ubuntu 18 ships with 4.15 by default, so it is recommended to use at least
+Ubuntu 20.04. Otherwise later kernel versions would need to be manually
+installed.
 
 ### CMake
 
@@ -83,6 +90,7 @@ Options:
     -h, --help           print this help message
     -a, --all            verify all ECs after violation
     -f, --force          remove pre-existent output directory
+    -d, --dropmon        use drop monitor instead of timer
     -j, --jobs <N>       number of parallel tasks
     -e, --emulations <N> maximum number of emulation instances
     -i, --input <file>   network configuration file
@@ -92,7 +100,7 @@ Options:
 Examples:
 
 ```sh
-$ sudo neo -fj8 -i examples/00-reverse-path-filtering/network.toml -o output
+$ sudo neo -afj8 -i examples/00-reverse-path-filtering/network.toml -o output
 ```
 
 Note that root privilege is needed because the process needs to create virtual

@@ -191,6 +191,7 @@ main() {
         yay -S --needed --noconfirm --removemake ${makedepends[@]} $@
         yay -S --needed --noconfirm --removemake ${depends[@]} $@
         yay -S --needed --noconfirm --removemake ${experiment_depends[@]} $@
+        makepkg -srcfi $@
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_depends=(build-essential curl git bison rsync)
