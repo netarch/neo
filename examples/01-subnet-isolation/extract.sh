@@ -3,10 +3,10 @@
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 source "${SCRIPT_DIR}/../common.sh"
 
-echo '# of subnets, # of hosts, # of concurrent processes, # of nodes, # of links, Policy, # of ECs, # of communications, Time (microseconds), Memory (kilobytes)'
+echo '# of subnets, # of hosts, # of concurrent processes, # of nodes, # of links, Policy, # of connection ECs, Time (microseconds), Memory (kilobytes)'
 
-for dir in "$RESULTS_DIR"/*; do
-    [ ! -d "$dir" -o "$dir" == *".latency" ] && continue
+for dir in "$RESULTS_DIR"/*.dropmon; do
+    [ ! -d "$dir" -o -n "$(echo "$dir" | grep fault)" ] && continue
 
     num_subnets=$(basename "$dir" | cut -d '.' -f 1 | sed 's/-subnets//')
     num_hosts=$(basename "$dir" | cut -d '.' -f 2 | sed 's/-hosts//')
@@ -26,5 +26,5 @@ for dir in "$RESULTS_DIR"/*; do
     num_links=$(head -n3 "$MAIN_LOG" | grep -oE 'Loaded [0-9]+ links' | grep -oE '[0-9]+')
     total_time=$(tail -n2 "$MAIN_LOG" | head -n1 | grep -oE 'Time: .*$' | grep -oE '[0-9]+')
     peak_mem=$(tail -n1 "$MAIN_LOG" | grep -oE 'Memory: .*$' | grep -oE '[0-9]+')
-    echo $num_subnets,$num_hosts,$DOP,$num_nodes,$num_links,all,N/A,N/A,$total_time,$peak_mem
+    echo $num_subnets,$num_hosts,$DOP,$num_nodes,$num_links,all,N/A,$total_time,$peak_mem
 done
