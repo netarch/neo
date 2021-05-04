@@ -33,10 +33,10 @@ jobs:
           -DCMAKE_C_COMPILER=${{ matrix.cc }}
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
       - run: cmake --build build
-      - run: ctest
-        working-directory: ./build
-      - uses: codecov/codecov-action@v1
-        with:
-          fail_ci_if_error: true
-          gcov_args: '-l'
-        if: matrix.cc == 'gcc'
+#      - run: ctest
+#        working-directory: ./build
+#      - uses: codecov/codecov-action@v1
+#        with:
+#          fail_ci_if_error: true
+#          gcov_args: '-l'
+#        if: matrix.cc == 'gcc'
