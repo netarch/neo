@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <fstream>
+#include <string>
 
 #include "lib/logger.hpp"
 #include "policy/policy.hpp"
@@ -28,7 +29,7 @@ std::vector<std::pair<uint64_t, uint64_t>>  Stats::overall_latencies;
 std::vector<std::pair<uint64_t, uint64_t>>  Stats::rewind_latencies;
 std::vector<int>                            Stats::rewind_injection_count;
 std::vector<std::pair<uint64_t, uint64_t>>  Stats::pkt_latencies;
-std::vector<std::pair<uint64_t, uint64_t>>  Stats::kernel_drop_latencies;
+std::map<uint64_t, uint64_t>                Stats::kernel_drop_latencies;
 
 high_resolution_clock::duration
 Stats::get_duration(const high_resolution_clock::time_point& t1)
@@ -90,7 +91,8 @@ void Stats::output_ec_stats()
     outfile << "Overall latency t1 (nsec), Overall latency (nsec), "
             << "Rewind latency t1 (nsec), Rewind latency (nsec), "
             << "Rewind injection count, "
-            << "Packet latency t1 (nsec), Packet latency (nsec)"
+            << "Packet latency t1 (nsec), Packet latency (nsec), "
+            << "Kernel drop latency (nsec)"
             << std::endl;
     for (size_t i = 0; i < overall_latencies.size(); ++i) {
         outfile << overall_latencies[i].first << ", "
@@ -99,14 +101,13 @@ void Stats::output_ec_stats()
                 << rewind_latencies[i].second << ", "
                 << rewind_injection_count[i] << ", "
                 << pkt_latencies[i].first << ", "
-                << pkt_latencies[i].second << std::endl;
-    }
-
-    outfile << "Kernel drop latency t1 (nsec), Kernel drop latency (nsec)"
-            << std::endl;
-    for (size_t i = 0; i < kernel_drop_latencies.size(); ++i) {
-        outfile << kernel_drop_latencies[i].first << ", "
-                << kernel_drop_latencies[i].second << std::endl;
+                << pkt_latencies[i].second << ", ";
+        if (kernel_drop_latencies.count(pkt_latencies[i].first)) {
+            outfile << kernel_drop_latencies.at(pkt_latencies[i].first);
+        } else {
+            outfile << "N/A";
+        }
+        outfile << std::endl;
     }
 }
 
@@ -226,9 +227,7 @@ void Stats::set_pkt_latency(uint64_t drop_ts)
     uint64_t pkt_latency = get_duration(pkt_lat_t1);
     pkt_latencies.emplace_back(pkt_lat_t1, pkt_latency);
     if (drop_ts) {
-        Logger::debug("drop_ts:    " + std::to_string(drop_ts));
-        Logger::debug("pkt_lat_t1: " + std::to_string(pkt_lat_t1));
-        kernel_drop_latencies.emplace_back(pkt_lat_t1, drop_ts - pkt_lat_t1);
+        kernel_drop_latencies.emplace(pkt_lat_t1, drop_ts - pkt_lat_t1);
     }
 }
 

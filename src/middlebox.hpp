@@ -18,7 +18,7 @@ private:
     MB_App *app;    // appliance
     std::chrono::microseconds latency_avg, latency_mdev, timeout;
     bool dropmon;
-    size_t DOP;
+    int DOP;
 
 private:
     friend class Config;
@@ -36,7 +36,7 @@ public:
     std::chrono::microseconds get_timeout() const;
     bool dropmon_enabled() const;
     void update_timeout();
-    void increase_latency_estimate_by_DOP(size_t DOP);
+    void increase_latency_estimate_by_DOP(int DOP);
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);

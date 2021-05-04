@@ -31,13 +31,13 @@ static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 static void worker_sig_handler(int sig)
 {
     // SIGUSR1 is used for unblocking the emulation listener thread
-    int pid, status;
+    int pid, status, rc;
     switch (sig) {
         case SIGCHLD:
             while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-                if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    Logger::warn("Process " + std::to_string(pid) + " exited "
-                                 + std::to_string(WEXITSTATUS(status)));
+                if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
+                    Logger::error("Process " + std::to_string(pid) +
+                                  " exited " + std::to_string(rc));
                 }
             }
             break;
@@ -47,7 +47,15 @@ static void worker_sig_handler(int sig)
         case SIGTERM:
             kill(-getpid(), sig);
             while (wait(nullptr) != -1 || errno != ECHILD);
+            Logger::info("Killed");
             exit(0);
+    }
+}
+
+static void kill_all_child_tasks(int sig)
+{
+    for (int childpid : tasks) {
+        kill (childpid, sig);
     }
 }
 
@@ -57,14 +65,17 @@ static void worker_sig_handler(int sig)
 static void signal_handler(int sig, siginfo_t *siginfo,
                            void *ctx __attribute__((unused)))
 {
-    int pid, status;
+    int pid, status, rc;
     switch (sig) {
         case SIGCHLD:
             while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
                 tasks.erase(pid);
-                if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    Logger::warn("Process " + std::to_string(pid) + " exited "
-                                 + std::to_string(WEXITSTATUS(status)));
+                if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
+                    kill_all_child_tasks(SIGTERM);
+                    while (wait(nullptr) != -1 || errno != ECHILD);
+                    DropMon::get().stop();
+                    Logger::error("Process " + std::to_string(pid) +
+                                  " exited " + std::to_string(rc));
                 }
             }
             break;
@@ -72,11 +83,8 @@ static void signal_handler(int sig, siginfo_t *siginfo,
             pid = siginfo->si_pid;
             policy_violated = true;
             if (!verify_all_ECs) {
-                for (int childpid : tasks) {
-                    if (childpid != pid) {
-                        kill(childpid, SIGTERM);
-                    }
-                }
+                tasks.erase(pid);
+                kill_all_child_tasks(SIGTERM);
             }
             Logger::warn("Policy violated in process " + std::to_string(pid));
             break;
@@ -84,9 +92,7 @@ static void signal_handler(int sig, siginfo_t *siginfo,
         case SIGINT:
         case SIGQUIT:
         case SIGTERM:
-            for (int childpid : tasks) {
-                kill(childpid, sig);
-            }
+            kill_all_child_tasks(sig);
             while (wait(nullptr) != -1 || errno != ECHILD);
             DropMon::get().stop();
             exit(0);
@@ -218,7 +224,7 @@ void Plankton::verify_policy(Policy *policy)
     policy->compute_conn_matrix();
 
     // update latency estimate by DOP
-    size_t DOP = std::min(policy->num_conn_ecs(), max_jobs);
+    int DOP = std::min(policy->num_conn_ecs(), max_jobs);
     for (Middlebox *mb : network.get_middleboxes()) {
         mb->increase_latency_estimate_by_DOP(DOP);
     }

@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <chrono>
-#include <string>
+#include <map>
 
 class Policy;
 
@@ -45,7 +45,7 @@ private:
     // time between injecting the actual target packet and getting the result
     static std::vector<std::pair<uint64_t, uint64_t>>   pkt_latencies;
     // time between injecting the packet and getting dropped in kernel
-    static std::vector<std::pair<uint64_t, uint64_t>>   kernel_drop_latencies;
+    static std::map<uint64_t, uint64_t>                 kernel_drop_latencies;
 
     /*
      * helper functions

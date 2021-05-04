@@ -54,7 +54,7 @@ void DropMon::start() const
     struct nl_sock *sock = nl_socket_alloc();
     genl_connect(sock);
     set_alert_mode(sock);
-    //set_queue_length(sock, 1000);
+    set_queue_length(sock, 3000);
     struct nl_msg *msg = new_msg(NET_DM_CMD_START, NLM_F_REQUEST | NLM_F_ACK, 0);
     send_msg(sock, msg);
     del_msg(msg);

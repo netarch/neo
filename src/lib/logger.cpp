@@ -1,5 +1,6 @@
 #include "lib/logger.hpp"
 
+#include <cstdlib>
 #include <cstring>
 #include <clocale>
 #include <string>
@@ -106,7 +107,7 @@ void Logger::error(const std::string& msg)
     if (file_logger) {
         file_logger->error(msg);
     }
-    throw std::runtime_error(msg);
+    exit(1);
 }
 
 void Logger::error(const std::string& msg, int err_num)

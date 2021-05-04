@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <algorithm>
 
 #include "stats.hpp"
 #include "emulationmgr.hpp"
@@ -38,13 +39,12 @@ bool Middlebox::dropmon_enabled() const
 
 void Middlebox::update_timeout()
 {
-    timeout = latency_avg + latency_mdev * DOP;
+    timeout = latency_avg + latency_mdev * std::max(4, DOP);
 }
 
-void Middlebox::increase_latency_estimate_by_DOP(size_t DOP)
+void Middlebox::increase_latency_estimate_by_DOP(int DOP)
 {
     latency_avg *= DOP;
-    latency_mdev *= DOP;
     this->DOP = DOP;
     update_timeout();
 }
