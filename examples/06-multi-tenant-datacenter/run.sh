@@ -9,9 +9,16 @@ for tenants in 4 8 12 32 64; do
     for updates in 0 $((tenants / 2)) $tenants; do
         ${CONFGEN[*]} -t $tenants -u $updates -s 1 > "$CONF"
         for procs in 1 4 8 16; do
+            # timeout
             name="$tenants-tenants.$updates-updates.DOP-$procs"
             msg "Verifying $name"
             sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
+            sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR/$name"
+            cp "$CONF" "$RESULTS_DIR/$name"
+            # dropmon
+            name="$tenants-tenants.$updates-updates.DOP-$procs.dropmon"
+            msg "Verifying $name"
+            sudo "$NEO" -fdj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
             sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR/$name"
             cp "$CONF" "$RESULTS_DIR/$name"
         done

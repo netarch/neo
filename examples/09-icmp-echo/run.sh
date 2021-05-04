@@ -5,6 +5,6 @@ source "${SCRIPT_DIR}/../common.sh"
 
 build
 
-sudo "$NEO" -f -i "$CONF" -o "$RESULTS_DIR"
+sudo "$NEO" -fdj16 -i "$CONF" -o "$RESULTS_DIR"
 sudo chown -R $(id -u):$(id -g) "$RESULTS_DIR"
 cp "$CONF" "$RESULTS_DIR"
