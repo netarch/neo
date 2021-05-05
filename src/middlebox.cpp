@@ -2,13 +2,15 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cmath>
+#include <thread>
 #include <algorithm>
 
 #include "stats.hpp"
 #include "emulationmgr.hpp"
 
 Middlebox::Middlebox()
-    : emulation(nullptr), app(nullptr), dropmon(false), DOP(1)
+    : emulation(nullptr), app(nullptr), dropmon(false), dev_scalar(0)
 {
 }
 
@@ -39,13 +41,19 @@ bool Middlebox::dropmon_enabled() const
 
 void Middlebox::update_timeout()
 {
-    timeout = latency_avg + latency_mdev * std::max(4, DOP);
+    timeout = latency_avg + latency_mdev * std::max(3, dev_scalar);
 }
 
 void Middlebox::increase_latency_estimate_by_DOP(int DOP)
 {
+    static const int total_cores = std::thread::hardware_concurrency();
+    double load = (double)DOP / total_cores;
+    if (load >= 0.6) {
+        dev_scalar = ceil(sqrt(DOP) * load);
+    } else {
+        dev_scalar = 3;
+    }
     latency_avg *= DOP;
-    this->DOP = DOP;
     update_timeout();
 }
 

@@ -18,7 +18,7 @@ private:
     MB_App *app;    // appliance
     std::chrono::microseconds latency_avg, latency_mdev, timeout;
     bool dropmon;
-    int DOP;
+    int dev_scalar;
 
 private:
     friend class Config;

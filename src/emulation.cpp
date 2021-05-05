@@ -172,15 +172,16 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
 
     if (dropmon) {                  // use drop monitor
         //cv.wait(lck);
-        std::cv_status status = cv.wait_for(lck, std::chrono::microseconds(5000));
-        Stats::set_pkt_latency(drop_ts);
+        std::chrono::microseconds timeout(5000);
+        std::cv_status status = cv.wait_for(lck, timeout);
+        Stats::set_pkt_latency(timeout, drop_ts);
 
         if (status == std::cv_status::timeout && recv_pkts.empty() && drop_ts == 0) {
             Logger::error("Drop monitor timed out!");
         }
     } else {                        // use timeout
         std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
-        Stats::set_pkt_latency();
+        Stats::set_pkt_latency(emulated_mb->get_timeout());
 
         // logging
         if (status == std::cv_status::timeout && recv_pkts.empty()) {

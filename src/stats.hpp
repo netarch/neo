@@ -44,6 +44,8 @@ private:
     static std::vector<int>                             rewind_injection_count;
     // time between injecting the actual target packet and getting the result
     static std::vector<std::pair<uint64_t, uint64_t>>   pkt_latencies;
+    // actual timeout values used
+    static std::vector<uint64_t>                        timeouts;
     // time between injecting the packet and getting dropped in kernel
     static std::map<uint64_t, uint64_t>                 kernel_drop_latencies;
 
@@ -93,7 +95,9 @@ public:
     static void set_rewind_latency();
     static void set_rewind_injection_count(int);
     static void set_pkt_lat_t1();
-    static void set_pkt_latency(uint64_t drop_ts = 0);
+    static void set_pkt_latency(
+        const std::chrono::high_resolution_clock::duration& timeout,
+        uint64_t drop_ts = 0);
 
     /*
      * getter functions

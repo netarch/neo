@@ -164,7 +164,8 @@ extract_latency() {
     echo -n 'fault, dropmon, parallel processes, nodes, links, Policy, Connection ECs, '
     echo -n 'Overall latency t1 (nsec), Overall latency (nsec), '
     echo -n 'Rewind latency t1 (nsec), Rewind latency (nsec), Rewind injection count, '
-    echo 'Packet latency t1 (nsec), Packet latency (nsec), Kernel drop latency (nsec)'
+    echo -n 'Packet latency t1 (nsec), Packet latency (nsec), Timeout (nsec), '
+    echo    'Kernel drop latency (nsec)'
     for dir in "$results_dir"/*; do
         [[ ! -d "$dir" ]] && continue
         extract_per_session_latency $dir

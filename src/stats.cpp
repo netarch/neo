@@ -29,6 +29,7 @@ std::vector<std::pair<uint64_t, uint64_t>>  Stats::overall_latencies;
 std::vector<std::pair<uint64_t, uint64_t>>  Stats::rewind_latencies;
 std::vector<int>                            Stats::rewind_injection_count;
 std::vector<std::pair<uint64_t, uint64_t>>  Stats::pkt_latencies;
+std::vector<uint64_t>                       Stats::timeouts;
 std::map<uint64_t, uint64_t>                Stats::kernel_drop_latencies;
 
 high_resolution_clock::duration
@@ -92,7 +93,7 @@ void Stats::output_ec_stats()
             << "Rewind latency t1 (nsec), Rewind latency (nsec), "
             << "Rewind injection count, "
             << "Packet latency t1 (nsec), Packet latency (nsec), "
-            << "Kernel drop latency (nsec)"
+            << "Timeout (nsec), Kernel drop latency (nsec)"
             << std::endl;
     for (size_t i = 0; i < overall_latencies.size(); ++i) {
         outfile << overall_latencies[i].first << ", "
@@ -101,7 +102,8 @@ void Stats::output_ec_stats()
                 << rewind_latencies[i].second << ", "
                 << rewind_injection_count[i] << ", "
                 << pkt_latencies[i].first << ", "
-                << pkt_latencies[i].second << ", ";
+                << pkt_latencies[i].second << ", "
+                << timeouts[i] << ", ";
         if (kernel_drop_latencies.count(pkt_latencies[i].first)) {
             outfile << kernel_drop_latencies.at(pkt_latencies[i].first);
         } else {
@@ -222,10 +224,13 @@ void Stats::set_pkt_lat_t1()
                  ).count();
 }
 
-void Stats::set_pkt_latency(uint64_t drop_ts)
+void Stats::set_pkt_latency(
+    const high_resolution_clock::duration& timeout,
+    uint64_t drop_ts)
 {
     uint64_t pkt_latency = get_duration(pkt_lat_t1);
     pkt_latencies.emplace_back(pkt_lat_t1, pkt_latency);
+    timeouts.push_back(duration_cast<nanoseconds>(timeout).count());
     if (drop_ts) {
         kernel_drop_latencies.emplace(pkt_lat_t1, drop_ts - pkt_lat_t1);
     }
