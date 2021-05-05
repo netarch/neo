@@ -10,6 +10,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(VECTORSZ 1024 CACHE STRING "Maximum number of communications")
 set(MAX_CONNS 2 CACHE STRING "Maximum number of communications")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
@@ -30,7 +31,7 @@ add_compile_definitions(
     NOFAIR
     SAFETY
     SFH
-    VECTORSZ=1024
+    VECTORSZ=${VECTORSZ}
     MAX_CONNS=${MAX_CONNS}
     SIZEOF_VOID_P=${SIZEOF_VOID_P}
     SIZEOF_INT=${SIZEOF_INT})
