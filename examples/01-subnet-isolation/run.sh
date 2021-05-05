@@ -8,7 +8,7 @@ build
 for subnets in 4 8 12; do
     hosts=$subnets
     ${CONFGEN[*]} --subnets $subnets --hosts $hosts > "$CONF"
-    for procs in 1 4 8 16; do
+    for procs in 1 4 8 16 20; do
         # timeout
         name="$subnets-subnets.$hosts-hosts.DOP-$procs"
         msg "Verifying $name"
@@ -28,7 +28,7 @@ done
 for subnets in 4 8 12; do
     hosts=$subnets
     ${CONFGEN[*]} --subnets $subnets --hosts $hosts --fault > "$CONF"
-    for procs in 1 4 8 16; do
+    for procs in 1 4 8 16 20; do
         # timeout
         name="$subnets-subnets.$hosts-hosts.DOP-$procs.fault"
         msg "Verifying $name"
@@ -43,5 +43,9 @@ for subnets in 4 8 12; do
         cp "$CONF" "$RESULTS_DIR/$name"
     done
 done
+
+msg "Populating measurements..."
+extract_stats "$RESULTS_DIR" > "$RESULTS_DIR/stats.csv"
+extract_latency "$RESULTS_DIR" > "$RESULTS_DIR/latency.csv"
 
 msg "Done"

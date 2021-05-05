@@ -44,4 +44,8 @@ for apps in 4 8 12; do
     done
 done
 
+msg "Populating measurements..."
+extract_stats "$RESULTS_DIR" > "$RESULTS_DIR/stats.csv"
+extract_latency "$RESULTS_DIR" > "$RESULTS_DIR/latency.csv"
+
 msg "Done"
