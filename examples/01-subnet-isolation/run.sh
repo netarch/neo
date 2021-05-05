@@ -48,4 +48,13 @@ msg "Populating measurements..."
 extract_stats "$RESULTS_DIR" > "$RESULTS_DIR/stats.csv"
 extract_latency "$RESULTS_DIR" > "$RESULTS_DIR/latency.csv"
 
+msg "Collecting false violations..."
+> "$RESULTS_DIR/false_violations.txt"
+for dir in "$RESULTS_DIR"/*; do
+    [[ ! -d "$dir" || "$dir" == *"fault"* ]] && continue
+    if grep violated "$dir/main.log" >/dev/null; then
+        echo "$(basename $dir)" >> "$RESULTS_DIR/false_violations.txt"
+    fi
+done
+
 msg "Done"

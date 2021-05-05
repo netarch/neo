@@ -45,7 +45,7 @@ export RESULTS_DIR="$(realpath ${SCRIPT_DIR}/results)"
 mkdir -p "${RESULTS_DIR}"
 
 build() {
-    cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" -DCMAKE_BUILD_TYPE=Release
+    cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" -DCMAKE_BUILD_TYPE=Release $@
     cmake --build "${BUILD_DIR}" -j$(nproc)
 }
 

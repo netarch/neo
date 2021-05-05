@@ -5,7 +5,7 @@ import toml
 import argparse
 from config import *
 
-def confgen(lbs, servers, algorithm, repeat):
+def confgen(lbs, servers, algorithm):
     network = Network()
     policies = Policies()
 
@@ -52,30 +52,30 @@ def confgen(lbs, servers, algorithm, repeat):
         load_balancer.add_config('config', lb_config)
 
     ## add policies
-    if repeat is None:
-        repeat = servers
-    for lb in range(1, lbs + 1):
-        policies.add_policy(LoadBalancePolicy(
-                protocol = 'tcp',
-                pkt_dst = '8.0.%d.2' % lb,
-                dst_port = 80,
-                start_node = internet_node.name,
-                final_node = 'server%d\.[0-9]+' % lb,
-                repeat = repeat))
+    #for lb in range(1, lbs + 1):
+    lb = 1
+    policy = LoadBalancePolicy(target_node = 'server%d\.[0-9]+' % lb)
+    num_conns = lbs * 2
+    for repeat in range(num_conns):
+        policy.add_connection(Connection(
+            protocol = 'tcp',
+            src_node = internet_node.name,
+            dst_ip = '8.0.%d.2' % lb,
+            src_port = 50000 + repeat,
+            dst_port = 80))
+    policies.add_policy(policy)
 
     ## output as TOML
     output_toml(network, None, policies)
 
 def main():
-    parser = argparse.ArgumentParser(description='02-firewall-consistency')
+    parser = argparse.ArgumentParser(description='03-load-balancing')
     parser.add_argument('-l', '--lbs', type=int,
                         help='Number of load balancers (HTTP servers)')
     parser.add_argument('-s', '--servers', type=int,
                         help='Number of servers behind each LB')
     parser.add_argument('-a', '--algorithm', choices=['rr', 'sh', 'dh'],
                         help='Load balancing algorithm')
-    parser.add_argument('-r', '--repeat', type=int,
-                        help='Repeat N times for each connection')
     arg = parser.parse_args()
 
     if not arg.lbs or arg.lbs > 255:
@@ -83,7 +83,7 @@ def main():
     if not arg.servers or arg.servers > 65533:
         sys.exit('Invalid number of servers: ' + str(arg.servers))
 
-    confgen(arg.lbs, arg.servers, arg.algorithm, arg.repeat)
+    confgen(arg.lbs, arg.servers, arg.algorithm)
 
 if __name__ == '__main__':
     main()
