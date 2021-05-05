@@ -3,7 +3,7 @@
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 source "${SCRIPT_DIR}/../common.sh"
 
-build -DMAX_CONNS=30
+build -DVECTORSZ=3000 -DMAX_CONNS=30
 
 for lbs in 4 8 12; do
     srvs=$lbs

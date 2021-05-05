@@ -62,7 +62,7 @@ def confgen(lbs, servers, algorithm):
             src_node = internet_node.name,
             dst_ip = '8.0.%d.2' % lb,
             src_port = 50000 + repeat,
-            dst_port = 80))
+            dst_port = [80]))
     policies.add_policy(policy)
 
     ## output as TOML

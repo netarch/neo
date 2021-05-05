@@ -186,7 +186,7 @@ COMMIT
     protocol = "tcp"
     src_node = "h[123]"
     dst_ip = "10.0.0.1"
-    dst_port = 80
+    dst_port = [80]
 [[policies]]
     type = "reachability"
     target_node = "h[123]|s1|r[123]|fw"
@@ -195,7 +195,7 @@ COMMIT
     protocol = "tcp"
     src_node = "server"
     dst_ip = "192.168.0.0/22"
-    dst_port = 80
+    dst_port = [80]
     owned_dst_only = true
 [[policies]]
     type = "reply-reachability"
@@ -205,4 +205,4 @@ COMMIT
     protocol = "tcp"
     src_node = "h[123]"
     dst_ip = "10.0.0.1"
-    dst_port = 80
+    dst_port = [80]
