@@ -9,5 +9,5 @@ export MAKEFLAGS="-j$(nproc)"
 ${SCRIPT_DIR}/astyle.sh
 ${SCRIPT_DIR}/build.sh --debug --tests --coverage
 
-cd "${BUILD_DIR}"
-ctest
+#cd "${BUILD_DIR}"
+#ctest
