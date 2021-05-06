@@ -78,7 +78,7 @@ void ForwardingProcess::first_collect(State *state, const Network& network)
 
 void ForwardingProcess::first_forward(State *state)
 {
-    if (PS_IS_FIRST(get_proto_state(state))) {
+    if (PS_IS_FIRST(get_proto_state(state)) && get_src_ip(state) == 0) {
         // update the source IP address according to the egress interface
         Candidates *candidates = get_candidates(state);
         FIB_IPNH next_hop = candidates->at(state->choice);
@@ -417,8 +417,6 @@ void ForwardingProcess::process_recv_pkts(
 
         set_conn(state, orig_conn);
     }
-
-    print_conn_states(state);
 
     // control logic:
     // if the current connection isn't updated, assume the packet is accepted
