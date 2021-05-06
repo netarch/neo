@@ -9,6 +9,7 @@ void IPVS::init()
 {
     Net::get().set_forwarding(1);
     Net::get().set_rp_filter(0);
+    Net::get().set_expire_nodest_conn(1);
 
     // clear filtering states and rules
     if (system("iptables -F")) {

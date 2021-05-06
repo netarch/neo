@@ -54,4 +54,5 @@ public:
 
     void set_forwarding(int) const;
     void set_rp_filter(int) const;
+    void set_expire_nodest_conn(int) const;
 };
