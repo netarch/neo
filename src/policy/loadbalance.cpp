@@ -22,6 +22,8 @@ void LoadBalancePolicy::init(State *state, const Network *network) const
 {
     Policy::init(state, network);
     set_violated(state, false);
+    ReachCounts reach_counts;
+    set_reach_counts(state, std::move(reach_counts));
 }
 
 static inline double compute_dispersion_index(
@@ -56,6 +58,7 @@ int LoadBalancePolicy::check_violation(State *state)
         Node *rx_node = get_rx_node(state);
         ReachCounts new_reach_counts(*get_reach_counts(state));
         new_reach_counts.increase(rx_node);
+        //Logger::debug(new_reach_counts.to_string());
 
         if (target_nodes.count(rx_node)) {
             double current_dispersion_index
