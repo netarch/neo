@@ -54,8 +54,10 @@ def confgen(lbs, servers, algorithm):
     ## add policies
     #for lb in range(1, lbs + 1):
     lb = 1
-    policy = LoadBalancePolicy(target_node = 'server%d\.[0-9]+' % lb)
-    num_conns = lbs * 2
+    policy = LoadBalancePolicy(
+            target_node = 'server%d\.[0-9]+' % lb,
+            max_dispersion_index = 2)
+    num_conns = int(lbs * 1.5)
     for repeat in range(num_conns):
         policy.add_connection(Connection(
             protocol = 'tcp',
