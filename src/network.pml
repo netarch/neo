@@ -52,7 +52,7 @@ int openflow_update_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (OpenflowUpdateState 
 /* policy */
 bool violated;              /* whether the policy has been violated */
 int correlated_policy_idx;  /* index of the current correlated policy */
-/* loadbalance policy */
+/* loadbalance & one-request policy */
 int reach_counts[SIZEOF_VOID_P / SIZEOF_INT];   /* (ReachCounts *) */
 
 
