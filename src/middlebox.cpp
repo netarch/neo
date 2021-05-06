@@ -41,7 +41,7 @@ bool Middlebox::dropmon_enabled() const
 
 void Middlebox::update_timeout()
 {
-    timeout = latency_avg + latency_mdev * std::max(3, dev_scalar);
+    timeout = latency_avg + latency_mdev * std::max(4, dev_scalar);
 }
 
 void Middlebox::increase_latency_estimate_by_DOP(int DOP)
@@ -49,9 +49,9 @@ void Middlebox::increase_latency_estimate_by_DOP(int DOP)
     static const int total_cores = std::thread::hardware_concurrency();
     double load = (double)DOP / total_cores;
     if (load >= 0.6) {
-        dev_scalar = ceil(sqrt(DOP) * load);
+        dev_scalar = ceil(sqrt(DOP) * 2 * load);
     } else {
-        dev_scalar = 3;
+        dev_scalar = 4;
     }
     latency_avg *= DOP;
     update_timeout();
@@ -78,7 +78,6 @@ std::vector<Packet> Middlebox::send_pkt(const Packet& pkt)
         latency_avg += std::chrono::microseconds(err >> 2);
         latency_mdev += std::chrono::microseconds((std::abs(err) - latency_mdev.count()) >> 2);
         update_timeout();
-        Logger::debug("Drop timeout: " + std::to_string(timeout.count()));
     }
     return recv_pkts;
 }
