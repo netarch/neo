@@ -71,9 +71,11 @@ void ChooseConnProcess::exec_step(
     if (!conn_map[2].empty()) {
         assert(choice == 0);
         set_conn(state, conn_map[2][0]);
+        print_conn_states(state);
     } else if (!conn_map[1].empty()) {
         set_conn(state, conn_map[1][choice]);
         set_executable(state, 2);
+        print_conn_states(state);
     } else if (!conn_map[0].empty()) {
         // pick the first connection that's not dropped and drop it
         assert(choice == 0);
