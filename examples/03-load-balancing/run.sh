@@ -3,9 +3,9 @@
 SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
 source "${SCRIPT_DIR}/../common.sh"
 
-build -DMAX_CONNS=30
+build -DVECTORSZ=3000 -DMAX_CONNS=30
 
-for lbs in 4 8 12; do
+for lbs in 4 8; do
     srvs=$lbs
     for algo in rr sh dh; do    # round-robin, source-hashing, destination-hashing
         ${CONFGEN[*]} -l $lbs -s $srvs -a $algo > "$CONF"
@@ -77,7 +77,7 @@ extract_latency "$RESULTS_DIR" > "$RESULTS_DIR/latency.csv"
 msg "Collecting false violations..."
 > "$RESULTS_DIR/false_violations.txt"
 for dir in "$RESULTS_DIR"/*; do
-    [[ ! -d "$dir" || "$dir" == *"algo-dd"* ]] && continue
+    [[ ! -d "$dir" || "$dir" == *"algo-dh"* ]] && continue
     if grep violated "$dir/main.log" >/dev/null; then
         echo "$(basename $dir)" >> "$RESULTS_DIR/false_violations.txt"
     fi

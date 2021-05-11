@@ -502,3 +502,8 @@ void Net::set_rp_filter(int val) const
     }
     if_freenameindex(if_nidxs);
 }
+
+void Net::set_expire_nodest_conn(int val) const
+{
+    write_value_to_file(val, "/proc/sys/net/ipv4/vs/expire_nodest_conn");
+}

@@ -21,6 +21,8 @@ void OneRequestPolicy::init(State *state, const Network *network) const
 {
     Policy::init(state, network);
     set_violated(state, true);
+    ReachCounts reach_counts;
+    set_reach_counts(state, std::move(reach_counts));
 }
 
 int OneRequestPolicy::check_violation(State *state)

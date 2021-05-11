@@ -135,7 +135,7 @@ class Connection:
         self.src_node: str        = src_node
         self.dst_ip: str          = dst_ip
         self.src_port: int        = src_port
-        self.dst_port: int        = dst_port
+        self.dst_port: List[int]  = dst_port
         self.owned_dst_only: bool = owned_dst_only
 
     def to_dict(self):

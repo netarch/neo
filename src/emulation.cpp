@@ -138,12 +138,12 @@ int Emulation::rewind(NodePacketHistory *nph)
     }
 
     int rewind_injections = 0;
-    Logger::info("============== rewind starts (" + node_name + ") ==============");
+    Logger::info("Rewinding " + node_name + "...");
 
     // reset middlebox state
     if (!nph || !nph->contains(node_pkt_hist)) {
         env->run(mb_app_reset, emulated_mb->get_app());
-        Logger::info("Reset " + emulated_mb->get_name());
+        Logger::info("Reset " + node_name);
     }
 
     // replay history
@@ -151,16 +151,15 @@ int Emulation::rewind(NodePacketHistory *nph)
         std::list<Packet *> pkts = nph->get_packets_since(node_pkt_hist);
         rewind_injections = pkts.size();
         for (Packet *packet : pkts) {
-            send_pkt(*packet);
+            send_pkt(*packet, /* rewinding */true);
         }
     }
 
-    Logger::info("==============  rewind ends  (" + node_name + ") ==============");
     Logger::info(std::to_string(rewind_injections) + " rewind injections");
     return rewind_injections;
 }
 
-std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
+std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool rewinding)
 {
     std::unique_lock<std::mutex> lck(mtx);
     recv_pkts.clear();
@@ -179,7 +178,15 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt)
         if (status == std::cv_status::timeout && recv_pkts.empty() && drop_ts == 0) {
             Logger::error("Drop monitor timed out!");
         }
-    } else {                        // use timeout
+    } else if (rewinding) {         // use timeout (rewind)
+        std::chrono::microseconds timeout(5000);
+        std::cv_status status = cv.wait_for(lck, timeout);
+        Stats::set_pkt_latency(timeout);
+
+        if (status == std::cv_status::timeout && recv_pkts.empty()) {
+            Logger::error("Rewind timed out!");
+        }
+    } else {                        // use timeout (new injection)
         std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
         Stats::set_pkt_latency(emulated_mb->get_timeout());
 

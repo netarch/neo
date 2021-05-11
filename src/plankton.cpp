@@ -362,7 +362,9 @@ void Plankton::exec_step(State *state)
         reinit(state);
     }
 
-    this->check_to_switch_process(state);
+    if (get_choice_count(state) > 0) {
+        this->check_to_switch_process(state);
+    }
 }
 
 void Plankton::check_to_switch_process(State *state) const
