@@ -68,7 +68,6 @@ def confgen(apps, hosts, fault):
     fw2.add_interface(Interface('eth0', '8.0.6.2/24'))
     fw2.add_interface(Interface('eth1', '8.0.7.1/24'))
     fw2.add_static_route(Route('0.0.0.0/0', '8.0.7.2'))
-    fw2.set_timeout(500)
     fw2.add_config('rp_filter', 0)
     if fault:
         fw2.add_config('rules', wrong_fw_rules)
