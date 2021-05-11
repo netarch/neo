@@ -119,6 +119,8 @@ void Stats::clear_latencies()
     rewind_latencies.clear();
     rewind_injection_count.clear();
     pkt_latencies.clear();
+    timeouts.clear();
+    kernel_drop_latencies.clear();
 }
 
 /********************* main process measurements *********************/
