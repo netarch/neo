@@ -48,7 +48,7 @@ void Middlebox::increase_latency_estimate_by_DOP(int DOP)
 {
     static const int total_cores = std::thread::hardware_concurrency();
     double load = (double)DOP / total_cores;
-    dev_scalar = std::max(4, ceil(sqrt(DOP) * 2 * load));
+    dev_scalar = std::max(4.0, ceil(sqrt(DOP) * 2 * load));
     latency_avg *= DOP;
     update_timeout();
 }
