@@ -12,13 +12,14 @@ std::string ConsistencyPolicy::to_string() const
     return ret;
 }
 
-void ConsistencyPolicy::init(State *state, const Network *network) const
+void ConsistencyPolicy::init(State *state, const Network *network)
 {
     set_correlated_policy_idx(state, 0);
     Policy::init(state, network);
+    unset = true;
 }
 
-void ConsistencyPolicy::reinit(State *state, const Network *network) const
+void ConsistencyPolicy::reinit(State *state, const Network *network)
 {
     Policy::init(state, network);
 }
@@ -28,9 +29,15 @@ int ConsistencyPolicy::check_violation(State *state)
     correlated_policies[state->correlated_policy_idx]->check_violation(state);
 
     if (state->choice_count == 0) {
-        // for the first subpolicy, store the verification result
-        if (state->correlated_policy_idx == 0) {
+        Logger::info("Subpolicy " +
+                     std::to_string(get_correlated_policy_idx(state)) +
+                     (state->violated ? " violated!" : " verified"));
+
+        // for the first execution path of the first subpolicy, store the
+        // verification result
+        if (unset) {
             result = state->violated;
+            unset = false;
         }
 
         // check for consistency

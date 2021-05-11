@@ -18,7 +18,7 @@ std::string LoadBalancePolicy::to_string() const
     return ret;
 }
 
-void LoadBalancePolicy::init(State *state, const Network *network) const
+void LoadBalancePolicy::init(State *state, const Network *network)
 {
     Policy::init(state, network);
     set_violated(state, false);

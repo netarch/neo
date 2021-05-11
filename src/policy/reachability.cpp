@@ -19,7 +19,7 @@ std::string ReachabilityPolicy::to_string() const
     return ret;
 }
 
-void ReachabilityPolicy::init(State *state, const Network *network) const
+void ReachabilityPolicy::init(State *state, const Network *network)
 {
     Policy::init(state, network);
     set_violated(state, false);

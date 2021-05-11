@@ -17,7 +17,7 @@ std::string OneRequestPolicy::to_string() const
     return ret;
 }
 
-void OneRequestPolicy::init(State *state, const Network *network) const
+void OneRequestPolicy::init(State *state, const Network *network)
 {
     Policy::init(state, network);
     set_violated(state, true);

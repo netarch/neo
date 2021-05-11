@@ -11,7 +11,7 @@ struct State;
 class ConsistencyPolicy : public Policy
 {
 private:
-    bool result;
+    bool result, unset;
 
 private:
     friend class Config;
@@ -19,7 +19,7 @@ private:
 
 public:
     std::string to_string() const override;
-    void init(State *, const Network *) const override;
-    void reinit(State *, const Network *) const override;
+    void init(State *, const Network *) override;
+    void reinit(State *, const Network *) override;
     int check_violation(State *) override;
 };

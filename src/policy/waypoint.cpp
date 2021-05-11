@@ -18,7 +18,7 @@ std::string WaypointPolicy::to_string() const
     return ret;
 }
 
-void WaypointPolicy::init(State *state, const Network *network) const
+void WaypointPolicy::init(State *state, const Network *network)
 {
     Policy::init(state, network);
     set_violated(state, false);

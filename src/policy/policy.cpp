@@ -121,7 +121,7 @@ void Policy::report(State *state) const
     }
 }
 
-void Policy::init(State *state, const Network *network) const
+void Policy::init(State *state, const Network *network)
 {
     if (correlated_policies.empty()) {
         // per-connection states
@@ -138,7 +138,7 @@ void Policy::init(State *state, const Network *network) const
 
 // reinit should only be overwritten by policies with correlated sub-policies
 void Policy::reinit(State *state __attribute__((unused)),
-                    const Network *network __attribute__((unused))) const
+                    const Network *network __attribute__((unused)))
 {
     Logger::error("This shouldn't be called");
 }

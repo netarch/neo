@@ -41,8 +41,8 @@ public:
     void report(State *) const;
 
     virtual std::string to_string() const = 0;
-    virtual void init(State *, const Network *) const;
-    virtual void reinit(State *, const Network *) const;
+    virtual void init(State *, const Network *);
+    virtual void reinit(State *, const Network *);
     virtual int check_violation(State *) = 0;
 };
 
