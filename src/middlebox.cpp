@@ -41,18 +41,14 @@ bool Middlebox::dropmon_enabled() const
 
 void Middlebox::update_timeout()
 {
-    timeout = latency_avg + latency_mdev * std::max(4, dev_scalar);
+    timeout = latency_avg + latency_mdev * dev_scalar;
 }
 
 void Middlebox::increase_latency_estimate_by_DOP(int DOP)
 {
     static const int total_cores = std::thread::hardware_concurrency();
     double load = (double)DOP / total_cores;
-    if (load >= 0.6) {
-        dev_scalar = ceil(sqrt(DOP) * 2 * load);
-    } else {
-        dev_scalar = 4;
-    }
+    dev_scalar = std::max(4, ceil(sqrt(DOP) * 2 * load));
     latency_avg *= DOP;
     update_timeout();
 }
