@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/../common.sh"
 
 build
 
-for apps in 4 8 12; do
+for apps in 4 8 10 12; do
     hosts=$apps
     ${CONFGEN[*]} --apps $apps --hosts $hosts > "$CONF"
     for procs in 1 4 8 16 20; do
@@ -25,7 +25,7 @@ for apps in 4 8 12; do
 done
 
 # faulty configuration
-for apps in 4 8 12; do
+for apps in 4 8 10 12; do
     hosts=$apps
     ${CONFGEN[*]} --apps $apps --hosts $hosts --fault > "$CONF"
     for procs in 1 4 8 16 20; do

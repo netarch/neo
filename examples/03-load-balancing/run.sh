@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/../common.sh"
 
 build -DVECTORSZ=3000 -DMAX_CONNS=30
 
-for lbs in 2 4 8; do
+for lbs in 2 4 6 8; do
     srvs=$lbs
     for algo in rr sh dh; do    # round-robin, source-hashing, destination-hashing
         ${CONFGEN[*]} -l $lbs -s $srvs -a $algo > "$CONF"
