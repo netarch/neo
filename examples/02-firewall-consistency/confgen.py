@@ -183,7 +183,7 @@ def confgen(apps, hosts, fault):
             ReachabilityPolicy(
                 target_node = hosts_acc2 + '|access2-app%d' % app,
                 reachable = True,
-                protocol = 'tcp',
+                protocol = 'udp',
                 src_node = hosts_acc1,
                 dst_ip = '11.%d.%d.0/24' % (second, third),
                 dst_port = [80],
@@ -195,7 +195,7 @@ def confgen(apps, hosts, fault):
             ReachabilityPolicy(
                 target_node = hosts_acc1 + '|access1-app%d' % app,
                 reachable = True,
-                protocol = 'tcp',
+                protocol = 'udp',
                 src_node = hosts_acc2,
                 dst_ip = '10.%d.%d.0/24' % (second, third),
                 dst_port = [80],
@@ -206,7 +206,7 @@ def confgen(apps, hosts, fault):
             ReachabilityPolicy(
                 target_node = hosts_other_apps,
                 reachable = False,
-                protocol = 'tcp',
+                protocol = 'udp',
                 src_node = 'app%d-host[0-9]+' % app,
                 dst_ip = '10.0.0.0/7',
                 dst_port = [80],
