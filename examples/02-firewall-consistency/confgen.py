@@ -173,13 +173,15 @@ def confgen(apps, hosts, fault):
         other_apps.remove(app)
         hosts_other_apps = ''
         if other_apps:
-            hosts_other_apps = ('app(%s)-host[0-9]+' %
-                    ('|'.join([str(i) for i in other_apps])))
+            hosts_other_apps = (
+                ('app(%s)-host[0-9]+' % ('|'.join([str(i) for i in other_apps]))) +
+                '|' +
+                ('access[12]-app(%s)' % ('|'.join([str(i) for i in other_apps]))))
         # In the same application, hosts under access1 can reach hosts under
         # access2
         policies.add_policy(ConsistencyPolicy([
             ReachabilityPolicy(
-                target_node = '(' + hosts_acc2 + ')|access2-app%d' % app,
+                target_node = hosts_acc2 + '|access2-app%d' % app,
                 reachable = True,
                 protocol = 'tcp',
                 src_node = hosts_acc1,
@@ -191,7 +193,7 @@ def confgen(apps, hosts, fault):
         # access1
         policies.add_policy(ConsistencyPolicy([
             ReachabilityPolicy(
-                target_node = '(' + hosts_acc1 + ')|access1-app%d' % app,
+                target_node = hosts_acc1 + '|access1-app%d' % app,
                 reachable = True,
                 protocol = 'tcp',
                 src_node = hosts_acc2,
@@ -210,6 +212,7 @@ def confgen(apps, hosts, fault):
                 dst_port = [80],
                 owned_dst_only = True)
             ]))
+        break
 
     ## output as TOML
     output_toml(network, None, policies)
