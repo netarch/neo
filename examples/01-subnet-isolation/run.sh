@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/../common.sh"
 
 build
 
-for subnets in 4 8 12; do
+for subnets in 4 8 10 12; do
     hosts=$subnets
     ${CONFGEN[*]} --subnets $subnets --hosts $hosts > "$CONF"
     for procs in 1 4 8 16 20; do
@@ -25,7 +25,7 @@ for subnets in 4 8 12; do
 done
 
 # faulty configuration
-for subnets in 4 8 12; do
+for subnets in 4 8 10 12; do
     hosts=$subnets
     ${CONFGEN[*]} --subnets $subnets --hosts $hosts --fault > "$CONF"
     for procs in 1 4 8 16 20; do
