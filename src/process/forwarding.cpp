@@ -214,19 +214,19 @@ void ForwardingProcess::accepted(State *state, const Network& network)
             phase_transition(state, network, PS_TCP_TERM_3, true);
             break;
         case PS_TCP_TERM_3:
-            state->choice_count = 0;
+            set_executable(state, 0);
             break;
         case PS_UDP_REQ:
             phase_transition(state, network, PS_UDP_REP, true);
             break;
         case PS_UDP_REP:
-            state->choice_count = 0;
+            set_executable(state, 0);
             break;
         case PS_ICMP_ECHO_REQ:
             phase_transition(state, network, PS_ICMP_ECHO_REP, true);
             break;
         case PS_ICMP_ECHO_REP:
-            state->choice_count = 0;
+            set_executable(state, 0);
             break;
         default:
             Logger::error("Unknown protocol state " + std::to_string(proto_state));
@@ -336,15 +336,6 @@ void ForwardingProcess::inject_packet(
     std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
     process_recv_pkts(state, mb, std::move(recv_pkts), network);
 
-    //// logging
-    //std::string nhops_str;
-    //nhops_str += mb->to_string() + " -> [";
-    //for (const FIB_IPNH& nhop : next_hops) {
-    //    nhops_str += " " + nhop.to_string();
-    //}
-    //nhops_str += " ]";
-    //Logger::info(nhops_str);
-
     Stats::set_overall_latency();
 }
 
@@ -428,8 +419,17 @@ void ForwardingProcess::process_recv_pkts(
         set_candidates(state, std::move(candidates));
     }
 
-    // update choice_count for the current connection
-    set_choice_count(state, get_candidates(state)->size());
+    if (get_candidates(state)->empty()) {
+        // this only happens if the current connection is updated, but no next
+        // hop is available for the received outgoing packet
+        Logger::info("Connection " + std::to_string(get_conn(state)) +
+                     " dropped by " + mb->to_string());
+        set_fwd_mode(state, fwd_mode::DROPPED);
+        set_executable(state, 0);
+    } else {
+        // update choice_count for the current connection
+        set_choice_count(state, get_candidates(state)->size());
+    }
 }
 
 /*

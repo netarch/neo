@@ -24,6 +24,11 @@ size_t Candidates::size() const
     return this->next_hops.size();
 }
 
+bool Candidates::empty() const
+{
+    return this->next_hops.empty();
+}
+
 const FIB_IPNH& Candidates::at(size_t idx) const
 {
     return this->next_hops.at(idx);

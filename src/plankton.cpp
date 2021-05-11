@@ -357,13 +357,11 @@ void Plankton::exec_step(State *state)
             Logger::error("Unknown process id " + std::to_string(process_id));
     }
 
+    this->check_to_switch_process(state);
+
     int policy_result = policy->check_violation(state);
     if (policy_result & POL_REINIT_DP) {
         reinit(state);
-    }
-
-    if (get_choice_count(state) > 0) {
-        this->check_to_switch_process(state);
     }
 }
 
