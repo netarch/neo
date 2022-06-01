@@ -3,20 +3,18 @@
 #include <cstdlib>
 #include <unistd.h>
 
+#include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
-#include "lib/fs.hpp"
 
-void NetFilter::init()
-{
+void NetFilter::init() {
     Net::get().set_forwarding(1);
     Net::get().set_rp_filter(rp_filter);
 
     reset();
 }
 
-void NetFilter::reset()
-{
+void NetFilter::reset() {
     // set rules
     int fd;
     char filename[] = "/tmp/netfilter-rules.XXXXXX";

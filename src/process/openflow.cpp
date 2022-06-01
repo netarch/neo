@@ -3,48 +3,44 @@
 #include <cassert>
 
 #include "fib.hpp"
-#include "network.hpp"
-#include "node.hpp"
-#include "policy/policy.hpp"
 #include "lib/hash.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
+#include "network.hpp"
+#include "node.hpp"
+#include "policy/policy.hpp"
+
 #include "model.h"
 
-size_t OpenflowUpdateState::num_of_installed_updates(int node_order) const
-{
+size_t OpenflowUpdateState::num_of_installed_updates(int node_order) const {
     return this->update_vector.at(node_order);
 }
 
-void OpenflowUpdateState::install_update_at(int node_order)
-{
+void OpenflowUpdateState::install_update_at(int node_order) {
     this->update_vector.at(node_order)++;
 }
 
-size_t OFUpdateStateHash::operator()(const OpenflowUpdateState *const& s) const
-{
+size_t
+OFUpdateStateHash::operator()(const OpenflowUpdateState *const &s) const {
     return hash::hash(s->update_vector.data(),
                       s->update_vector.size() * sizeof(size_t));
 }
 
-bool OFUpdateStateEq::operator()(const OpenflowUpdateState *const& a,
-                                 const OpenflowUpdateState *const& b) const
-{
+bool OFUpdateStateEq::operator()(const OpenflowUpdateState *const &a,
+                                 const OpenflowUpdateState *const &b) const {
     return a->update_vector == b->update_vector;
 }
 
-void OpenflowProcess::add_update(Node *node, Route&& route)
-{
+void OpenflowProcess::add_update(Node *node, Route &&route) {
     this->updates[node].push_back(route);
 }
 
-std::string OpenflowProcess::to_string() const
-{
+std::string OpenflowProcess::to_string() const {
     std::string ret = "=== Openflow updates:";
 
-    for (const auto& update : this->updates) {
+    for (const auto &update : this->updates) {
         ret += "\n--- " + update.first->get_name();
-        for (const Route& route : update.second) {
+        for (const Route &route : update.second) {
             ret += "\n    " + route.to_string();
         }
     }
@@ -52,35 +48,32 @@ std::string OpenflowProcess::to_string() const
     return ret;
 }
 
-size_t OpenflowProcess::num_updates() const
-{
+size_t OpenflowProcess::num_updates() const {
     size_t num = 0;
-    for (const auto& pair : this->updates) {
+    for (const auto &pair : this->updates) {
         num += pair.second.size();
     }
     return num;
 }
 
-size_t OpenflowProcess::num_nodes() const
-{
+size_t OpenflowProcess::num_nodes() const {
     return this->updates.size();
 }
 
-const decltype(OpenflowProcess::updates)& OpenflowProcess::get_updates() const
-{
+const decltype(OpenflowProcess::updates) &OpenflowProcess::get_updates() const {
     return updates;
 }
 
-std::map<Node *, std::set<FIB_IPNH>> OpenflowProcess::get_installed_updates(
-                                      State *state) const
-{
+std::map<Node *, std::set<FIB_IPNH>>
+OpenflowProcess::get_installed_updates(State *state) const {
     std::map<Node *, std::set<FIB_IPNH>> installed_updates;
     EqClass *ec = get_dst_ip_ec(state);
     OpenflowUpdateState *update_state = get_openflow_update_state(state);
 
     size_t node_order = 0;
-    for (const auto& pair : this->updates) {
-        size_t num_installed = update_state->num_of_installed_updates(node_order);
+    for (const auto &pair : this->updates) {
+        size_t num_installed =
+            update_state->num_of_installed_updates(node_order);
         Node *node = pair.first;
         RoutingTable of_rib = node->get_rib();
 
@@ -102,8 +95,7 @@ std::map<Node *, std::set<FIB_IPNH>> OpenflowProcess::get_installed_updates(
     return installed_updates;
 }
 
-bool OpenflowProcess::has_updates(State *state, Node *node) const
-{
+bool OpenflowProcess::has_updates(State *state, Node *node) const {
     auto itr = this->updates.find(node);
 
     if (itr == this->updates.end()) {
@@ -118,11 +110,10 @@ bool OpenflowProcess::has_updates(State *state, Node *node) const
     if (num_installed < num_of_all_updates) {
         return true;
     }
-    return false;   // all updates have been installed
+    return false; // all updates have been installed
 }
 
-void OpenflowProcess::init(State *state)
-{
+void OpenflowProcess::init(State *state) {
     if (!enabled) {
         return;
     }
@@ -135,9 +126,9 @@ void OpenflowProcess::init(State *state)
     set_openflow_update_state(state, OpenflowUpdateState(this->updates.size()));
 }
 
-void OpenflowProcess::exec_step(
-    State *state, const Network& network __attribute__((unused)))
-{
+void OpenflowProcess::exec_step(State *state,
+                                const Network &network
+                                __attribute__((unused))) {
     if (!enabled) {
         return;
     }
@@ -149,8 +140,7 @@ void OpenflowProcess::exec_step(
  * For now, setting choice_count to 1 means not continuing installing updates
  * since there is no update left, 2 otherwise.
  */
-void OpenflowProcess::install_update(State *state)
-{
+void OpenflowProcess::install_update(State *state) {
     if (state->choice == 0) {
         Logger::info("Openflow: not installing update");
         state->choice_count = 1; // back to forwarding
@@ -160,7 +150,7 @@ void OpenflowProcess::install_update(State *state)
     Node *current_node = get_pkt_location(state);
     auto itr = this->updates.find(current_node);
     assert(itr != this->updates.end());
-    const std::vector<Route>& all_updates = itr->second;
+    const std::vector<Route> &all_updates = itr->second;
     int node_order = std::distance(this->updates.begin(), itr);
     OpenflowUpdateState *update_state = get_openflow_update_state(state);
     size_t num_installed = update_state->num_of_installed_updates(node_order);
@@ -180,11 +170,11 @@ void OpenflowProcess::install_update(State *state)
     }
 
     // the openflow rule to be updated
-    const Route& update = all_updates[num_installed];
+    const Route &update = all_updates[num_installed];
 
     // actually install the update to FIB
-    Logger::info("Openflow: installing update at " + current_node->get_name()
-                 + ": " + update.to_string());
+    Logger::info("Openflow: installing update at " + current_node->get_name() +
+                 ": " + update.to_string());
 
     // check route precedence (longest prefix match)
     RoutingTable of_rib = current_node->get_rib();

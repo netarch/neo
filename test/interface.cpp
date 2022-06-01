@@ -1,13 +1,13 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <string>
-#include <catch2/catch.hpp>
 
 #include "config.hpp"
+#include "interface.hpp"
 #include "network.hpp"
 #include "node.hpp"
-#include "interface.hpp"
 
-TEST_CASE("interface")
-{
+TEST_CASE("interface") {
     Network network(nullptr);
     const std::string input_filename = "networks/interface.toml";
     REQUIRE_NOTHROW(Config::start_parsing(input_filename));

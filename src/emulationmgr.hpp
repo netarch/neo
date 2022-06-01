@@ -1,8 +1,8 @@
 #pragma once
 
-#include <unordered_set>
-#include <unordered_map>
 #include <map>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "emulation.hpp"
 #include "middlebox.hpp"
@@ -22,25 +22,26 @@
  * (pktB, pktA)
  * (pktC, pktE)
  */
-class EmulationMgr
-{
+class EmulationMgr {
 private:
     size_t max_emulations;
     size_t num_middleboxes;
-    std::unordered_set<Emulation *> emulations;  // all emulation instances
+    std::unordered_set<Emulation *> emulations; // all emulation instances
     std::unordered_map<Middlebox *,
-        std::map<NodePacketHistory *, std::unordered_set<Emulation *>, NodePacketHistoryComp>
-        > mb_emulations_map;
+                       std::map<NodePacketHistory *,
+                                std::unordered_set<Emulation *>,
+                                NodePacketHistoryComp>>
+        mb_emulations_map;
 
     EmulationMgr();
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    EmulationMgr(const EmulationMgr&) = delete;
-    EmulationMgr& operator=(const EmulationMgr&) = delete;
+    EmulationMgr(const EmulationMgr &) = delete;
+    EmulationMgr &operator=(const EmulationMgr &) = delete;
     ~EmulationMgr();
 
-    static EmulationMgr& get();
+    static EmulationMgr &get();
 
     void set_max_emulations(size_t);
     void set_num_middleboxes(size_t);

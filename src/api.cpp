@@ -2,24 +2,20 @@
 
 #include "plankton.hpp"
 
-static Plankton& plankton = Plankton::get();
+static Plankton &plankton = Plankton::get();
 
-void initialize(State *state)
-{
+void initialize(State *state) {
     plankton.initialize(state);
 }
 
-void exec_step(State *state)
-{
+void exec_step(State *state) {
     plankton.exec_step(state);
 }
 
-void report(State *state)
-{
+void report(State *state) {
     plankton.report(state);
 }
 
-void verify_exit(int status)
-{
+void verify_exit(int status) {
     plankton.verify_exit(status);
 }

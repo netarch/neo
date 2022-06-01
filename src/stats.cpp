@@ -1,10 +1,10 @@
 #include "stats.hpp"
 
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <fstream>
 #include <string>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "lib/logger.hpp"
 #include "policy/policy.hpp"
@@ -25,43 +25,41 @@ long Stats::ec_maxrss;
 uint64_t Stats::overall_lat_t1;
 uint64_t Stats::rewind_lat_t1;
 uint64_t Stats::pkt_lat_t1;
-std::vector<std::pair<uint64_t, uint64_t>>  Stats::overall_latencies;
-std::vector<std::pair<uint64_t, uint64_t>>  Stats::rewind_latencies;
-std::vector<int>                            Stats::rewind_injection_count;
-std::vector<std::pair<uint64_t, uint64_t>>  Stats::pkt_latencies;
-std::vector<uint64_t>                       Stats::timeouts;
-std::map<uint64_t, uint64_t>                Stats::kernel_drop_latencies;
+std::vector<std::pair<uint64_t, uint64_t>> Stats::overall_latencies;
+std::vector<std::pair<uint64_t, uint64_t>> Stats::rewind_latencies;
+std::vector<int> Stats::rewind_injection_count;
+std::vector<std::pair<uint64_t, uint64_t>> Stats::pkt_latencies;
+std::vector<uint64_t> Stats::timeouts;
+std::map<uint64_t, uint64_t> Stats::kernel_drop_latencies;
 
 high_resolution_clock::duration
-Stats::get_duration(const high_resolution_clock::time_point& t1)
-{
+Stats::get_duration(const high_resolution_clock::time_point &t1) {
     if (t1.time_since_epoch().count() == 0) {
         Logger::error("t1 not set");
     }
     return high_resolution_clock::now() - t1;
 }
 
-uint64_t Stats::get_duration(uint64_t t1)
-{
+uint64_t Stats::get_duration(uint64_t t1) {
     if (t1 == 0) {
         Logger::error("t1 not set");
     }
     return duration_cast<nanoseconds>(
-               high_resolution_clock::now().time_since_epoch()
-           ).count() - t1;
+               high_resolution_clock::now().time_since_epoch())
+               .count() -
+           t1;
 }
 
 /********************* control functions *********************/
 
-void Stats::output_main_stats()
-{
+void Stats::output_main_stats() {
     Logger::info("====================");
-    Logger::info("Time: " + std::to_string(total_time.count()) + " microseconds");
+    Logger::info("Time: " + std::to_string(total_time.count()) +
+                 " microseconds");
     Logger::info("Memory: " + std::to_string(total_maxrss) + " kilobytes");
 }
 
-void Stats::output_policy_stats(int nodes, int links, Policy *policy)
-{
+void Stats::output_policy_stats(int nodes, int links, Policy *policy) {
     const std::string filename = "policy.stats.csv";
     std::ofstream outfile(filename, std::ios_base::app);
     if (outfile.fail()) {
@@ -69,17 +67,14 @@ void Stats::output_policy_stats(int nodes, int links, Policy *policy)
     }
 
     outfile << "# of nodes, # of links, Policy, # of connection ECs, "
-            "Time (microseconds), Memory (kilobytes)" << std::endl
-            << nodes << ", "
-            << links << ", "
-            << policy->get_id() << ", "
-            << policy->num_conn_ecs() << ", "
-            << policy_time.count() << ", "
+               "Time (microseconds), Memory (kilobytes)"
+            << std::endl
+            << nodes << ", " << links << ", " << policy->get_id() << ", "
+            << policy->num_conn_ecs() << ", " << policy_time.count() << ", "
             << policy_maxrss << std::endl;
 }
 
-void Stats::output_ec_stats()
-{
+void Stats::output_ec_stats() {
     const std::string filename = std::to_string(getpid()) + ".stats.csv";
     std::ofstream outfile(filename, std::ios_base::app);
     if (outfile.fail()) {
@@ -93,17 +88,15 @@ void Stats::output_ec_stats()
             << "Rewind latency t1 (nsec), Rewind latency (nsec), "
             << "Rewind injection count, "
             << "Packet latency t1 (nsec), Packet latency (nsec), "
-            << "Timeout (nsec), Kernel drop latency (nsec)"
-            << std::endl;
+            << "Timeout (nsec), Kernel drop latency (nsec)" << std::endl;
     for (size_t i = 0; i < overall_latencies.size(); ++i) {
         outfile << overall_latencies[i].first << ", "
                 << overall_latencies[i].second << ", "
                 << rewind_latencies[i].first << ", "
                 << rewind_latencies[i].second << ", "
-                << rewind_injection_count[i] << ", "
-                << pkt_latencies[i].first << ", "
-                << pkt_latencies[i].second << ", "
-                << timeouts[i] << ", ";
+                << rewind_injection_count[i] << ", " << pkt_latencies[i].first
+                << ", " << pkt_latencies[i].second << ", " << timeouts[i]
+                << ", ";
         if (kernel_drop_latencies.count(pkt_latencies[i].first)) {
             outfile << kernel_drop_latencies.at(pkt_latencies[i].first);
         } else {
@@ -113,8 +106,7 @@ void Stats::output_ec_stats()
     }
 }
 
-void Stats::clear_latencies()
-{
+void Stats::clear_latencies() {
     overall_latencies.clear();
     rewind_latencies.clear();
     rewind_injection_count.clear();
@@ -125,18 +117,15 @@ void Stats::clear_latencies()
 
 /********************* main process measurements *********************/
 
-void Stats::set_total_t1()
-{
+void Stats::set_total_t1() {
     total_t1 = high_resolution_clock::now();
 }
 
-void Stats::set_total_time()
-{
+void Stats::set_total_time() {
     total_time = duration_cast<microseconds>(get_duration(total_t1));
 }
 
-void Stats::set_total_maxrss()
-{
+void Stats::set_total_maxrss() {
     struct rusage ru;
     if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
         Logger::error("getrusage()", errno);
@@ -146,18 +135,15 @@ void Stats::set_total_maxrss()
 
 /******************** policy process measurements ********************/
 
-void Stats::set_policy_t1()
-{
+void Stats::set_policy_t1() {
     policy_t1 = high_resolution_clock::now();
 }
 
-void Stats::set_policy_time()
-{
+void Stats::set_policy_time() {
     policy_time = duration_cast<microseconds>(get_duration(policy_t1));
 }
 
-void Stats::set_policy_maxrss()
-{
+void Stats::set_policy_maxrss() {
     struct rusage ru;
     if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
         Logger::error("getrusage()", errno);
@@ -167,18 +153,15 @@ void Stats::set_policy_maxrss()
 
 /********************** EC process measurements **********************/
 
-void Stats::set_ec_t1()
-{
+void Stats::set_ec_t1() {
     ec_t1 = high_resolution_clock::now();
 }
 
-void Stats::set_ec_time()
-{
+void Stats::set_ec_time() {
     ec_time = duration_cast<microseconds>(get_duration(ec_t1));
 }
 
-void Stats::set_ec_maxrss()
-{
+void Stats::set_ec_maxrss() {
     struct rusage ru;
     if (getrusage(RUSAGE_SELF, &ru) < 0) {
         Logger::error("getrusage()", errno);
@@ -188,48 +171,40 @@ void Stats::set_ec_maxrss()
 
 /********************** latency measurements **********************/
 
-void Stats::set_overall_lat_t1()
-{
+void Stats::set_overall_lat_t1() {
     overall_lat_t1 = duration_cast<nanoseconds>(
-                         high_resolution_clock::now().time_since_epoch()
-                     ).count();
+                         high_resolution_clock::now().time_since_epoch())
+                         .count();
 }
 
-void Stats::set_overall_latency()
-{
+void Stats::set_overall_latency() {
     uint64_t overall_latency = get_duration(overall_lat_t1);
     overall_latencies.emplace_back(overall_lat_t1, overall_latency);
 }
 
-void Stats::set_rewind_lat_t1()
-{
+void Stats::set_rewind_lat_t1() {
     rewind_lat_t1 = duration_cast<nanoseconds>(
-                        high_resolution_clock::now().time_since_epoch()
-                    ).count();
+                        high_resolution_clock::now().time_since_epoch())
+                        .count();
 }
 
-void Stats::set_rewind_latency()
-{
+void Stats::set_rewind_latency() {
     uint64_t rewind_latency = get_duration(rewind_lat_t1);
     rewind_latencies.emplace_back(rewind_lat_t1, rewind_latency);
 }
 
-void Stats::set_rewind_injection_count(int count)
-{
+void Stats::set_rewind_injection_count(int count) {
     rewind_injection_count.push_back(count);
 }
 
-void Stats::set_pkt_lat_t1()
-{
+void Stats::set_pkt_lat_t1() {
     pkt_lat_t1 = duration_cast<nanoseconds>(
-                     high_resolution_clock::now().time_since_epoch()
-                 ).count();
+                     high_resolution_clock::now().time_since_epoch())
+                     .count();
 }
 
-void Stats::set_pkt_latency(
-    const high_resolution_clock::duration& timeout,
-    uint64_t drop_ts)
-{
+void Stats::set_pkt_latency(const high_resolution_clock::duration &timeout,
+                            uint64_t drop_ts) {
     uint64_t pkt_latency = get_duration(pkt_lat_t1);
     pkt_latencies.emplace_back(pkt_lat_t1, pkt_latency);
     timeouts.push_back(duration_cast<nanoseconds>(timeout).count());
@@ -240,7 +215,6 @@ void Stats::set_pkt_latency(
 
 /************************* getter functions *************************/
 
-const std::vector<std::pair<uint64_t, uint64_t>>& Stats::get_pkt_latencies()
-{
+const std::vector<std::pair<uint64_t, uint64_t>> &Stats::get_pkt_latencies() {
     return Stats::pkt_latencies;
 }

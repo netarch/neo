@@ -1,16 +1,16 @@
 #include "policy/loadbalance.hpp"
 
-#include "node.hpp"
-#include "reachcounts.hpp"
-#include "protocols.hpp"
-#include "process/forwarding.hpp"
 #include "model-access.hpp"
+#include "node.hpp"
+#include "process/forwarding.hpp"
+#include "protocols.hpp"
+#include "reachcounts.hpp"
+
 #include "model.h"
 
-std::string LoadBalancePolicy::to_string() const
-{
-    std::string ret = "Loadbalance (max_dispersion_index: "
-                      + std::to_string(max_dispersion_index) + "): [";
+std::string LoadBalancePolicy::to_string() const {
+    std::string ret = "Loadbalance (max_dispersion_index: " +
+                      std::to_string(max_dispersion_index) + "): [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
@@ -18,18 +18,16 @@ std::string LoadBalancePolicy::to_string() const
     return ret;
 }
 
-void LoadBalancePolicy::init(State *state, const Network *network)
-{
+void LoadBalancePolicy::init(State *state, const Network *network) {
     Policy::init(state, network);
     set_violated(state, false);
     ReachCounts reach_counts;
     set_reach_counts(state, std::move(reach_counts));
 }
 
-static inline double compute_dispersion_index(
-    const std::unordered_set<Node *>& target_nodes,
-    const ReachCounts& reach_counts)
-{
+static inline double
+compute_dispersion_index(const std::unordered_set<Node *> &target_nodes,
+                         const ReachCounts &reach_counts) {
     double mean = 0;
     for (Node *node : target_nodes) {
         mean += reach_counts[node];
@@ -42,15 +40,15 @@ static inline double compute_dispersion_index(
         variance += (reach_counts[node] - mean) * (reach_counts[node] - mean);
     }
     variance /= target_nodes.size();
-    Logger::debug("(compute_dispersion_index) variance: " + std::to_string(variance));
+    Logger::debug("(compute_dispersion_index) variance: " +
+                  std::to_string(variance));
 
     double index = variance / mean;
     Logger::debug("(compute_dispersion_index) index: " + std::to_string(index));
     return index;
 }
 
-int LoadBalancePolicy::check_violation(State *state)
-{
+int LoadBalancePolicy::check_violation(State *state) {
     int mode = get_fwd_mode(state);
     int proto_state = get_proto_state(state);
 
@@ -58,14 +56,14 @@ int LoadBalancePolicy::check_violation(State *state)
         Node *rx_node = get_rx_node(state);
         ReachCounts new_reach_counts(*get_reach_counts(state));
         new_reach_counts.increase(rx_node);
-        //Logger::debug(new_reach_counts.to_string());
+        // Logger::debug(new_reach_counts.to_string());
 
         if (target_nodes.count(rx_node)) {
-            double current_dispersion_index
-                = compute_dispersion_index(target_nodes, new_reach_counts);
+            double current_dispersion_index =
+                compute_dispersion_index(target_nodes, new_reach_counts);
             if (current_dispersion_index > max_dispersion_index) {
-                Logger::info("Current dispersion index: "
-                             + std::to_string(current_dispersion_index));
+                Logger::info("Current dispersion index: " +
+                             std::to_string(current_dispersion_index));
                 set_violated(state, true); // violation
                 state->choice_count = 0;
             }

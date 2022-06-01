@@ -1,11 +1,11 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <memory>
 #include <utility>
-#include <catch2/catch.hpp>
 
 #include "lib/ip.hpp"
 
-TEST_CASE("ipv4address")
-{
+TEST_CASE("ipv4address") {
     IPv4Address addr("192.168.1.1");
     IPv4Address addr2(addr + 1);
 
@@ -20,11 +20,9 @@ TEST_CASE("ipv4address")
         CHECK(*ip == "192.168.1.1");
         REQUIRE_NOTHROW(ip = std::make_shared<IPv4Address>("192.168.1.1"));
         CHECK(*ip == "192.168.1.1");
-        CHECK_THROWS_WITH(std::make_shared<IPv4Address>
-                          ("invalid format"),
+        CHECK_THROWS_WITH(std::make_shared<IPv4Address>("invalid format"),
                           "Failed to parse IP: invalid format");
-        CHECK_THROWS_WITH(std::make_shared<IPv4Address>
-                          ("10.0.0.256"),
+        CHECK_THROWS_WITH(std::make_shared<IPv4Address>("10.0.0.256"),
                           "Invalid IP octet: 256");
         REQUIRE_NOTHROW(ip = std::make_shared<IPv4Address>(3232235777U));
         CHECK(*ip == "192.168.1.1");
@@ -87,8 +85,8 @@ TEST_CASE("ipv4address")
         REQUIRE((ip = "192.168.1.1") == addr);
         REQUIRE((ip += ip1) == addr2);
         REQUIRE((ip -= ip1) == addr);
-        REQUIRE((ip +=   1) == addr2);
-        REQUIRE((ip -=   1) == addr);
+        REQUIRE((ip += 1) == addr2);
+        REQUIRE((ip -= 1) == addr);
         REQUIRE((ip += 256) == "192.168.2.1");
         REQUIRE((ip -= 256) == "192.168.1.1");
         REQUIRE((ip &= addr2) == "192.168.1.0");
@@ -98,56 +96,53 @@ TEST_CASE("ipv4address")
     }
 }
 
-TEST_CASE("ipinterface")
-{
+TEST_CASE("ipinterface") {
     IPv4Address addr("192.168.1.1");
     IPInterface<IPv4Address> intf(addr, 24);
 
     SECTION("constructors") {
-        std::shared_ptr<IPInterface<IPv4Address> > it;
+        std::shared_ptr<IPInterface<IPv4Address>> it;
 
-        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >());
+        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address>>());
         CHECK(it->addr() == 0U);
         CHECK(it->prefix_length() == 0);
-        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >(intf));
+        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address>>(intf));
         CHECK(it->addr() == addr);
         CHECK(it->prefix_length() == 24);
-        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >
-                             (std::move(intf)));
+        REQUIRE_NOTHROW(
+            it = std::make_shared<IPInterface<IPv4Address>>(std::move(intf)));
         CHECK(it->addr() == addr);
         CHECK(it->prefix_length() == 24);
-        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >
-                             (addr, 17));
+        REQUIRE_NOTHROW(
+            it = std::make_shared<IPInterface<IPv4Address>>(addr, 17));
         CHECK(it->addr() == addr);
         CHECK(it->prefix_length() == 17);
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          (addr, -1),
+        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address>>(addr, -1),
                           "Invalid prefix length: -1");
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          (addr, 33),
+        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address>>(addr, 33),
                           "Invalid prefix length: 33");
-        REQUIRE_NOTHROW(it = std::make_shared<IPInterface<IPv4Address> >
-                             ("10.0.0.1/16"));
+        REQUIRE_NOTHROW(
+            it = std::make_shared<IPInterface<IPv4Address>>("10.0.0.1/16"));
         CHECK(it->addr() == "10.0.0.1");
         CHECK(it->prefix_length() == 16);
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          ("1.2.3.4.5/6"),
-                          "Failed to parse IP: 1.2.3.4.5/6");
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          ("1.2.3.4/5/6"),
-                          "Failed to parse IP: 1.2.3.4/5/6");
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          ("1.2.3.-1/32"),
-                          "Invalid IP octet: -1");
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          ("1.2.3.256/32"),
-                          "Invalid IP octet: 256");
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          ("1.2.3.4/-1"),
-                          "Invalid prefix length: -1");
-        CHECK_THROWS_WITH(std::make_shared<IPInterface<IPv4Address> >
-                          ("1.2.3.4/33"),
-                          "Invalid prefix length: 33");
+        CHECK_THROWS_WITH(
+            std::make_shared<IPInterface<IPv4Address>>("1.2.3.4.5/6"),
+            "Failed to parse IP: 1.2.3.4.5/6");
+        CHECK_THROWS_WITH(
+            std::make_shared<IPInterface<IPv4Address>>("1.2.3.4/5/6"),
+            "Failed to parse IP: 1.2.3.4/5/6");
+        CHECK_THROWS_WITH(
+            std::make_shared<IPInterface<IPv4Address>>("1.2.3.-1/32"),
+            "Invalid IP octet: -1");
+        CHECK_THROWS_WITH(
+            std::make_shared<IPInterface<IPv4Address>>("1.2.3.256/32"),
+            "Invalid IP octet: 256");
+        CHECK_THROWS_WITH(
+            std::make_shared<IPInterface<IPv4Address>>("1.2.3.4/-1"),
+            "Invalid prefix length: -1");
+        CHECK_THROWS_WITH(
+            std::make_shared<IPInterface<IPv4Address>>("1.2.3.4/33"),
+            "Invalid prefix length: 33");
     }
 
     SECTION("basic information access") {
@@ -172,47 +167,45 @@ TEST_CASE("ipinterface")
     }
 }
 
-TEST_CASE("ipnetwork")
-{
+TEST_CASE("ipnetwork") {
     IPRange<IPv4Address> range("192.168.2.0", "192.168.3.255");
     IPNetwork<IPv4Address> net("192.168.10.0/24");
 
     SECTION("constructors") {
-        std::shared_ptr<IPNetwork<IPv4Address> > n;
+        std::shared_ptr<IPNetwork<IPv4Address>> n;
 
-        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >());
+        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address>>());
         CHECK(n->addr() == 0U);
         CHECK(n->prefix_length() == 0);
-        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >(net));
+        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address>>(net));
         CHECK(n->addr() == "192.168.10.0");
         CHECK(n->prefix_length() == 24);
-        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >
-                            (std::move(net)));
+        REQUIRE_NOTHROW(
+            n = std::make_shared<IPNetwork<IPv4Address>>(std::move(net)));
         CHECK(n->addr() == "192.168.10.0");
         CHECK(n->prefix_length() == 24);
-        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >
-                            ("10.0.0.0", 8));
+        REQUIRE_NOTHROW(
+            n = std::make_shared<IPNetwork<IPv4Address>>("10.0.0.0", 8));
         CHECK(n->addr() == "10.0.0.0");
         CHECK(n->prefix_length() == 8);
-        CHECK_THROWS_WITH(std::make_shared<IPNetwork<IPv4Address> >
-                          ("10.0.0.0", 0),
-                          "Invalid network: 10.0.0.0/0");
-        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >
-                            ("172.16.0.0/16"));
+        CHECK_THROWS_WITH(
+            std::make_shared<IPNetwork<IPv4Address>>("10.0.0.0", 0),
+            "Invalid network: 10.0.0.0/0");
+        REQUIRE_NOTHROW(
+            n = std::make_shared<IPNetwork<IPv4Address>>("172.16.0.0/16"));
         CHECK(n->addr() == "172.16.0.0");
         CHECK(n->prefix_length() == 16);
-        CHECK_THROWS_WITH(std::make_shared<IPNetwork<IPv4Address> >
-                          ("172.16.0.0/0"),
-                          "Invalid network: 172.16.0.0/0");
-        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address> >
-                            (range));
+        CHECK_THROWS_WITH(
+            std::make_shared<IPNetwork<IPv4Address>>("172.16.0.0/0"),
+            "Invalid network: 172.16.0.0/0");
+        REQUIRE_NOTHROW(n = std::make_shared<IPNetwork<IPv4Address>>(range));
         CHECK(n->addr() == "192.168.2.0");
         CHECK(n->prefix_length() == 23);
-        CHECK_THROWS_WITH(std::make_shared<IPNetwork<IPv4Address> >
-                          (IPRange<IPv4Address>("10.0.0.0", "10.0.0.4")),
+        CHECK_THROWS_WITH(std::make_shared<IPNetwork<IPv4Address>>(
+                              IPRange<IPv4Address>("10.0.0.0", "10.0.0.4")),
                           "Invalid network: [10.0.0.0, 10.0.0.4]");
-        CHECK_THROWS_WITH(std::make_shared<IPNetwork<IPv4Address> >
-                          (IPRange<IPv4Address>("10.0.0.1", "10.0.0.4")),
+        CHECK_THROWS_WITH(std::make_shared<IPNetwork<IPv4Address>>(
+                              IPRange<IPv4Address>("10.0.0.1", "10.0.0.4")),
                           "Invalid network: [10.0.0.1, 10.0.0.4]");
     }
 
@@ -245,33 +238,32 @@ TEST_CASE("ipnetwork")
     }
 }
 
-TEST_CASE("iprange")
-{
+TEST_CASE("iprange") {
     IPRange<IPv4Address> range("10.1.4.0", "10.1.7.255");
 
     SECTION("constructors") {
-        std::shared_ptr<IPRange<IPv4Address> > r;
+        std::shared_ptr<IPRange<IPv4Address>> r;
 
-        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >(range));
+        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address>>(range));
         CHECK(r->get_lb() == "10.1.4.0");
         CHECK(r->get_ub() == "10.1.7.255");
-        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
-                            (std::move(range)));
+        REQUIRE_NOTHROW(
+            r = std::make_shared<IPRange<IPv4Address>>(std::move(range)));
         CHECK(r->get_lb() == "10.1.4.0");
         CHECK(r->get_ub() == "10.1.7.255");
-        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
-                            ("10.0.0.1", "10.0.0.2"));
+        REQUIRE_NOTHROW(
+            r = std::make_shared<IPRange<IPv4Address>>("10.0.0.1", "10.0.0.2"));
         CHECK(r->get_lb() == "10.0.0.1");
         CHECK(r->get_ub() == "10.0.0.2");
-        CHECK_THROWS_WITH(std::make_shared<IPRange<IPv4Address> >
-                          ("10.0.0.1", "10.0.0.0"),
-                          "Invalid IP range: [10.0.0.1, 10.0.0.0]");
-        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
-                            (IPNetwork<IPv4Address>("0.0.0.0/0")));
+        CHECK_THROWS_WITH(
+            std::make_shared<IPRange<IPv4Address>>("10.0.0.1", "10.0.0.0"),
+            "Invalid IP range: [10.0.0.1, 10.0.0.0]");
+        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address>>(
+                            IPNetwork<IPv4Address>("0.0.0.0/0")));
         CHECK(r->get_lb() == "0.0.0.0");
         CHECK(r->get_ub() == "255.255.255.255");
-        REQUIRE_NOTHROW(r = std::make_shared<IPRange<IPv4Address> >
-                            ("10.0.113.0/25"));
+        REQUIRE_NOTHROW(
+            r = std::make_shared<IPRange<IPv4Address>>("10.0.113.0/25"));
         CHECK(r->get_lb() == "10.0.113.0");
         CHECK(r->get_ub() == "10.0.113.127");
     }
@@ -295,8 +287,8 @@ TEST_CASE("iprange")
         CHECK(range.contains(IPRange<IPv4Address>("10.1.4.0/22")));
         CHECK_FALSE(range.contains(IPRange<IPv4Address>("10.0.0.0/8")));
         CHECK(range.contains(IPRange<IPv4Address>("10.1.4.0", "10.1.7.254")));
-        CHECK_FALSE(range.contains(IPRange<IPv4Address>
-                                   ("10.1.4.1", "10.1.8.0")));
+        CHECK_FALSE(
+            range.contains(IPRange<IPv4Address>("10.1.4.1", "10.1.8.0")));
         REQUIRE(range.to_string() == "[10.1.4.0, 10.1.7.255]");
         CHECK(range.is_network());
         CHECK_NOTHROW(range.network());
@@ -319,10 +311,10 @@ TEST_CASE("iprange")
         CHECK(range != "10.1.4.0/23");
         CHECK_FALSE(range == "10.1.4.0/23");
         CHECK_FALSE(range != "10.1.4.0/22");
-        CHECK((range = IPRange<IPv4Address>("10.0.0.0", "10.0.0.3"))
-              == "10.0.0.0/30");
-        CHECK((range = IPNetwork<IPv4Address>(range))
-              == IPRange<IPv4Address>("10.0.0.0", "10.0.0.3"));
+        CHECK((range = IPRange<IPv4Address>("10.0.0.0", "10.0.0.3")) ==
+              "10.0.0.0/30");
+        CHECK((range = IPNetwork<IPv4Address>(range)) ==
+              IPRange<IPv4Address>("10.0.0.0", "10.0.0.3"));
         CHECK((range = "10.0.0.0/28") == "10.0.0.0/28");
     }
 }

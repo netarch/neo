@@ -4,8 +4,7 @@
 
 #include "mb-app/mb-app.hpp"
 
-class IPVS : public MB_App
-{
+class IPVS : public MB_App {
 private:
     std::string config;
 
@@ -14,6 +13,6 @@ private:
     IPVS() = default;
 
 public:
-    void init() override;   // hard-reset, restart, start
-    void reset() override;  // soft-reset, reload
+    void init() override;  // hard-reset, restart, start
+    void reset() override; // soft-reset, reload
 };

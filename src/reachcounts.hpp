@@ -1,11 +1,10 @@
 #pragma once
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 class Node;
 
-class ReachCounts
-{
+class ReachCounts {
 private:
     std::unordered_map<Node *, int> counts;
 
@@ -14,19 +13,18 @@ private:
 
 public:
     std::string to_string() const;
-    int operator[](Node *const&) const;
+    int operator[](Node *const &) const;
     int total_counts() const;
-    void increase(Node *const&);
+    void increase(Node *const &);
 };
 
-class ReachCountsHash
-{
+class ReachCountsHash {
 public:
-    size_t operator()(const ReachCounts *const&) const;
+    size_t operator()(const ReachCounts *const &) const;
 };
 
-class ReachCountsEq
-{
+class ReachCountsEq {
 public:
-    bool operator()(const ReachCounts *const&, const ReachCounts *const&) const;
+    bool operator()(const ReachCounts *const &,
+                    const ReachCounts *const &) const;
 };

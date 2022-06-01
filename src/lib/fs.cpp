@@ -1,36 +1,32 @@
 #include "lib/fs.hpp"
 
-#include <unistd.h>
-#include <sys/stat.h>
 #include <ftw.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#include <cstdio>
-#include <cstdlib>
 #include <cerrno>
 #include <climits>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 
 #include "lib/logger.hpp"
 
-namespace fs
-{
+namespace fs {
 
-void chdir(const std::string& wd)
-{
+void chdir(const std::string &wd) {
     if (::chdir(wd.c_str()) < 0) {
         Logger::error(wd, errno);
     }
 }
 
-void mkdir(const std::string& p)
-{
+void mkdir(const std::string &p) {
     if (::mkdir(p.c_str(), 0777) < 0) {
         Logger::error(p, errno);
     }
 }
 
-bool exists(const std::string& p)
-{
+bool exists(const std::string &p) {
     struct stat buffer;
     int ret = ::stat(p.c_str(), &buffer);
     if (ret == -1) {
@@ -42,9 +38,10 @@ bool exists(const std::string& p)
     return true;
 }
 
-static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
-              int typeflag, struct FTW *ftwbuf __attribute__((unused)))
-{
+static int rm(const char *fpath,
+              const struct stat *sb __attribute__((unused)),
+              int typeflag,
+              struct FTW *ftwbuf __attribute__((unused))) {
     if (typeflag == FTW_D || typeflag == FTW_DNR || typeflag == FTW_DP) {
         if (rmdir(fpath) == -1) {
             return -1;
@@ -57,15 +54,13 @@ static int rm(const char *fpath, const struct stat *sb __attribute__((unused)),
     return 0;
 }
 
-void remove(const std::string& p)
-{
+void remove(const std::string &p) {
     if (nftw(p.c_str(), &rm, 10000, FTW_DEPTH | FTW_PHYS) < 0) {
         Logger::error(p, errno);
     }
 }
 
-void copy(const std::string& src, const std::string& dst)
-{
+void copy(const std::string &src, const std::string &dst) {
     std::string src_path = realpath(src);
     std::string dst_path = realpath(dst);
 
@@ -82,8 +77,7 @@ void copy(const std::string& src, const std::string& dst)
     dst_f.close();
 }
 
-bool is_regular(const std::string& path)
-{
+bool is_regular(const std::string &path) {
     struct stat buffer;
     int ret = stat(path.c_str(), &buffer);
     if (ret == -1) {
@@ -92,8 +86,7 @@ bool is_regular(const std::string& path)
     return S_ISREG(buffer.st_mode);
 }
 
-std::string getcwd()
-{
+std::string getcwd() {
     char p[PATH_MAX];
 
     if (::getcwd(p, sizeof(p)) == NULL) {
@@ -103,8 +96,7 @@ std::string getcwd()
     return std::string(p);
 }
 
-std::string realpath(const std::string& rel_p)
-{
+std::string realpath(const std::string &rel_p) {
     char p[PATH_MAX];
 
     if (::realpath(rel_p.c_str(), p) == NULL) {
@@ -114,12 +106,11 @@ std::string realpath(const std::string& rel_p)
     return std::string(p);
 }
 
-std::string append(const std::string& parent, const std::string& child)
-{
+std::string append(const std::string &parent, const std::string &child) {
     std::string p(parent);
 
-    if (!p.empty() && p.back() != '/' &&
-            !child.empty() && child.front() != '/') {
+    if (!p.empty() && p.back() != '/' && !child.empty() &&
+        child.front() != '/') {
         p.push_back('/');
     }
     p.append(child);

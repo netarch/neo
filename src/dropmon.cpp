@@ -1,43 +1,38 @@
 #include "dropmon.hpp"
 
-#include <netlink/netlink.h>
-#include <netlink/genl/genl.h>
-#include <netlink/genl/ctrl.h>
+#include <cassert>
+#include <csignal>
 #include <linux/net_dropmon.h>
 #include <linux/version.h>
-#include <csignal>
-#include <cassert>
+#include <netlink/genl/ctrl.h>
+#include <netlink/genl/genl.h>
+#include <netlink/netlink.h>
 
-#include "lib/net.hpp"
 #include "lib/logger.hpp"
-
+#include "lib/net.hpp"
 
 DropMon::DropMon()
     : family(0), enabled(false), dm_sock(nullptr), listener(nullptr),
-      stop_listener(false), sent_pkt_changed(false), drop_ts(0)
-{
-}
+      stop_listener(false), sent_pkt_changed(false), drop_ts(0) {}
 
-DropMon::~DropMon()
-{
+DropMon::~DropMon() {
     delete listener;
     nl_socket_free(dm_sock);
 }
 
-DropMon& DropMon::get()
-{
+DropMon &DropMon::get() {
     static DropMon instance;
     return instance;
 }
 
-void DropMon::init(bool enable)
-{
+void DropMon::init(bool enable) {
     if (enable) {
         struct nl_sock *sock = nl_socket_alloc();
         genl_connect(sock);
         family = genl_ctrl_resolve(sock, "NET_DM");
         if (family < 0) {
-            Logger::error("genl_ctrl_resolve NET_DM: " + std::string(nl_geterror(family)));
+            Logger::error("genl_ctrl_resolve NET_DM: " +
+                          std::string(nl_geterror(family)));
         }
         nl_socket_free(sock);
     }
@@ -45,8 +40,7 @@ void DropMon::init(bool enable)
     enabled = enable;
 }
 
-void DropMon::start() const
-{
+void DropMon::start() const {
     if (!enabled) {
         return;
     }
@@ -55,14 +49,14 @@ void DropMon::start() const
     genl_connect(sock);
     set_alert_mode(sock);
     set_queue_length(sock, 3000);
-    struct nl_msg *msg = new_msg(NET_DM_CMD_START, NLM_F_REQUEST | NLM_F_ACK, 0);
+    struct nl_msg *msg =
+        new_msg(NET_DM_CMD_START, NLM_F_REQUEST | NLM_F_ACK, 0);
     send_msg(sock, msg);
     del_msg(msg);
     nl_socket_free(sock);
 }
 
-void DropMon::stop() const
-{
+void DropMon::stop() const {
     if (!enabled) {
         return;
     }
@@ -75,8 +69,7 @@ void DropMon::stop() const
     nl_socket_free(sock);
 }
 
-void DropMon::connect()
-{
+void DropMon::connect() {
     if (!enabled) {
         return;
     }
@@ -86,7 +79,7 @@ void DropMon::connect()
     }
 
     dm_sock = nl_socket_alloc();
-    //nl_socket_disable_seq_check(dm_sock);
+    // nl_socket_disable_seq_check(dm_sock);
     nl_join_groups(dm_sock, NET_DM_GRP_ALERT);
     genl_connect(dm_sock);
 
@@ -104,8 +97,7 @@ void DropMon::connect()
     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
 }
 
-void DropMon::disconnect()
-{
+void DropMon::disconnect() {
     if (!enabled) {
         return;
     }
@@ -125,8 +117,7 @@ void DropMon::disconnect()
     sent_pkt_changed = false;
 }
 
-void DropMon::start_listening_for(const Packet& sent_pkt)
-{
+void DropMon::start_listening_for(const Packet &sent_pkt) {
     if (!enabled) {
         return;
     }
@@ -138,8 +129,7 @@ void DropMon::start_listening_for(const Packet& sent_pkt)
     lck.unlock();
 }
 
-void DropMon::stop_listening()
-{
+void DropMon::stop_listening() {
     if (!enabled) {
         return;
     }
@@ -156,8 +146,7 @@ void DropMon::stop_listening()
     drop_lck.unlock();
 }
 
-uint64_t DropMon::is_dropped()
-{
+uint64_t DropMon::is_dropped() {
     if (!enabled) {
         return false;
     }
@@ -167,13 +156,11 @@ uint64_t DropMon::is_dropped()
     return drop_ts;
 }
 
-
 /**
  * private helper functions
  */
 
-void DropMon::listen_msgs()
-{
+void DropMon::listen_msgs() {
     if (!dm_sock) {
         Logger::error("dropmon socket not connected");
     }
@@ -203,21 +190,18 @@ void DropMon::listen_msgs()
 
 struct nl_msg *DropMon::new_msg(uint8_t cmd, int flags, size_t hdrlen) const {
     struct nl_msg *msg = nlmsg_alloc();
-    if (!msg)
-    {
+    if (!msg) {
         Logger::error("nlmsg_alloc failed");
     }
     genlmsg_put(msg, 0, NL_AUTO_SEQ, family, hdrlen, flags, cmd, 1);
     return msg;
 }
 
-void DropMon::del_msg(struct nl_msg *msg) const
-{
+void DropMon::del_msg(struct nl_msg *msg) const {
     nlmsg_free(msg);
 }
 
-void DropMon::send_msg(struct nl_sock *sock, struct nl_msg *msg) const
-{
+void DropMon::send_msg(struct nl_sock *sock, struct nl_msg *msg) const {
     int err;
     err = nl_send_auto(sock, msg);
     if (err < 0) {
@@ -229,8 +213,7 @@ void DropMon::send_msg(struct nl_sock *sock, struct nl_msg *msg) const
     }
 }
 
-void DropMon::send_msg_async(struct nl_sock *sock, struct nl_msg *msg) const
-{
+void DropMon::send_msg_async(struct nl_sock *sock, struct nl_msg *msg) const {
     int err;
     err = nl_send_auto(sock, msg);
     if (err < 0) {
@@ -239,38 +222,37 @@ void DropMon::send_msg_async(struct nl_sock *sock, struct nl_msg *msg) const
 }
 
 static struct nla_policy net_dm_policy[NET_DM_ATTR_MAX + 1] = {
-    [NET_DM_ATTR_UNSPEC]                = { 0, 0, 0 },
-    [NET_DM_ATTR_ALERT_MODE]            = { .type = NLA_U8,     0, 0 },
-    [NET_DM_ATTR_PC]                    = { .type = NLA_U64,    0, 0 },
-    [NET_DM_ATTR_SYMBOL]                = { .type = NLA_STRING, 0, 0 },
-    [NET_DM_ATTR_IN_PORT]               = { .type = NLA_NESTED, 0, 0 },
-    [NET_DM_ATTR_TIMESTAMP]             = { .type = NLA_U64,    0, 0 },
-    [NET_DM_ATTR_PROTO]                 = { .type = NLA_U16,    0, 0 },
-    [NET_DM_ATTR_PAYLOAD]               = { .type = NLA_UNSPEC, 0, 0 },
-    [NET_DM_ATTR_PAD]                   = { 0, 0, 0 },
-    [NET_DM_ATTR_TRUNC_LEN]             = { .type = NLA_U32,    0, 0 },
-    [NET_DM_ATTR_ORIG_LEN]              = { .type = NLA_U32,    0, 0 },
-    [NET_DM_ATTR_QUEUE_LEN]             = { .type = NLA_U32,    0, 0 },
-    [NET_DM_ATTR_STATS]                 = { .type = NLA_NESTED, 0, 0 },
-    [NET_DM_ATTR_HW_STATS]              = { .type = NLA_NESTED, 0, 0 },
-    [NET_DM_ATTR_ORIGIN]                = { .type = NLA_U16,    0, 0 },
-    [NET_DM_ATTR_HW_TRAP_GROUP_NAME]    = { .type = NLA_STRING, 0, 0 },
-    [NET_DM_ATTR_HW_TRAP_NAME]          = { .type = NLA_STRING, 0, 0 },
-    [NET_DM_ATTR_HW_ENTRIES]            = { .type = NLA_NESTED, 0, 0 },
-    [NET_DM_ATTR_HW_ENTRY]              = { .type = NLA_NESTED, 0, 0 },
-    [NET_DM_ATTR_HW_TRAP_COUNT]         = { .type = NLA_U32,    0, 0 },
-    [NET_DM_ATTR_SW_DROPS]              = { 0, 0, 0 },
-    [NET_DM_ATTR_HW_DROPS]              = { 0, 0, 0 },
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,7,0)
-    [NET_DM_ATTR_FLOW_ACTION_COOKIE]    = { 0, 0, 0 },
+    [NET_DM_ATTR_UNSPEC] = {                 0, 0, 0},
+    [NET_DM_ATTR_ALERT_MODE] = {    .type = NLA_U8, 0, 0},
+    [NET_DM_ATTR_PC] = {   .type = NLA_U64, 0, 0},
+    [NET_DM_ATTR_SYMBOL] = {.type = NLA_STRING, 0, 0},
+    [NET_DM_ATTR_IN_PORT] = {.type = NLA_NESTED, 0, 0},
+    [NET_DM_ATTR_TIMESTAMP] = {   .type = NLA_U64, 0, 0},
+    [NET_DM_ATTR_PROTO] = {   .type = NLA_U16, 0, 0},
+    [NET_DM_ATTR_PAYLOAD] = {.type = NLA_UNSPEC, 0, 0},
+    [NET_DM_ATTR_PAD] = {                 0, 0, 0},
+    [NET_DM_ATTR_TRUNC_LEN] = {   .type = NLA_U32, 0, 0},
+    [NET_DM_ATTR_ORIG_LEN] = {   .type = NLA_U32, 0, 0},
+    [NET_DM_ATTR_QUEUE_LEN] = {   .type = NLA_U32, 0, 0},
+    [NET_DM_ATTR_STATS] = {.type = NLA_NESTED, 0, 0},
+    [NET_DM_ATTR_HW_STATS] = {.type = NLA_NESTED, 0, 0},
+    [NET_DM_ATTR_ORIGIN] = {   .type = NLA_U16, 0, 0},
+    [NET_DM_ATTR_HW_TRAP_GROUP_NAME] = {.type = NLA_STRING, 0, 0},
+    [NET_DM_ATTR_HW_TRAP_NAME] = {.type = NLA_STRING, 0, 0},
+    [NET_DM_ATTR_HW_ENTRIES] = {.type = NLA_NESTED, 0, 0},
+    [NET_DM_ATTR_HW_ENTRY] = {.type = NLA_NESTED, 0, 0},
+    [NET_DM_ATTR_HW_TRAP_COUNT] = {   .type = NLA_U32, 0, 0},
+    [NET_DM_ATTR_SW_DROPS] = {                 0, 0, 0},
+    [NET_DM_ATTR_HW_DROPS] = {                 0, 0, 0},
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
+    [NET_DM_ATTR_FLOW_ACTION_COOKIE] = {                 0, 0, 0},
 #endif
 };
 
-Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t& ts) const
-{
+Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
     int nbytes, err;
-    struct sockaddr_nl addr;    // message source address
-    struct nlmsghdr *nlh;       // message buffer
+    struct sockaddr_nl addr; // message source address
+    struct nlmsghdr *nlh;    // message buffer
     struct nlattr *attrs[NET_DM_ATTR_MAX + 1];
     Packet pkt;
     void *payload;
@@ -318,9 +300,9 @@ out_free:
     return pkt;
 }
 
-void DropMon::set_alert_mode(struct nl_sock *sock) const
-{
-    struct nl_msg *msg = new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
+void DropMon::set_alert_mode(struct nl_sock *sock) const {
+    struct nl_msg *msg =
+        new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
     int err = nla_put_u8(msg, NET_DM_ATTR_ALERT_MODE, NET_DM_ALERT_MODE_PACKET);
     if (err < 0) {
         Logger::error("nla_put_u8: " + std::string(nl_geterror(err)));
@@ -329,9 +311,9 @@ void DropMon::set_alert_mode(struct nl_sock *sock) const
     del_msg(msg);
 }
 
-void DropMon::set_queue_length(struct nl_sock *sock, int qlen) const
-{
-    struct nl_msg *msg = new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
+void DropMon::set_queue_length(struct nl_sock *sock, int qlen) const {
+    struct nl_msg *msg =
+        new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
     int err = nla_put_u32(msg, NET_DM_ATTR_QUEUE_LEN, qlen);
     if (err < 0) {
         Logger::error("nla_put_u32: " + std::string(nl_geterror(err)));
@@ -340,8 +322,7 @@ void DropMon::set_queue_length(struct nl_sock *sock, int qlen) const
     del_msg(msg);
 }
 
-void DropMon::get_stats(struct nl_sock *sock) const
-{
+void DropMon::get_stats(struct nl_sock *sock) const {
     struct nl_msg *msg = new_msg(NET_DM_CMD_STATS_GET, NLM_F_REQUEST, 0);
     send_msg_async(sock, msg);
     del_msg(msg);

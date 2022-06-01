@@ -2,6 +2,3 @@
 	path = third_party/spdlog/spdlog
 	url = https://github.com/gabime/spdlog.git
 	ignore = dirty
-[submodule "catch2"]
-	path = third_party/catch2
-	url = https://github.com/catchorg/Catch2.git

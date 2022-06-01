@@ -1,14 +1,13 @@
-#include <string>
+#include <catch2/catch_test_macros.hpp>
 #include <iterator>
-#include <catch2/catch.hpp>
+#include <string>
 
 #include "config.hpp"
 #include "network.hpp"
 #include "node.hpp"
 #include "route.hpp"
 
-TEST_CASE("route")
-{
+TEST_CASE("route") {
     Network network(nullptr);
     const std::string input_filename = "networks/route.toml";
     REQUIRE_NOTHROW(Config::start_parsing(input_filename));
@@ -18,13 +17,13 @@ TEST_CASE("route")
     Node *node;
     REQUIRE_NOTHROW(node = network.get_nodes().at("r0"));
     REQUIRE(node);
-    const RoutingTable& rib = node->get_rib();
+    const RoutingTable &rib = node->get_rib();
 
     SECTION("basic access") {
         auto res = rib.lookup(IPv4Address("10.0.0.1"));
         REQUIRE(res.first != res.second);
         REQUIRE(std::distance(res.first, res.second) == 1);
-        const Route& route = *(res.first);
+        const Route &route = *(res.first);
         CHECK(route.to_string() == "10.0.0.0/8 --> 1.2.3.4");
         CHECK(route.get_network() == "10.0.0.0/8");
         CHECK(route.get_next_hop() == "1.2.3.4");

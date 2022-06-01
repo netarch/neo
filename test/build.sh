@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -euo pipefail
 
 msg() {
@@ -22,8 +23,6 @@ usage()
 {
     cat <<EOF
 [!] Usage: $(basename "${BASH_SOURCE[0]}") [options]
-
-    Astyle check for source files.
 
     Options:
     -h, --help          Print this message and exit

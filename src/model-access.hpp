@@ -13,7 +13,6 @@ class OpenflowUpdateState;
 class ReachCounts;
 struct State;
 
-
 /* per-connection state variables */
 
 void print_conn_states(State *);
@@ -50,14 +49,13 @@ Node *set_pkt_location(State *, Node *);
 Interface *get_ingress_intf(State *);
 Interface *set_ingress_intf(State *, Interface *);
 Candidates *get_candidates(State *);
-Candidates *set_candidates(State *, Candidates&&);
+Candidates *set_candidates(State *, Candidates &&);
 Candidates *reset_candidates(State *);
 // per-flow data plane state
 FIB *get_fib(State *);
-FIB *set_fib(State *, FIB&&);
+FIB *set_fib(State *, FIB &&);
 Choices *get_path_choices(State *);
-Choices *set_path_choices(State *, Choices&&);
-
+Choices *set_path_choices(State *, Choices &&);
 
 /* non-connection specific, system-wide state variables */
 
@@ -74,9 +72,9 @@ int get_num_conns(State *);
 int set_num_conns(State *, int);
 // data plane state
 PacketHistory *get_pkt_hist(State *);
-PacketHistory *set_pkt_hist(State *, PacketHistory&&);
+PacketHistory *set_pkt_hist(State *, PacketHistory &&);
 OpenflowUpdateState *get_openflow_update_state(State *);
-OpenflowUpdateState *set_openflow_update_state(State *, OpenflowUpdateState&&);
+OpenflowUpdateState *set_openflow_update_state(State *, OpenflowUpdateState &&);
 // policy
 bool get_violated(State *);
 bool set_violated(State *, bool);
@@ -84,4 +82,4 @@ int get_correlated_policy_idx(State *);
 int set_correlated_policy_idx(State *, int);
 // loadbalance policy
 ReachCounts *get_reach_counts(State *);
-ReachCounts *set_reach_counts(State *, ReachCounts&&);
+ReachCounts *set_reach_counts(State *, ReachCounts &&);

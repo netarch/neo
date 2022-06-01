@@ -1,21 +1,20 @@
 #pragma once
 
-#include <string>
 #include <chrono>
+#include <string>
 #include <vector>
 
-#include "node.hpp"
 #include "emulation.hpp"
 #include "mb-app/mb-app.hpp"
-#include "pkt-hist.hpp"
+#include "node.hpp"
 #include "packet.hpp"
+#include "pkt-hist.hpp"
 
-class Middlebox : public Node
-{
+class Middlebox : public Node {
 private:
     Emulation *emulation;
     std::string env;
-    MB_App *app;    // appliance
+    MB_App *app; // appliance
     std::chrono::microseconds latency_avg, latency_mdev, timeout;
     bool dropmon;
     int dev_scalar;
@@ -25,11 +24,11 @@ private:
     Middlebox();
 
 public:
-    Middlebox(const Middlebox&) = delete;
-    Middlebox(Middlebox&&) = delete;
+    Middlebox(const Middlebox &) = delete;
+    Middlebox(Middlebox &&) = delete;
     ~Middlebox() override;
-    Middlebox& operator=(const Middlebox&) = delete;
-    Middlebox& operator=(Middlebox&&) = delete;
+    Middlebox &operator=(const Middlebox &) = delete;
+    Middlebox &operator=(Middlebox &&) = delete;
 
     std::string get_env() const;
     MB_App *get_app() const;
@@ -40,15 +39,15 @@ public:
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::vector<Packet> send_pkt(const Packet&);
+    std::vector<Packet> send_pkt(const Packet &);
 
     /*
      * Return an empty set. We use emulations to get next hops for middleboxes,
      * instead of looking up from routing tables. The forwarding process will
      * inject a concrete packet to the emulation instance.
      */
-    std::set<FIB_IPNH> get_ipnhs(
-        const IPv4Address&,
-        const RoutingTable *rib,
-        std::unordered_set<IPv4Address> *looked_up_ips) override;
+    std::set<FIB_IPNH>
+    get_ipnhs(const IPv4Address &,
+              const RoutingTable *rib,
+              std::unordered_set<IPv4Address> *looked_up_ips) override;
 };

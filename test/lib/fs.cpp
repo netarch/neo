@@ -1,11 +1,11 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <climits>
 #include <unistd.h>
-#include <catch2/catch.hpp>
 
 #include "lib/fs.hpp"
 
-TEST_CASE("fs")
-{
+TEST_CASE("fs") {
     SECTION("mkdir") {
         REQUIRE_NOTHROW(fs::mkdir("new normal dir"));
         REQUIRE_NOTHROW(fs::remove("new normal dir"));

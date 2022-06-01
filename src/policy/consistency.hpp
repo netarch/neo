@@ -8,8 +8,7 @@ struct State;
  * have the same, consistent verification result, either all get verified to be
  * true or violated.
  */
-class ConsistencyPolicy : public Policy
-{
+class ConsistencyPolicy : public Policy {
 private:
     bool result, unset;
 

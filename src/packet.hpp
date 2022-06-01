@@ -13,13 +13,13 @@ struct State;
  * It is used for all modelled interfaces and for identification of relevant
  * packets.
  */
-#define ID_ETH_ADDR {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
+#define ID_ETH_ADDR                                                            \
+    { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }
 
 /*
  * A located abstract representative packet.
  */
-class Packet
-{
+class Packet {
 private:
     // ingress interface
     Interface *interface;
@@ -34,19 +34,24 @@ private:
     Payload *payload;
 
     friend class PacketHash;
-    friend bool operator==(const Packet&, const Packet&);
+    friend bool operator==(const Packet &, const Packet &);
 
 public:
     Packet();
     Packet(State *);
-    Packet(Interface *intf, IPv4Address src_ip, IPv4Address dst_ip,
-           uint16_t src_port, uint16_t dst_port, uint32_t seq, uint32_t ack,
+    Packet(Interface *intf,
+           IPv4Address src_ip,
+           IPv4Address dst_ip,
+           uint16_t src_port,
+           uint16_t dst_port,
+           uint32_t seq,
+           uint32_t ack,
            uint8_t proto_state);
-    Packet(const Packet&) = default;
-    Packet(Packet&&) = default;
+    Packet(const Packet &) = default;
+    Packet(Packet &&) = default;
 
-    Packet& operator=(const Packet&) = default;
-    Packet& operator=(Packet&&) = default;
+    Packet &operator=(const Packet &) = default;
+    Packet &operator=(Packet &&) = default;
 
     std::string to_string() const;
     Interface *get_intf() const;
@@ -58,14 +63,14 @@ public:
     uint32_t get_ack() const;
     uint8_t get_proto_state() const;
     Payload *get_payload() const;
-    void update_conn(State *, int conn, const Network&) const;
+    void update_conn(State *, int conn, const Network &) const;
     void clear();
     bool empty() const;
-    bool same_flow_as(const Packet&) const;
-    bool same_header(const Packet&) const;
+    bool same_flow_as(const Packet &) const;
+    bool same_header(const Packet &) const;
     void set_intf(Interface *);
-    void set_src_ip(const IPv4Address&);
-    void set_dst_ip(const IPv4Address&);
+    void set_src_ip(const IPv4Address &);
+    void set_dst_ip(const IPv4Address &);
     void set_src_port(uint16_t);
     void set_dst_port(uint16_t);
     void set_seq_no(uint32_t);
@@ -73,16 +78,14 @@ public:
     void set_proto_state(uint8_t);
 };
 
-bool operator==(const Packet&, const Packet&);
+bool operator==(const Packet &, const Packet &);
 
-class PacketHash
-{
+class PacketHash {
 public:
-    size_t operator()(Packet *const&) const;
+    size_t operator()(Packet *const &) const;
 };
 
-class PacketEq
-{
+class PacketEq {
 public:
-    bool operator()(Packet *const&, Packet *const&) const;
+    bool operator()(Packet *const &, Packet *const &) const;
 };

@@ -1,13 +1,13 @@
 #include "policy/reply-reachability.hpp"
 
-#include "node.hpp"
-#include "protocols.hpp"
-#include "process/forwarding.hpp"
 #include "model-access.hpp"
+#include "node.hpp"
+#include "process/forwarding.hpp"
+#include "protocols.hpp"
+
 #include "model.h"
 
-std::string ReplyReachabilityPolicy::to_string() const
-{
+std::string ReplyReachabilityPolicy::to_string() const {
     std::string ret = "ReplyReachability (";
     ret += reachable ? "O" : "X";
     ret += "): [";
@@ -18,24 +18,22 @@ std::string ReplyReachabilityPolicy::to_string() const
     return ret;
 }
 
-void ReplyReachabilityPolicy::init(State *state, const Network *network)
-{
+void ReplyReachabilityPolicy::init(State *state, const Network *network) {
     Policy::init(state, network);
     set_violated(state, false);
 }
 
-int ReplyReachabilityPolicy::check_violation(State *state)
-{
+int ReplyReachabilityPolicy::check_violation(State *state) {
     int mode = get_fwd_mode(state);
     int proto_state = get_proto_state(state);
 
     if ((PS_IS_TCP(proto_state) && proto_state < PS_TCP_L7_REP) ||
-            (PS_IS_UDP(proto_state) && proto_state < PS_UDP_REP) ||
-            (PS_IS_ICMP_ECHO(proto_state) && proto_state < PS_ICMP_ECHO_REP)) {
+        (PS_IS_UDP(proto_state) && proto_state < PS_UDP_REP) ||
+        (PS_IS_ICMP_ECHO(proto_state) && proto_state < PS_ICMP_ECHO_REP)) {
         // request
         Node *rx_node = get_rx_node(state);
-        if ((mode == fwd_mode::ACCEPTED && target_nodes.count(rx_node) == 0)
-                || mode == fwd_mode::DROPPED) {
+        if ((mode == fwd_mode::ACCEPTED && target_nodes.count(rx_node) == 0) ||
+            mode == fwd_mode::DROPPED) {
             // if the request is accepted by a wrong node or dropped
             state->violated = reachable;
             state->choice_count = 0;

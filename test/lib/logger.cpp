@@ -1,13 +1,13 @@
-#include <sys/stat.h>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
-#include <catch2/catch.hpp>
 
-#include "lib/logger.hpp"
 #include "lib/fs.hpp"
+#include "lib/logger.hpp"
 
-TEST_CASE("logger")
-{
+TEST_CASE("logger") {
     SECTION("no log file") {
         Logger::info("");
         Logger::warn("");

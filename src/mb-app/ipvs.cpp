@@ -5,8 +5,7 @@
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
 
-void IPVS::init()
-{
+void IPVS::init() {
     Net::get().set_forwarding(1);
     Net::get().set_rp_filter(0);
 
@@ -25,8 +24,7 @@ void IPVS::init()
     Net::get().set_expire_nodest_conn(1);
 }
 
-void IPVS::reset()
-{
+void IPVS::reset() {
     // set IPVS config
     if (system("ipvsadm -C")) {
         Logger::error("ipvsadm -C");

@@ -8,34 +8,39 @@ typedef struct libnet_context libnet_t;
 class Packet;
 class PktBuffer;
 
-class Net
-{
+class Net {
 private:
     libnet_t *l;
 
     Net();
-    void build_tcp(const Packet& pkt, const uint8_t *src_mac,
+    void build_tcp(const Packet &pkt,
+                   const uint8_t *src_mac,
                    const uint8_t *dst_mac) const;
-    void build_udp(const Packet& pkt, const uint8_t *src_mac,
+    void build_udp(const Packet &pkt,
+                   const uint8_t *src_mac,
                    const uint8_t *dst_mac) const;
-    void build_icmp_echo(const Packet& pkt, const uint8_t *src_mac,
+    void build_icmp_echo(const Packet &pkt,
+                         const uint8_t *src_mac,
                          const uint8_t *dst_mac) const;
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    Net(const Net&) = delete;
-    Net& operator=(const Net&) = delete;
+    Net(const Net &) = delete;
+    Net &operator=(const Net &) = delete;
     ~Net();
 
-    static Net& get();
+    static Net &get();
 
     /*
      * Net::serialize()
      * It serializes the packet and stores it in buffer.
      * NOTE: the buffer should be freed later by calling Net::free().
      */
-    void serialize(uint8_t **buffer, uint32_t *buffer_size, const Packet& pkt,
-                   const uint8_t *src_mac, const uint8_t *dst_mac) const;
+    void serialize(uint8_t **buffer,
+                   uint32_t *buffer_size,
+                   const Packet &pkt,
+                   const uint8_t *src_mac,
+                   const uint8_t *dst_mac) const;
     void free(uint8_t *) const;
 
     /*
@@ -45,9 +50,11 @@ public:
      * NOTE: the packet should later be passed to convert_proto_state to fully
      * deserialize the packet content.
      */
-    void deserialize(Packet&, const uint8_t *) const;
-    void deserialize(Packet&, const PktBuffer&) const;
-    void convert_proto_state(Packet&, bool is_new, bool change_direction,
+    void deserialize(Packet &, const uint8_t *) const;
+    void deserialize(Packet &, const PktBuffer &) const;
+    void convert_proto_state(Packet &,
+                             bool is_new,
+                             bool change_direction,
                              uint8_t old_proto_state) const;
 
     std::string mac_to_str(const uint8_t *) const;

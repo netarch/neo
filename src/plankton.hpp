@@ -9,22 +9,21 @@
 #include "process/openflow.hpp"
 struct State;
 
-class Plankton
-{
+class Plankton {
 private:
-    size_t          max_jobs;   // degree of parallelism
-    std::string     in_file;    // input TOML file
-    std::string     out_dir;    // output directory
-    Network         network;    // network information (inc. dataplane)
-    Policies        policies;
+    size_t max_jobs;     // degree of parallelism
+    std::string in_file; // input TOML file
+    std::string out_dir; // output directory
+    Network network;     // network information (inc. dataplane)
+    Policies policies;
 
     /* processes */
-    ChooseConnProcess   conn_choice;
-    ForwardingProcess   forwarding;
-    OpenflowProcess     openflow;
+    ChooseConnProcess conn_choice;
+    ForwardingProcess forwarding;
+    OpenflowProcess openflow;
 
     /* per OS process variables */
-    Policy  *policy;            // the policy being verified
+    Policy *policy; // the policy being verified
 
     Plankton();
     void verify_conn();
@@ -33,14 +32,18 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    Plankton(const Plankton&) = delete;
-    Plankton& operator=(const Plankton&) = delete;
+    Plankton(const Plankton &) = delete;
+    Plankton &operator=(const Plankton &) = delete;
 
-    static Plankton& get();
+    static Plankton &get();
 
-    void init(bool all_ECs, bool rm_out_dir, bool dropmon, size_t dop,
-              int emulations, const std::string& input_file,
-              const std::string& output_dir);
+    void init(bool all_ECs,
+              bool rm_out_dir,
+              bool dropmon,
+              size_t dop,
+              int emulations,
+              const std::string &input_file,
+              const std::string &output_dir);
     int run();
 
     /***** functions used by the Promela network model *****/

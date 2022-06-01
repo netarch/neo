@@ -5,20 +5,19 @@
 
 #include "node.hpp"
 
-class Link
-{
+class Link {
 private:
     Node *node1;
     Node *node2;
     Interface *intf1;
     Interface *intf2;
 
-    friend bool operator< (const Link&, const Link&);
-    friend bool operator<=(const Link&, const Link&);
-    friend bool operator> (const Link&, const Link&);
-    friend bool operator>=(const Link&, const Link&);
-    friend bool operator==(const Link&, const Link&);
-    friend bool operator!=(const Link&, const Link&);
+    friend bool operator<(const Link &, const Link &);
+    friend bool operator<=(const Link &, const Link &);
+    friend bool operator>(const Link &, const Link &);
+    friend bool operator>=(const Link &, const Link &);
+    friend bool operator==(const Link &, const Link &);
+    friend bool operator!=(const Link &, const Link &);
 
 private:
     friend class Config;
@@ -32,15 +31,14 @@ public:
     Interface *get_intf2() const;
 };
 
-bool operator< (const Link&, const Link&);
-bool operator<=(const Link&, const Link&);
-bool operator> (const Link&, const Link&);
-bool operator>=(const Link&, const Link&);
-bool operator==(const Link&, const Link&);
-bool operator!=(const Link&, const Link&);
+bool operator<(const Link &, const Link &);
+bool operator<=(const Link &, const Link &);
+bool operator>(const Link &, const Link &);
+bool operator>=(const Link &, const Link &);
+bool operator==(const Link &, const Link &);
+bool operator!=(const Link &, const Link &);
 
-class LinkCompare
-{
+class LinkCompare {
 public:
     bool operator()(Link *const, Link *const) const;
 };

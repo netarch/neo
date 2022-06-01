@@ -2,21 +2,16 @@
 
 #include "lib/logger.hpp"
 
-Process::Process(): enabled(true)
-{
-}
+Process::Process() : enabled(true) {}
 
-void Process::enable()
-{
+void Process::enable() {
     enabled = true;
 }
 
-void Process::disable()
-{
+void Process::disable() {
     enabled = false;
 }
 
-bool Process::is_enabled() const
-{
+bool Process::is_enabled() const {
     return enabled;
 }

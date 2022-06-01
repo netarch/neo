@@ -1,24 +1,22 @@
 #include "mb-app/squid.hpp"
 
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <csignal>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
 
-Squid::~Squid()
-{
+Squid::~Squid() {
     stop();
 }
 
-void Squid::init()
-{
+void Squid::init() {
     Net::get().set_forwarding(1);
     Net::get().set_rp_filter(0);
 
@@ -33,7 +31,7 @@ void Squid::init()
         Logger::error("iptables-restore");
     }
 
-    //reset();
+    // reset();
 
     stop();
 
@@ -55,8 +53,8 @@ void Squid::init()
         Logger::error("fork()", errno);
     } else if (pid == 0) {
         // duplicate file descriptors for logging squid output
-        std::string squid_log = Logger::filename() + "."
-                                + std::to_string(getpid()) + ".squid";
+        std::string squid_log =
+            Logger::filename() + "." + std::to_string(getpid()) + ".squid";
         mode_t old_mask = umask(0111);
         int fd = open(squid_log.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0666);
         umask(old_mask);
@@ -78,8 +76,7 @@ void Squid::init()
     usleep(500000); // 0.5 sec
 }
 
-void Squid::reset()
-{
+void Squid::reset() {
     if (pid == 0) {
         return;
     }
@@ -91,11 +88,10 @@ void Squid::reset()
     // reconfigure takes less than 1s.
     // should the completeness of the reconfigure. check that by location
     // "reconfigure" in cache.0.log file
-    usleep(1000000);    // 1 sec
+    usleep(1000000); // 1 sec
 }
 
-void Squid::stop()
-{
+void Squid::stop() {
     if (pid == 0) {
         return;
     }

@@ -1,14 +1,14 @@
 #include "policy/reachability.hpp"
 
-#include "node.hpp"
-#include "network.hpp"
-#include "protocols.hpp"
-#include "process/forwarding.hpp"
 #include "model-access.hpp"
+#include "network.hpp"
+#include "node.hpp"
+#include "process/forwarding.hpp"
+#include "protocols.hpp"
+
 #include "model.h"
 
-std::string ReachabilityPolicy::to_string() const
-{
+std::string ReachabilityPolicy::to_string() const {
     std::string ret = "Reachability (";
     ret += reachable ? "O" : "X";
     ret += "): [";
@@ -19,14 +19,12 @@ std::string ReachabilityPolicy::to_string() const
     return ret;
 }
 
-void ReachabilityPolicy::init(State *state, const Network *network)
-{
+void ReachabilityPolicy::init(State *state, const Network *network) {
     Policy::init(state, network);
     set_violated(state, false);
 }
 
-int ReachabilityPolicy::check_violation(State *state)
-{
+int ReachabilityPolicy::check_violation(State *state) {
     bool reached;
     int mode = get_fwd_mode(state);
     int proto_state = get_proto_state(state);

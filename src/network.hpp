@@ -2,13 +2,13 @@
 
 #include <map>
 #include <set>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
-#include "node.hpp"
-#include "link.hpp"
 #include "l2-lan.hpp"
+#include "link.hpp"
+#include "node.hpp"
 class Middlebox;
 class OpenflowProcess;
 class Route;
@@ -21,15 +21,14 @@ struct State;
  * The state of a network consists of the current FIB (dataplane) and the failed
  * links.
  */
-class Network
-{
+class Network {
 private:
-    std::map<std::string, Node *>   nodes;
-    std::set<Link *, LinkCompare>   links;
+    std::map<std::string, Node *> nodes;
+    std::set<Link *, LinkCompare> links;
     std::unordered_set<Middlebox *> middleboxes;
     OpenflowProcess *openflow;
 
-    std::unordered_set<L2_LAN *> l2_lans;   // history L2 LANs
+    std::unordered_set<L2_LAN *> l2_lans; // history L2 LANs
 
 private:
     friend class Config;
@@ -40,16 +39,16 @@ private:
 
 public:
     Network(OpenflowProcess *);
-    Network(const Network&) = delete;
-    Network(Network&&) = default;
+    Network(const Network &) = delete;
+    Network(Network &&) = default;
     ~Network();
 
-    Network& operator=(const Network&) = delete;
-    Network& operator=(Network&&) = default;
+    Network &operator=(const Network &) = delete;
+    Network &operator=(Network &&) = default;
 
-    const std::map<std::string, Node *>& get_nodes() const;
-    const std::set<Link *, LinkCompare>& get_links() const;
-    const std::unordered_set<Middlebox *>& get_middleboxes() const;
+    const std::map<std::string, Node *> &get_nodes() const;
+    const std::set<Link *, LinkCompare> &get_links() const;
+    const std::unordered_set<Middlebox *> &get_middleboxes() const;
 
     void update_fib(State *) const; // update FIB according to the current EC
 

@@ -4,8 +4,7 @@
 
 #include "mb-app/mb-app.hpp"
 
-class Squid : public MB_App
-{
+class Squid : public MB_App {
 private:
     std::string config;
     pid_t pid;
@@ -14,7 +13,7 @@ private:
 
 private:
     friend class Config;
-    Squid(): pid(0) {}
+    Squid() : pid(0) {}
 
 public:
     ~Squid() override;

@@ -2,12 +2,11 @@
 
 #include <utility>
 
-#include "node.hpp"
 #include "lib/logger.hpp"
+#include "node.hpp"
 
 void L2_LAN::collect_intfs(Node *node,
-                           Interface *interface __attribute__((unused)))
-{
+                           Interface *interface __attribute__((unused))) {
     for (Interface *intf : node->get_intfs_l2()) {
         auto l2_endpoint = std::make_pair(node, intf);
         if (l2_endpoints.count(l2_endpoint) == 0) {
@@ -25,40 +24,35 @@ void L2_LAN::collect_intfs(Node *node,
     }
 }
 
-L2_LAN::L2_LAN(Node *node, Interface *interface)
-{
+L2_LAN::L2_LAN(Node *node, Interface *interface) {
     collect_intfs(node, interface);
 }
 
-std::string L2_LAN::to_string() const
-{
+std::string L2_LAN::to_string() const {
     std::string ret;
-    for (const auto& entry : tbl) {
+    for (const auto &entry : tbl) {
         ret += entry.first->to_string() + " -> [";
-        for (const auto& peer : entry.second) {
-            ret += " (" + peer.first->to_string() + ", "
-                   + peer.second->to_string() + ")";
+        for (const auto &peer : entry.second) {
+            ret += " (" + peer.first->to_string() + ", " +
+                   peer.second->to_string() + ")";
         }
         ret += " ]\n";
     }
     return ret;
 }
 
-const std::set<std::pair<Node *, Interface *> >&
-L2_LAN::get_l2_endpoints() const
-{
+const std::set<std::pair<Node *, Interface *>> &
+L2_LAN::get_l2_endpoints() const {
     return l2_endpoints;
 }
 
-const std::map<IPv4Address, std::pair<Node *, Interface *> >&
-L2_LAN::get_l3_endpoints() const
-{
+const std::map<IPv4Address, std::pair<Node *, Interface *>> &
+L2_LAN::get_l3_endpoints() const {
     return l3_endpoints;
 }
 
 std::pair<Node *, Interface *>
-L2_LAN::find_l3_endpoint(const IPv4Address& dst) const
-{
+L2_LAN::find_l3_endpoint(const IPv4Address &dst) const {
     auto l3_peer = l3_endpoints.find(dst);
     if (l3_peer == l3_endpoints.end()) {
         return std::make_pair(nullptr, nullptr);
@@ -66,7 +60,6 @@ L2_LAN::find_l3_endpoint(const IPv4Address& dst) const
     return l3_peer->second;
 }
 
-bool operator==(const L2_LAN& a, const L2_LAN& b)
-{
+bool operator==(const L2_LAN &a, const L2_LAN &b) {
     return a.tbl == b.tbl;
 }

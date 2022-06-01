@@ -1,41 +1,40 @@
 #include "conn.hpp"
 
-#include "packet.hpp"
-#include "eqclassmgr.hpp"
-#include "network.hpp"
-#include "protocols.hpp"
-#include "process/process.hpp"
-#include "process/forwarding.hpp"
 #include "choices.hpp"
+#include "eqclassmgr.hpp"
 #include "model-access.hpp"
+#include "network.hpp"
+#include "packet.hpp"
+#include "process/forwarding.hpp"
+#include "process/process.hpp"
+#include "protocols.hpp"
+
 #include "model.h"
 
-Connection::Connection(int protocol, Node *src_node, EqClass *dst_ip_ec,
-                       uint16_t src_port, uint16_t dst_port)
+Connection::Connection(int protocol,
+                       Node *src_node,
+                       EqClass *dst_ip_ec,
+                       uint16_t src_port,
+                       uint16_t dst_port)
     : protocol(protocol), src_node(src_node), dst_ip_ec(dst_ip_ec),
-      src_port(src_port), dst_port(dst_port), src_ip(0U), seq(0), ack(0)
-{
-}
+      src_port(src_port), dst_port(dst_port), src_ip(0U), seq(0), ack(0) {}
 
-Connection::Connection(const Packet& pkt, Node *src_node)
+Connection::Connection(const Packet &pkt, Node *src_node)
     : protocol(PS_TO_PROTO(pkt.get_proto_state())), src_node(src_node),
       dst_ip_ec(EqClassMgr::get().find_ec(pkt.get_dst_ip())),
       src_port(pkt.get_src_port()), dst_port(pkt.get_dst_port()),
-      src_ip(pkt.get_src_ip()), seq(pkt.get_seq()), ack(pkt.get_ack())
-{
-}
+      src_ip(pkt.get_src_ip()), seq(pkt.get_seq()), ack(pkt.get_ack()) {}
 
-std::string Connection::to_string() const
-{
-    std::string ret = "[" + proto_str(protocol) + "] "
-                      + src_node->get_name() + ":" + std::to_string(src_port)
-                      + " --> " + dst_ip_ec->to_string() + ":"
-                      + std::to_string(dst_port);
+std::string Connection::to_string() const {
+    std::string ret = "[" + proto_str(protocol) + "] " + src_node->get_name() +
+                      ":" + std::to_string(src_port) + " --> " +
+                      dst_ip_ec->to_string() + ":" + std::to_string(dst_port);
     return ret;
 }
 
-void Connection::init(State *state, size_t conn_idx, const Network& network) const
-{
+void Connection::init(State *state,
+                      size_t conn_idx,
+                      const Network &network) const {
     int orig_conn = get_conn(state);
     set_conn(state, conn_idx);
 
@@ -74,8 +73,7 @@ void Connection::init(State *state, size_t conn_idx, const Network& network) con
     set_conn(state, orig_conn);
 }
 
-bool operator<(const Connection& a, const Connection& b)
-{
+bool operator<(const Connection &a, const Connection &b) {
     if (a.protocol < b.protocol) {
         return true;
     } else if (a.protocol > b.protocol) {

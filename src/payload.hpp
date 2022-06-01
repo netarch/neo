@@ -1,39 +1,37 @@
 #pragma once
 
 #include <string>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 class EqClass;
 struct State;
 
-class Payload
-{
+class Payload {
 private:
     uint8_t *buffer;
     uint32_t size;
 
     friend class PayloadMgr;
-    friend bool operator==(const Payload&, const Payload&);
+    friend bool operator==(const Payload &, const Payload &);
 
 public:
     Payload() = delete;
-    Payload(const Payload&) = delete;
-    Payload(Payload&&) = default;
-    Payload(const std::string&);
+    Payload(const Payload &) = delete;
+    Payload(Payload &&) = default;
+    Payload(const std::string &);
     ~Payload();
 
-    Payload& operator=(const Payload&) = delete;
-    Payload& operator=(Payload&&) = default;
+    Payload &operator=(const Payload &) = delete;
+    Payload &operator=(Payload &&) = default;
 
     uint8_t *get() const;
     uint32_t get_size() const;
 };
 
-bool operator==(const Payload&, const Payload&);
+bool operator==(const Payload &, const Payload &);
 
-class PayloadKey
-{
+class PayloadKey {
 private:
     EqClass *dst_ip_ec;
     uint16_t dst_port;
@@ -41,36 +39,30 @@ private:
 
     friend class PayloadMgr;
     friend class PayloadKeyHash;
-    friend bool operator==(const PayloadKey&, const PayloadKey&);
+    friend bool operator==(const PayloadKey &, const PayloadKey &);
 
 public:
     PayloadKey(State *);
 };
 
-bool operator==(const PayloadKey&, const PayloadKey&);
+bool operator==(const PayloadKey &, const PayloadKey &);
 
-
-class PayloadHash
-{
+class PayloadHash {
 public:
-    size_t operator()(Payload *const&) const;
+    size_t operator()(Payload *const &) const;
 };
 
-class PayloadEq
-{
+class PayloadEq {
 public:
-    bool operator()(Payload *const&, Payload *const&) const;
+    bool operator()(Payload *const &, Payload *const &) const;
 };
 
-class PayloadKeyHash
-{
+class PayloadKeyHash {
 public:
-    size_t operator()(const PayloadKey&) const;
+    size_t operator()(const PayloadKey &) const;
 };
 
-
-class PayloadMgr
-{
+class PayloadMgr {
 private:
     std::unordered_set<Payload *, PayloadHash, PayloadEq> all_payloads;
     std::unordered_map<PayloadKey, Payload *, PayloadKeyHash> tbl;
@@ -79,11 +71,11 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    PayloadMgr(const PayloadMgr&) = delete;
-    PayloadMgr& operator=(const PayloadMgr&) = delete;
+    PayloadMgr(const PayloadMgr &) = delete;
+    PayloadMgr &operator=(const PayloadMgr &) = delete;
     ~PayloadMgr();
 
-    static PayloadMgr& get();
+    static PayloadMgr &get();
 
     Payload *get_payload(State *);
 };

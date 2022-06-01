@@ -5,17 +5,17 @@
 #include <unistd.h>
 
 #include "lib/logger.hpp"
+#include "model-access.hpp"
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
 #include "policy/loadbalance.hpp"
 #include "policy/reachability.hpp"
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
-#include "model-access.hpp"
+
 #include "model.h"
 
-Policy::Policy(bool correlated)
-{
+Policy::Policy(bool correlated) {
     static int next_id = 1;
     if (correlated) {
         id = 0;
@@ -24,20 +24,17 @@ Policy::Policy(bool correlated)
     }
 }
 
-Policy::~Policy()
-{
+Policy::~Policy() {
     for (Policy *p : correlated_policies) {
         delete p;
     }
 }
 
-int Policy::get_id() const
-{
+int Policy::get_id() const {
     return id;
 }
 
-size_t Policy::num_conn_ecs() const
-{
+size_t Policy::num_conn_ecs() const {
     if (correlated_policies.empty()) {
         return conn_matrix.num_conns();
     } else {
@@ -49,11 +46,10 @@ size_t Policy::num_conn_ecs() const
     }
 }
 
-void Policy::compute_conn_matrix()
-{
+void Policy::compute_conn_matrix() {
     // update policy-wide ECs with policy-aware ranges
     if (correlated_policies.empty()) {
-        for (const ConnSpec& conn_spec : conn_specs) {
+        for (const ConnSpec &conn_spec : conn_specs) {
             conn_spec.update_policy_ecs();
         }
     } else {
@@ -65,7 +61,7 @@ void Policy::compute_conn_matrix()
     // gather conn_specs' connections
     if (correlated_policies.empty()) {
         conn_matrix.clear();
-        for (const ConnSpec& conn_spec : conn_specs) {
+        for (const ConnSpec &conn_spec : conn_specs) {
             conn_matrix.add(conn_spec.compute_connections());
         }
     } else {
@@ -76,8 +72,7 @@ void Policy::compute_conn_matrix()
     }
 }
 
-bool Policy::set_conns()
-{
+bool Policy::set_conns() {
     if (correlated_policies.empty()) {
         conns = conn_matrix.get_next_conns();
         if (!conns.empty()) {
@@ -96,23 +91,20 @@ bool Policy::set_conns()
     }
 }
 
-const std::vector<Connection>& Policy::get_conns() const
-{
+const std::vector<Connection> &Policy::get_conns() const {
     return conns;
 }
 
-std::string Policy::conns_str() const
-{
+std::string Policy::conns_str() const {
     std::string ret;
-    for (const Connection& conn : conns) {
+    for (const Connection &conn : conns) {
         ret += conn.to_string() + "\n";
     }
     ret.pop_back();
     return ret;
 }
 
-void Policy::report(State *state) const
-{
+void Policy::report(State *state) const {
     if (get_violated(state)) {
         Logger::info("*** Policy violated! ***");
         kill(getppid(), SIGUSR1);
@@ -121,8 +113,7 @@ void Policy::report(State *state) const
     }
 }
 
-void Policy::init(State *state, const Network *network)
-{
+void Policy::init(State *state, const Network *network) {
     if (correlated_policies.empty()) {
         // per-connection states
         for (size_t i = 0; i < conns.size(); ++i) {
@@ -132,62 +123,53 @@ void Policy::init(State *state, const Network *network)
         set_num_conns(state, conns.size());
         print_conn_states(state);
     } else {
-        correlated_policies[get_correlated_policy_idx(state)]->init(state, network);
+        correlated_policies[get_correlated_policy_idx(state)]->init(state,
+                                                                    network);
     }
 }
 
 // reinit should only be overwritten by policies with correlated sub-policies
 void Policy::reinit(State *state __attribute__((unused)),
-                    const Network *network __attribute__((unused)))
-{
+                    const Network *network __attribute__((unused))) {
     Logger::error("This shouldn't be called");
 }
 
 /******************************************************************************/
 
-Policies::~Policies()
-{
+Policies::~Policies() {
     for (Policy *policy : policies) {
         delete policy;
     }
 }
 
-Policies::iterator Policies::begin()
-{
+Policies::iterator Policies::begin() {
     return policies.begin();
 }
 
-Policies::const_iterator Policies::begin() const
-{
+Policies::const_iterator Policies::begin() const {
     return policies.begin();
 }
 
-Policies::iterator Policies::end()
-{
+Policies::iterator Policies::end() {
     return policies.end();
 }
 
-Policies::const_iterator Policies::end() const
-{
+Policies::const_iterator Policies::end() const {
     return policies.end();
 }
 
-Policies::reverse_iterator Policies::rbegin()
-{
+Policies::reverse_iterator Policies::rbegin() {
     return policies.rbegin();
 }
 
-Policies::const_reverse_iterator Policies::rbegin() const
-{
+Policies::const_reverse_iterator Policies::rbegin() const {
     return policies.rbegin();
 }
 
-Policies::reverse_iterator Policies::rend()
-{
+Policies::reverse_iterator Policies::rend() {
     return policies.rend();
 }
 
-Policies::const_reverse_iterator Policies::rend() const
-{
+Policies::const_reverse_iterator Policies::rend() const {
     return policies.rend();
 }

@@ -8,8 +8,7 @@ struct State;
  * remaining correlated policies hold. If the first correlated policy does not
  * hold, the conditional policy holds.
  */
-class ConditionalPolicy : public Policy
-{
+class ConditionalPolicy : public Policy {
 private:
     bool result;
 

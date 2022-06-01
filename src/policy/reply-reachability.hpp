@@ -10,15 +10,14 @@ struct State;
  * For the specified connections, both the request and reply packets should be
  * accepted by one of target_nodes when reachable is true.
  */
-class ReplyReachabilityPolicy : public Policy
-{
+class ReplyReachabilityPolicy : public Policy {
 private:
     std::unordered_set<Node *> target_nodes;
     bool reachable;
 
 private:
     friend class Config;
-    ReplyReachabilityPolicy(bool correlated = false): Policy(correlated) {}
+    ReplyReachabilityPolicy(bool correlated = false) : Policy(correlated) {}
 
 public:
     std::string to_string() const override;

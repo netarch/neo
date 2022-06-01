@@ -5,23 +5,18 @@
 #include "eqclassmgr.hpp"
 #include "protocols.hpp"
 
-ConnSpec::ConnSpec()
-    : protocol(0), src_port(0), owned_dst_only(false)
-{
-}
+ConnSpec::ConnSpec() : protocol(0), src_port(0), owned_dst_only(false) {}
 
-void ConnSpec::update_policy_ecs() const
-{
+void ConnSpec::update_policy_ecs() const {
     EqClassMgr::get().add_ec(dst_ip);
 }
 
-std::set<Connection> ConnSpec::compute_connections() const
-{
+std::set<Connection> ConnSpec::compute_connections() const {
     std::set<Connection> conns;
 
     // compute dst IP ECs
-    std::set<EqClass *> dst_ip_ecs
-        = EqClassMgr::get().get_overlapped_ecs(dst_ip, owned_dst_only);
+    std::set<EqClass *> dst_ip_ecs =
+        EqClassMgr::get().get_overlapped_ecs(dst_ip, owned_dst_only);
 
     // compute dst ports
     std::set<uint16_t> dst_ports;
@@ -29,14 +24,14 @@ std::set<Connection> ConnSpec::compute_connections() const
         if (protocol == proto::tcp || protocol == proto::udp) {
             dst_ports = EqClassMgr::get().get_ports();
             //// add another random port denoting the "other" port EC
-            //uint16_t port;
-            //std::default_random_engine generator;
-            //std::uniform_int_distribution<uint16_t> distribution(10, 49151);
-            //do {
-            //    port = distribution(generator);
-            //} while (dst_ports.count(port) > 0);
-            //dst_ports.insert(port);
-        } else {    // ICMP
+            // uint16_t port;
+            // std::default_random_engine generator;
+            // std::uniform_int_distribution<uint16_t> distribution(10, 49151);
+            // do {
+            //     port = distribution(generator);
+            // } while (dst_ports.count(port) > 0);
+            // dst_ports.insert(port);
+        } else { // ICMP
             dst_ports.insert(0);
         }
     } else {
@@ -46,11 +41,8 @@ std::set<Connection> ConnSpec::compute_connections() const
     for (Node *src_node : this->src_nodes) {
         for (EqClass *dst_ip_ec : dst_ip_ecs) {
             for (uint16_t dst_port : dst_ports) {
-                Connection conn(this->protocol,
-                                src_node,
-                                dst_ip_ec,
-                                this->src_port,
-                                dst_port);
+                Connection conn(this->protocol, src_node, dst_ip_ec,
+                                this->src_port, dst_port);
                 conns.insert(std::move(conn));
             }
         }

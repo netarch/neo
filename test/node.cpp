@@ -1,12 +1,11 @@
+#include <catch2/catch_test_macros.hpp>
 #include <string>
-#include <catch2/catch.hpp>
 
 #include "config.hpp"
 #include "network.hpp"
 #include "node.hpp"
 
-TEST_CASE("node")
-{
+TEST_CASE("node") {
     Network network(nullptr);
     const std::string input_filename = "networks/node.toml";
     REQUIRE_NOTHROW(Config::start_parsing(input_filename));
@@ -82,24 +81,33 @@ TEST_CASE("node")
         CHECK(r0->get_ipnhs("10.0.0.1").empty());
         CHECK(r0->get_ipnhs("8.8.8.8").empty());
         CHECK(r0->get_ipnh("eth0", "8.8.8.8") ==
-              FIB_IPNH(r1, r1->get_interface("eth0"), r1, r1->get_interface("eth0")));
+              FIB_IPNH(r1, r1->get_interface("eth0"), r1,
+                       r1->get_interface("eth0")));
         CHECK(r0->get_ipnh("eth1", "8.8.8.8") ==
-              FIB_IPNH(r1, r1->get_interface("eth1"), r1, r1->get_interface("eth1")));
+              FIB_IPNH(r1, r1->get_interface("eth1"), r1,
+                       r1->get_interface("eth1")));
 
         REQUIRE(r1->get_ipnhs("192.168.1.1").size() == 1);
-        CHECK(*(r1->get_ipnhs("192.168.1.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
+        CHECK(*(r1->get_ipnhs("192.168.1.1").begin()) ==
+              FIB_IPNH(r1, nullptr, r1, nullptr));
         CHECK(r1->get_ipnhs("192.168.1.2").empty());
         REQUIRE(r1->get_ipnhs("10.0.0.1").size() == 1);
-        CHECK(*(r1->get_ipnhs("10.0.0.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
+        CHECK(*(r1->get_ipnhs("10.0.0.1").begin()) ==
+              FIB_IPNH(r1, nullptr, r1, nullptr));
         CHECK(r1->get_ipnhs("10.0.0.2").empty());
         REQUIRE(r1->get_ipnhs("10.0.1.1").size() == 1);
-        CHECK(*(r1->get_ipnhs("10.0.1.1").begin()) == FIB_IPNH(r1, nullptr, r1, nullptr));
+        CHECK(*(r1->get_ipnhs("10.0.1.1").begin()) ==
+              FIB_IPNH(r1, nullptr, r1, nullptr));
         CHECK(r1->get_ipnhs("8.8.8.8").empty());
-        CHECK(r1->get_ipnh("eth0", "8.8.8.8") == FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
+        CHECK(r1->get_ipnh("eth0", "8.8.8.8") ==
+              FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
         CHECK(r1->get_ipnh("eth0", "10.0.0.1") ==
-              FIB_IPNH(r1, r1->get_interface("eth1"), r0, r0->get_interface("eth0")));
-        CHECK(r1->get_ipnh("eth1", "8.8.8.8") == FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
+              FIB_IPNH(r1, r1->get_interface("eth1"), r0,
+                       r0->get_interface("eth0")));
+        CHECK(r1->get_ipnh("eth1", "8.8.8.8") ==
+              FIB_IPNH(nullptr, nullptr, nullptr, nullptr));
         CHECK(r1->get_ipnh("eth1", "192.168.1.1") ==
-              FIB_IPNH(r1, r1->get_interface("eth0"), r0, r0->get_interface("eth1")));
+              FIB_IPNH(r1, r1->get_interface("eth0"), r0,
+                       r0->get_interface("eth1")));
     }
 }

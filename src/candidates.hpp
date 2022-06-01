@@ -1,12 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "fib.hpp"
 
-class Candidates
-{
+class Candidates {
 private:
     std::vector<FIB_IPNH> next_hops;
 
@@ -15,20 +14,18 @@ private:
 
 public:
     std::string to_string() const;
-    void add(const FIB_IPNH&);
+    void add(const FIB_IPNH &);
     size_t size() const;
     bool empty() const;
-    const FIB_IPNH& at(size_t) const;
+    const FIB_IPNH &at(size_t) const;
 };
 
-class CandHash
-{
+class CandHash {
 public:
-    size_t operator()(const Candidates *const&) const;
+    size_t operator()(const Candidates *const &) const;
 };
 
-class CandEq
-{
+class CandEq {
 public:
-    bool operator()(const Candidates *const&, const Candidates *const&) const;
+    bool operator()(const Candidates *const &, const Candidates *const &) const;
 };

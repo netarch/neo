@@ -1,14 +1,14 @@
 #include "policy/one-request.hpp"
 
-#include "node.hpp"
-#include "reachcounts.hpp"
-#include "protocols.hpp"
-#include "process/forwarding.hpp"
 #include "model-access.hpp"
+#include "node.hpp"
+#include "process/forwarding.hpp"
+#include "protocols.hpp"
+#include "reachcounts.hpp"
+
 #include "model.h"
 
-std::string OneRequestPolicy::to_string() const
-{
+std::string OneRequestPolicy::to_string() const {
     std::string ret = "OneRequest: [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
@@ -17,16 +17,14 @@ std::string OneRequestPolicy::to_string() const
     return ret;
 }
 
-void OneRequestPolicy::init(State *state, const Network *network)
-{
+void OneRequestPolicy::init(State *state, const Network *network) {
     Policy::init(state, network);
     set_violated(state, true);
     ReachCounts reach_counts;
     set_reach_counts(state, std::move(reach_counts));
 }
 
-int OneRequestPolicy::check_violation(State *state)
-{
+int OneRequestPolicy::check_violation(State *state) {
     int mode = get_fwd_mode(state);
     int proto_state = get_proto_state(state);
 

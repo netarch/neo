@@ -1,13 +1,13 @@
 #include "lib/logger.hpp"
 
+#include <clocale>
 #include <cstdlib>
 #include <cstring>
-#include <clocale>
-#include <string>
-#include <stdexcept>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
+#include <string>
 
 // [second.microsecond] [pid] [log_level] log_msg
 #define LOG_PATTERN "[%E.%f] [%P] [%^%L%L%$] %v"
@@ -15,8 +15,7 @@
 std::shared_ptr<spdlog::logger> Logger::stdout_logger = nullptr;
 std::shared_ptr<spdlog::logger> Logger::file_logger = nullptr;
 
-void Logger::enable_console_logging()
-{
+void Logger::enable_console_logging() {
     if (!stdout_logger) {
         stdout_logger = spdlog::stdout_color_st("stdout_logger");
         stdout_logger->set_pattern(LOG_PATTERN);
@@ -29,19 +28,18 @@ void Logger::enable_console_logging()
     }
 }
 
-void Logger::disable_console_logging()
-{
+void Logger::disable_console_logging() {
     if (stdout_logger) {
         stdout_logger = nullptr;
         spdlog::drop("stdout_logger");
     }
 }
 
-void Logger::enable_file_logging(const std::string& filename)
-{
+void Logger::enable_file_logging(const std::string &filename) {
     if (Logger::filename() != filename) {
         disable_file_logging();
-        file_logger = spdlog::basic_logger_st("file_logger", filename, /* truncate */false);
+        file_logger = spdlog::basic_logger_st("file_logger", filename,
+                                              /* truncate */ false);
         file_logger->set_pattern(LOG_PATTERN);
 #ifdef ENABLE_DEBUG
         file_logger->set_level(spdlog::level::debug);
@@ -52,25 +50,23 @@ void Logger::enable_file_logging(const std::string& filename)
     }
 }
 
-void Logger::disable_file_logging()
-{
+void Logger::disable_file_logging() {
     if (file_logger) {
         file_logger = nullptr;
         spdlog::drop("file_logger");
     }
 }
 
-std::string Logger::filename()
-{
+std::string Logger::filename() {
     if (file_logger) {
         return std::static_pointer_cast<spdlog::sinks::basic_file_sink_st>(
-                   file_logger->sinks()[0])->filename();
+                   file_logger->sinks()[0])
+            ->filename();
     }
     return "";
 }
 
-void Logger::debug(const std::string& msg)
-{
+void Logger::debug(const std::string &msg) {
     if (stdout_logger) {
         stdout_logger->debug(msg);
     }
@@ -79,8 +75,7 @@ void Logger::debug(const std::string& msg)
     }
 }
 
-void Logger::info(const std::string& msg)
-{
+void Logger::info(const std::string &msg) {
     if (stdout_logger) {
         stdout_logger->info(msg);
     }
@@ -89,8 +84,7 @@ void Logger::info(const std::string& msg)
     }
 }
 
-void Logger::warn(const std::string& msg)
-{
+void Logger::warn(const std::string &msg) {
     if (stdout_logger) {
         stdout_logger->warn(msg);
     }
@@ -99,8 +93,7 @@ void Logger::warn(const std::string& msg)
     }
 }
 
-void Logger::error(const std::string& msg)
-{
+void Logger::error(const std::string &msg) {
     if (stdout_logger) {
         stdout_logger->error(msg);
     }
@@ -110,8 +103,7 @@ void Logger::error(const std::string& msg)
     exit(1);
 }
 
-void Logger::error(const std::string& msg, int err_num)
-{
+void Logger::error(const std::string &msg, int err_num) {
     locale_t locale = newlocale(LC_ALL_MASK, "", 0);
     std::string err_str = strerror_l(err_num, locale);
     freelocale(locale);

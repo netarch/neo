@@ -2,38 +2,32 @@
 
 #include <cassert>
 
-EmulationMgr::EmulationMgr(): max_emulations(0)
-{
-}
+EmulationMgr::EmulationMgr() : max_emulations(0) {}
 
-EmulationMgr::~EmulationMgr()
-{
+EmulationMgr::~EmulationMgr() {
     for (Emulation *emulation : emulations) {
         delete emulation;
     }
 }
 
-EmulationMgr& EmulationMgr::get()
-{
+EmulationMgr &EmulationMgr::get() {
     static EmulationMgr instance;
     return instance;
 }
 
-void EmulationMgr::set_max_emulations(size_t val)
-{
+void EmulationMgr::set_max_emulations(size_t val) {
     max_emulations = val;
 }
 
-void EmulationMgr::set_num_middleboxes(size_t val)
-{
+void EmulationMgr::set_num_middleboxes(size_t val) {
     num_middleboxes = val;
 }
 
-Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph)
-{
+Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
     auto mb_map = mb_emulations_map.find(mb);
 
-    if (mb_map == mb_emulations_map.end()) { // no emulation of this middlebox found
+    if (mb_map ==
+        mb_emulations_map.end()) { // no emulation of this middlebox found
         if (emulations.size() < max_emulations) {
             // create a new emulation
             Emulation *emulation = new Emulation();
@@ -67,7 +61,7 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph)
         }
         auto nph_map_itr = --res.first;
         while (nph_map_itr != mb_map->second.begin() &&
-                !nph->contains(nph_map_itr->first)) {
+               !nph->contains(nph_map_itr->first)) {
             --nph_map_itr;
         }
         return *(nph_map_itr->second.begin());
@@ -79,8 +73,8 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph)
     }
 }
 
-void EmulationMgr::update_node_pkt_hist(Emulation *emulation, NodePacketHistory *nph)
-{
+void EmulationMgr::update_node_pkt_hist(Emulation *emulation,
+                                        NodePacketHistory *nph) {
     Middlebox *mb = emulation->get_mb();
     NodePacketHistory *old_nph = emulation->get_node_pkt_hist();
 

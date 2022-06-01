@@ -11,15 +11,14 @@ struct State;
  * requests across the target_nodes is less than or equal to the maximum at all
  * times.
  */
-class LoadBalancePolicy : public Policy
-{
+class LoadBalancePolicy : public Policy {
 private:
     std::unordered_set<Node *> target_nodes;
     double max_dispersion_index; // variance-to-mean ratio (VMR)
 
 private:
     friend class Config;
-    LoadBalancePolicy(bool correlated = false): Policy(correlated) {}
+    LoadBalancePolicy(bool correlated = false) : Policy(correlated) {}
 
 public:
     std::string to_string() const override;

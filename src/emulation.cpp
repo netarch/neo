@@ -3,27 +3,23 @@
 #include <csignal>
 
 #include "dropmon.hpp"
-#include "middlebox.hpp"
-#include "mb-env/netns.hpp"
 #include "lib/logger.hpp"
+#include "mb-env/netns.hpp"
+#include "middlebox.hpp"
 #include "stats.hpp"
 
 Emulation::Emulation()
     : env(nullptr), emulated_mb(nullptr), node_pkt_hist(nullptr),
       dropmon(false), packet_listener(nullptr), drop_listener(nullptr),
-      stop_listener(false)
-{
-}
+      stop_listener(false) {}
 
-Emulation::~Emulation()
-{
+Emulation::~Emulation() {
     delete packet_listener;
     delete drop_listener;
     delete env;
 }
 
-void Emulation::listen_packets()
-{
+void Emulation::listen_packets() {
     std::vector<Packet> pkts;
 
     while (!stop_listener) {
@@ -38,8 +34,7 @@ void Emulation::listen_packets()
     }
 }
 
-void Emulation::listen_drops()
-{
+void Emulation::listen_drops() {
     uint64_t ts;
 
     while (!stop_listener) {
@@ -54,8 +49,7 @@ void Emulation::listen_drops()
     }
 }
 
-void Emulation::teardown()
-{
+void Emulation::teardown() {
     if (packet_listener) {
         stop_listener = true;
         pthread_kill(packet_listener->native_handle(), SIGUSR1);
@@ -81,18 +75,15 @@ void Emulation::teardown()
     stop_listener = false;
 }
 
-Middlebox *Emulation::get_mb() const
-{
+Middlebox *Emulation::get_mb() const {
     return emulated_mb;
 }
 
-NodePacketHistory *Emulation::get_node_pkt_hist() const
-{
+NodePacketHistory *Emulation::get_node_pkt_hist() const {
     return node_pkt_hist;
 }
 
-void Emulation::init(Middlebox *mb)
-{
+void Emulation::init(Middlebox *mb) {
     if (emulated_mb != mb) {
         this->teardown();
 
@@ -128,8 +119,7 @@ void Emulation::init(Middlebox *mb)
     }
 }
 
-int Emulation::rewind(NodePacketHistory *nph)
-{
+int Emulation::rewind(NodePacketHistory *nph) {
     const std::string node_name = emulated_mb->get_name();
 
     if (node_pkt_hist == nph) {
@@ -151,7 +141,7 @@ int Emulation::rewind(NodePacketHistory *nph)
         std::list<Packet *> pkts = nph->get_packets_since(node_pkt_hist);
         rewind_injections = pkts.size();
         for (Packet *packet : pkts) {
-            send_pkt(*packet, /* rewinding */true);
+            send_pkt(*packet, /* rewinding */ true);
         }
     }
 
@@ -159,8 +149,7 @@ int Emulation::rewind(NodePacketHistory *nph)
     return rewind_injections;
 }
 
-std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool rewinding)
-{
+std::vector<Packet> Emulation::send_pkt(const Packet &pkt, bool rewinding) {
     std::unique_lock<std::mutex> lck(mtx);
     recv_pkts.clear();
     drop_ts = 0;
@@ -169,16 +158,17 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool rewinding)
     Stats::set_pkt_lat_t1();
     env->inject_packet(pkt);
 
-    if (dropmon) {                  // use drop monitor
-        //cv.wait(lck);
+    if (dropmon) { // use drop monitor
+        // cv.wait(lck);
         std::chrono::microseconds timeout(5000);
         std::cv_status status = cv.wait_for(lck, timeout);
         Stats::set_pkt_latency(timeout, drop_ts);
 
-        if (status == std::cv_status::timeout && recv_pkts.empty() && drop_ts == 0) {
+        if (status == std::cv_status::timeout && recv_pkts.empty() &&
+            drop_ts == 0) {
             Logger::error("Drop monitor timed out!");
         }
-    } else if (rewinding) {         // use timeout (rewind)
+    } else if (rewinding) { // use timeout (rewind)
         std::chrono::microseconds timeout(5000);
         std::cv_status status = cv.wait_for(lck, timeout);
         Stats::set_pkt_latency(timeout);
@@ -186,7 +176,7 @@ std::vector<Packet> Emulation::send_pkt(const Packet& pkt, bool rewinding)
         if (status == std::cv_status::timeout && recv_pkts.empty()) {
             Logger::error("Rewind timed out!");
         }
-    } else {                        // use timeout (new injection)
+    } else { // use timeout (new injection)
         std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
         Stats::set_pkt_latency(emulated_mb->get_timeout());
 

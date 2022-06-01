@@ -7,8 +7,7 @@ class EqClass;
 class Node;
 class FIB_IPNH;
 
-class Choices
-{
+class Choices {
 private:
     std::map<std::pair<EqClass *, Node *>, FIB_IPNH> tbl;
 
@@ -16,18 +15,16 @@ private:
     friend class ChoicesEq;
 
 public:
-    void add_choice(EqClass *, Node *, const FIB_IPNH&);
+    void add_choice(EqClass *, Node *, const FIB_IPNH &);
     std::optional<FIB_IPNH> get_choice(EqClass *, Node *) const;
 };
 
-class ChoicesHash
-{
+class ChoicesHash {
 public:
-    size_t operator()(const Choices *const&) const;
+    size_t operator()(const Choices *const &) const;
 };
 
-class ChoicesEq
-{
+class ChoicesEq {
 public:
-    bool operator()(const Choices *const&, const Choices *const&) const;
+    bool operator()(const Choices *const &, const Choices *const &) const;
 };

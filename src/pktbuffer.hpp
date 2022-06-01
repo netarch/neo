@@ -4,8 +4,7 @@
 
 #include "interface.hpp"
 
-class PktBuffer
-{
+class PktBuffer {
 private:
     Interface *intf;
     uint8_t buffer[ETH_FRAME_LEN];
@@ -13,11 +12,11 @@ private:
 
 public:
     PktBuffer(Interface *);
-    PktBuffer(const PktBuffer&) = default;
-    PktBuffer(PktBuffer&&) = default;
+    PktBuffer(const PktBuffer &) = default;
+    PktBuffer(PktBuffer &&) = default;
 
-    PktBuffer& operator=(const PktBuffer&) = default;
-    PktBuffer& operator=(PktBuffer&&) = default;
+    PktBuffer &operator=(const PktBuffer &) = default;
+    PktBuffer &operator=(PktBuffer &&) = default;
 
     Interface *get_intf() const;
     uint8_t *get_buffer();

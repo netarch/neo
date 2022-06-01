@@ -3,24 +3,22 @@
 #include <cassert>
 
 #include "candidates.hpp"
-#include "protocols.hpp"
-#include "process/forwarding.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
+#include "process/forwarding.hpp"
+#include "protocols.hpp"
+
 #include "model.h"
 
-static inline int get_conn_executable(State *state, int conn)
-{
+static inline int get_conn_executable(State *state, int conn) {
     return state->conn_state[conn].executable;
 }
 
-static inline int get_conn_fwd_mode(State *state, int conn)
-{
+static inline int get_conn_fwd_mode(State *state, int conn) {
     return state->conn_state[conn].fwd_mode;
 }
 
-static inline std::vector<std::vector<int>> get_conn_map(State *state)
-{
+static inline std::vector<std::vector<int>> get_conn_map(State *state) {
     std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
     for (int conn = 0; conn < get_num_conns(state); ++conn) {
         int exec = get_conn_executable(state, conn);
@@ -32,8 +30,7 @@ static inline std::vector<std::vector<int>> get_conn_map(State *state)
     return conn_map;
 }
 
-void ChooseConnProcess::update_choice_count(State *state) const
-{
+void ChooseConnProcess::update_choice_count(State *state) const {
     if (!enabled) {
         return;
     }
@@ -55,9 +52,9 @@ void ChooseConnProcess::update_choice_count(State *state) const
     }
 }
 
-void ChooseConnProcess::exec_step(
-    State *state, const Network& network __attribute__((unused)))
-{
+void ChooseConnProcess::exec_step(State *state,
+                                  const Network &network
+                                  __attribute__((unused))) {
     if (!enabled) {
         return;
     }
@@ -89,7 +86,7 @@ void ChooseConnProcess::exec_step(
 
     // update choice_count for the connection chosen
     if (get_fwd_mode(state) == fwd_mode::FORWARD_PACKET ||
-            get_fwd_mode(state) == fwd_mode::FIRST_FORWARD) {
+        get_fwd_mode(state) == fwd_mode::FIRST_FORWARD) {
         set_choice_count(state, get_candidates(state)->size());
     } else {
         set_choice_count(state, 1);

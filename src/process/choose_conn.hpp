@@ -7,11 +7,10 @@ struct State;
 /*
  * Choose the next connection non-deterministically
  */
-class ChooseConnProcess : public Process
-{
+class ChooseConnProcess : public Process {
 public:
     ChooseConnProcess() = default;
 
     void update_choice_count(State *) const;
-    void exec_step(State *, const Network&) override;
+    void exec_step(State *, const Network &) override;
 };

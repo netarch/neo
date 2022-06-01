@@ -163,52 +163,45 @@ aur_install() {
     rm -rf "$TARGET"
 }
 
-#
-# Install pre-built cmake manually
-#
-install_cmake() {
-    CMAKE_VER=3.19.6
-    URL="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.tar.gz"
-    TARBALL="$(basename $URL)"
-    DIR="${TARBALL%.tar.gz}"
-    curl -LO "$URL"
-    tar xf "$TARBALL"
-    sudo rsync -av "$DIR"/* /usr/local/
-    rm -rf "$TARBALL" "$DIR"
-}
-
 main() {
     DISTRO="$(get_distro)"
 
     if [ "$DISTRO" = "arch" ]; then
-        makedepends=(make cmake clang spin-git)
-        depends=(libnet libnl ipvsadm squid)
-        experiment_depends=(astyle python-toml bc)
-
         if ! pacman -Q yay >/dev/null 2>&1; then
-            aur_install yay --needed --noconfirm --asdeps
+            aur_install yay --asdeps --needed --noconfirm --removemake
         fi
-        yay -S --needed --noconfirm --removemake ${makedepends[@]} $@
-        yay -S --needed --noconfirm --removemake ${depends[@]} $@
-        yay -S --needed --noconfirm --removemake ${experiment_depends[@]} $@
-        makepkg -srcfi $@
+
+        depends=(cmake clang spin-git libnet libnl ipvsadm squid catch2
+                 python-toml bc)
+        non_local_depends=()
+
+        for dep in ${depends[@]}; do
+            if [[ -d "$dep" ]]; then
+                makepkg_$DISTRO "$dep" -srci --asdeps --noconfirm $@
+            else
+                non_local_depends+=("$dep")
+            fi
+        done
+
+        if [[ ${#non_local_depends[@]} -ne 0 ]]; then
+            yay -S --asdeps --needed --noconfirm --removemake ${non_local_depends[@]} $@
+        fi
+
+        makepkg_$DISTRO neo-dev -srci --asdeps --noconfirm $@
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_depends=(build-essential curl git bison rsync)
-        makedepends=(make cmake clang libnet1-dev libnl-3-dev libnl-genl-3-dev)
-        depends=(libnet1 libnl-3-200 libnl-genl-3-200 ipvsadm squid)
-        experiment_depends=(astyle python3-toml bc)
+        depends=(cmake clang libnet1-dev libnl-3-dev libnl-genl-3-dev libnet1
+                 libnl-3-200 libnl-genl-3-200 ipvsadm squid python3-toml bc)
         aur_pkgs=(spin-git)
 
         sudo apt update -y -qq
         sudo apt install -y -qq ${script_depends[@]}
-        sudo apt install -y -qq ${makedepends[@]}
         sudo apt install -y -qq ${depends[@]}
-        sudo apt install -y -qq ${experiment_depends[@]}
         for pkg in ${aur_pkgs[@]}; do
             aur_install "$pkg"
         done
-        install_cmake   # for ubuntu 18 (cmake 3.10)
+        #install_cmake   # for ubuntu 18 (cmake 3.10)
 
     else
         die "Unsupported distribution: $DISTRO"

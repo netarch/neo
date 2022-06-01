@@ -65,10 +65,10 @@ endif()
 # third party libraries
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-add_subdirectory(third_party/catch2)
 add_subdirectory(third_party/cpptoml)
 add_subdirectory(third_party/spdlog)
 add_subdirectory(third_party/xxhash)
+find_package(Catch2 REQUIRED)
 find_package(Libnet REQUIRED)
 find_package(Libnl REQUIRED)
 find_package(Spin REQUIRED)

@@ -4,8 +4,7 @@
 
 #include "lib/ip.hpp"
 
-class Interface
-{
+class Interface {
 private:
     std::string name;
     IPInterface<IPv4Address> ipv4;
