@@ -171,8 +171,7 @@ main() {
             aur_install yay --asdeps --needed --noconfirm --removemake
         fi
 
-        depends=(cmake clang spin-git libnet libnl ipvsadm squid catch2
-                 python-toml bc)
+        depends=(cmake clang spin-git libnet libnl ipvsadm squid python-toml bc)
         non_local_depends=()
 
         for dep in ${depends[@]}; do
