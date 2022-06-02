@@ -16,12 +16,13 @@ check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror -O2)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Wno-dynamic-class-memaccess -Wno-c99-designator)
+    add_compile_options(-Wno-c99-designator -Wno-uninitialized)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
             AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
         add_compile_options(-Wno-stringop-overflow)
     endif()
+    add_compile_options(-Wno-maybe-uninitialized)
 endif()
 # See http://spinroot.com/spin/Man/Pan.html
 add_compile_definitions(
@@ -66,9 +67,7 @@ endif()
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_subdirectory(third_party/catch2)
-target_compile_options(Catch2 PRIVATE -Wno-maybe-uninitialized)
 add_subdirectory(third_party/tomlplusplus)
-add_subdirectory(third_party/cpptoml)
 add_subdirectory(third_party/spdlog)
 add_subdirectory(third_party/xxhash)
 find_package(Libnet REQUIRED)
@@ -121,7 +120,7 @@ add_dependencies(libneo spdlog)
 target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
-target_link_libraries(libneo PRIVATE spin_model cpptoml tomlplusplus::tomlplusplus
+target_link_libraries(libneo PRIVATE spin_model tomlplusplus::tomlplusplus
                       xxhash Libnet::Libnet Libnl::Libnl Threads::Threads)
 
 #
