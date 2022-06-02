@@ -54,22 +54,6 @@ get_distro() {
 }
 
 #
-# Check if the AUR package exists (0: yes; 1: no)
-#
-aur_pkg_exists() {
-    RETURN_CODE="$(curl -I "https://aur.archlinux.org/packages/$1" 2>/dev/null \
-        | head -n1 | cut -d ' ' -f 2)"
-    if [ "$RETURN_CODE" = "200" ]; then
-        return 0    # package found
-    elif [ "$RETURN_CODE" = "404" ]; then
-        return 1    # package not found
-    else
-        die "AUR HTTP $RETURN_CODE for $1"
-    fi
-    unset RETURN_CODE
-}
-
-#
 # Build and install the package with PKGBUILD
 #
 makepkg_arch() {
@@ -151,9 +135,6 @@ makepkg_ubuntu() {
 aur_install() {
     TARGET="$1"
     shift
-    if ! aur_pkg_exists "$TARGET"; then
-        die "AUR package $TARGET not found"
-    fi
     if [[ -d "$TARGET" ]]; then
         cd "$TARGET"; git pull; cd ..
     else
@@ -191,7 +172,8 @@ main() {
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_depends=(build-essential curl git bison rsync)
         depends=(cmake clang libnet1-dev libnl-3-dev libnl-genl-3-dev libnet1
-                 libnl-3-200 libnl-genl-3-200 ipvsadm squid python3-toml bc)
+                 libnl-3-200 libnl-genl-3-200 ipvsadm squid python3-toml bc
+                 clang-format)
         aur_pkgs=(spin-git)
 
         sudo apt update -y -qq
