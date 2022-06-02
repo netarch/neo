@@ -8,3 +8,6 @@
 [submodule "tomlplusplus"]
 	path = third_party/tomlplusplus
 	url = git@github.com:marzer/tomlplusplus.git
+[submodule "xxhash"]
+	path = third_party/xxhash
+	url = git@github.com:Cyan4973/xxHash.git

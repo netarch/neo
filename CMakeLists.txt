@@ -69,7 +69,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_subdirectory(third_party/catch2)
 add_subdirectory(third_party/tomlplusplus)
 add_subdirectory(third_party/spdlog)
-add_subdirectory(third_party/xxhash)
+set(XXHASH_BUILD_ENABLE_INLINE_API ON)
+set(XXHASH_BUILD_XXHSUM OFF)
+add_subdirectory(third_party/xxhash/cmake_unofficial)
 find_package(Libnet REQUIRED)
 find_package(Libnl REQUIRED)
 find_package(Spin REQUIRED)
@@ -120,7 +122,7 @@ target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE spin_model tomlplusplus::tomlplusplus
-                      spdlog::spdlog xxhash Libnet::Libnet Libnl::Libnl
+                      spdlog::spdlog xxHash::xxhash Libnet::Libnet Libnl::Libnl
                       Threads::Threads)
 
 #
