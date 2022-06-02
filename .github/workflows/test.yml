@@ -2,16 +2,16 @@ name: test
 on: [push, pull_request]
 jobs:
 
-#  style-check:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#      - run: sudo apt install clang-format
-#      - run: ./test/style.sh
+  style-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt install clang-format
+      - run: ./test/style.sh
 
   build:
-#    needs: style-check
-    runs-on: ubuntu-latest
+    needs: style-check
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         cc: [gcc, clang]
