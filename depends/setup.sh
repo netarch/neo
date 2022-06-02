@@ -200,7 +200,6 @@ main() {
         for pkg in ${aur_pkgs[@]}; do
             aur_install "$pkg"
         done
-        #install_cmake   # for ubuntu 18 (cmake 3.10)
 
     else
         die "Unsupported distribution: $DISTRO"

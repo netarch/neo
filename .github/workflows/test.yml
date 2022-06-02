@@ -2,15 +2,15 @@ name: test
 on: [push, pull_request]
 jobs:
 
-  astyle-check:
+  style-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt install astyle
-      - run: ./test/astyle.sh
+      - run: sudo apt install clang-format
+      - run: ./test/style.sh
 
   build:
-    needs: astyle-check
+    needs: style-check
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -27,7 +27,7 @@ jobs:
       - run: ./depends/setup.sh
       - run: >
           cmake -B build -S .
-          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_BUILD_TYPE=Debug
           -DENABLE_TESTS=ON
           -DENABLE_COVERAGE=ON
           -DCMAKE_C_COMPILER=${{ matrix.cc }}
