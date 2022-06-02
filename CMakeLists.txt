@@ -116,12 +116,12 @@ add_custom_command(
 # neo object library (libneo)
 #
 add_library(libneo OBJECT ${SRC_FILES})
-add_dependencies(libneo spdlog)
 target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE spin_model tomlplusplus::tomlplusplus
-                      xxhash Libnet::Libnet Libnl::Libnl Threads::Threads)
+                      spdlog::spdlog xxhash Libnet::Libnet Libnl::Libnl
+                      Threads::Threads)
 
 #
 # main target

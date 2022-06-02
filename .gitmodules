@@ -1,5 +1,5 @@
 [submodule "spdlog"]
-	path = third_party/spdlog/spdlog
+	path = third_party/spdlog
 	url = https://github.com/gabime/spdlog.git
 	ignore = dirty
 [submodule "catch2"]
