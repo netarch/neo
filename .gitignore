@@ -7,9 +7,6 @@
 neo
 unittests
 
-# ctags
-tags
-
 # Intermediate build files
 build/
 
@@ -20,3 +17,7 @@ build/
 
 # Python cache files
 __pycache__
+
+# Development environment files
+*.code-workspace
+.vscode
