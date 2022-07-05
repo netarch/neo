@@ -67,6 +67,10 @@ logfile_rotate 0
 access_log stdio:/dev/stdout
 #cache_log stdio:/dev/stdout
 cache_store_log stdio:/dev/stdout
+
+# Disable DNS PTR lookup
+url_rewrite_extras "%>a %un %>rm myip=%la myport=%lp"
+store_id_extras "%>a %un %>rm myip=%la myport=%lp"
 """
     [[nodes.interfaces]]
     name = "eth0"
@@ -138,10 +142,10 @@ cache_store_log stdio:/dev/stdout
 
 [[policies]]
     type = "reachability"
-    final_node = "server"
+    target_node = "server"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "tcp"
-    pkt_dst = "10.0.1.2"
+    src_node = "h[12]"
+    dst_ip = "10.0.1.2"
     dst_port = 80
-    start_node = "h[12]"
