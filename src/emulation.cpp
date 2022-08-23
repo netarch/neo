@@ -28,8 +28,12 @@ void Emulation::listen_packets() {
 
         if (!pkts.empty()) {
             std::unique_lock<std::mutex> lck(mtx);
-            recv_pkts = pkts;
-            cv.notify_all();
+            // concatenate, NOT REPLACE
+            recv_pkts.insert(recv_pkts.end(), pkts.begin(), pkts.end());
+
+            // make sure that we always wait for full timeout (an injected
+            // packet may get multiple responses)
+            // cv.notify_all();
         }
     }
 }
