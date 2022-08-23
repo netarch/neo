@@ -141,6 +141,8 @@ void ForwardingProcess::forward_packet(State *state) {
     Node *next_hop = candidates->at(state->choice).get_l3_node();
     Interface *ingress_intf = candidates->at(state->choice).get_l3_intf();
 
+    // When the packet is delivered at its destination
+    // DOES NOT TRIGGER IF DELIVERED AT MIDDLEBOX
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
         int proto_state = get_proto_state(state);
@@ -167,6 +169,11 @@ void ForwardingProcess::forward_packet(State *state) {
         state->choice_count = 1;
     } else {
         if (typeid(*next_hop) == typeid(Middlebox)) {
+            // packet delivered at middlebox, set rx node
+            if (PS_IS_FIRST(get_proto_state(state))) {
+                // store the original receiving endpoint of the connection
+                set_rx_node(state, next_hop);
+            }
             set_executable(state, 1);
         }
 
@@ -409,6 +416,8 @@ void ForwardingProcess::process_recv_pkts(State *state,
 
     // control logic:
     // if the current connection isn't updated, assume the packet is accepted
+    // this is useful so we can assume that the 3rd packet (client ACK) in TCP
+    // three-way handshake is delivered even if no response received (timeout)
     if (get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS) {
         set_executable(state, 2);
         set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
