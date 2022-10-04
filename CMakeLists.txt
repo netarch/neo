@@ -44,9 +44,14 @@ set(SPIN_FLAGS -a -DMAX_CONNS=${MAX_CONNS} -DSIZEOF_VOID_P=${SIZEOF_VOID_P}
 #
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g -O3")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
 set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
 
 #
 # coverage options

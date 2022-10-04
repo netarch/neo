@@ -125,7 +125,7 @@ COMMIT
     output_toml(network, openflow, policies)
 
 def main():
-    parser = argparse.ArgumentParser(description='01-subnet-isolation')
+    parser = argparse.ArgumentParser(description='06-multi-tenant-datacenter')
     parser.add_argument('-t', '--tenants', type=int,
                         help='Number of tenants')
     parser.add_argument('-u', '--updates', type=int,
