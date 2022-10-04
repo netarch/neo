@@ -383,6 +383,7 @@ std::vector<Packet> NetNS::read_packets() const {
     for (const PktBuffer &pb : pktbuffs) {
         Packet pkt;
         Net::get().deserialize(pkt, pb);
+        // TODO: print out pkt
         if (!pkt.empty()) {
             pkts.push_back(pkt);
         }

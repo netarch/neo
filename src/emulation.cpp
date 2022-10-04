@@ -25,6 +25,7 @@ void Emulation::listen_packets() {
     while (!stop_listener) {
         // read the output packets (it will block if there is no packet)
         pkts = env->read_packets();
+        // TODO: print out the pkts
 
         if (!pkts.empty()) {
             std::unique_lock<std::mutex> lck(mtx);
@@ -204,6 +205,8 @@ std::vector<Packet> Emulation::send_pkt(const Packet &pkt, bool rewinding) {
      * because the knowledge of the current connection state is required to
      * process it correctly, as mentioned in lib/net.cpp.
      */
+
+    // TODO: recv_pkts
 
     // return the received packets
     return recv_pkts;
