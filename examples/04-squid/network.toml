@@ -45,13 +45,13 @@
 # 2. add redirect packet to squid server:
 #   iptables -t nat -A PERROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 9999
 [[nodes]]
-    name = "p1"
+    name = "proxy"
     type = "middlebox"
     env = "netns"
     app = "squid"
     config = """
 http_port 80 accel
-visible_hostname p1
+visible_hostname proxy
 #prefer_direct on
 pid_filename none
 
@@ -115,10 +115,10 @@ store_id_extras "%>a %un %>rm myip=%la myport=%lp"
 [[links]]
     node1 = "r2"
     intf1 = "eth0"
-    node2 = "p1"
+    node2 = "proxy"
     intf2 = "eth1"
 [[links]]
-    node1 = "p1"
+    node1 = "proxy"
     intf1 = "eth0"
     node2 = "r1"
     intf2 = "eth1"

@@ -364,7 +364,7 @@ void Plankton::check_to_switch_process(State *state) const {
     if (get_executable(state) != 2) {
         /* 2: executable, not entering a middlebox
          * 1: executable, about to enter a middlebox
-         * 0: not executable (missing packet) */
+         * 0: not executable (missing packet or terminated) */
         set_process_id(state, pid::choose_conn);
         conn_choice.update_choice_count(state);
         return;
