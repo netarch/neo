@@ -154,6 +154,8 @@ void ForwardingProcess::forward_packet(State *state) {
         } else if ((PS_IS_REQUEST_DIR(proto_state) &&
                     current_node != rx_node) ||
                    (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node)) {
+            // Note: Either tx or rx node can initiate the termination process,
+            // so don't check endpoint consistency for PS_TCP_TERM_*
             // inconsistent endpoints: dropped by middlebox
             Logger::info("Inconsistent endpoints");
             Logger::info("Connection " + std::to_string(get_conn(state)) +
