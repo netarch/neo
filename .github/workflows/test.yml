@@ -5,7 +5,7 @@ jobs:
   style-check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: sudo apt install clang-format
       - run: ./test/style.sh
 
@@ -21,7 +21,7 @@ jobs:
           - cc: clang
             cxx: clang++
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
       - run: ./depends/setup.sh
