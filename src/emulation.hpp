@@ -12,7 +12,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
-#include <vector>
+#include <list>
 
 #include "mb-env/mb-env.hpp"
 #include "packet.hpp"
@@ -29,9 +29,10 @@ private:
     std::thread *packet_listener;
     std::thread *drop_listener;
     std::atomic<bool> stop_listener; // loop control flag for threads
-    std::vector<Packet> recv_pkts;   // received packets (race)
-    std::atomic<uint64_t> drop_ts;   // kernel drop timestamp
-    std::mutex mtx;                  // lock for accessing recv_pkts
+    std::list<Packet> recv_pkts;     // received packets (race)
+    std::unordered_set<size_t> recv_pkts_hash; // hashes of recv_pkts (race)
+    std::atomic<uint64_t> drop_ts;   // kernel drop timestamp (race)
+    std::mutex mtx;                  // lock for recv_pkts, recv_pkts_hash, and drop_ts
     std::condition_variable cv;      // for reading recv_pkts
 
     void listen_packets();
@@ -55,5 +56,5 @@ public:
 
     void init(Middlebox *); // initialize and start the emulation
     int rewind(NodePacketHistory *);
-    std::vector<Packet> send_pkt(const Packet &, bool rewinding = false);
+    std::list<Packet> send_pkt(const Packet &);
 };

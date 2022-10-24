@@ -337,7 +337,7 @@ void ForwardingProcess::inject_packet(State *state,
 
     // inject packet
     Logger::info("Injecting packet: " + new_pkt->to_string());
-    std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
+    std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
     process_recv_pkts(state, mb, std::move(recv_pkts), network);
 
     Stats::set_overall_latency();
@@ -348,7 +348,7 @@ void ForwardingProcess::inject_packet(State *state,
  */
 void ForwardingProcess::process_recv_pkts(State *state,
                                           Middlebox *mb,
-                                          std::vector<Packet> &&recv_pkts,
+                                          std::list<Packet> &&recv_pkts,
                                           const Network &network) const {
     for (Packet &recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
@@ -360,10 +360,10 @@ void ForwardingProcess::process_recv_pkts(State *state,
         int conn;
         bool is_new, opposite_dir, next_phase;
         identify_conn(state, recv_pkt, conn, is_new, opposite_dir);
-        uint8_t old_proto_state = state->conn_state[conn].proto_state;
+        uint16_t prev_proto_state = state->conn_state[conn].proto_state;
         Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
-                                       old_proto_state);
-        check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
+                                       prev_proto_state);
+        check_proto_state(recv_pkt, is_new, prev_proto_state, next_phase);
         check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
         Logger::info("Received packet [conn " + std::to_string(conn) +
                      "]: " + recv_pkt.to_string());
@@ -465,7 +465,7 @@ void ForwardingProcess::identify_conn(State *state,
          * proto_state, so only protocol type is compared.
          */
         int pkt_protocol;
-        if (pkt.get_proto_state() & 0x80U) {
+        if (pkt.get_proto_state() & 0x800U) {
             pkt_protocol = proto::tcp;
         } else {
             pkt_protocol = PS_TO_PROTO(pkt.get_proto_state());

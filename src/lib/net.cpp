@@ -260,7 +260,7 @@ void Net::free(uint8_t *buffer) const {
     libnet_adv_free_packet(l, buffer);
 }
 
-void Net::deserialize(Packet &pkt, const uint8_t *buffer) const {
+void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
     // filter out irrelevant frames
     const uint8_t *dst_mac = buffer;
     const uint8_t *src_mac = buffer + 6;
@@ -303,10 +303,16 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer) const {
             ack = ntohl(ack);
             pkt.set_seq_no(seq);
             pkt.set_ack_no(ack);
+            // Data offset (header length)
+            uint8_t offset;
+            memcpy(&offset, buffer + 46, 1);
+            offset = offset >> 4;
             // TCP flags
-            uint8_t flags;
-            memcpy(&flags, buffer + 47, 1);
-            pkt.set_proto_state(flags | 0x80U);
+            uint16_t flags;
+            memcpy(&flags, buffer + 46, 2);
+            flags = ntohs(flags);
+            flags &= 0x0fff;
+            pkt.set_proto_state(flags | 0x800U);
             /*
              * NOTE:
              * Store the TCP flags in proto_state for now, which will be
@@ -316,6 +322,12 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer) const {
              * highest bit of the variable is used to indicate unconverted TCP
              * flags.
              */
+            // Payload
+            int dataoff = 34 + int(offset) * 4;
+            int datalen = buflen - dataoff;
+            uint8_t *data = new uint8_t[datalen];
+            memcpy(data, buffer + dataoff, datalen);
+            pkt.set_payload(PayloadMgr::get().get_payload(data, datalen));
         } else if (ip_proto == IPPROTO_UDP) { // UDP packets
             // source and destination port
             uint16_t src_port, dst_port;
@@ -325,6 +337,10 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer) const {
             dst_port = ntohs(dst_port);
             pkt.set_src_port(src_port);
             pkt.set_dst_port(dst_port);
+            // length
+            uint16_t length;
+            memcpy(&length, buffer + 38, 2);
+            length -= 8;
             // UDP proto_state
             pkt.set_proto_state(PS_UDP_REQ);
             /*
@@ -335,6 +351,10 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer) const {
              * Net::convert_proto_state) based on the connection matching
              * information.
              */
+            // Payload
+            uint8_t *data = new uint8_t[length];
+            memcpy(data, buffer + 42, length);
+            pkt.set_payload(PayloadMgr::get().get_payload(data, length));
         } else if (ip_proto == IPPROTO_ICMP) { // ICMP packets
             // ICMP type
             uint8_t icmp_type;
@@ -347,6 +367,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer) const {
                 Logger::warn("ICMP type: " + std::to_string(icmp_type));
                 goto bad_packet;
             }
+            // TODO
         } else { // unsupported L4 (or L3.5) protocols
             goto bad_packet;
         }
@@ -361,20 +382,26 @@ bad_packet:
 }
 
 void Net::deserialize(Packet &pkt, const PktBuffer &pb) const {
-    deserialize(pkt, pb.get_buffer());
+    deserialize(pkt, pb.get_buffer(), pb.get_len());
     if (!pkt.empty()) {
         pkt.set_intf(pb.get_intf());
     }
 }
 
+bool Net::is_tcp_ack_or_psh_ack(const Packet &pkt) const {
+    assert(pkt.get_proto_state() & 0x800U);
+    return (pkt.get_proto_state() == (0x800U | TH_ACK) ||
+            pkt.get_proto_state() == (0x800U | TH_PUSH | TH_ACK));
+}
+
 void Net::convert_proto_state(Packet &pkt,
                               bool is_new,
                               bool change_direction,
-                              uint8_t old_proto_state) const {
-    // the highest bit (0x80) is used to indicate unconverted TCP flags
-    if (pkt.get_proto_state() & 0x80U) {
-        uint8_t proto_state = 0;
-        uint8_t flags = pkt.get_proto_state() & (~0x80U);
+                              uint16_t prev_proto_state) const {
+    // the highest bit (0x800U) is used to indicate unconverted TCP flags
+    if (pkt.get_proto_state() & 0x800U) {
+        uint16_t proto_state = 0;
+        uint16_t flags = pkt.get_proto_state() & (~0x800U);
         if (is_new) {
             assert(flags == TH_SYN);
         }
@@ -382,55 +409,45 @@ void Net::convert_proto_state(Packet &pkt,
             proto_state = PS_TCP_INIT_1;
         } else if (flags == (TH_SYN | TH_ACK)) {
             proto_state = PS_TCP_INIT_2;
-        } else if (flags == TH_ACK) {
-            switch (old_proto_state) {
+        } else if (flags == TH_ACK || flags == (TH_PUSH | TH_ACK)) {
+            switch (prev_proto_state) {
             case PS_TCP_INIT_2:
-            case PS_TCP_L7_REQ:
-            case PS_TCP_L7_REP:
             case PS_TCP_TERM_2:
-                proto_state = old_proto_state + 1;
+                proto_state = prev_proto_state + 1;
                 assert(change_direction);
                 break;
             case PS_TCP_INIT_3:
             case PS_TCP_L7_REQ_A:
-            case PS_TCP_L7_REP_A:
-            case PS_TCP_TERM_3:
-                proto_state = old_proto_state;
-                assert(!change_direction);
-                break;
-            default:
-                Logger::error("Invalid TCP flags: " + std::to_string(flags));
-            }
-        } else if (flags == (TH_PUSH | TH_ACK)) {
-            switch (old_proto_state) {
-            case PS_TCP_INIT_3:
-            case PS_TCP_L7_REQ_A:
-                proto_state = old_proto_state + 1;
+                proto_state = prev_proto_state + 1;
                 assert(!change_direction);
                 break;
             case PS_TCP_L7_REQ:
             case PS_TCP_L7_REP:
-                proto_state = old_proto_state;
-                assert(!change_direction);
+                if (change_direction) {
+                    proto_state = prev_proto_state + 1;
+                } else {
+                    proto_state = prev_proto_state;
+                }
                 break;
             default:
                 Logger::error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else if (flags == (TH_FIN | TH_ACK)) {
-            switch (old_proto_state) {
+            // TODO: Test the termination four-way handshake.
+            switch (prev_proto_state) {
             case PS_TCP_L7_REP_A:
-                proto_state = old_proto_state + 1;
+                proto_state = prev_proto_state + 1;
                 assert(change_direction);
                 break;
             case PS_TCP_TERM_1:
                 if (change_direction) {
-                    proto_state = old_proto_state + 1;
+                    proto_state = prev_proto_state + 1;
                 } else {
-                    proto_state = old_proto_state;
+                    proto_state = prev_proto_state;
                 }
                 break;
             case PS_TCP_TERM_2:
-                proto_state = old_proto_state;
+                proto_state = prev_proto_state;
                 assert(!change_direction);
                 break;
             default:
@@ -444,10 +461,10 @@ void Net::convert_proto_state(Packet &pkt,
         if (is_new) {
             pkt.set_proto_state(PS_UDP_REQ);
         } else if (change_direction) {
-            pkt.set_proto_state(old_proto_state + 1);
-            assert(old_proto_state + 1 == PS_UDP_REP);
+            pkt.set_proto_state(prev_proto_state + 1);
+            assert(prev_proto_state + 1 == PS_UDP_REP);
         } else {
-            pkt.set_proto_state(old_proto_state);
+            pkt.set_proto_state(prev_proto_state);
         }
     } else if (PS_IS_ICMP_ECHO(pkt.get_proto_state())) {
         if (is_new) {

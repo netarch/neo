@@ -29,7 +29,7 @@ private:
     uint16_t src_port, dst_port;
     uint32_t seq, ack;
     // packet state (L4/L7)
-    uint8_t proto_state;
+    uint16_t proto_state;
     // L7 payload
     Payload *payload;
 
@@ -46,7 +46,7 @@ public:
            uint16_t dst_port,
            uint32_t seq,
            uint32_t ack,
-           uint8_t proto_state);
+           uint16_t proto_state);
     Packet(const Packet &) = default;
     Packet(Packet &&) = default;
 
@@ -61,7 +61,7 @@ public:
     uint16_t get_dst_port() const;
     uint32_t get_seq() const;
     uint32_t get_ack() const;
-    uint8_t get_proto_state() const;
+    uint16_t get_proto_state() const;
     Payload *get_payload() const;
     void update_conn(State *, int conn, const Network &) const;
     void clear();
@@ -75,7 +75,8 @@ public:
     void set_dst_port(uint16_t);
     void set_seq_no(uint32_t);
     void set_ack_no(uint32_t);
-    void set_proto_state(uint8_t);
+    void set_proto_state(uint16_t);
+    void set_payload(Payload *);
 };
 
 bool operator==(const Packet &, const Packet &);

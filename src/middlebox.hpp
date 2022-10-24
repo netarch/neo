@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include <string>
-#include <vector>
+#include <list>
 
 #include "emulation.hpp"
 #include "mb-app/mb-app.hpp"
@@ -22,6 +22,7 @@ private:
 private:
     friend class Config;
     Middlebox();
+    void reassemble_segments(std::list<Packet> &);
 
 public:
     Middlebox(const Middlebox &) = delete;
@@ -39,7 +40,7 @@ public:
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::vector<Packet> send_pkt(const Packet &);
+    std::list<Packet> send_pkt(const Packet &);
 
     /*
      * Return an empty set. We use emulations to get next hops for middleboxes,

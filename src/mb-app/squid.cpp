@@ -12,6 +12,28 @@
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
 
+void Squid::stop() {
+    if (pid == 0) {
+        return;
+    }
+
+    if (kill(pid, SIGTERM) < 0) {
+        Logger::error("SIGTERM squid process", errno);
+    }
+
+    int waited_pid = wait(NULL);
+
+    if (waited_pid < 0) {
+        if (errno != ECHILD) {
+            Logger::error("Failed to wait for squid", errno);
+        }
+    } else if (waited_pid != pid) {
+        Logger::error("Squid PID mismatch");
+    }
+
+    pid = 0;
+}
+
 Squid::~Squid() {
     stop();
 }
@@ -22,7 +44,6 @@ void Squid::init() {
     Net::get().set_forwarding(1);
     Net::get().set_rp_filter(0);
 
-    Logger::info("clearing iptables filtering states and rules");
     // clear filtering states and rules
     if (system("iptables -F")) {
         Logger::error("iptables -F");
@@ -94,30 +115,4 @@ void Squid::reset() {
     // should the completeness of the reconfigure. check that by location
     // "reconfigure" in cache.0.log file
     usleep(1000000); // 1 sec
-}
-
-void Squid::stop() {
-    if (pid == 0) {
-        return;
-    }
-
-    if (kill(pid, SIGTERM) < 0) {
-        Logger::error("SIGTERM squid process", errno);
-    }
-
-    int waited_pid;
-
-    if ((waited_pid = wait(NULL)) < 0) {
-        if (errno == ECHILD) {
-            goto stopped;
-        }
-        Logger::error("Failed to wait for squid", errno);
-    }
-
-    if (waited_pid != pid) {
-        Logger::error("Squid PID mismatch");
-    }
-
-stopped:
-    pid = 0;
 }

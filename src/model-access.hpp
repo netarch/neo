@@ -21,8 +21,8 @@ void print_conn_states(State *);
 int get_executable(State *);
 int set_executable(State *, int);
 // flow information
-uint8_t get_proto_state(State *);
-uint8_t set_proto_state(State *, int);
+uint16_t get_proto_state(State *);
+uint16_t set_proto_state(State *, int);
 uint32_t get_src_ip(State *);
 uint32_t set_src_ip(State *, uint32_t);
 EqClass *get_dst_ip_ec(State *);

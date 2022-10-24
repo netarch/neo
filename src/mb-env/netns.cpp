@@ -100,10 +100,10 @@ void NetNS::set_interfaces(const Node &node) {
             goto error;
         }
 
-        //#ifdef ENABLE_DEBUG
-        //        system(("wireshark -k -i " + intf->get_name() + "
-        //        &").c_str()); sleep(4);
-        //#endif
+        #ifdef ENABLE_DEBUG
+        system(("wireshark -k -i " + intf->get_name() + "&").c_str());
+        sleep(4);
+        #endif
     }
 
     close(ctrl_sock);
@@ -342,7 +342,7 @@ size_t NetNS::inject_packet(const Packet &pkt) {
     return nwrite;
 }
 
-std::vector<Packet> NetNS::read_packets() const {
+std::list<Packet> NetNS::read_packets() const {
     std::list<PktBuffer> pktbuffs;
 
     // enter the isolated netns
@@ -354,7 +354,7 @@ std::vector<Packet> NetNS::read_packets() const {
     int nfds = epoll_wait(epollfd, events, tapfds.size(), -1);
     if (nfds < 0) {
         if (errno == EINTR) { // SIGUSR1 - stop thread
-            return std::vector<Packet>();
+            return std::list<Packet>();
         }
         Logger::error("epoll_wait", errno);
     }
@@ -379,11 +379,10 @@ std::vector<Packet> NetNS::read_packets() const {
     }
 
     // deserialize the packets
-    std::vector<Packet> pkts;
+    std::list<Packet> pkts;
     for (const PktBuffer &pb : pktbuffs) {
         Packet pkt;
         Net::get().deserialize(pkt, pb);
-        // TODO: print out pkt
         if (!pkt.empty()) {
             pkts.push_back(pkt);
         }

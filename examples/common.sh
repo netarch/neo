@@ -18,8 +18,8 @@ die() {
 }
 
 check_depends() {
-    for cmd in $@; do
-        if ! command -v $cmd >/dev/null 2>&1; then
+    for cmd in "$@"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
             die "'$cmd' not found"
         fi
     done
@@ -33,20 +33,28 @@ if [ -z "${SCRIPT_DIR+x}" ]; then
     die '"SCRIPT_DIR" is unset'
 fi
 
-export EXAMPLES_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
-export PROJECT_DIR="$(realpath ${EXAMPLES_DIR}/..)"
-export BUILD_DIR="$(realpath ${PROJECT_DIR}/build)"
-export NEO="$BUILD_DIR/neo"
+EXAMPLES_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PROJECT_DIR="$(realpath "${EXAMPLES_DIR}"/..)"
+BUILD_DIR="$(realpath "${PROJECT_DIR}"/build)"
+NEO="$BUILD_DIR/neo"
+CONF="${SCRIPT_DIR}/network.toml"
+CONFGEN=("python3" "${SCRIPT_DIR}/confgen.py")
+RESULTS_DIR="$(realpath "${SCRIPT_DIR}/results")"
+
+export EXAMPLES_DIR
+export PROJECT_DIR
+export BUILD_DIR
+export NEO
 export SCRIPT_DIR
-export CONF="${SCRIPT_DIR}/network.toml"
-export CONFGEN=("python3" "${SCRIPT_DIR}/confgen.py")
-export RESULTS_DIR="$(realpath ${SCRIPT_DIR}/results)"
+export CONF
+export CONFGEN
+export RESULTS_DIR
 
 mkdir -p "${RESULTS_DIR}"
 
 build() {
-    cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" -DCMAKE_BUILD_TYPE=Release $@
-    cmake --build "${BUILD_DIR}" -j$(nproc)
+    cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" "$@"
+    cmake --build "${BUILD_DIR}" -j "$(nproc)"
 }
 
 cleanup() {
@@ -74,7 +82,7 @@ extract_per_session_stats() {
     IFS="."
     for parameter in $name; do
         if [[ "$parameter" == "DOP-"* ]]; then
-            procs=$(echo $parameter | sed 's/DOP-//')
+            procs="${parameter//DOP-/}"
         elif [[ "$parameter" == "fault" ]]; then
             fault=Y
         elif [[ "$parameter" == "dropmon" ]]; then
@@ -92,7 +100,7 @@ extract_per_session_stats() {
 
         # policy-wide stats
         policy_result="$(tail -n1 "$policy/policy.stats.csv")"
-        echo $fault, $dropmon, $procs, $policy_result
+        echo "$fault, $dropmon, $procs, $policy_result"
     done
 }
 
@@ -113,7 +121,7 @@ extract_per_session_latency() {
     IFS="."
     for parameter in $name; do
         if [[ "$parameter" == "DOP-"* ]]; then
-            procs=$(echo $parameter | sed 's/DOP-//')
+            procs="${parameter//DOP-/}"
         elif [[ "$parameter" == "fault" ]]; then
             fault=Y
         elif [[ "$parameter" == "dropmon" ]]; then
@@ -130,15 +138,15 @@ extract_per_session_latency() {
 
         # policy-wide stats
         policy_result="$(tail -n1 "$policy/policy.stats.csv")"
-        num_nodes="$(echo $policy_result | cut -d ' ' -f 1 | sed 's/,//')"
-        num_links="$(echo $policy_result | cut -d ' ' -f 2 | sed 's/,//')"
-        policy_no="$(echo $policy_result | cut -d ' ' -f 3 | sed 's/,//')"
-        num_CECs="$(echo $policy_result | cut -d ' ' -f 4 | sed 's/,//')"
+        num_nodes="$(echo "$policy_result" | cut -d ' ' -f 1 | sed 's/,//')"
+        num_links="$(echo "$policy_result" | cut -d ' ' -f 2 | sed 's/,//')"
+        policy_no="$(echo "$policy_result" | cut -d ' ' -f 3 | sed 's/,//')"
+        num_CECs="$(echo "$policy_result" | cut -d ' ' -f 4 | sed 's/,//')"
 
         # output all latency measurements
         # fault, dropmon, parallel processes, nodes, links, Policy, Connection ECs, <latencies>
         for csv in "$policy"/*.csv; do
-            [[ "$(basename $csv)" == "policy.stats.csv" ]] && continue
+            [[ "$(basename "$csv")" == "policy.stats.csv" ]] && continue
 
             tail -n+4 "$csv" | sed -e "s/^/$fault, $dropmon, $procs, $num_nodes, $num_links, $policy_no, $num_CECs, /"
         done
@@ -153,7 +161,7 @@ extract_stats() {
     echo 'fault, dropmon, parallel processes, nodes, links, Policy, Connection ECs, Time (microseconds), Memory (kilobytes)'
     for dir in "$results_dir"/*; do
         [[ ! -d "$dir" ]] && continue
-        extract_per_session_stats $dir
+        extract_per_session_stats "$dir"
     done
 }
 
@@ -168,6 +176,6 @@ extract_latency() {
     echo    'Kernel drop latency (nsec)'
     for dir in "$results_dir"/*; do
         [[ ! -d "$dir" ]] && continue
-        extract_per_session_latency $dir
+        extract_per_session_latency "$dir"
     done
 }

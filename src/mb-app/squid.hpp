@@ -6,8 +6,8 @@
 
 class Squid : public MB_App {
 private:
-    std::string config;
     pid_t pid;
+    std::string config;
 
     void stop();
 

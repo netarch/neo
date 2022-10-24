@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 class EqClass;
+class Packet;
 struct State;
 
 class Payload {
@@ -20,6 +21,8 @@ public:
     Payload(const Payload &) = delete;
     Payload(Payload &&) = default;
     Payload(const std::string &);
+    Payload(uint8_t *, size_t);
+    Payload(const Payload *const, const Payload *const);
     ~Payload();
 
     Payload &operator=(const Payload &) = delete;
@@ -65,7 +68,7 @@ public:
 class PayloadMgr {
 private:
     std::unordered_set<Payload *, PayloadHash, PayloadEq> all_payloads;
-    std::unordered_map<PayloadKey, Payload *, PayloadKeyHash> tbl;
+    std::unordered_map<PayloadKey, Payload *, PayloadKeyHash> state_to_pl_map;
 
     PayloadMgr() = default;
 
@@ -78,4 +81,7 @@ public:
     static PayloadMgr &get();
 
     Payload *get_payload(State *);
+    Payload *get_payload(uint8_t *, size_t);
+    // Concatenate the payloads of two packets
+    Payload *get_payload(const Packet &, const Packet &);
 };

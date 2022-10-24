@@ -91,11 +91,11 @@ int set_executable(State *state, int executable) {
     return (state->conn_state[state->conn].executable = executable);
 }
 
-uint8_t get_proto_state(State *state) {
+uint16_t get_proto_state(State *state) {
     return state->conn_state[state->conn].proto_state;
 }
 
-uint8_t set_proto_state(State *state, int proto_state) {
+uint16_t set_proto_state(State *state, int proto_state) {
     return state->conn_state[state->conn].proto_state = proto_state;
 }
 
