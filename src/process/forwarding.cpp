@@ -258,7 +258,7 @@ void ForwardingProcess::phase_transition(State *state,
     if (PS_IS_TCP(old_proto_state)) {
         uint32_t seq = get_seq(state);
         uint32_t ack = get_ack(state);
-        Payload *pl = PayloadMgr::get().get_payload(state);
+        Payload *pl = get_payload(state);
         uint32_t payload_size = pl ? pl->get_size() : 0;
         if (payload_size > 0) {
             seq += payload_size;
@@ -295,6 +295,9 @@ void ForwardingProcess::phase_transition(State *state,
     } else {
         set_pkt_location(state, get_src_node(state));
     }
+
+    // update payload
+    set_payload(state, PayloadMgr::get().get_payload(state));
 
     set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
     set_ingress_intf(state, nullptr);
@@ -351,6 +354,8 @@ void ForwardingProcess::process_recv_pkts(State *state,
                                           Middlebox *mb,
                                           std::list<Packet> &&recv_pkts,
                                           const Network &network) const {
+    bool current_conn_updated = false;
+
     for (Packet &recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
             Logger::info("Received packet: (empty)");
@@ -376,6 +381,10 @@ void ForwardingProcess::process_recv_pkts(State *state,
         // set conn (and recover it later)
         int orig_conn = get_conn(state);
         set_conn(state, conn);
+
+        if (orig_conn == conn) {
+            current_conn_updated = true;
+        }
 
         // update the remaining connection state variables based on the inferred
         // connection info
@@ -415,11 +424,16 @@ void ForwardingProcess::process_recv_pkts(State *state,
         set_conn(state, orig_conn);
     }
 
-    // control logic:
-    // if the current connection isn't updated, assume the packet is accepted
-    // this is useful so we can assume that the 3rd packet (client ACK) in TCP
-    // three-way handshake is delivered even if no response received (timeout)
-    if (get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS) {
+    // The current connection isn't updated. I.e., no packets are received for
+    // the current connection. In this case we assume the injected packet is
+    // accepted by the middlebox, unless in the future (TODO) we incorporate
+    // DropMon and know if the injected packet were dropped. This is useful
+    // because we can assume that packets of PS_TCP_INIT_3, PS_TCP_L7_REQ_A,
+    // PS_TCP_L7_REP_A in TCP are delivered even when there's no response.
+    if (!current_conn_updated) {
+        Logger::info("No packets are received for conn " +
+                     std::to_string(get_conn(state)) +
+                     ", assuming the injected packet is delivered");
         set_executable(state, 2);
         set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
         Candidates candidates;
@@ -541,7 +555,7 @@ void ForwardingProcess::check_seq_ack(State *state,
             uint8_t old_proto_state = get_proto_state(state);
             uint32_t old_seq = get_seq(state);
             uint32_t old_ack = get_ack(state);
-            Payload *pl = PayloadMgr::get().get_payload(state);
+            Payload *pl = get_payload(state);
             uint32_t old_payload_size = pl ? pl->get_size() : 0;
             if (old_payload_size > 0) {
                 old_seq += old_payload_size;
@@ -562,6 +576,7 @@ void ForwardingProcess::check_seq_ack(State *state,
             // seq/ack should remain the same
             assert(pkt.get_seq() == get_seq(state));
             assert(pkt.get_ack() == get_ack(state));
+            assert(pkt.get_payload() == get_payload(state));
         }
 
         set_conn(state, orig_conn);

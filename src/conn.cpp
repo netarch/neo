@@ -5,6 +5,7 @@
 #include "model-access.hpp"
 #include "network.hpp"
 #include "packet.hpp"
+#include "payload.hpp"
 #include "process/forwarding.hpp"
 #include "process/process.hpp"
 #include "protocols.hpp"
@@ -57,6 +58,7 @@ void Connection::init(State *state,
     set_dst_port(state, dst_port);
     set_seq(state, seq);
     set_ack(state, ack);
+    set_payload(state, PayloadMgr::get().get_payload(state));
     set_src_node(state, src_node);
     set_tx_node(state, src_node);
     set_rx_node(state, nullptr);

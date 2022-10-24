@@ -29,7 +29,7 @@ Packet::Packet(State *state)
     this->ack = ::get_ack(state);
 
     this->proto_state = ::get_proto_state(state);
-    this->payload = PayloadMgr::get().get_payload(state);
+    this->payload = ::get_payload(state);
 }
 
 Packet::Packet(Interface *intf,
@@ -124,6 +124,7 @@ void Packet::update_conn(State *state, int conn, const Network &network) const {
     ::set_dst_port(state, dst_port);
     ::set_seq(state, seq);
     ::set_ack(state, ack);
+    ::set_payload(state, payload);
 
     if (old_dst_ip_ec != ::get_dst_ip_ec(state)) {
         network.update_fib(state);

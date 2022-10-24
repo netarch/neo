@@ -48,8 +48,6 @@ void NetNS::set_interfaces(const Node &node) {
         Logger::error("socket()", errno);
     }
 
-    // TODO: what about L2 interface?
-
     for (const auto &pair : node.get_intfs_l3()) {
         Interface *intf = pair.second;
 

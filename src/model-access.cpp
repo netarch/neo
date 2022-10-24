@@ -11,6 +11,7 @@
 #include "interface.hpp"
 #include "lib/logger.hpp"
 #include "node.hpp"
+#include "payload.hpp"
 #include "pkt-hist.hpp"
 #include "policy/loadbalance.hpp"
 #include "process/openflow.hpp"
@@ -159,6 +160,17 @@ uint32_t get_ack(State *state) {
 uint32_t set_ack(State *state, uint32_t ack) {
     memcpy(state->conn_state[state->conn].ack, &ack, sizeof(uint32_t));
     return ack;
+}
+
+Payload *get_payload(State *state) {
+    Payload *payload;
+    memcpy(&payload, state->conn_state[state->conn].payload, sizeof(Payload *));
+    return payload;
+}
+
+Payload *set_payload(State *state, Payload *payload) {
+    memcpy(state->conn_state[state->conn].payload, &payload, sizeof(Payload *));
+    return payload;
 }
 
 Node *get_src_node(State *state) {

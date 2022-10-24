@@ -13,13 +13,14 @@ typedef conn_state_t {
      * 0: not executable (missing packet) */
 
     /* flow information */
-    unsigned proto_state : 16;                       /* (uint16_t) */
+    unsigned proto_state : 16;                      /* (uint16_t) */
     int src_ip[4 / SIZEOF_INT];                     /* (uint32_t) */
     int dst_ip_ec[SIZEOF_VOID_P / SIZEOF_INT];      /* (EqClass *) */
     unsigned src_port : 16;                         /* (uint16_t) */
     unsigned dst_port : 16;                         /* (uint16_t) */
     int seq[4 / SIZEOF_INT];                        /* (uint32_t), raw seq num */
     int ack[4 / SIZEOF_INT];                        /* (uint32_t), raw ack num */
+    int payload[SIZEOF_VOID_P / SIZEOF_INT];        /* (Payload *) */
     int src_node[SIZEOF_VOID_P / SIZEOF_INT];       /* (Node *) */
     int tx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
     int rx_node[SIZEOF_VOID_P / SIZEOF_INT];        /* (Node *) */
