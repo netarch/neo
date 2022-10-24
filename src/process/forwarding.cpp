@@ -142,7 +142,6 @@ void ForwardingProcess::forward_packet(State *state) {
     Interface *ingress_intf = candidates->at(state->choice).get_l3_intf();
 
     // When the packet is delivered at its destination
-    // DOES NOT TRIGGER IF DELIVERED AT MIDDLEBOX
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
         int proto_state = get_proto_state(state);
@@ -360,10 +359,10 @@ void ForwardingProcess::process_recv_pkts(State *state,
         int conn;
         bool is_new, opposite_dir, next_phase;
         identify_conn(state, recv_pkt, conn, is_new, opposite_dir);
-        uint16_t prev_proto_state = state->conn_state[conn].proto_state;
+        uint16_t old_proto_state = state->conn_state[conn].proto_state;
         Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
-                                       prev_proto_state);
-        check_proto_state(recv_pkt, is_new, prev_proto_state, next_phase);
+                                       old_proto_state);
+        check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
         check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
         Logger::info("Received packet [conn " + std::to_string(conn) +
                      "]: " + recv_pkt.to_string());
@@ -509,10 +508,10 @@ void ForwardingProcess::check_proto_state(const Packet &pkt,
         assert(PS_IS_FIRST(pkt.get_proto_state()));
         next_phase = false;
     } else {
-        if (pkt.get_proto_state() == old_proto_state + 1) {
-            next_phase = true;
-        } else if (pkt.get_proto_state() == old_proto_state) {
+        if (pkt.get_proto_state() == old_proto_state) {
             next_phase = false;
+        } else if (pkt.get_proto_state() > old_proto_state) {
+            next_phase = true;
         } else {
             Logger::error("Invalid protocol state");
         }

@@ -397,57 +397,72 @@ bool Net::is_tcp_ack_or_psh_ack(const Packet &pkt) const {
 void Net::convert_proto_state(Packet &pkt,
                               bool is_new,
                               bool change_direction,
-                              uint16_t prev_proto_state) const {
+                              uint16_t old_proto_state) const {
     // the highest bit (0x800U) is used to indicate unconverted TCP flags
     if (pkt.get_proto_state() & 0x800U) {
         uint16_t proto_state = 0;
         uint16_t flags = pkt.get_proto_state() & (~0x800U);
+        size_t payloadlen = pkt.get_payload()->get_size();
+
         if (is_new) {
             assert(flags == TH_SYN);
         }
+
         if (flags == TH_SYN) {
             proto_state = PS_TCP_INIT_1;
         } else if (flags == (TH_SYN | TH_ACK)) {
             proto_state = PS_TCP_INIT_2;
         } else if (flags == TH_ACK || flags == (TH_PUSH | TH_ACK)) {
-            switch (prev_proto_state) {
+            switch (old_proto_state) {
             case PS_TCP_INIT_2:
             case PS_TCP_TERM_2:
-                proto_state = prev_proto_state + 1;
+                proto_state = old_proto_state + 1;
                 assert(change_direction);
                 break;
             case PS_TCP_INIT_3:
             case PS_TCP_L7_REQ_A:
-                proto_state = prev_proto_state + 1;
+                if (payloadlen == 0) {
+                    proto_state = old_proto_state;
+                } else {
+                    proto_state = old_proto_state + 1;
+                }
                 assert(!change_direction);
                 break;
             case PS_TCP_L7_REQ:
             case PS_TCP_L7_REP:
-                if (change_direction) {
-                    proto_state = prev_proto_state + 1;
+                if (payloadlen == 0) {
+                    proto_state = old_proto_state + 1;
+                    assert(change_direction);
                 } else {
-                    proto_state = prev_proto_state;
+                    proto_state = old_proto_state;
+                    assert(!change_direction);
                 }
+                break;
+            case PS_TCP_L7_REP_A:
+            case PS_TCP_TERM_3:
+                proto_state = old_proto_state;
+                assert(payloadlen == 0);
+                assert(!change_direction);
                 break;
             default:
                 Logger::error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else if (flags == (TH_FIN | TH_ACK)) {
-            // TODO: Test the termination four-way handshake.
-            switch (prev_proto_state) {
+            switch (old_proto_state) {
+            case PS_TCP_INIT_3:
+            case PS_TCP_L7_REQ_A:
             case PS_TCP_L7_REP_A:
-                proto_state = prev_proto_state + 1;
-                assert(change_direction);
+                proto_state = PS_TCP_TERM_1;
                 break;
             case PS_TCP_TERM_1:
                 if (change_direction) {
-                    proto_state = prev_proto_state + 1;
+                    proto_state = PS_TCP_TERM_2;
                 } else {
-                    proto_state = prev_proto_state;
+                    proto_state = old_proto_state;
                 }
                 break;
             case PS_TCP_TERM_2:
-                proto_state = prev_proto_state;
+                proto_state = old_proto_state;
                 assert(!change_direction);
                 break;
             default:
@@ -461,10 +476,10 @@ void Net::convert_proto_state(Packet &pkt,
         if (is_new) {
             pkt.set_proto_state(PS_UDP_REQ);
         } else if (change_direction) {
-            pkt.set_proto_state(prev_proto_state + 1);
-            assert(prev_proto_state + 1 == PS_UDP_REP);
+            pkt.set_proto_state(old_proto_state + 1);
+            assert(old_proto_state + 1 == PS_UDP_REP);
         } else {
-            pkt.set_proto_state(prev_proto_state);
+            pkt.set_proto_state(old_proto_state);
         }
     } else if (PS_IS_ICMP_ECHO(pkt.get_proto_state())) {
         if (is_new) {

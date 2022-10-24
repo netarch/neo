@@ -18,6 +18,8 @@ static inline std::string proto_str(int n) {
 /*
  * Protocol state
  */
+// Note that for TCP four-way termination handshake, we assume that the second
+// (ACK) and third (FIN) steps are always set within the same packet.
 #define PS_TCP_INIT_1 0     // TCP 3-way handshake SYN
 #define PS_TCP_INIT_2 1     // TCP 3-way handshake SYN/ACK
 #define PS_TCP_INIT_3 2     // TCP 3-way handshake ACK

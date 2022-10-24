@@ -56,7 +56,7 @@ public:
     void convert_proto_state(Packet &,
                              bool is_new,
                              bool change_direction,
-                             uint16_t prev_proto_state) const;
+                             uint16_t old_proto_state) const;
 
     std::string mac_to_str(const uint8_t *) const;
 

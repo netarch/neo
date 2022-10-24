@@ -25,7 +25,7 @@ void Emulation::listen_packets() {
 
     while (!stop_listener) {
         // read the output packets (it will block if there is no packet)
-        pkts = std::move(env->read_packets());
+        pkts = env->read_packets();
 
         if (!pkts.empty()) {
             std::unique_lock<std::mutex> lck(mtx);
