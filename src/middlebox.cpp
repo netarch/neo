@@ -91,10 +91,12 @@ void Middlebox::reassemble_segments(std::list<Packet> &pkts) {
                 Net::get().is_tcp_ack_or_psh_ack(last_pkt) &&
                 Net::get().is_tcp_ack_or_psh_ack(*p) &&
                 last_pkt.get_payload()->get_size() > 0 &&
-                last_pkt.get_seq() + last_pkt.get_payload()->get_size() == p->get_seq() &&
+                last_pkt.get_seq() + last_pkt.get_payload()->get_size() ==
+                    p->get_seq() &&
                 last_pkt.get_ack() == p->get_ack()) {
 
-                last_pkt.set_payload(PayloadMgr::get().get_payload(last_pkt, *p));
+                last_pkt.set_payload(
+                    PayloadMgr::get().get_payload(last_pkt, *p));
                 pkts.erase(p++);
                 continue;
             }

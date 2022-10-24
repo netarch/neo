@@ -39,8 +39,6 @@ Squid::~Squid() {
 }
 
 void Squid::init() {
-    Logger::info("squid init");
-
     Net::get().set_forwarding(1);
     Net::get().set_rp_filter(0);
 
@@ -70,7 +68,6 @@ void Squid::init() {
     if (close(fd) < 0) {
         Logger::error(squid_conf, errno);
     }
-    Logger::info((std::string) "Using squid config file " + squid_conf);
 
     // launch
     if ((pid = fork()) < 0) {
@@ -91,8 +88,6 @@ void Squid::init() {
         fflush(stdout);
         fflush(stderr);
 
-        Logger::info("Running command squid -N -n " + std::to_string(getpid()) +
-                     " -f " + squid_conf);
         execlp("squid", "squid", "-N", "-n", std::to_string(getpid()).c_str(),
                "-f", squid_conf, NULL);
         Logger::error("exec squid", errno);

@@ -100,10 +100,10 @@ void NetNS::set_interfaces(const Node &node) {
             goto error;
         }
 
-        #ifdef ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
         system(("wireshark -k -i " + intf->get_name() + "&").c_str());
         sleep(4);
-        #endif
+#endif
     }
 
     close(ctrl_sock);

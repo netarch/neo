@@ -197,18 +197,7 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
             }
         } else { // use timeout (new injection)
             cv.wait_for(lck, emulated_mb->get_timeout());
-            // std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
             Stats::set_pkt_latency(emulated_mb->get_timeout());
-
-            // logging
-            // if (status == std::cv_status::timeout && recv_pkts.empty()) {
-            //     // It is possible that the condition variable's timeout occurs after
-            //     // the listening thread has acquired the lock but before it calls
-            //     // the notification function, in which case, the attempt of
-            //     // wait_for's acquiring the lock will block until the listening
-            //     // thread releases it.
-            //     Logger::info("Timed out!");
-            // }
         }
     } while (recv_pkts.size() > num_pkts);
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <chrono>
-#include <string>
 #include <list>
+#include <string>
 
 #include "emulation.hpp"
 #include "mb-app/mb-app.hpp"
