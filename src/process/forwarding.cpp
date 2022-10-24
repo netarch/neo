@@ -209,7 +209,11 @@ void ForwardingProcess::accepted(State *state, const Network &network) {
         phase_transition(state, network, PS_TCP_L7_REP_A, true);
         break;
     case PS_TCP_L7_REP_A:
-        phase_transition(state, network, PS_TCP_TERM_1, true);
+        if (typeid(*get_pkt_location(state)) == typeid(Middlebox)) {
+            phase_transition(state, network, PS_TCP_TERM_1, false);
+        } else {
+            phase_transition(state, network, PS_TCP_TERM_1, true);
+        }
         break;
     case PS_TCP_TERM_1:
         phase_transition(state, network, PS_TCP_TERM_2, true);
