@@ -189,6 +189,8 @@ void ForwardingProcess::forward_packet(State *state) {
 
 void ForwardingProcess::accepted(State *state, const Network &network) {
     int proto_state = get_proto_state(state);
+    Node &pkt_loc = *get_pkt_location(state);
+
     switch (proto_state) {
     case PS_TCP_INIT_1:
         phase_transition(state, network, PS_TCP_INIT_2, true);
@@ -209,7 +211,7 @@ void ForwardingProcess::accepted(State *state, const Network &network) {
         phase_transition(state, network, PS_TCP_L7_REP_A, true);
         break;
     case PS_TCP_L7_REP_A:
-        if (typeid(*get_pkt_location(state)) == typeid(Middlebox)) {
+        if (typeid(pkt_loc) == typeid(Middlebox)) {
             phase_transition(state, network, PS_TCP_TERM_1, false);
         } else {
             phase_transition(state, network, PS_TCP_TERM_1, true);

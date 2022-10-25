@@ -16,8 +16,8 @@ die() {
 }
 
 check_depends() {
-    for cmd in $@; do
-        if ! command -v $cmd >/dev/null 2>&1; then
+    for cmd in "$@"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
             die "'$cmd' not found"
         fi
     done
@@ -52,17 +52,21 @@ verle() {
 }
 
 verlt() {
-    [ "$1" = "$2" ] && return 1 || verle $1 $2
+    if [ "$1" = "$2" ]; then
+        return 1
+    else
+        verle "$1" "$2"
+    fi
 }
 
 main() {
     OVERWRITE=0
-    parse_params $@
+    parse_params "$@"
     check_depends clang-format
 
-    SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
-    SRC_DIR="$(realpath ${SCRIPT_DIR}/../src)"
-    TEST_DIR="$(realpath ${SCRIPT_DIR}/../test)"
+    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+    SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
+    TEST_DIR="$(realpath "${SCRIPT_DIR}"/../test)"
 
     if [ $OVERWRITE -eq 0 ]; then
         find "$SRC_DIR" "$TEST_DIR" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
@@ -74,6 +78,6 @@ main() {
 }
 
 
-main $@
+main "$@"
 
 # vim: set ts=4 sw=4 et:

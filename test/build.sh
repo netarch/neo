@@ -12,8 +12,8 @@ die() {
 }
 
 check_depends() {
-    for cmd in $@; do
-        if ! command -v $cmd >/dev/null 2>&1; then
+    for cmd in "$@"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
             die "'$cmd' not found"
         fi
     done
@@ -58,14 +58,15 @@ parse_params() {
 }
 
 main() {
-    export MAKEFLAGS="-j$(nproc)"
+    MAKEFLAGS="-j$(nproc)"
     CMAKE_ARGS=()
-    parse_params $@
+    parse_params "$@"
     check_depends cmake
+    export MAKEFLAGS
 
-    SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
-    PROJECT_DIR="$(realpath ${SCRIPT_DIR}/..)"
-    BUILD_DIR="$(realpath ${PROJECT_DIR}/build)"
+    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+    PROJECT_DIR="$(realpath "${SCRIPT_DIR}"/..)"
+    BUILD_DIR="$(realpath "${PROJECT_DIR}"/build)"
 
     cd "${PROJECT_DIR}"
     git submodule update --init
@@ -75,11 +76,11 @@ main() {
     rm -rf "${BUILD_DIR}"
 
     # fresh build
-    cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" ${CMAKE_ARGS[*]}
+    cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" "${CMAKE_ARGS[@]}"
     cmake --build "${BUILD_DIR}"
 }
 
 
-main $@
+main "$@"
 
 # vim: set ts=4 sw=4 et:
