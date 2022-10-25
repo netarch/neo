@@ -29,7 +29,7 @@ Packet::Packet(State *state)
     this->ack = ::get_ack(state);
 
     this->proto_state = ::get_proto_state(state);
-    this->payload = PayloadMgr::get().get_payload(state);
+    this->payload = ::get_payload(state);
 }
 
 Packet::Packet(Interface *intf,
@@ -39,7 +39,7 @@ Packet::Packet(Interface *intf,
                uint16_t dst_port,
                uint32_t seq,
                uint32_t ack,
-               uint8_t proto_state)
+               uint16_t proto_state)
     : interface(intf), src_ip(src_ip), dst_ip(dst_ip), src_port(src_port),
       dst_port(dst_port), seq(seq), ack(ack), proto_state(proto_state),
       payload(nullptr) {}
@@ -101,7 +101,7 @@ uint32_t Packet::get_ack() const {
     return ack;
 }
 
-uint8_t Packet::get_proto_state() const {
+uint16_t Packet::get_proto_state() const {
     return proto_state;
 }
 
@@ -124,6 +124,7 @@ void Packet::update_conn(State *state, int conn, const Network &network) const {
     ::set_dst_port(state, dst_port);
     ::set_seq(state, seq);
     ::set_ack(state, ack);
+    ::set_payload(state, payload);
 
     if (old_dst_ip_ec != ::get_dst_ip_ec(state)) {
         network.update_fib(state);
@@ -158,35 +159,39 @@ bool Packet::same_header(const Packet &other) const {
 }
 
 void Packet::set_intf(Interface *intf) {
-    interface = intf;
+    this->interface = intf;
 }
 
 void Packet::set_src_ip(const IPv4Address &ip) {
-    src_ip = ip;
+    this->src_ip = ip;
 }
 
 void Packet::set_dst_ip(const IPv4Address &ip) {
-    dst_ip = ip;
+    this->dst_ip = ip;
 }
 
 void Packet::set_src_port(uint16_t port) {
-    src_port = port;
+    this->src_port = port;
 }
 
 void Packet::set_dst_port(uint16_t port) {
-    dst_port = port;
+    this->dst_port = port;
 }
 
 void Packet::set_seq_no(uint32_t n) {
-    seq = n;
+    this->seq = n;
 }
 
 void Packet::set_ack_no(uint32_t n) {
-    ack = n;
+    this->ack = n;
 }
 
-void Packet::set_proto_state(uint8_t s) {
-    proto_state = s;
+void Packet::set_proto_state(uint16_t s) {
+    this->proto_state = s;
+}
+
+void Packet::set_payload(Payload *pl) {
+    this->payload = pl;
 }
 
 bool operator==(const Packet &a, const Packet &b) {
@@ -205,7 +210,7 @@ size_t PacketHash::operator()(Packet *const &p) const {
     hash::hash_combine(value, std::hash<uint16_t>()(p->dst_port));
     hash::hash_combine(value, std::hash<uint32_t>()(p->seq));
     hash::hash_combine(value, std::hash<uint32_t>()(p->ack));
-    hash::hash_combine(value, std::hash<uint8_t>()(p->proto_state));
+    hash::hash_combine(value, std::hash<uint16_t>()(p->proto_state));
     hash::hash_combine(value, std::hash<Payload *>()(p->payload));
     return value;
 }

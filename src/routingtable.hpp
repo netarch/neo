@@ -32,8 +32,10 @@ public:
     size_type erase(const Route &);
     iterator erase(const_iterator);
     void clear();
-    template <class... Args> iterator emplace(const Args &...args);
-    template <class... Args> iterator emplace(Args &&...args);
+    template <class... Args>
+    iterator emplace(const Args &...args);
+    template <class... Args>
+    iterator emplace(Args &&...args);
 
     /*
      * lookup returns the range of the elements equal to the given route.

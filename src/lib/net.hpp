@@ -50,12 +50,13 @@ public:
      * NOTE: the packet should later be passed to convert_proto_state to fully
      * deserialize the packet content.
      */
-    void deserialize(Packet &, const uint8_t *) const;
+    void deserialize(Packet &, const uint8_t *, size_t) const;
     void deserialize(Packet &, const PktBuffer &) const;
+    bool is_tcp_ack_or_psh_ack(const Packet &) const;
     void convert_proto_state(Packet &,
                              bool is_new,
                              bool change_direction,
-                             uint8_t old_proto_state) const;
+                             uint16_t old_proto_state) const;
 
     std::string mac_to_str(const uint8_t *) const;
 

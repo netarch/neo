@@ -5,8 +5,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <thread>
+#include <unordered_map>
 
 #include "emulationmgr.hpp"
+#include "lib/net.hpp"
+#include "payload.hpp"
 #include "stats.hpp"
 
 Middlebox::Middlebox()
@@ -54,18 +57,60 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {
     EmulationMgr::get().update_node_pkt_hist(emulation, nph);
 }
 
-std::vector<Packet> Middlebox::send_pkt(const Packet &pkt) {
+std::list<Packet> Middlebox::send_pkt(const Packet &pkt) {
     assert(emulation->get_mb() == this);
-    std::vector<Packet> recv_pkts = emulation->send_pkt(pkt);
+    std::list<Packet> recv_pkts = emulation->send_pkt(pkt);
+
     if (!recv_pkts.empty() && !dropmon) {
         long long err = Stats::get_pkt_latencies().back().second / 1000 + 1 -
                         latency_avg.count();
         latency_avg += std::chrono::microseconds(err >> 2);
         latency_mdev += std::chrono::microseconds(
             (std::abs(err) - latency_mdev.count()) >> 2);
-        update_timeout();
+        this->update_timeout();
     }
+
+    this->reassemble_segments(recv_pkts);
     return recv_pkts;
+}
+
+void Middlebox::reassemble_segments(std::list<Packet> &pkts) {
+    std::unordered_map<Interface *, std::list<Packet>> intf_pkts_map;
+    auto p = pkts.begin();
+
+    while (p != pkts.end()) {
+        auto &intf_pkts = intf_pkts_map[p->get_intf()];
+
+        if (!intf_pkts.empty()) {
+            auto &last_pkt = intf_pkts.back();
+
+            if (last_pkt.get_src_ip() == p->get_src_ip() &&
+                last_pkt.get_dst_ip() == p->get_dst_ip() &&
+                last_pkt.get_src_port() == p->get_src_port() &&
+                last_pkt.get_dst_port() == p->get_dst_port() &&
+                Net::get().is_tcp_ack_or_psh_ack(last_pkt) &&
+                Net::get().is_tcp_ack_or_psh_ack(*p) &&
+                last_pkt.get_payload()->get_size() > 0 &&
+                last_pkt.get_seq() + last_pkt.get_payload()->get_size() ==
+                    p->get_seq() &&
+                last_pkt.get_ack() == p->get_ack()) {
+
+                last_pkt.set_payload(
+                    PayloadMgr::get().get_payload(last_pkt, *p));
+                pkts.erase(p++);
+                continue;
+            }
+        }
+
+        intf_pkts.emplace_back(std::move(*p));
+        pkts.erase(p++);
+    }
+
+    assert(pkts.empty());
+
+    for (auto &[intf, intf_pkts] : intf_pkts_map) {
+        pkts.splice(pkts.end(), intf_pkts);
+    }
 }
 
 std::set<FIB_IPNH>

@@ -12,25 +12,45 @@
 #include "model.h"
 
 Payload::Payload(const std::string &pl) {
-    size = pl.size() * sizeof(char) / sizeof(uint8_t);
-    if (size == 0) {
-        buffer = nullptr;
+    this->size = pl.size() * sizeof(char) / sizeof(uint8_t);
+    if (this->size == 0) {
+        this->buffer = nullptr;
     } else {
-        buffer = new uint8_t[size];
-        memcpy(buffer, pl.c_str(), size);
+        this->buffer = new uint8_t[this->size];
+        memcpy(this->buffer, pl.c_str(), this->size);
+    }
+}
+
+Payload::Payload(uint8_t *data, size_t len) {
+    this->size = len;
+    if (this->size == 0) {
+        this->buffer = nullptr;
+    } else {
+        this->buffer = data;
+    }
+}
+
+Payload::Payload(const Payload *const a, const Payload *const b) {
+    this->size = a->get_size() + b->get_size();
+    if (this->size == 0) {
+        this->buffer = nullptr;
+    } else {
+        this->buffer = new uint8_t[this->size];
+        memcpy(this->buffer, a->get(), a->get_size());
+        memcpy(this->buffer + a->get_size(), b->get(), b->get_size());
     }
 }
 
 Payload::~Payload() {
-    delete[] buffer;
+    delete[] this->buffer;
 }
 
 uint8_t *Payload::get() const {
-    return buffer;
+    return this->buffer;
 }
 
 uint32_t Payload::get_size() const {
-    return size;
+    return this->size;
 }
 
 bool operator==(const Payload &a, const Payload &b) {
@@ -80,7 +100,7 @@ size_t PayloadKeyHash::operator()(const PayloadKey &key) const {
 /******************************************************************************/
 
 PayloadMgr::~PayloadMgr() {
-    for (Payload *payload : all_payloads) {
+    for (Payload *payload : this->all_payloads) {
         delete payload;
     }
 }
@@ -97,8 +117,8 @@ Payload *PayloadMgr::get_payload(State *state) {
         return nullptr;
     }
 
-    auto it = tbl.find(key);
-    if (it != tbl.end()) {
+    auto it = this->state_to_pl_map.find(key);
+    if (it != this->state_to_pl_map.end()) {
         return it->second;
     }
 
@@ -129,11 +149,32 @@ Payload *PayloadMgr::get_payload(State *state) {
     }
 
     Payload *payload = new Payload(pl_content);
-    auto res = all_payloads.insert(payload);
+    auto res = this->all_payloads.insert(payload);
     if (!res.second) {
         delete payload;
         payload = *(res.first);
     }
-    tbl.emplace(key, payload);
+    this->state_to_pl_map.emplace(key, payload);
+    return payload;
+}
+
+Payload *PayloadMgr::get_payload(uint8_t *data, size_t len) {
+    Payload *payload = new Payload(data, len);
+    auto res = this->all_payloads.insert(payload);
+    if (!res.second) {
+        delete payload;
+        payload = *(res.first);
+    }
+    return payload;
+}
+
+Payload *PayloadMgr::get_payload(const Packet &a, const Packet &b) {
+    // Concatenate the payloads of two packets
+    Payload *payload = new Payload(a.get_payload(), b.get_payload());
+    auto res = this->all_payloads.insert(payload);
+    if (!res.second) {
+        delete payload;
+        payload = *(res.first);
+    }
     return payload;
 }

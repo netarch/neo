@@ -35,7 +35,8 @@ bool operator==(const L2_LAN &, const L2_LAN &);
 
 namespace std {
 
-template <> struct hash<L2_LAN> {
+template <>
+struct hash<L2_LAN> {
     size_t operator()(const L2_LAN &l2dm) const {
         size_t value = 0;
         hash<Node *> node_hf;
@@ -51,13 +52,15 @@ template <> struct hash<L2_LAN> {
     };
 };
 
-template <> struct hash<L2_LAN *> {
+template <>
+struct hash<L2_LAN *> {
     size_t operator()(L2_LAN *const &l2dm) const {
         return hash<L2_LAN>()(*l2dm);
     };
 };
 
-template <> struct equal_to<L2_LAN *> {
+template <>
+struct equal_to<L2_LAN *> {
     bool operator()(L2_LAN *const &a, L2_LAN *const &b) const {
         return *a == *b;
     }

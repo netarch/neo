@@ -1,8 +1,8 @@
 #pragma once
 
+#include <list>
 #include <map>
 #include <unordered_set>
-#include <vector>
 
 #include "packet.hpp"
 #include "pkt-hist.hpp"
@@ -44,7 +44,7 @@ private:
     void inject_packet(State *, Middlebox *, const Network &);
     void process_recv_pkts(State *,
                            Middlebox *,
-                           std::vector<Packet> &&,
+                           std::list<Packet> &&,
                            const Network &) const;
     void identify_conn(State *,
                        const Packet &,

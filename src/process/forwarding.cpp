@@ -141,6 +141,7 @@ void ForwardingProcess::forward_packet(State *state) {
     Node *next_hop = candidates->at(state->choice).get_l3_node();
     Interface *ingress_intf = candidates->at(state->choice).get_l3_intf();
 
+    // When the packet is delivered at its destination
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
         int proto_state = get_proto_state(state);
@@ -153,6 +154,8 @@ void ForwardingProcess::forward_packet(State *state) {
         } else if ((PS_IS_REQUEST_DIR(proto_state) &&
                     current_node != rx_node) ||
                    (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node)) {
+            // Note: Either tx or rx node can initiate the termination process,
+            // so don't check endpoint consistency for PS_TCP_TERM_*
             // inconsistent endpoints: dropped by middlebox
             Logger::info("Inconsistent endpoints");
             Logger::info("Connection " + std::to_string(get_conn(state)) +
@@ -167,6 +170,11 @@ void ForwardingProcess::forward_packet(State *state) {
         state->choice_count = 1;
     } else {
         if (typeid(*next_hop) == typeid(Middlebox)) {
+            // packet delivered at middlebox, set rx node
+            if (PS_IS_FIRST(get_proto_state(state))) {
+                // store the original receiving endpoint of the connection
+                set_rx_node(state, next_hop);
+            }
             set_executable(state, 1);
         }
 
@@ -201,7 +209,11 @@ void ForwardingProcess::accepted(State *state, const Network &network) {
         phase_transition(state, network, PS_TCP_L7_REP_A, true);
         break;
     case PS_TCP_L7_REP_A:
-        phase_transition(state, network, PS_TCP_TERM_1, true);
+        if (typeid(*get_pkt_location(state)) == typeid(Middlebox)) {
+            phase_transition(state, network, PS_TCP_TERM_1, false);
+        } else {
+            phase_transition(state, network, PS_TCP_TERM_1, true);
+        }
         break;
     case PS_TCP_TERM_1:
         phase_transition(state, network, PS_TCP_TERM_2, true);
@@ -250,7 +262,7 @@ void ForwardingProcess::phase_transition(State *state,
     if (PS_IS_TCP(old_proto_state)) {
         uint32_t seq = get_seq(state);
         uint32_t ack = get_ack(state);
-        Payload *pl = PayloadMgr::get().get_payload(state);
+        Payload *pl = get_payload(state);
         uint32_t payload_size = pl ? pl->get_size() : 0;
         if (payload_size > 0) {
             seq += payload_size;
@@ -287,6 +299,9 @@ void ForwardingProcess::phase_transition(State *state,
     } else {
         set_pkt_location(state, get_src_node(state));
     }
+
+    // update payload
+    set_payload(state, PayloadMgr::get().get_payload(state));
 
     set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
     set_ingress_intf(state, nullptr);
@@ -330,7 +345,7 @@ void ForwardingProcess::inject_packet(State *state,
 
     // inject packet
     Logger::info("Injecting packet: " + new_pkt->to_string());
-    std::vector<Packet> recv_pkts = mb->send_pkt(*new_pkt);
+    std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
     process_recv_pkts(state, mb, std::move(recv_pkts), network);
 
     Stats::set_overall_latency();
@@ -341,8 +356,10 @@ void ForwardingProcess::inject_packet(State *state,
  */
 void ForwardingProcess::process_recv_pkts(State *state,
                                           Middlebox *mb,
-                                          std::vector<Packet> &&recv_pkts,
+                                          std::list<Packet> &&recv_pkts,
                                           const Network &network) const {
+    bool current_conn_updated = false;
+
     for (Packet &recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
             Logger::info("Received packet: (empty)");
@@ -353,7 +370,7 @@ void ForwardingProcess::process_recv_pkts(State *state,
         int conn;
         bool is_new, opposite_dir, next_phase;
         identify_conn(state, recv_pkt, conn, is_new, opposite_dir);
-        uint8_t old_proto_state = state->conn_state[conn].proto_state;
+        uint16_t old_proto_state = state->conn_state[conn].proto_state;
         Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
                                        old_proto_state);
         check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
@@ -368,6 +385,10 @@ void ForwardingProcess::process_recv_pkts(State *state,
         // set conn (and recover it later)
         int orig_conn = get_conn(state);
         set_conn(state, conn);
+
+        if (orig_conn == conn) {
+            current_conn_updated = true;
+        }
 
         // update the remaining connection state variables based on the inferred
         // connection info
@@ -407,9 +428,16 @@ void ForwardingProcess::process_recv_pkts(State *state,
         set_conn(state, orig_conn);
     }
 
-    // control logic:
-    // if the current connection isn't updated, assume the packet is accepted
-    if (get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS) {
+    // The current connection isn't updated. I.e., no packets are received for
+    // the current connection. In this case we assume the injected packet is
+    // accepted by the middlebox, unless in the future (TODO) we incorporate
+    // DropMon and know if the injected packet were dropped. This is useful
+    // because we can assume that packets of PS_TCP_INIT_3, PS_TCP_L7_REQ_A,
+    // PS_TCP_L7_REP_A in TCP are delivered even when there's no response.
+    if (!current_conn_updated) {
+        Logger::info("No packets are received for conn " +
+                     std::to_string(get_conn(state)) +
+                     ", assuming the injected packet is delivered");
         set_executable(state, 2);
         set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
         Candidates candidates;
@@ -456,7 +484,7 @@ void ForwardingProcess::identify_conn(State *state,
          * proto_state, so only protocol type is compared.
          */
         int pkt_protocol;
-        if (pkt.get_proto_state() & 0x80U) {
+        if (pkt.get_proto_state() & 0x800U) {
             pkt_protocol = proto::tcp;
         } else {
             pkt_protocol = PS_TO_PROTO(pkt.get_proto_state());
@@ -500,10 +528,10 @@ void ForwardingProcess::check_proto_state(const Packet &pkt,
         assert(PS_IS_FIRST(pkt.get_proto_state()));
         next_phase = false;
     } else {
-        if (pkt.get_proto_state() == old_proto_state + 1) {
-            next_phase = true;
-        } else if (pkt.get_proto_state() == old_proto_state) {
+        if (pkt.get_proto_state() == old_proto_state) {
             next_phase = false;
+        } else if (pkt.get_proto_state() > old_proto_state) {
+            next_phase = true;
         } else {
             Logger::error("Invalid protocol state");
         }
@@ -531,7 +559,7 @@ void ForwardingProcess::check_seq_ack(State *state,
             uint8_t old_proto_state = get_proto_state(state);
             uint32_t old_seq = get_seq(state);
             uint32_t old_ack = get_ack(state);
-            Payload *pl = PayloadMgr::get().get_payload(state);
+            Payload *pl = get_payload(state);
             uint32_t old_payload_size = pl ? pl->get_size() : 0;
             if (old_payload_size > 0) {
                 old_seq += old_payload_size;
@@ -552,6 +580,7 @@ void ForwardingProcess::check_seq_ack(State *state,
             // seq/ack should remain the same
             assert(pkt.get_seq() == get_seq(state));
             assert(pkt.get_ack() == get_ack(state));
+            assert(pkt.get_payload() == get_payload(state));
         }
 
         set_conn(state, orig_conn);

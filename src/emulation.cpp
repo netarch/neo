@@ -20,16 +20,30 @@ Emulation::~Emulation() {
 }
 
 void Emulation::listen_packets() {
-    std::vector<Packet> pkts;
+    std::list<Packet> pkts;
+    PacketHash hasher;
 
     while (!stop_listener) {
         // read the output packets (it will block if there is no packet)
         pkts = env->read_packets();
-        // TODO: print out the pkts
 
         if (!pkts.empty()) {
             std::unique_lock<std::mutex> lck(mtx);
-            recv_pkts = pkts;
+
+            // Remove the retransmitted packets
+            auto p = pkts.begin();
+            while (p != pkts.end()) {
+                size_t hash_value = hasher(&*p);
+                if (recv_pkts_hash.count(hash_value) > 0) {
+                    // Found a retransmitted packet, skip the remaining packets
+                    pkts.erase(p, pkts.end());
+                    break;
+                }
+                recv_pkts_hash.insert(hash_value);
+                p++;
+            }
+
+            recv_pkts.splice(recv_pkts.end(), pkts);
             cv.notify_all();
         }
     }
@@ -44,6 +58,7 @@ void Emulation::listen_drops() {
         if (ts) {
             std::unique_lock<std::mutex> lck(mtx);
             recv_pkts.clear();
+            recv_pkts_hash.clear();
             drop_ts = ts;
             cv.notify_all();
         }
@@ -95,6 +110,9 @@ void Emulation::init(Middlebox *mb) {
         }
         env->init(*mb);
         env->run(mb_app_init, mb->get_app());
+        std::unique_lock<std::mutex> lck(mtx);
+        recv_pkts.clear();
+        recv_pkts_hash.clear();
 
         // spawn the packet_listener thread (block all signals but SIGUSR1)
         sigset_t mask, old_mask;
@@ -135,6 +153,9 @@ int Emulation::rewind(NodePacketHistory *nph) {
     if (!nph || !nph->contains(node_pkt_hist)) {
         env->run(mb_app_reset, emulated_mb->get_app());
         Logger::info("Reset " + node_name);
+        std::unique_lock<std::mutex> lck(mtx);
+        recv_pkts.clear();
+        recv_pkts_hash.clear();
     }
 
     // replay history
@@ -142,7 +163,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
         std::list<Packet *> pkts = nph->get_packets_since(node_pkt_hist);
         rewind_injections = pkts.size();
         for (Packet *packet : pkts) {
-            send_pkt(*packet, /* rewinding */ true);
+            send_pkt(*packet);
         }
     }
 
@@ -150,47 +171,35 @@ int Emulation::rewind(NodePacketHistory *nph) {
     return rewind_injections;
 }
 
-std::vector<Packet> Emulation::send_pkt(const Packet &pkt, bool rewinding) {
+std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
     std::unique_lock<std::mutex> lck(mtx);
-    recv_pkts.clear();
-    drop_ts = 0;
+    size_t num_pkts = recv_pkts.size();
     DropMon::get().start_listening_for(pkt);
 
     Stats::set_pkt_lat_t1();
     env->inject_packet(pkt);
 
-    if (dropmon) { // use drop monitor
-        // cv.wait(lck);
-        std::chrono::microseconds timeout(5000);
-        std::cv_status status = cv.wait_for(lck, timeout);
-        Stats::set_pkt_latency(timeout, drop_ts);
+    // Read packets iteratively until no new packets are read within one
+    // complete timeout period.
+    do {
+        num_pkts = recv_pkts.size();
 
-        if (status == std::cv_status::timeout && recv_pkts.empty() &&
-            drop_ts == 0) {
-            Logger::error("Drop monitor timed out!");
-        }
-    } else if (rewinding) { // use timeout (rewind)
-        std::chrono::microseconds timeout(5000);
-        std::cv_status status = cv.wait_for(lck, timeout);
-        Stats::set_pkt_latency(timeout);
+        if (dropmon) { // use drop monitor
+            // TODO: Think about how to incorporate dropmon with timeouts
+            drop_ts = 0;
+            std::chrono::microseconds timeout(5000);
+            std::cv_status status = cv.wait_for(lck, timeout);
+            Stats::set_pkt_latency(timeout, drop_ts);
 
-        if (status == std::cv_status::timeout && recv_pkts.empty()) {
-            Logger::error("Rewind timed out!");
+            if (status == std::cv_status::timeout && recv_pkts.empty() &&
+                drop_ts == 0) {
+                Logger::error("Drop monitor timed out!");
+            }
+        } else { // use timeout (new injection)
+            cv.wait_for(lck, emulated_mb->get_timeout());
+            Stats::set_pkt_latency(emulated_mb->get_timeout());
         }
-    } else { // use timeout (new injection)
-        std::cv_status status = cv.wait_for(lck, emulated_mb->get_timeout());
-        Stats::set_pkt_latency(emulated_mb->get_timeout());
-
-        // logging
-        if (status == std::cv_status::timeout && recv_pkts.empty()) {
-            // It is possible that the condition variable's timeout occurs after
-            // the listening thread has acquired the lock but before it calls
-            // the notification function, in which case, the attempt of
-            // wait_for's acquiring the lock will block until the listening
-            // thread releases it.
-            Logger::info("Timed out!");
-        }
-    }
+    } while (recv_pkts.size() > num_pkts);
 
     DropMon::get().stop_listening();
 
@@ -202,8 +211,9 @@ std::vector<Packet> Emulation::send_pkt(const Packet &pkt, bool rewinding) {
      * process it correctly, as mentioned in lib/net.cpp.
      */
 
-    // TODO: recv_pkts
-
     // return the received packets
-    return recv_pkts;
+    std::list<Packet> return_pkts(std::move(recv_pkts));
+    recv_pkts.clear();
+    recv_pkts_hash.clear();
+    return return_pkts;
 }

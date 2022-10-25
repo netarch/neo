@@ -38,19 +38,20 @@
     network = "10.0.0.0/8"
     next_hop = "10.0.1.2"
 # use transparent proxy here
-# the intercept router is combined into the squid proxy, and the intercept functionality should be enabled
-# to route the packet and change the dest address
+# the intercept router is combined into the squid proxy, and the intercept
+# functionality should be enabled to route the packet and change the dest
+# address
 # 1. kernel functionality for forwarding the packet: net.ipv4.ip_forward = 1(should be defaultly true)
 # 2. add redirect packet to squid server:
 #   iptables -t nat -A PERROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 9999
 [[nodes]]
-    name = "p1"
+    name = "proxy"
     type = "middlebox"
     env = "netns"
     app = "squid"
     config = """
 http_port 80 accel
-visible_hostname p1
+visible_hostname proxy
 #prefer_direct on
 pid_filename none
 
@@ -67,6 +68,10 @@ logfile_rotate 0
 access_log stdio:/dev/stdout
 #cache_log stdio:/dev/stdout
 cache_store_log stdio:/dev/stdout
+
+# Disable DNS PTR lookup
+url_rewrite_extras "%>a %un %>rm myip=%la myport=%lp"
+store_id_extras "%>a %un %>rm myip=%la myport=%lp"
 """
     [[nodes.interfaces]]
     name = "eth0"
@@ -110,10 +115,10 @@ cache_store_log stdio:/dev/stdout
 [[links]]
     node1 = "r2"
     intf1 = "eth0"
-    node2 = "p1"
+    node2 = "proxy"
     intf2 = "eth1"
 [[links]]
-    node1 = "p1"
+    node1 = "proxy"
     intf1 = "eth0"
     node2 = "r1"
     intf2 = "eth1"
@@ -138,10 +143,10 @@ cache_store_log stdio:/dev/stdout
 
 [[policies]]
     type = "reachability"
-    final_node = "server"
+    target_node = "server"
     reachable = true
-    [policies.communication]
+    [[policies.connections]]
     protocol = "tcp"
-    pkt_dst = "10.0.1.2"
+    src_node = "h[12]"
+    dst_ip = "10.0.1.2"
     dst_port = 80
-    start_node = "h[12]"

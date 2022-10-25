@@ -18,6 +18,8 @@ static inline std::string proto_str(int n) {
 /*
  * Protocol state
  */
+// Note that for TCP four-way termination handshake, we assume that the second
+// (ACK) and third (FIN) steps are always set within the same packet.
 #define PS_TCP_INIT_1 0     // TCP 3-way handshake SYN
 #define PS_TCP_INIT_2 1     // TCP 3-way handshake SYN/ACK
 #define PS_TCP_INIT_3 2     // TCP 3-way handshake ACK
@@ -35,12 +37,10 @@ static inline std::string proto_str(int n) {
 
 #define PS_IS_REQUEST_DIR(x)                                                   \
     ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_3 || (x) == PS_TCP_L7_REQ ||   \
-     (x) == PS_TCP_L7_REP_A || (x) == PS_TCP_TERM_2 || (x) == PS_UDP_REQ ||    \
-     (x) == PS_ICMP_ECHO_REQ)
+     (x) == PS_TCP_L7_REP_A || (x) == PS_UDP_REQ || (x) == PS_ICMP_ECHO_REQ)
 #define PS_IS_REPLY_DIR(x)                                                     \
     ((x) == PS_TCP_INIT_2 || (x) == PS_TCP_L7_REQ_A || (x) == PS_TCP_L7_REP || \
-     (x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_3 || (x) == PS_UDP_REP ||      \
-     (x) == PS_ICMP_ECHO_REP)
+     (x) == PS_UDP_REP || (x) == PS_ICMP_ECHO_REP)
 #define PS_IS_REQUEST(x)                                                       \
     ((x) == PS_TCP_L7_REQ || (x) == PS_UDP_REQ || (x) == PS_ICMP_ECHO_REQ)
 #define PS_IS_REPLY(x)                                                         \
@@ -50,7 +50,7 @@ static inline std::string proto_str(int n) {
 #define PS_IS_LAST(x)                                                          \
     ((x) == PS_TCP_TERM_3 || (x) == PS_UDP_REP || (x) == PS_ICMP_ECHO_REP)
 #define PS_IS_TCP(x)                                                           \
-    (((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3) || ((x)&0x80U))
+    (((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3) || ((x)&0x800U))
 #define PS_IS_UDP(x) ((x) >= PS_UDP_REQ && (x) <= PS_UDP_REP)
 #define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
 #define PS_HAS_SYN(x) ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
@@ -58,9 +58,6 @@ static inline std::string proto_str(int n) {
 #define PS_SAME_PROTO(x, y)                                                    \
     ((PS_IS_TCP(x) && PS_IS_TCP(y)) || (PS_IS_UDP(x) && PS_IS_UDP(y)) ||       \
      (PS_IS_ICMP_ECHO(x) && PS_IS_ICMP_ECHO(y)))
-#define PS_SAME_DIR(x, y)                                                      \
-    ((PS_IS_REQUEST_DIR(x) && PS_IS_REQUEST_DIR(y)) ||                         \
-     (PS_IS_REPLY_DIR(x) && PS_IS_REPLY_DIR(y)))
 #define PS_IS_NEXT(x, y) ((x) == (y) + 1 && PS_SAME_PROTO(x, y))
 #define PS_LAST_PROTO_STATE(x)                                                 \
     (PS_IS_TCP(x) ? PS_TCP_TERM_3                                              \

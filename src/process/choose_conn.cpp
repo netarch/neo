@@ -18,15 +18,27 @@ static inline int get_conn_fwd_mode(State *state, int conn) {
     return state->conn_state[conn].fwd_mode;
 }
 
+static inline int get_conn_proto_state(State *state, int conn) {
+    return state->conn_state[conn].proto_state;
+}
+
 static inline std::vector<std::vector<int>> get_conn_map(State *state) {
     std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
+
     for (int conn = 0; conn < get_num_conns(state); ++conn) {
         int exec = get_conn_executable(state, conn);
-        if (exec == 0 && get_conn_fwd_mode(state, conn) == fwd_mode::DROPPED) {
+        int mode = get_conn_fwd_mode(state, conn);
+        int proto_state = get_conn_proto_state(state, conn);
+
+        if ((exec == 0 && mode == fwd_mode::DROPPED) ||
+            (exec == 0 && mode == fwd_mode::ACCEPTED &&
+             PS_IS_LAST(proto_state))) {
             continue;
         }
+
         conn_map[exec].push_back(conn);
     }
+
     return conn_map;
 }
 
@@ -38,7 +50,7 @@ void ChooseConnProcess::update_choice_count(State *state) const {
     std::vector<std::vector<int>> conn_map = get_conn_map(state);
     /* 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
-     * 0: not executable (missing packet) */
+     * 0: not executable (missing packet or terminated) */
 
     if (!conn_map[2].empty()) {
         set_choice_count(state, 1);
@@ -63,7 +75,7 @@ void ChooseConnProcess::exec_step(State *state,
     std::vector<std::vector<int>> conn_map = get_conn_map(state);
     /* 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
-     * 0: not executable (missing packet) */
+     * 0: not executable (missing packet or terminated) */
 
     if (!conn_map[2].empty()) {
         assert(choice == 0);
@@ -74,12 +86,19 @@ void ChooseConnProcess::exec_step(State *state,
         set_executable(state, 2);
         print_conn_states(state);
     } else if (!conn_map[0].empty()) {
-        // pick the first connection that's not dropped and drop it
+        // pick the first connection that hasn't been dropped or terminated and
+        // drop it
         assert(choice == 0);
         set_conn(state, conn_map[0][0]);
-        Logger::info("Connection " + std::to_string(conn_map[0][0]) +
-                     " dropped by " + get_pkt_location(state)->to_string());
-        set_fwd_mode(state, fwd_mode::DROPPED);
+        int mode = get_fwd_mode(state);
+        int proto_state = get_proto_state(state);
+        if (!(mode == fwd_mode::DROPPED) &&
+            !(mode == fwd_mode::ACCEPTED && PS_IS_LAST(proto_state))) {
+            Logger::info("Connection " + std::to_string(conn_map[0][0]) +
+                         " dropped by " + get_pkt_location(state)->to_string());
+            set_fwd_mode(state, fwd_mode::DROPPED);
+        }
+        print_conn_states(state);
     } else {
         Logger::error("No executable connection");
     }

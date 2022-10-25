@@ -11,6 +11,7 @@
 #include "interface.hpp"
 #include "lib/logger.hpp"
 #include "node.hpp"
+#include "payload.hpp"
 #include "pkt-hist.hpp"
 #include "policy/loadbalance.hpp"
 #include "process/openflow.hpp"
@@ -91,11 +92,11 @@ int set_executable(State *state, int executable) {
     return (state->conn_state[state->conn].executable = executable);
 }
 
-uint8_t get_proto_state(State *state) {
+uint16_t get_proto_state(State *state) {
     return state->conn_state[state->conn].proto_state;
 }
 
-uint8_t set_proto_state(State *state, int proto_state) {
+uint16_t set_proto_state(State *state, int proto_state) {
     return state->conn_state[state->conn].proto_state = proto_state;
 }
 
@@ -159,6 +160,17 @@ uint32_t get_ack(State *state) {
 uint32_t set_ack(State *state, uint32_t ack) {
     memcpy(state->conn_state[state->conn].ack, &ack, sizeof(uint32_t));
     return ack;
+}
+
+Payload *get_payload(State *state) {
+    Payload *payload;
+    memcpy(&payload, state->conn_state[state->conn].payload, sizeof(Payload *));
+    return payload;
+}
+
+Payload *set_payload(State *state, Payload *payload) {
+    memcpy(state->conn_state[state->conn].payload, &payload, sizeof(Payload *));
+    return payload;
 }
 
 Node *get_src_node(State *state) {

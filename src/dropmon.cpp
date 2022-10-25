@@ -250,7 +250,7 @@ static struct nla_policy net_dm_policy[NET_DM_ATTR_MAX + 1] = {
 };
 
 Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
-    int nbytes, err;
+    int nbytes, err, payloadlen;
     struct sockaddr_nl addr; // message source address
     struct nlmsghdr *nlh;    // message buffer
     struct nlattr *attrs[NET_DM_ATTR_MAX + 1];
@@ -286,7 +286,8 @@ Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
     }
     // deserialize packet
     payload = nla_data(attrs[NET_DM_ATTR_PAYLOAD]);
-    Net::get().deserialize(pkt, (const uint8_t *)payload);
+    payloadlen = nla_len(attrs[NET_DM_ATTR_PAYLOAD]);
+    Net::get().deserialize(pkt, (const uint8_t *)payload, payloadlen);
 
     // timestamp
     if (!pkt.empty() && attrs[NET_DM_ATTR_TIMESTAMP]) {

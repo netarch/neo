@@ -1,9 +1,9 @@
 #pragma once
 
+#include <list>
 #include <string>
 #include <sys/epoll.h>
 #include <unordered_map>
-#include <vector>
 
 #include "mb-env/mb-env.hpp"
 class Interface;
@@ -33,5 +33,5 @@ public:
     void init(const Node &) override;
     void run(void (*)(MB_App *), MB_App *) override;
     size_t inject_packet(const Packet &) override;
-    std::vector<Packet> read_packets() const override;
+    std::list<Packet> read_packets() const override;
 };

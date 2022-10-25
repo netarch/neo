@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(dirname $(realpath ${BASH_SOURCE[0]}))"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/../common.sh"
 
 build -DVECTORSZ=3000 -DMAX_CONNS=30
@@ -8,7 +8,7 @@ build -DVECTORSZ=3000 -DMAX_CONNS=30
 for lbs in 2 4; do
     srvs=$lbs
     for algo in rr sh dh; do    # round-robin, source-hashing, destination-hashing
-        ${CONFGEN[*]} -l $lbs -s $srvs -a $algo > "$CONF"
+        "${CONFGEN[@]}" -l $lbs -s $srvs -a $algo > "$CONF"
         for procs in 1 4 8 16; do
             # timeout
             name="$lbs-lbs.$srvs-servers.algo-$algo.DOP-$procs"
