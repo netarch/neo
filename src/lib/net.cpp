@@ -301,8 +301,8 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             memcpy(&ack, buffer + 42, 4);
             seq = ntohl(seq);
             ack = ntohl(ack);
-            pkt.set_seq_no(seq);
-            pkt.set_ack_no(ack);
+            pkt.set_seq(seq);
+            pkt.set_ack(ack);
             // Data offset (header length)
             uint8_t offset;
             memcpy(&offset, buffer + 46, 1);

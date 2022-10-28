@@ -24,6 +24,7 @@ private:
     MB_Env *env;            // environment
     Middlebox *emulated_mb; // currently emulated middlebox node
     NodePacketHistory *node_pkt_hist;
+    std::unordered_map<int, uint32_t> seq_offsets;
     bool dropmon;
 
     std::thread *packet_listener;
@@ -53,8 +54,11 @@ public:
 
     Middlebox *get_mb() const;
     NodePacketHistory *get_node_pkt_hist() const;
+    void reset_offsets();
+    void set_offset(int conn, uint32_t offset);
+    uint32_t get_offset(int conn) const;
 
     void init(Middlebox *); // initialize and start the emulation
-    int rewind(NodePacketHistory *);
+    int rewind(State *, NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 };

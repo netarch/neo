@@ -1,11 +1,15 @@
 #include "emulation.hpp"
 
+#include <cassert>
 #include <csignal>
+#include <libnet.h>
 
 #include "dropmon.hpp"
 #include "lib/logger.hpp"
 #include "mb-env/netns.hpp"
 #include "middlebox.hpp"
+#include "model-access.hpp"
+#include "protocols.hpp"
 #include "stats.hpp"
 
 Emulation::Emulation()
@@ -99,8 +103,24 @@ NodePacketHistory *Emulation::get_node_pkt_hist() const {
     return node_pkt_hist;
 }
 
+void Emulation::reset_offsets() {
+    this->seq_offsets.clear();
+}
+
+void Emulation::set_offset(int conn, uint32_t offset) {
+    this->seq_offsets[conn] = offset;
+}
+
+uint32_t Emulation::get_offset(int conn) const {
+    auto i = this->seq_offsets.find(conn);
+    if (i == this->seq_offsets.end()) {
+        return 0;
+    }
+    return i->second;
+}
+
 void Emulation::init(Middlebox *mb) {
-    if (emulated_mb != mb) {
+    if (emulated_mb != mb) { // This most likely is always true.
         this->teardown();
 
         if (mb->get_env() == "netns") {
@@ -135,10 +155,15 @@ void Emulation::init(Middlebox *mb) {
         }
 
         emulated_mb = mb;
+    } else {
+        // TODO: Make sure this will never happen. Otherwise, initialize
+        // properly.
     }
+
+    this->reset_offsets();
 }
 
-int Emulation::rewind(NodePacketHistory *nph) {
+int Emulation::rewind(State *state, NodePacketHistory *nph) {
     const std::string node_name = emulated_mb->get_name();
 
     if (node_pkt_hist == nph) {
@@ -151,19 +176,72 @@ int Emulation::rewind(NodePacketHistory *nph) {
 
     // reset middlebox state
     if (!nph || !nph->contains(node_pkt_hist)) {
-        env->run(mb_app_reset, emulated_mb->get_app());
-        Logger::info("Reset " + node_name);
         std::unique_lock<std::mutex> lck(mtx);
         recv_pkts.clear();
         recv_pkts_hash.clear();
+        env->run(mb_app_reset, emulated_mb->get_app());
+        this->reset_offsets();
+        Logger::info("Reset " + node_name);
     }
 
     // replay history
+    // FIXME: new connections' source port number is different from the ones in
+    // the packet history and the spin state.
     if (nph) {
         std::list<Packet *> pkts = nph->get_packets_since(node_pkt_hist);
         rewind_injections = pkts.size();
         for (Packet *packet : pkts) {
-            send_pkt(*packet);
+            std::list<Packet> recv_pkts = send_pkt(*packet);
+
+            // Update seq_offsets
+            for (const auto &recv_pkt : recv_pkts) {
+                // Skip any non-TCP packets
+                if (!(recv_pkt.get_proto_state() & 0x800U)) {
+                    continue;
+                }
+
+                // Identify the connection
+                int conn;
+                int orig_conn = get_conn(state);
+                for (conn = 0; conn < get_num_conns(state); ++conn) {
+                    set_conn(state, conn);
+                    uint32_t src_ip = get_src_ip(state);
+                    EqClass *dst_ip_ec = get_dst_ip_ec(state);
+                    uint16_t src_port = get_src_port(state);
+                    uint16_t dst_port = get_dst_port(state);
+                    int conn_protocol = PS_TO_PROTO(get_proto_state(state));
+                    set_conn(state, orig_conn);
+
+                    int pkt_protocol;
+                    if (recv_pkt.get_proto_state() & 0x800U) {
+                        pkt_protocol = proto::tcp;
+                    } else {
+                        pkt_protocol = PS_TO_PROTO(recv_pkt.get_proto_state());
+                    }
+
+                    if (recv_pkt.get_src_ip() == src_ip &&
+                        dst_ip_ec->contains(recv_pkt.get_dst_ip()) &&
+                        recv_pkt.get_src_port() == src_port &&
+                        recv_pkt.get_dst_port() == dst_port &&
+                        pkt_protocol == conn_protocol) {
+                        // same connection, same direction
+                        break;
+                    } else if (recv_pkt.get_dst_ip() == src_ip &&
+                               dst_ip_ec->contains(recv_pkt.get_src_ip()) &&
+                               recv_pkt.get_dst_port() == src_port &&
+                               recv_pkt.get_src_port() == dst_port &&
+                               pkt_protocol == conn_protocol) {
+                        // same connection, opposite direction
+                        break;
+                    }
+                }
+
+                assert(conn < get_num_conns(state));
+                uint16_t flags = recv_pkt.get_proto_state() & (~0x800U);
+                if (flags == TH_SYN || flags == (TH_SYN | TH_ACK)) {
+                    this->set_offset(conn, recv_pkt.get_seq());
+                }
+            }
         }
     }
 
@@ -172,12 +250,17 @@ int Emulation::rewind(NodePacketHistory *nph) {
 }
 
 std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
+    // Apply the seq offset on ack to create a new packet
+    Packet new_pkt(pkt);
+    uint32_t seq_offset = this->get_offset(pkt.get_conn());
+    new_pkt.set_ack(new_pkt.get_ack() + seq_offset);
+
     std::unique_lock<std::mutex> lck(mtx);
     size_t num_pkts = recv_pkts.size();
-    DropMon::get().start_listening_for(pkt);
+    DropMon::get().start_listening_for(new_pkt);
 
     Stats::set_pkt_lat_t1();
-    env->inject_packet(pkt);
+    env->inject_packet(new_pkt);
 
     // Read packets iteratively until no new packets are read within one
     // complete timeout period.

@@ -31,6 +31,7 @@ public:
     Middlebox &operator=(const Middlebox &) = delete;
     Middlebox &operator=(Middlebox &&) = delete;
 
+    Emulation *get_emulation() const;
     std::string get_env() const;
     MB_App *get_app() const;
     std::chrono::microseconds get_timeout() const;
@@ -38,7 +39,7 @@ public:
     void update_timeout();
     void increase_latency_estimate_by_DOP(int DOP);
 
-    int rewind(NodePacketHistory *);
+    int rewind(State *, NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 

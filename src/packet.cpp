@@ -1,5 +1,7 @@
 #include "packet.hpp"
 
+#include <cassert>
+
 #include "eqclassmgr.hpp"
 #include "interface.hpp"
 #include "lib/hash.hpp"
@@ -12,12 +14,13 @@
 #include "model.h"
 
 Packet::Packet()
-    : interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0), dst_port(0),
-      seq(0), ack(0), proto_state(0), payload(nullptr) {}
+    : conn(-1), interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0),
+      dst_port(0), seq(0), ack(0), proto_state(0), payload(nullptr) {}
 
 Packet::Packet(State *state)
     : Packet() // make sure all members are initialized
 {
+    this->conn = ::get_conn(state);
     this->interface = ::get_ingress_intf(state);
 
     this->src_ip = ::get_src_ip(state);
@@ -32,7 +35,8 @@ Packet::Packet(State *state)
     this->payload = ::get_payload(state);
 }
 
-Packet::Packet(Interface *intf,
+Packet::Packet(int conn,
+               Interface *intf,
                IPv4Address src_ip,
                IPv4Address dst_ip,
                uint16_t src_port,
@@ -40,14 +44,13 @@ Packet::Packet(Interface *intf,
                uint32_t seq,
                uint32_t ack,
                uint16_t proto_state)
-    : interface(intf), src_ip(src_ip), dst_ip(dst_ip), src_port(src_port),
-      dst_port(dst_port), seq(seq), ack(ack), proto_state(proto_state),
-      payload(nullptr) {}
+    : conn(conn), interface(intf), src_ip(src_ip), dst_ip(dst_ip),
+      src_port(src_port), dst_port(dst_port), seq(seq), ack(ack),
+      proto_state(proto_state), payload(nullptr) {}
 
 std::string Packet::to_string() const {
     int proto_state = this->proto_state;
-    std::string ret;
-
+    std::string ret = "[conn " + std::to_string(conn) + "] ";
     if (interface) {
         ret += interface->to_string() + ": ";
     }
@@ -71,6 +74,10 @@ std::string Packet::to_string() const {
     }
     ret += " }";
     return ret;
+}
+
+int Packet::get_conn() const {
+    return conn;
 }
 
 Interface *Packet::get_intf() const {
@@ -109,9 +116,10 @@ Payload *Packet::get_payload() const {
     return payload;
 }
 
-void Packet::update_conn(State *state, int conn, const Network &network) const {
-    int orig_conn = get_conn(state);
-    set_conn(state, conn);
+void Packet::update_conn_state(State *state, const Network &network) const {
+    assert(this->conn != -1);
+    int orig_conn = ::get_conn(state);
+    ::set_conn(state, this->conn);
 
     EqClass *old_dst_ip_ec = ::get_dst_ip_ec(state);
 
@@ -130,7 +138,7 @@ void Packet::update_conn(State *state, int conn, const Network &network) const {
         network.update_fib(state);
     }
 
-    set_conn(state, orig_conn);
+    ::set_conn(state, orig_conn);
 }
 
 void Packet::clear() {
@@ -158,6 +166,10 @@ bool Packet::same_header(const Packet &other) const {
     return (same_flow_as(other) && seq == other.seq && ack == other.ack);
 }
 
+void Packet::set_conn(int conn) {
+    this->conn = conn;
+}
+
 void Packet::set_intf(Interface *intf) {
     this->interface = intf;
 }
@@ -178,11 +190,11 @@ void Packet::set_dst_port(uint16_t port) {
     this->dst_port = port;
 }
 
-void Packet::set_seq_no(uint32_t n) {
+void Packet::set_seq(uint32_t n) {
     this->seq = n;
 }
 
-void Packet::set_ack_no(uint32_t n) {
+void Packet::set_ack(uint32_t n) {
     this->ack = n;
 }
 
