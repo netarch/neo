@@ -21,6 +21,8 @@ struct State;
  */
 class Packet {
 private:
+    // connection index
+    int conn;
     // ingress interface
     Interface *interface;
     // IP
@@ -39,7 +41,8 @@ private:
 public:
     Packet();
     Packet(State *);
-    Packet(Interface *intf,
+    Packet(int conn,
+           Interface *intf,
            IPv4Address src_ip,
            IPv4Address dst_ip,
            uint16_t src_port,
@@ -54,6 +57,7 @@ public:
     Packet &operator=(Packet &&) = default;
 
     std::string to_string() const;
+    int get_conn() const;
     Interface *get_intf() const;
     IPv4Address get_src_ip() const;
     IPv4Address get_dst_ip() const;
@@ -63,18 +67,19 @@ public:
     uint32_t get_ack() const;
     uint16_t get_proto_state() const;
     Payload *get_payload() const;
-    void update_conn(State *, int conn, const Network &) const;
+    void update_conn_state(State *, const Network &) const;
     void clear();
     bool empty() const;
     bool same_flow_as(const Packet &) const;
     bool same_header(const Packet &) const;
+    void set_conn(int);
     void set_intf(Interface *);
     void set_src_ip(const IPv4Address &);
     void set_dst_ip(const IPv4Address &);
     void set_src_port(uint16_t);
     void set_dst_port(uint16_t);
-    void set_seq_no(uint32_t);
-    void set_ack_no(uint32_t);
+    void set_seq(uint32_t);
+    void set_ack(uint32_t);
     void set_proto_state(uint16_t);
     void set_payload(Payload *);
 };

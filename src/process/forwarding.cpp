@@ -319,7 +319,7 @@ void ForwardingProcess::inject_packet(State *state,
     PacketHistory *pkt_hist = get_pkt_hist(state);
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
     Stats::set_rewind_lat_t1();
-    int rewind_injections = mb->rewind(current_nph);
+    int rewind_injections = mb->rewind(state, current_nph);
     Stats::set_rewind_latency();
     Stats::set_rewind_injection_count(rewind_injections);
 
@@ -369,26 +369,19 @@ void ForwardingProcess::process_recv_pkts(State *state,
         }
 
         // identify connection and sanitize packet
-        int conn;
         bool is_new, opposite_dir, next_phase;
-        identify_conn(state, recv_pkt, conn, is_new, opposite_dir);
-        uint16_t old_proto_state = state->conn_state[conn].proto_state;
+        identify_conn(state, recv_pkt, is_new, opposite_dir);
+        uint16_t old_proto_state =
+            state->conn_state[recv_pkt.get_conn()].proto_state;
         Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
                                        old_proto_state);
         check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
-        check_seq_ack(state, recv_pkt, conn, is_new, opposite_dir, next_phase);
-        Logger::info("Received packet [conn " + std::to_string(conn) +
-                     "]: " + recv_pkt.to_string());
-
-        // map the packet info (5-tuple + seq/ack + FIB + control logic) back
-        // to the system state
-        recv_pkt.update_conn(state, conn, network);
 
         // set conn (and recover it later)
         int orig_conn = get_conn(state);
-        set_conn(state, conn);
+        set_conn(state, recv_pkt.get_conn());
 
-        if (orig_conn == conn) {
+        if (orig_conn == recv_pkt.get_conn()) {
             current_conn_updated = true;
         }
 
@@ -403,6 +396,12 @@ void ForwardingProcess::process_recv_pkts(State *state,
             set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
             set_ingress_intf(state, nullptr);
             set_path_choices(state, Choices());
+            // update seq_offsets
+            if (recv_pkt.get_proto_state() == PS_TCP_INIT_1) {
+                mb->get_emulation()->set_offset(recv_pkt.get_conn(),
+                                                recv_pkt.get_seq());
+                recv_pkt.set_seq(0);
+            }
         } else if (next_phase) {
             if (opposite_dir) {
                 set_src_node(state, mb);
@@ -411,10 +410,27 @@ void ForwardingProcess::process_recv_pkts(State *state,
             }
             set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
             set_ingress_intf(state, nullptr);
+            // update seq_offsets
+            if (recv_pkt.get_proto_state() == PS_TCP_INIT_2) {
+                mb->get_emulation()->set_offset(recv_pkt.get_conn(),
+                                                recv_pkt.get_seq());
+                recv_pkt.set_seq(0);
+            } else if (PS_IS_TCP(recv_pkt.get_proto_state())) {
+                uint32_t offset =
+                    mb->get_emulation()->get_offset(recv_pkt.get_conn());
+                recv_pkt.set_seq(recv_pkt.get_seq() - offset);
+            }
         } else { // same phase (middlebox is not an endpoint)
             assert(get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS);
             set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
         }
+
+        check_seq_ack(state, recv_pkt, is_new, opposite_dir, next_phase);
+
+        // map the packet info (5-tuple + seq/ack + FIB + control logic) back
+        // to the system state
+        recv_pkt.update_conn_state(state, network);
+        Logger::info("Received packet " + recv_pkt.to_string());
 
         // find the next hop and set candidates
         Candidates candidates;
@@ -465,10 +481,10 @@ void ForwardingProcess::process_recv_pkts(State *state,
  * system.
  */
 void ForwardingProcess::identify_conn(State *state,
-                                      const Packet &pkt,
-                                      int &conn,
+                                      Packet &pkt,
                                       bool &is_new,
                                       bool &opposite_dir) const {
+    int conn;
     int orig_conn = get_conn(state);
     is_new = false;
 
@@ -498,7 +514,7 @@ void ForwardingProcess::identify_conn(State *state,
             pkt_protocol == conn_protocol) {
             // same connection, same direction
             opposite_dir = false;
-            return;
+            break;
         } else if (pkt.get_dst_ip() == src_ip &&
                    dst_ip_ec->contains(pkt.get_src_ip()) &&
                    pkt.get_dst_port() == src_port &&
@@ -506,16 +522,21 @@ void ForwardingProcess::identify_conn(State *state,
                    pkt_protocol == conn_protocol) {
             // same connection, opposite direction
             opposite_dir = true;
-            return;
+            break;
         }
     }
 
     // new connection (NAT'd packets are also treated as new connections)
-    if (conn >= MAX_CONNS) {
-        Logger::error("Exceeding the maximum number of connections");
+    if (conn >= get_num_conns(state)) {
+        if (conn >= MAX_CONNS) {
+            Logger::error("Exceeding the maximum number of connections");
+        }
+
+        is_new = true;
+        opposite_dir = false;
     }
-    is_new = true;
-    opposite_dir = false;
+
+    pkt.set_conn(conn);
 }
 
 /*
@@ -546,14 +567,13 @@ void ForwardingProcess::check_proto_state(const Packet &pkt,
  */
 void ForwardingProcess::check_seq_ack(State *state,
                                       const Packet &pkt,
-                                      int conn,
                                       bool is_new,
                                       bool opposite_dir,
                                       bool next_phase) const {
     // verify seq/ack numbers if it's a TCP packet
     if (PS_IS_TCP(pkt.get_proto_state())) {
         int orig_conn = get_conn(state);
-        set_conn(state, conn);
+        set_conn(state, pkt.get_conn());
 
         if (is_new) { // new connection (SYN)
             assert(pkt.get_ack() == 0);

@@ -19,6 +19,11 @@ Middlebox::~Middlebox() {
     delete app;
 }
 
+Emulation *Middlebox::get_emulation() const {
+    assert(this->emulation->get_mb() == this);
+    return this->emulation;
+}
+
 std::string Middlebox::get_env() const {
     return env;
 }
@@ -47,9 +52,9 @@ void Middlebox::increase_latency_estimate_by_DOP(int DOP) {
     update_timeout();
 }
 
-int Middlebox::rewind(NodePacketHistory *nph) {
+int Middlebox::rewind(State *state, NodePacketHistory *nph) {
     emulation = EmulationMgr::get().get_emulation(this, nph);
-    return emulation->rewind(nph);
+    return emulation->rewind(state, nph);
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {

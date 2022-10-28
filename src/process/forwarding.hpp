@@ -47,8 +47,7 @@ private:
                            std::list<Packet> &&,
                            const Network &) const;
     void identify_conn(State *,
-                       const Packet &,
-                       int &conn,
+                       Packet &,
                        bool &is_new,
                        bool &opposite_dir) const;
     void check_proto_state(const Packet &recv_pkt,
@@ -57,7 +56,6 @@ private:
                            bool &next_phase) const;
     void check_seq_ack(State *,
                        const Packet &,
-                       int conn,
                        bool is_new,
                        bool opposite_dir,
                        bool next_phase) const;
