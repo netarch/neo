@@ -46,10 +46,8 @@ private:
                            Middlebox *,
                            std::list<Packet> &&,
                            const Network &) const;
-    void identify_conn(State *,
-                       Packet &,
-                       bool &is_new,
-                       bool &opposite_dir) const;
+    void
+    identify_conn(State *, Packet &, bool &is_new, bool &opposite_dir) const;
     void check_proto_state(const Packet &recv_pkt,
                            bool is_new,
                            uint8_t old_proto_state,
