@@ -5,8 +5,8 @@
 #include <unordered_set>
 
 class EqClass;
+class Model;
 class Packet;
-struct State;
 
 class Payload {
 private:
@@ -45,7 +45,7 @@ private:
     friend bool operator==(const PayloadKey &, const PayloadKey &);
 
 public:
-    PayloadKey(State *);
+    PayloadKey(const Model &);
 };
 
 bool operator==(const PayloadKey &, const PayloadKey &);
@@ -80,7 +80,7 @@ public:
 
     static PayloadMgr &get();
 
-    Payload *get_payload(State *);
+    Payload *get_payload_from_model();
     Payload *get_payload(uint8_t *, size_t);
     // Concatenate the payloads of two packets
     Payload *get_payload(const Packet &, const Packet &);

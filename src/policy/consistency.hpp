@@ -1,7 +1,6 @@
 #pragma once
 
 #include "policy/policy.hpp"
-struct State;
 
 /*
  * All converged states of all execution paths of all correlated policies should
@@ -18,7 +17,7 @@ private:
 
 public:
     std::string to_string() const override;
-    void init(State *, const Network *) override;
-    void reinit(State *, const Network *) override;
-    int check_violation(State *) override;
+    void init(const Network *) override;
+    void reinit(const Network *) override;
+    int check_violation() override;
 };

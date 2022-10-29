@@ -8,27 +8,13 @@
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
 
-#include "model.h"
-
-static inline int get_conn_executable(State *state, int conn) {
-    return state->conn_state[conn].executable;
-}
-
-static inline int get_conn_fwd_mode(State *state, int conn) {
-    return state->conn_state[conn].fwd_mode;
-}
-
-static inline int get_conn_proto_state(State *state, int conn) {
-    return state->conn_state[conn].proto_state;
-}
-
-static inline std::vector<std::vector<int>> get_conn_map(State *state) {
+static inline std::vector<std::vector<int>> get_conn_map() {
     std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
 
-    for (int conn = 0; conn < get_num_conns(state); ++conn) {
-        int exec = get_conn_executable(state, conn);
-        int mode = get_conn_fwd_mode(state, conn);
-        int proto_state = get_conn_proto_state(state, conn);
+    for (int conn = 0; conn < model.get_num_conns(); ++conn) {
+        int exec = model.get_executable_for_conn(conn);
+        int mode = model.get_fwd_mode_for_conn(conn);
+        int proto_state = model.get_proto_state_for_conn(conn);
 
         if ((exec == 0 && mode == fwd_mode::DROPPED) ||
             (exec == 0 && mode == fwd_mode::ACCEPTED &&
@@ -42,72 +28,72 @@ static inline std::vector<std::vector<int>> get_conn_map(State *state) {
     return conn_map;
 }
 
-void ChooseConnProcess::update_choice_count(State *state) const {
+void ChooseConnProcess::update_choice_count() const {
     if (!enabled) {
         return;
     }
 
-    std::vector<std::vector<int>> conn_map = get_conn_map(state);
+    std::vector<std::vector<int>> conn_map = get_conn_map();
     /* 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
      * 0: not executable (missing packet or terminated) */
 
     if (!conn_map[2].empty()) {
-        set_choice_count(state, 1);
+        model.set_choice_count(1);
     } else if (!conn_map[1].empty()) {
-        set_choice_count(state, conn_map[1].size());
+        model.set_choice_count(conn_map[1].size());
     } else if (!conn_map[0].empty()) {
-        set_choice_count(state, 1);
+        model.set_choice_count(1);
     } else {
         // every connection is dropped
-        set_choice_count(state, 0);
+        model.set_choice_count(0);
     }
 }
 
-void ChooseConnProcess::exec_step(State *state,
-                                  const Network &network
+void ChooseConnProcess::exec_step(const Network &network
                                   __attribute__((unused))) {
     if (!enabled) {
         return;
     }
 
-    int choice = get_choice(state);
-    std::vector<std::vector<int>> conn_map = get_conn_map(state);
+    int choice = model.get_choice();
+    std::vector<std::vector<int>> conn_map = get_conn_map();
     /* 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
      * 0: not executable (missing packet or terminated) */
 
     if (!conn_map[2].empty()) {
         assert(choice == 0);
-        set_conn(state, conn_map[2][0]);
-        print_conn_states(state);
+        model.set_conn(conn_map[2][0]);
+        model.print_conn_states();
     } else if (!conn_map[1].empty()) {
-        set_conn(state, conn_map[1][choice]);
-        set_executable(state, 2);
-        print_conn_states(state);
+        model.set_conn(conn_map[1][choice]);
+        model.set_executable(2);
+        model.print_conn_states();
     } else if (!conn_map[0].empty()) {
         // pick the first connection that hasn't been dropped or terminated and
         // drop it
         assert(choice == 0);
-        set_conn(state, conn_map[0][0]);
-        int mode = get_fwd_mode(state);
-        int proto_state = get_proto_state(state);
+        model.set_conn(conn_map[0][0]);
+        int mode = model.get_fwd_mode();
+        int proto_state = model.get_proto_state();
         if (!(mode == fwd_mode::DROPPED) &&
             !(mode == fwd_mode::ACCEPTED && PS_IS_LAST(proto_state))) {
             Logger::info("Connection " + std::to_string(conn_map[0][0]) +
-                         " dropped by " + get_pkt_location(state)->to_string());
-            set_fwd_mode(state, fwd_mode::DROPPED);
+                         " dropped by " +
+                         model.get_pkt_location()->to_string());
+            model.set_fwd_mode(fwd_mode::DROPPED);
         }
-        print_conn_states(state);
+        model.print_conn_states();
     } else {
         Logger::error("No executable connection");
     }
 
     // update choice_count for the connection chosen
-    if (get_fwd_mode(state) == fwd_mode::FORWARD_PACKET ||
-        get_fwd_mode(state) == fwd_mode::FIRST_FORWARD) {
-        set_choice_count(state, get_candidates(state)->size());
+    if (model.get_fwd_mode() == fwd_mode::FORWARD_PACKET ||
+        model.get_fwd_mode() == fwd_mode::FIRST_FORWARD) {
+        model.set_choice_count(model.get_candidates()->size());
     } else {
-        set_choice_count(state, 1);
+        model.set_choice_count(1);
     }
 }

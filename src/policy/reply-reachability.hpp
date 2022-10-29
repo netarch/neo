@@ -4,7 +4,6 @@
 
 #include "policy/policy.hpp"
 class Node;
-struct State;
 
 /*
  * For the specified connections, both the request and reply packets should be
@@ -21,6 +20,6 @@ private:
 
 public:
     std::string to_string() const override;
-    void init(State *, const Network *) override;
-    int check_violation(State *) override;
+    void init(const Network *) override;
+    int check_violation() override;
 };

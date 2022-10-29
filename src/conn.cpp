@@ -10,8 +10,6 @@
 #include "process/process.hpp"
 #include "protocols.hpp"
 
-#include "model.h"
-
 Connection::Connection(int protocol,
                        Node *src_node,
                        EqClass *dst_ip_ec,
@@ -33,13 +31,11 @@ std::string Connection::to_string() const {
     return ret;
 }
 
-void Connection::init(State *state,
-                      size_t conn_idx,
-                      const Network &network) const {
-    int orig_conn = get_conn(state);
-    set_conn(state, conn_idx);
+void Connection::init(size_t conn_idx, const Network &network) const {
+    int orig_conn = model.get_conn();
+    model.set_conn(conn_idx);
 
-    set_executable(state, 2);
+    model.set_executable(2);
 
     uint8_t proto_state = 0;
     if (protocol == proto::tcp) {
@@ -51,28 +47,28 @@ void Connection::init(State *state,
     } else {
         Logger::error("Unknown protocol: " + std::to_string(protocol));
     }
-    set_proto_state(state, proto_state);
-    set_src_ip(state, src_ip.get_value());
-    set_dst_ip_ec(state, dst_ip_ec);
-    set_src_port(state, src_port);
-    set_dst_port(state, dst_port);
-    set_seq(state, seq);
-    set_ack(state, ack);
-    set_payload(state, PayloadMgr::get().get_payload(state));
-    set_src_node(state, src_node);
-    set_tx_node(state, src_node);
-    set_rx_node(state, nullptr);
+    model.set_proto_state(proto_state);
+    model.set_src_ip(src_ip.get_value());
+    model.set_dst_ip_ec(dst_ip_ec);
+    model.set_src_port(src_port);
+    model.set_dst_port(dst_port);
+    model.set_seq(seq);
+    model.set_ack(ack);
+    model.set_payload(PayloadMgr::get().get_payload_from_model());
+    model.set_src_node(src_node);
+    model.set_tx_node(src_node);
+    model.set_rx_node(nullptr);
 
-    set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
-    set_pkt_location(state, src_node);
-    set_ingress_intf(state, nullptr);
-    reset_candidates(state);
+    model.set_fwd_mode(fwd_mode::FIRST_COLLECT);
+    model.set_pkt_location(src_node);
+    model.set_ingress_intf(nullptr);
+    model.reset_candidates();
 
-    network.update_fib(state);
-    set_path_choices(state, Choices());
+    network.update_fib();
+    model.set_path_choices(Choices());
 
     // restore the original conn idx
-    set_conn(state, orig_conn);
+    model.set_conn(orig_conn);
 }
 
 bool operator<(const Connection &a, const Connection &b) {

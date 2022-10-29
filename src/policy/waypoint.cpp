@@ -5,8 +5,6 @@
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
 
-#include "model.h"
-
 std::string WaypointPolicy::to_string() const {
     std::string ret = "Waypoint (";
     ret += pass_through ? "O" : "X";
@@ -18,19 +16,19 @@ std::string WaypointPolicy::to_string() const {
     return ret;
 }
 
-void WaypointPolicy::init(State *state, const Network *network) {
-    Policy::init(state, network);
-    set_violated(state, false);
+void WaypointPolicy::init(const Network *network) {
+    Policy::init(network);
+    model.set_violated(false);
 }
 
-int WaypointPolicy::check_violation(State *state) {
-    int mode = get_fwd_mode(state);
+int WaypointPolicy::check_violation() {
+    int mode = model.get_fwd_mode();
 
     if (mode == fwd_mode::COLLECT_NHOPS) {
-        if (target_nodes.count(get_pkt_location(state)) > 0) {
+        if (target_nodes.count(model.get_pkt_location()) > 0) {
             // encountering waypoint
-            state->violated = !pass_through;
-            state->choice_count = 0;
+            model.set_violated(!pass_through);
+            model.set_choice_count(0);
         }
     }
 

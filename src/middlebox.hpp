@@ -39,7 +39,7 @@ public:
     void update_timeout();
     void increase_latency_estimate_by_DOP(int DOP);
 
-    int rewind(State *, NodePacketHistory *);
+    int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 

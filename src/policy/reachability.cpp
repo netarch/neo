@@ -6,8 +6,6 @@
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
 
-#include "model.h"
-
 std::string ReachabilityPolicy::to_string() const {
     std::string ret = "Reachability (";
     ret += reachable ? "O" : "X";
@@ -19,18 +17,18 @@ std::string ReachabilityPolicy::to_string() const {
     return ret;
 }
 
-void ReachabilityPolicy::init(State *state, const Network *network) {
-    Policy::init(state, network);
-    set_violated(state, false);
+void ReachabilityPolicy::init(const Network *network) {
+    Policy::init(network);
+    model.set_violated(false);
 }
 
-int ReachabilityPolicy::check_violation(State *state) {
+int ReachabilityPolicy::check_violation() {
     bool reached;
-    int mode = get_fwd_mode(state);
-    int proto_state = get_proto_state(state);
+    int mode = model.get_fwd_mode();
+    int proto_state = model.get_proto_state();
 
     if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(proto_state)) {
-        reached = (target_nodes.count(get_rx_node(state)) > 0);
+        reached = (target_nodes.count(model.get_rx_node()) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;
     } else {
@@ -39,7 +37,7 @@ int ReachabilityPolicy::check_violation(State *state) {
         return POL_NULL;
     }
 
-    state->violated = (reachable != reached);
-    state->choice_count = 0;
+    model.set_violated(reachable != reached);
+    model.set_choice_count(0);
     return POL_NULL;
 }

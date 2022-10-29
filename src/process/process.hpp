@@ -1,7 +1,6 @@
 #pragma once
 
 class Network;
-struct State;
 
 enum pid {
     choose_conn,
@@ -20,5 +19,5 @@ public:
     void disable();
     bool is_enabled() const;
 
-    virtual void exec_step(State *, const Network &) = 0;
+    virtual void exec_step(const Network &) = 0;
 };

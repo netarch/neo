@@ -6,7 +6,6 @@
 #include "node.hpp"
 class Packet;
 class Network;
-struct State;
 
 /*
  * Connection denoted by the initial 5-tuple flow
@@ -37,7 +36,7 @@ public:
     Connection(Connection &&) = default;
 
     std::string to_string() const;
-    void init(State *, size_t conn_idx, const Network &) const;
+    void init(size_t conn_idx, const Network &) const;
 };
 
 bool operator<(const Connection &, const Connection &);

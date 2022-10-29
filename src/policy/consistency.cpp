@@ -2,8 +2,6 @@
 
 #include "model-access.hpp"
 
-#include "model.h"
-
 std::string ConsistencyPolicy::to_string() const {
     std::string ret = "Consistency of:\n";
     for (Policy *p : correlated_policies) {
@@ -12,46 +10,47 @@ std::string ConsistencyPolicy::to_string() const {
     return ret;
 }
 
-void ConsistencyPolicy::init(State *state, const Network *network) {
-    set_correlated_policy_idx(state, 0);
-    Policy::init(state, network);
+void ConsistencyPolicy::init(const Network *network) {
+    model.set_correlated_policy_idx(0);
+    Policy::init(network);
     unset = true;
 }
 
-void ConsistencyPolicy::reinit(State *state, const Network *network) {
-    Policy::init(state, network);
+void ConsistencyPolicy::reinit(const Network *network) {
+    Policy::init(network);
 }
 
-int ConsistencyPolicy::check_violation(State *state) {
-    correlated_policies[state->correlated_policy_idx]->check_violation(state);
+int ConsistencyPolicy::check_violation() {
+    correlated_policies[model.get_correlated_policy_idx()]->check_violation();
 
-    if (state->choice_count == 0) {
+    if (model.get_choice_count() == 0) {
         Logger::info("Subpolicy " +
-                     std::to_string(get_correlated_policy_idx(state)) +
-                     (state->violated ? " violated!" : " verified"));
+                     std::to_string(model.get_correlated_policy_idx()) +
+                     (model.get_violated() ? " violated!" : " verified"));
 
         // for the first execution path of the first subpolicy, store the
         // verification result
         if (unset) {
-            result = state->violated;
+            result = model.get_violated();
             unset = false;
         }
 
         // check for consistency
-        if (state->violated != result) {
-            state->violated = true;
-            state->choice_count = 0;
+        if (model.get_violated() != result) {
+            model.set_violated(true);
+            model.set_choice_count(0);
             return POL_NULL;
         }
 
         // next subpolicy
-        if ((size_t)state->correlated_policy_idx + 1 <
+        if ((size_t)model.get_correlated_policy_idx() + 1 <
             correlated_policies.size()) {
-            ++state->correlated_policy_idx;
+            model.set_correlated_policy_idx(model.get_correlated_policy_idx() +
+                                            1);
             return POL_REINIT_DP;
         } else { // we have checked all the subpolicies
-            state->violated = false;
-            state->choice_count = 0;
+            model.set_violated(false);
+            model.set_choice_count(0);
         }
     }
 

@@ -11,7 +11,6 @@ class Node;
 class Route;
 class Network;
 class FIB_IPNH;
-struct State;
 
 /*
  * The state of how many updates have been installed.
@@ -51,7 +50,7 @@ class OpenflowProcess : public Process {
 private:
     std::map<Node *, std::vector<Route>> updates;
 
-    void install_update(State *);
+    void install_update();
 
 private:
     friend class Config;
@@ -64,9 +63,9 @@ public:
     size_t num_updates() const; // number of total updates
     size_t num_nodes() const;   // number of nodes that have updates
     const decltype(updates) &get_updates() const;
-    std::map<Node *, std::set<FIB_IPNH>> get_installed_updates(State *) const;
-    bool has_updates(State *, Node *) const;
+    std::map<Node *, std::set<FIB_IPNH>> get_installed_updates() const;
+    bool has_updates(Node *) const;
 
-    void init(State *);
-    void exec_step(State *, const Network &) override;
+    void init();
+    void exec_step(const Network &) override;
 };

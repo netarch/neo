@@ -59,6 +59,6 @@ public:
     uint32_t get_offset(int conn) const;
 
     void init(Middlebox *); // initialize and start the emulation
-    int rewind(State *, NodePacketHistory *);
+    int rewind(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 };

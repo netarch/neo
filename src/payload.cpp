@@ -9,8 +9,6 @@
 #include "packet.hpp"
 #include "protocols.hpp"
 
-#include "model.h"
-
 Payload::Payload(const std::string &pl) {
     this->size = pl.size() * sizeof(char) / sizeof(uint8_t);
     if (this->size == 0) {
@@ -62,10 +60,10 @@ bool operator==(const Payload &a, const Payload &b) {
 
 /******************************************************************************/
 
-PayloadKey::PayloadKey(State *state) {
-    this->dst_ip_ec = get_dst_ip_ec(state);
-    this->dst_port = get_dst_port(state);
-    this->proto_state = get_proto_state(state);
+PayloadKey::PayloadKey(const Model &model) {
+    this->dst_ip_ec = model.get_dst_ip_ec();
+    this->dst_port = model.get_dst_port();
+    this->proto_state = model.get_proto_state();
 }
 
 bool operator==(const PayloadKey &a, const PayloadKey &b) {
@@ -110,8 +108,8 @@ PayloadMgr &PayloadMgr::get() {
     return instance;
 }
 
-Payload *PayloadMgr::get_payload(State *state) {
-    PayloadKey key(state);
+Payload *PayloadMgr::get_payload_from_model() {
+    PayloadKey key(model);
 
     if (key.proto_state != PS_TCP_L7_REQ && key.proto_state != PS_TCP_L7_REP) {
         return nullptr;

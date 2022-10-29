@@ -163,7 +163,7 @@ void Emulation::init(Middlebox *mb) {
     this->reset_offsets();
 }
 
-int Emulation::rewind(State *state, NodePacketHistory *nph) {
+int Emulation::rewind(NodePacketHistory *nph) {
     const std::string node_name = emulated_mb->get_name();
 
     if (node_pkt_hist == nph) {
@@ -202,15 +202,15 @@ int Emulation::rewind(State *state, NodePacketHistory *nph) {
 
                 // Identify the connection
                 int conn;
-                int orig_conn = get_conn(state);
-                for (conn = 0; conn < get_num_conns(state); ++conn) {
-                    set_conn(state, conn);
-                    uint32_t src_ip = get_src_ip(state);
-                    EqClass *dst_ip_ec = get_dst_ip_ec(state);
-                    uint16_t src_port = get_src_port(state);
-                    uint16_t dst_port = get_dst_port(state);
-                    int conn_protocol = PS_TO_PROTO(get_proto_state(state));
-                    set_conn(state, orig_conn);
+                int orig_conn = model.get_conn();
+                for (conn = 0; conn < model.get_num_conns(); ++conn) {
+                    model.set_conn(conn);
+                    uint32_t src_ip = model.get_src_ip();
+                    EqClass *dst_ip_ec = model.get_dst_ip_ec();
+                    uint16_t src_port = model.get_src_port();
+                    uint16_t dst_port = model.get_dst_port();
+                    int conn_protocol = PS_TO_PROTO(model.get_proto_state());
+                    model.set_conn(orig_conn);
 
                     int pkt_protocol;
                     if (recv_pkt.get_proto_state() & 0x800U) {
@@ -236,7 +236,7 @@ int Emulation::rewind(State *state, NodePacketHistory *nph) {
                     }
                 }
 
-                assert(conn < get_num_conns(state));
+                assert(conn < model.get_num_conns());
                 uint16_t flags = recv_pkt.get_proto_state() & (~0x800U);
                 if (flags == TH_SYN || flags == (TH_SYN | TH_ACK)) {
                     this->set_offset(conn, recv_pkt.get_seq());

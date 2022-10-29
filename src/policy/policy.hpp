@@ -7,7 +7,6 @@
 #include "connmatrix.hpp"
 #include "connspec.hpp"
 class Network;
-struct State;
 
 #define POL_NULL 0
 #define POL_REINIT_DP 1
@@ -37,12 +36,12 @@ public:
     bool set_conns();
     const std::vector<Connection> &get_conns() const;
     std::string conns_str() const;
-    void report(State *) const;
+    void report() const;
 
     virtual std::string to_string() const = 0;
-    virtual void init(State *, const Network *);
-    virtual void reinit(State *, const Network *);
-    virtual int check_violation(State *) = 0;
+    virtual void init(const Network *);
+    virtual void reinit(const Network *);
+    virtual int check_violation() = 0;
 };
 
 class Policies {
