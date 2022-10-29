@@ -13,8 +13,6 @@
 #include "policy/reply-reachability.hpp"
 #include "policy/waypoint.hpp"
 
-#include "model.h"
-
 Policy::Policy(bool correlated) {
     static int next_id = 1;
     if (correlated) {
@@ -104,8 +102,8 @@ std::string Policy::conns_str() const {
     return ret;
 }
 
-void Policy::report(State *state) const {
-    if (get_violated(state)) {
+void Policy::report() const {
+    if (model.get_violated()) {
         Logger::info("*** Policy violated! ***");
         kill(getppid(), SIGUSR1);
     } else {
@@ -113,24 +111,22 @@ void Policy::report(State *state) const {
     }
 }
 
-void Policy::init(State *state, const Network *network) {
+void Policy::init(const Network *network) {
     if (correlated_policies.empty()) {
         // per-connection states
         for (size_t i = 0; i < conns.size(); ++i) {
-            conns[i].init(state, i, *network);
+            conns[i].init(i, *network);
         }
-        set_conn(state, 0);
-        set_num_conns(state, conns.size());
-        print_conn_states(state);
+        model.set_conn(0);
+        model.set_num_conns(conns.size());
+        model.print_conn_states();
     } else {
-        correlated_policies[get_correlated_policy_idx(state)]->init(state,
-                                                                    network);
+        correlated_policies[model.get_correlated_policy_idx()]->init(network);
     }
 }
 
 // reinit should only be overwritten by policies with correlated sub-policies
-void Policy::reinit(State *state __attribute__((unused)),
-                    const Network *network __attribute__((unused))) {
+void Policy::reinit(const Network *network __attribute__((unused))) {
     Logger::error("This shouldn't be called");
 }
 

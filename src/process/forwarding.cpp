@@ -18,8 +18,6 @@
 #include "protocols.hpp"
 #include "stats.hpp"
 
-#include "model.h"
-
 ForwardingProcess::~ForwardingProcess() {
     for (auto &packet : all_pkts) {
         delete packet;
@@ -29,88 +27,87 @@ ForwardingProcess::~ForwardingProcess() {
     }
 }
 
-void ForwardingProcess::init(State *state, const Network &network) {
+void ForwardingProcess::init(const Network &network) {
     if (!enabled) {
         return;
     }
 
     PacketHistory pkt_hist(network);
-    set_pkt_hist(state, std::move(pkt_hist));
+    model.set_pkt_hist(std::move(pkt_hist));
 }
 
-void ForwardingProcess::exec_step(State *state, const Network &network) {
+void ForwardingProcess::exec_step(const Network &network) {
     if (!enabled) {
         return;
     }
 
-    int mode = get_fwd_mode(state);
+    int mode = model.get_fwd_mode();
     switch (mode) {
     case fwd_mode::FIRST_COLLECT:
-        first_collect(state, network);
+        first_collect(network);
         break;
     case fwd_mode::FIRST_FORWARD:
-        first_forward(state);
+        first_forward();
         break;
     case fwd_mode::COLLECT_NHOPS:
-        collect_next_hops(state, network);
+        collect_next_hops(network);
         break;
     case fwd_mode::FORWARD_PACKET:
-        forward_packet(state);
+        forward_packet();
         break;
     case fwd_mode::ACCEPTED:
-        accepted(state, network);
+        accepted(network);
         break;
     case fwd_mode::DROPPED:
-        set_executable(state, 0);
+        model.set_executable(0);
         break;
     default:
         Logger::error("Unknown forwarding mode: " + std::to_string(mode));
     }
 }
 
-void ForwardingProcess::first_collect(State *state, const Network &network) {
-    collect_next_hops(state, network);
-    set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
+void ForwardingProcess::first_collect(const Network &network) {
+    collect_next_hops(network);
+    model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
 }
 
-void ForwardingProcess::first_forward(State *state) {
-    if (PS_IS_FIRST(get_proto_state(state)) && get_src_ip(state) == 0) {
+void ForwardingProcess::first_forward() {
+    if (PS_IS_FIRST(model.get_proto_state()) && model.get_src_ip() == 0) {
         // update the source IP address according to the egress interface
-        Candidates *candidates = get_candidates(state);
-        FIB_IPNH next_hop = candidates->at(state->choice);
+        Candidates *candidates = model.get_candidates();
+        FIB_IPNH next_hop = candidates->at(model.get_choice());
         if (next_hop.get_l2_intf()) {
             const Interface *egress_intf =
                 next_hop.get_l2_node()
                     ->get_peer(next_hop.get_l2_intf()->get_name())
                     .second;
-            set_src_ip(state, egress_intf->addr().get_value());
+            model.set_src_ip(egress_intf->addr().get_value());
         } // else: sender == receiver
     }
 
-    forward_packet(state);
+    forward_packet();
 }
 
-void ForwardingProcess::collect_next_hops(State *state,
-                                          const Network &network) {
-    Node *current_node = get_pkt_location(state);
+void ForwardingProcess::collect_next_hops(const Network &network) {
+    Node *current_node = model.get_pkt_location();
     if (typeid(*current_node) == typeid(Middlebox)) {
         // current_node is a Middlebox; inject packet to update next hops
-        inject_packet(state, static_cast<Middlebox *>(current_node), network);
+        inject_packet(static_cast<Middlebox *>(current_node), network);
         return;
     } // else: current_node is a Node; look up next hops from FIB
 
-    std::set<FIB_IPNH> next_hops = get_fib(state)->lookup(current_node);
+    std::set<FIB_IPNH> next_hops = model.get_fib()->lookup(current_node);
     if (next_hops.empty()) {
-        Logger::info("Connection " + std::to_string(get_conn(state)) +
+        Logger::info("Connection " + std::to_string(model.get_conn()) +
                      " dropped by " + current_node->to_string());
-        set_fwd_mode(state, fwd_mode::DROPPED);
-        set_executable(state, 0);
+        model.set_fwd_mode(fwd_mode::DROPPED);
+        model.set_executable(0);
         return;
     }
 
     Candidates candidates;
-    EqClass *ec = get_dst_ip_ec(state);
-    Choices *choices = get_path_choices(state);
+    EqClass *ec = model.get_dst_ip_ec();
+    Choices *choices = model.get_path_choices();
     std::optional<FIB_IPNH> choice = choices->get_choice(ec, current_node);
 
     // in case of multipath, use the past choice if it's been made
@@ -122,35 +119,35 @@ void ForwardingProcess::collect_next_hops(State *state,
         }
     }
 
-    set_candidates(state, std::move(candidates));
-    set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
+    model.set_candidates(std::move(candidates));
+    model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
 }
 
-void ForwardingProcess::forward_packet(State *state) {
-    Node *current_node = get_pkt_location(state);
-    Candidates *candidates = get_candidates(state);
+void ForwardingProcess::forward_packet() {
+    Node *current_node = model.get_pkt_location();
+    Candidates *candidates = model.get_candidates();
 
     // in case of multipath, remember the path choice
     if (candidates->size() > 1) {
-        Choices new_choices(*get_path_choices(state));
-        new_choices.add_choice(get_dst_ip_ec(state), current_node,
-                               candidates->at(state->choice));
-        set_path_choices(state, std::move(new_choices));
+        Choices new_choices(*model.get_path_choices());
+        new_choices.add_choice(model.get_dst_ip_ec(), current_node,
+                               candidates->at(model.get_choice()));
+        model.set_path_choices(std::move(new_choices));
     }
 
-    Node *next_hop = candidates->at(state->choice).get_l3_node();
-    Interface *ingress_intf = candidates->at(state->choice).get_l3_intf();
+    Node *next_hop = candidates->at(model.get_choice()).get_l3_node();
+    Interface *ingress_intf = candidates->at(model.get_choice()).get_l3_intf();
 
     // When the packet is delivered at its destination
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
-        int proto_state = get_proto_state(state);
-        Node *current_node = get_pkt_location(state);
-        Node *tx_node = get_tx_node(state);
-        Node *rx_node = get_rx_node(state);
+        int proto_state = model.get_proto_state();
+        Node *current_node = model.get_pkt_location();
+        Node *tx_node = model.get_tx_node();
+        Node *rx_node = model.get_rx_node();
         if (PS_IS_FIRST(proto_state)) {
             // store the original receiving endpoint of the connection
-            set_rx_node(state, current_node);
+            model.set_rx_node(current_node);
         } else if ((PS_IS_REQUEST_DIR(proto_state) &&
                     current_node != rx_node) ||
                    (PS_IS_REPLY_DIR(proto_state) && current_node != tx_node)) {
@@ -158,113 +155,112 @@ void ForwardingProcess::forward_packet(State *state) {
             // so don't check endpoint consistency for PS_TCP_TERM_*
             // inconsistent endpoints: dropped by middlebox
             Logger::info("Inconsistent endpoints");
-            Logger::info("Connection " + std::to_string(get_conn(state)) +
+            Logger::info("Connection " + std::to_string(model.get_conn()) +
                          " dropped by " + current_node->to_string());
-            set_fwd_mode(state, fwd_mode::DROPPED);
-            set_executable(state, 0);
+            model.set_fwd_mode(fwd_mode::DROPPED);
+            model.set_executable(0);
             return;
         }
 
         Logger::info("Packet delivered at " + current_node->to_string());
-        set_fwd_mode(state, fwd_mode::ACCEPTED);
-        state->choice_count = 1;
+        model.set_fwd_mode(fwd_mode::ACCEPTED);
+        model.set_choice_count(1);
     } else {
         if (typeid(*next_hop) == typeid(Middlebox)) {
             // packet delivered at middlebox, set rx node
-            if (PS_IS_FIRST(get_proto_state(state))) {
+            if (PS_IS_FIRST(model.get_proto_state())) {
                 // store the original receiving endpoint of the connection
-                set_rx_node(state, next_hop);
+                model.set_rx_node(next_hop);
             }
-            set_executable(state, 1);
+            model.set_executable(1);
         }
 
-        set_pkt_location(state, next_hop);
-        set_ingress_intf(state, ingress_intf);
+        model.set_pkt_location(next_hop);
+        model.set_ingress_intf(ingress_intf);
         Logger::info("Packet forwarded to " + next_hop->to_string() + ", " +
                      ingress_intf->to_string());
-        set_fwd_mode(state, fwd_mode::COLLECT_NHOPS);
-        state->choice_count = 1;
+        model.set_fwd_mode(fwd_mode::COLLECT_NHOPS);
+        model.set_choice_count(1);
     }
 }
 
-void ForwardingProcess::accepted(State *state, const Network &network) {
-    int proto_state = get_proto_state(state);
-    Node &pkt_loc = *get_pkt_location(state);
+void ForwardingProcess::accepted(const Network &network) {
+    int proto_state = model.get_proto_state();
+    Node &pkt_loc = *model.get_pkt_location();
 
     switch (proto_state) {
     case PS_TCP_INIT_1:
-        phase_transition(state, network, PS_TCP_INIT_2, true);
+        phase_transition(network, PS_TCP_INIT_2, true);
         break;
     case PS_TCP_INIT_2:
-        phase_transition(state, network, PS_TCP_INIT_3, true);
+        phase_transition(network, PS_TCP_INIT_3, true);
         break;
     case PS_TCP_INIT_3:
-        phase_transition(state, network, PS_TCP_L7_REQ, false);
+        phase_transition(network, PS_TCP_L7_REQ, false);
         break;
     case PS_TCP_L7_REQ:
-        phase_transition(state, network, PS_TCP_L7_REQ_A, true);
+        phase_transition(network, PS_TCP_L7_REQ_A, true);
         break;
     case PS_TCP_L7_REQ_A:
-        phase_transition(state, network, PS_TCP_L7_REP, false);
+        phase_transition(network, PS_TCP_L7_REP, false);
         break;
     case PS_TCP_L7_REP:
-        phase_transition(state, network, PS_TCP_L7_REP_A, true);
+        phase_transition(network, PS_TCP_L7_REP_A, true);
         break;
     case PS_TCP_L7_REP_A:
         if (typeid(pkt_loc) == typeid(Middlebox)) {
-            phase_transition(state, network, PS_TCP_TERM_1, false);
+            phase_transition(network, PS_TCP_TERM_1, false);
         } else {
-            phase_transition(state, network, PS_TCP_TERM_1, true);
+            phase_transition(network, PS_TCP_TERM_1, true);
         }
         break;
     case PS_TCP_TERM_1:
-        phase_transition(state, network, PS_TCP_TERM_2, true);
+        phase_transition(network, PS_TCP_TERM_2, true);
         break;
     case PS_TCP_TERM_2:
-        phase_transition(state, network, PS_TCP_TERM_3, true);
+        phase_transition(network, PS_TCP_TERM_3, true);
         break;
     case PS_TCP_TERM_3:
-        set_executable(state, 0);
+        model.set_executable(0);
         break;
     case PS_UDP_REQ:
-        phase_transition(state, network, PS_UDP_REP, true);
+        phase_transition(network, PS_UDP_REP, true);
         break;
     case PS_UDP_REP:
-        set_executable(state, 0);
+        model.set_executable(0);
         break;
     case PS_ICMP_ECHO_REQ:
-        phase_transition(state, network, PS_ICMP_ECHO_REP, true);
+        phase_transition(network, PS_ICMP_ECHO_REP, true);
         break;
     case PS_ICMP_ECHO_REP:
-        set_executable(state, 0);
+        model.set_executable(0);
         break;
     default:
         Logger::error("Unknown protocol state " + std::to_string(proto_state));
     }
 }
 
-void ForwardingProcess::phase_transition(State *state,
-                                         const Network &network,
+void ForwardingProcess::phase_transition(const Network &network,
                                          uint8_t next_proto_state,
                                          bool change_direction) const {
     // check if the new src_node is a middlebox
     // if it is, do not inject packet and mark the connection as "not
     // executable" (missing packet)
     Node *new_src_node =
-        change_direction ? get_pkt_location(state) : get_src_node(state);
+        change_direction ? model.get_pkt_location() : model.get_src_node();
     if (typeid(*new_src_node) == typeid(Middlebox)) {
-        Logger::debug("Freeze conn " + std::to_string(get_conn(state)));
-        set_executable(state, 0);
+        Logger::debug("Freeze conn " + std::to_string(model.get_conn()));
+        model.set_executable(0);
         return;
     }
 
-    int old_proto_state = get_proto_state(state);
+    int old_proto_state = model.get_proto_state();
 
     // compute seq and ack numbers
     if (PS_IS_TCP(old_proto_state)) {
-        uint32_t seq = get_seq(state);
-        uint32_t ack = get_ack(state);
-        Payload *pl = get_payload(state);
+        uint32_t seq = model.get_seq();
+        uint32_t ack = model.get_ack();
+        Payload *pl = model.get_payload();
         uint32_t payload_size = pl ? pl->get_size() : 0;
         if (payload_size > 0) {
             seq += payload_size;
@@ -274,57 +270,55 @@ void ForwardingProcess::phase_transition(State *state,
         if (change_direction) {
             std::swap(seq, ack);
         }
-        set_seq(state, seq);
-        set_ack(state, ack);
+        model.set_seq(seq);
+        model.set_ack(ack);
     }
 
-    set_proto_state(state, next_proto_state);
+    model.set_proto_state(next_proto_state);
 
     // update src/dst IP, src node, src/dst ports, FIB, and pkt loc
     if (change_direction) {
-        uint32_t src_ip = get_src_ip(state);
-        EqClass *dst_ip_ec = get_dst_ip_ec(state);
+        uint32_t src_ip = model.get_src_ip();
+        EqClass *dst_ip_ec = model.get_dst_ip_ec();
         // the next src IP
-        set_src_ip(state, dst_ip_ec->representative_addr().get_value());
+        model.set_src_ip(dst_ip_ec->representative_addr().get_value());
         // the next dst IP EC
         EqClass *next_dst_ip_ec = EqClassMgr::get().find_ec(src_ip);
-        set_dst_ip_ec(state, next_dst_ip_ec);
+        model.set_dst_ip_ec(next_dst_ip_ec);
         // src node
-        set_src_node(state, get_pkt_location(state));
+        model.set_src_node(model.get_pkt_location());
         // src port and dst port
-        uint16_t src_port = get_src_port(state);
-        uint16_t dst_port = get_dst_port(state);
-        set_src_port(state, dst_port);
-        set_dst_port(state, src_port);
+        uint16_t src_port = model.get_src_port();
+        uint16_t dst_port = model.get_dst_port();
+        model.set_src_port(dst_port);
+        model.set_dst_port(src_port);
         // FIB
-        network.update_fib(state);
+        network.update_fib();
     } else {
-        set_pkt_location(state, get_src_node(state));
+        model.set_pkt_location(model.get_src_node());
     }
 
     // update payload
-    set_payload(state, PayloadMgr::get().get_payload(state));
+    model.set_payload(PayloadMgr::get().get_payload_from_model());
 
-    set_fwd_mode(state, fwd_mode::FIRST_COLLECT);
-    set_ingress_intf(state, nullptr);
-    reset_candidates(state);
+    model.set_fwd_mode(fwd_mode::FIRST_COLLECT);
+    model.set_ingress_intf(nullptr);
+    model.reset_candidates();
 }
 
-void ForwardingProcess::inject_packet(State *state,
-                                      Middlebox *mb,
-                                      const Network &network) {
+void ForwardingProcess::inject_packet(Middlebox *mb, const Network &network) {
     Stats::set_overall_lat_t1();
 
     // check out current pkt_hist and rewind the middlebox state
-    PacketHistory *pkt_hist = get_pkt_hist(state);
+    PacketHistory *pkt_hist = model.get_pkt_hist();
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
     Stats::set_rewind_lat_t1();
-    int rewind_injections = mb->rewind(state, current_nph);
+    int rewind_injections = mb->rewind(current_nph);
     Stats::set_rewind_latency();
     Stats::set_rewind_injection_count(rewind_injections);
 
     // construct new packet
-    Packet *new_pkt = new Packet(state);
+    Packet *new_pkt = new Packet(model);
     auto res = all_pkts.insert(new_pkt);
     if (!res.second) {
         delete new_pkt;
@@ -343,12 +337,12 @@ void ForwardingProcess::inject_packet(State *state,
     // update pkt_hist with this new node_pkt_hist
     PacketHistory new_pkt_hist(*pkt_hist);
     new_pkt_hist.set_node_pkt_hist(mb, new_nph);
-    set_pkt_hist(state, std::move(new_pkt_hist));
+    model.set_pkt_hist(std::move(new_pkt_hist));
 
     // inject packet
     Logger::info("Injecting packet: " + new_pkt->to_string());
     std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
-    process_recv_pkts(state, mb, std::move(recv_pkts), network);
+    process_recv_pkts(mb, std::move(recv_pkts), network);
 
     Stats::set_overall_latency();
 }
@@ -356,8 +350,7 @@ void ForwardingProcess::inject_packet(State *state,
 /*
  * No multicast.
  */
-void ForwardingProcess::process_recv_pkts(State *state,
-                                          Middlebox *mb,
+void ForwardingProcess::process_recv_pkts(Middlebox *mb,
                                           std::list<Packet> &&recv_pkts,
                                           const Network &network) const {
     bool current_conn_updated = false;
@@ -370,16 +363,16 @@ void ForwardingProcess::process_recv_pkts(State *state,
 
         // identify connection and sanitize packet
         bool is_new, opposite_dir, next_phase;
-        identify_conn(state, recv_pkt, is_new, opposite_dir);
+        identify_conn(recv_pkt, is_new, opposite_dir);
         uint16_t old_proto_state =
-            state->conn_state[recv_pkt.get_conn()].proto_state;
+            model.get_proto_state_for_conn(recv_pkt.get_conn());
         Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
                                        old_proto_state);
         check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
 
         // set conn (and recover it later)
-        int orig_conn = get_conn(state);
-        set_conn(state, recv_pkt.get_conn());
+        int orig_conn = model.get_conn();
+        model.set_conn(recv_pkt.get_conn());
 
         if (orig_conn == recv_pkt.get_conn()) {
             current_conn_updated = true;
@@ -388,14 +381,14 @@ void ForwardingProcess::process_recv_pkts(State *state,
         // update the remaining connection state variables based on the inferred
         // connection info
         if (is_new) {
-            set_num_conns(state, get_num_conns(state) + 1);
-            set_src_node(state, mb);
-            set_tx_node(state, mb);
-            set_rx_node(state, nullptr);
-            set_pkt_location(state, mb);
-            set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
-            set_ingress_intf(state, nullptr);
-            set_path_choices(state, Choices());
+            model.set_num_conns(model.get_num_conns() + 1);
+            model.set_src_node(mb);
+            model.set_tx_node(mb);
+            model.set_rx_node(nullptr);
+            model.set_pkt_location(mb);
+            model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
+            model.set_ingress_intf(nullptr);
+            model.set_path_choices(Choices());
             // update seq_offsets
             if (recv_pkt.get_proto_state() == PS_TCP_INIT_1) {
                 mb->get_emulation()->set_offset(recv_pkt.get_conn(),
@@ -404,12 +397,12 @@ void ForwardingProcess::process_recv_pkts(State *state,
             }
         } else if (next_phase) {
             if (opposite_dir) {
-                set_src_node(state, mb);
+                model.set_src_node(mb);
             } else {
-                set_pkt_location(state, get_src_node(state));
+                model.set_pkt_location(model.get_src_node());
             }
-            set_fwd_mode(state, fwd_mode::FIRST_FORWARD);
-            set_ingress_intf(state, nullptr);
+            model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
+            model.set_ingress_intf(nullptr);
             // update seq_offsets
             if (recv_pkt.get_proto_state() == PS_TCP_INIT_2) {
                 mb->get_emulation()->set_offset(recv_pkt.get_conn(),
@@ -421,15 +414,15 @@ void ForwardingProcess::process_recv_pkts(State *state,
                 recv_pkt.set_seq(recv_pkt.get_seq() - offset);
             }
         } else { // same phase (middlebox is not an endpoint)
-            assert(get_fwd_mode(state) == fwd_mode::COLLECT_NHOPS);
-            set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
+            assert(model.get_fwd_mode() == fwd_mode::COLLECT_NHOPS);
+            model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
         }
 
-        check_seq_ack(state, recv_pkt, is_new, opposite_dir, next_phase);
+        check_seq_ack(recv_pkt, is_new, opposite_dir, next_phase);
 
         // map the packet info (5-tuple + seq/ack + FIB + control logic) back
         // to the system state
-        recv_pkt.update_conn_state(state, network);
+        recv_pkt.update_conn_state(network);
         Logger::info("Received packet " + recv_pkt.to_string());
 
         // find the next hop and set candidates
@@ -441,9 +434,9 @@ void ForwardingProcess::process_recv_pkts(State *state,
         } else {
             Logger::warn("No next hop found");
         }
-        set_candidates(state, std::move(candidates));
+        model.set_candidates(std::move(candidates));
 
-        set_conn(state, orig_conn);
+        model.set_conn(orig_conn);
     }
 
     // The current connection isn't updated. I.e., no packets are received for
@@ -454,25 +447,25 @@ void ForwardingProcess::process_recv_pkts(State *state,
     // PS_TCP_L7_REP_A in TCP are delivered even when there's no response.
     if (!current_conn_updated) {
         Logger::info("No packets are received for conn " +
-                     std::to_string(get_conn(state)) +
+                     std::to_string(model.get_conn()) +
                      ", assuming the injected packet is delivered");
-        set_executable(state, 2);
-        set_fwd_mode(state, fwd_mode::FORWARD_PACKET);
+        model.set_executable(2);
+        model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
         Candidates candidates;
         candidates.add(FIB_IPNH(mb, nullptr, mb, nullptr));
-        set_candidates(state, std::move(candidates));
+        model.set_candidates(std::move(candidates));
     }
 
-    if (get_candidates(state)->empty()) {
+    if (model.get_candidates()->empty()) {
         // this only happens if the current connection is updated, but no next
         // hop is available for the received outgoing packet
-        Logger::info("Connection " + std::to_string(get_conn(state)) +
+        Logger::info("Connection " + std::to_string(model.get_conn()) +
                      " dropped by " + mb->to_string());
-        set_fwd_mode(state, fwd_mode::DROPPED);
-        set_executable(state, 0);
+        model.set_fwd_mode(fwd_mode::DROPPED);
+        model.set_executable(0);
     } else {
         // update choice_count for the current connection
-        set_choice_count(state, get_candidates(state)->size());
+        model.set_choice_count(model.get_candidates()->size());
     }
 }
 
@@ -480,22 +473,21 @@ void ForwardingProcess::process_recv_pkts(State *state,
  * It makes sure the 5-tuple values of the received packet comply with the
  * system.
  */
-void ForwardingProcess::identify_conn(State *state,
-                                      Packet &pkt,
+void ForwardingProcess::identify_conn(Packet &pkt,
                                       bool &is_new,
                                       bool &opposite_dir) const {
     int conn;
-    int orig_conn = get_conn(state);
+    int orig_conn = model.get_conn();
     is_new = false;
 
-    for (conn = 0; conn < get_num_conns(state); ++conn) {
-        set_conn(state, conn);
-        uint32_t src_ip = get_src_ip(state);
-        EqClass *dst_ip_ec = get_dst_ip_ec(state);
-        uint16_t src_port = get_src_port(state);
-        uint16_t dst_port = get_dst_port(state);
-        int conn_protocol = PS_TO_PROTO(get_proto_state(state));
-        set_conn(state, orig_conn);
+    for (conn = 0; conn < model.get_num_conns(); ++conn) {
+        model.set_conn(conn);
+        uint32_t src_ip = model.get_src_ip();
+        EqClass *dst_ip_ec = model.get_dst_ip_ec();
+        uint16_t src_port = model.get_src_port();
+        uint16_t dst_port = model.get_dst_port();
+        int conn_protocol = PS_TO_PROTO(model.get_proto_state());
+        model.set_conn(orig_conn);
 
         /*
          * Note that at this moment we have not converted the received packet's
@@ -527,7 +519,7 @@ void ForwardingProcess::identify_conn(State *state,
     }
 
     // new connection (NAT'd packets are also treated as new connections)
-    if (conn >= get_num_conns(state)) {
+    if (conn >= model.get_num_conns()) {
         if (conn >= MAX_CONNS) {
             Logger::error("Exceeding the maximum number of connections");
         }
@@ -565,23 +557,22 @@ void ForwardingProcess::check_proto_state(const Packet &pkt,
  * It makes sure the seq/ack numbers of the received packet comply with the
  * system.
  */
-void ForwardingProcess::check_seq_ack(State *state,
-                                      const Packet &pkt,
+void ForwardingProcess::check_seq_ack(const Packet &pkt,
                                       bool is_new,
                                       bool opposite_dir,
                                       bool next_phase) const {
     // verify seq/ack numbers if it's a TCP packet
     if (PS_IS_TCP(pkt.get_proto_state())) {
-        int orig_conn = get_conn(state);
-        set_conn(state, pkt.get_conn());
+        int orig_conn = model.get_conn();
+        model.set_conn(pkt.get_conn());
 
         if (is_new) { // new connection (SYN)
             assert(pkt.get_ack() == 0);
         } else if (next_phase) { // old connection; next phase
-            uint8_t old_proto_state = get_proto_state(state);
-            uint32_t old_seq = get_seq(state);
-            uint32_t old_ack = get_ack(state);
-            Payload *pl = get_payload(state);
+            uint8_t old_proto_state = model.get_proto_state();
+            uint32_t old_seq = model.get_seq();
+            uint32_t old_ack = model.get_ack();
+            Payload *pl = model.get_payload();
             uint32_t old_payload_size = pl ? pl->get_size() : 0;
             if (old_payload_size > 0) {
                 old_seq += old_payload_size;
@@ -600,11 +591,11 @@ void ForwardingProcess::check_seq_ack(State *state,
             }
         } else { // old connection; same phase
             // seq/ack should remain the same
-            assert(pkt.get_seq() == get_seq(state));
-            assert(pkt.get_ack() == get_ack(state));
-            assert(pkt.get_payload() == get_payload(state));
+            assert(pkt.get_seq() == model.get_seq());
+            assert(pkt.get_ack() == model.get_ack());
+            assert(pkt.get_payload() == model.get_payload());
         }
 
-        set_conn(state, orig_conn);
+        model.set_conn(orig_conn);
     }
 }

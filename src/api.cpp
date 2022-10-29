@@ -1,21 +1,42 @@
 #include "api.hpp"
 
+#include "model-access.hpp"
 #include "plankton.hpp"
 
 static Plankton &plankton = Plankton::get();
 
+class API {
+public:
+    static void initialize(State *state) {
+        Model::get()._set_state(state);
+        plankton.initialize();
+    }
+
+    static void exec_step(State *state) {
+        Model::get()._set_state(state);
+        plankton.exec_step();
+    }
+
+    static void report(State *state) {
+        Model::get()._set_state(state);
+        plankton.report();
+    }
+
+    static void verify_exit(int status) { plankton.verify_exit(status); }
+};
+
 void initialize(State *state) {
-    plankton.initialize(state);
+    API::initialize(state);
 }
 
 void exec_step(State *state) {
-    plankton.exec_step(state);
+    API::exec_step(state);
 }
 
 void report(State *state) {
-    plankton.report(state);
+    API::report(state);
 }
 
 void verify_exit(int status) {
-    plankton.verify_exit(status);
+    API::verify_exit(status);
 }

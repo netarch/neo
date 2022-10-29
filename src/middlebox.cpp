@@ -52,9 +52,9 @@ void Middlebox::increase_latency_estimate_by_DOP(int DOP) {
     update_timeout();
 }
 
-int Middlebox::rewind(State *state, NodePacketHistory *nph) {
+int Middlebox::rewind(NodePacketHistory *nph) {
     emulation = EmulationMgr::get().get_emulation(this, nph);
-    return emulation->rewind(state, nph);
+    return emulation->rewind(nph);
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {

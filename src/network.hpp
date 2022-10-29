@@ -12,7 +12,6 @@
 class Middlebox;
 class OpenflowProcess;
 class Route;
-struct State;
 
 /*
  * A network is an undirected graph. Nodes and links will remain constant once
@@ -50,7 +49,7 @@ public:
     const std::set<Link *, LinkCompare> &get_links() const;
     const std::unordered_set<Middlebox *> &get_middleboxes() const;
 
-    void update_fib(State *) const; // update FIB according to the current EC
+    void update_fib() const; // update FIB according to the current EC
 
     // The failure agent/process is not implemented yet, but if a link fails,
     // the FIB would need to be updated. (A link failure will change the

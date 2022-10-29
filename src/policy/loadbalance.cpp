@@ -6,8 +6,6 @@
 #include "protocols.hpp"
 #include "reachcounts.hpp"
 
-#include "model.h"
-
 std::string LoadBalancePolicy::to_string() const {
     std::string ret = "Loadbalance (max_dispersion_index: " +
                       std::to_string(max_dispersion_index) + "): [";
@@ -18,11 +16,11 @@ std::string LoadBalancePolicy::to_string() const {
     return ret;
 }
 
-void LoadBalancePolicy::init(State *state, const Network *network) {
-    Policy::init(state, network);
-    set_violated(state, false);
+void LoadBalancePolicy::init(const Network *network) {
+    Policy::init(network);
+    model.set_violated(false);
     ReachCounts reach_counts;
-    set_reach_counts(state, std::move(reach_counts));
+    model.set_reach_counts(std::move(reach_counts));
 }
 
 static inline double
@@ -48,13 +46,13 @@ compute_dispersion_index(const std::unordered_set<Node *> &target_nodes,
     return index;
 }
 
-int LoadBalancePolicy::check_violation(State *state) {
-    int mode = get_fwd_mode(state);
-    int proto_state = get_proto_state(state);
+int LoadBalancePolicy::check_violation() {
+    int mode = model.get_fwd_mode();
+    int proto_state = model.get_proto_state();
 
     if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(proto_state)) {
-        Node *rx_node = get_rx_node(state);
-        ReachCounts new_reach_counts(*get_reach_counts(state));
+        Node *rx_node = model.get_rx_node();
+        ReachCounts new_reach_counts(*model.get_reach_counts());
         new_reach_counts.increase(rx_node);
         // Logger::debug(new_reach_counts.to_string());
 
@@ -64,14 +62,14 @@ int LoadBalancePolicy::check_violation(State *state) {
             if (current_dispersion_index > max_dispersion_index) {
                 Logger::info("Current dispersion index: " +
                              std::to_string(current_dispersion_index));
-                set_violated(state, true); // violation
-                state->choice_count = 0;
+                model.set_violated(true); // violation
+                model.set_choice_count(0);
             }
         }
-        set_reach_counts(state, std::move(new_reach_counts));
+        model.set_reach_counts(std::move(new_reach_counts));
 
         // so that the connection won't be chosen
-        set_executable(state, 0);
+        model.set_executable(0);
     }
 
     return POL_NULL;

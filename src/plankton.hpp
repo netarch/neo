@@ -7,7 +7,6 @@
 #include "process/choose_conn.hpp"
 #include "process/forwarding.hpp"
 #include "process/openflow.hpp"
-struct State;
 
 class Plankton {
 private:
@@ -28,7 +27,7 @@ private:
     Plankton();
     void verify_conn();
     void verify_policy(Policy *);
-    void check_to_switch_process(State *) const;
+    void check_to_switch_process() const;
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -47,9 +46,9 @@ public:
     int run();
 
     /***** functions used by the Promela network model *****/
-    void initialize(State *);
-    void reinit(State *); // used by policies with correlated sub-policies
-    void exec_step(State *);
-    void report(State *);
+    void initialize();
+    void reinit(); // used by policies with correlated sub-policies
+    void exec_step();
+    void report();
     void verify_exit(int);
 };

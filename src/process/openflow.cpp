@@ -10,8 +10,6 @@
 #include "node.hpp"
 #include "policy/policy.hpp"
 
-#include "model.h"
-
 size_t OpenflowUpdateState::num_of_installed_updates(int node_order) const {
     return this->update_vector.at(node_order);
 }
@@ -65,10 +63,10 @@ const decltype(OpenflowProcess::updates) &OpenflowProcess::get_updates() const {
 }
 
 std::map<Node *, std::set<FIB_IPNH>>
-OpenflowProcess::get_installed_updates(State *state) const {
+OpenflowProcess::get_installed_updates() const {
     std::map<Node *, std::set<FIB_IPNH>> installed_updates;
-    EqClass *ec = get_dst_ip_ec(state);
-    OpenflowUpdateState *update_state = get_openflow_update_state(state);
+    EqClass *ec = model.get_dst_ip_ec();
+    OpenflowUpdateState *update_state = model.get_openflow_update_state();
 
     size_t node_order = 0;
     for (const auto &pair : this->updates) {
@@ -95,14 +93,14 @@ OpenflowProcess::get_installed_updates(State *state) const {
     return installed_updates;
 }
 
-bool OpenflowProcess::has_updates(State *state, Node *node) const {
+bool OpenflowProcess::has_updates(Node *node) const {
     auto itr = this->updates.find(node);
 
     if (itr == this->updates.end()) {
         return false;
     }
 
-    OpenflowUpdateState *update_state = get_openflow_update_state(state);
+    OpenflowUpdateState *update_state = model.get_openflow_update_state();
     int node_order = std::distance(this->updates.begin(), itr);
     size_t num_installed = update_state->num_of_installed_updates(node_order);
     size_t num_of_all_updates = itr->second.size();
@@ -113,7 +111,7 @@ bool OpenflowProcess::has_updates(State *state, Node *node) const {
     return false; // all updates have been installed
 }
 
-void OpenflowProcess::init(State *state) {
+void OpenflowProcess::init() {
     if (!enabled) {
         return;
     }
@@ -123,50 +121,49 @@ void OpenflowProcess::init(State *state) {
         return;
     }
 
-    set_openflow_update_state(state, OpenflowUpdateState(this->updates.size()));
+    model.set_openflow_update_state(OpenflowUpdateState(this->updates.size()));
 }
 
-void OpenflowProcess::exec_step(State *state,
-                                const Network &network
+void OpenflowProcess::exec_step(const Network &network
                                 __attribute__((unused))) {
     if (!enabled) {
         return;
     }
 
-    this->install_update(state);
+    this->install_update();
 }
 
 /*
  * For now, setting choice_count to 1 means not continuing installing updates
  * since there is no update left, 2 otherwise.
  */
-void OpenflowProcess::install_update(State *state) {
-    if (state->choice == 0) {
+void OpenflowProcess::install_update() {
+    if (model.get_choice() == 0) {
         Logger::info("Openflow: not installing update");
-        state->choice_count = 1; // back to forwarding
+        model.set_choice_count(1); // back to forwarding
         return;
     }
 
-    Node *current_node = get_pkt_location(state);
+    Node *current_node = model.get_pkt_location();
     auto itr = this->updates.find(current_node);
     assert(itr != this->updates.end());
     const std::vector<Route> &all_updates = itr->second;
     int node_order = std::distance(this->updates.begin(), itr);
-    OpenflowUpdateState *update_state = get_openflow_update_state(state);
+    OpenflowUpdateState *update_state = model.get_openflow_update_state();
     size_t num_installed = update_state->num_of_installed_updates(node_order);
 
     // set the new openflow update state
     OpenflowUpdateState new_update_state(*update_state);
     new_update_state.install_update_at(node_order);
-    set_openflow_update_state(state, std::move(new_update_state));
+    model.set_openflow_update_state(std::move(new_update_state));
 
     // set choice_count
     if (num_installed + 1 < all_updates.size()) {
         // if there are still more updates of the current node,
         // non-deterministically install each of them
-        state->choice_count = 2; // whether to install an update or not
+        model.set_choice_count(2); // whether to install an update or not
     } else {
-        state->choice_count = 1; // back to forwarding
+        model.set_choice_count(1); // back to forwarding
     }
 
     // the openflow rule to be updated
@@ -178,7 +175,7 @@ void OpenflowProcess::install_update(State *state) {
 
     // check route precedence (longest prefix match)
     RoutingTable of_rib = current_node->get_rib();
-    EqClass *ec = get_dst_ip_ec(state);
+    EqClass *ec = model.get_dst_ip_ec();
     for (size_t i = 0; i < num_installed; ++i) {
         if (all_updates[i].relevant_to_ec(*ec)) {
             of_rib.insert(all_updates[i]);
@@ -191,10 +188,10 @@ void OpenflowProcess::install_update(State *state) {
     std::set<FIB_IPNH> next_hops = current_node->get_ipnhs(addr, &of_rib);
 
     // construct the new FIB
-    FIB fib(*get_fib(state));
+    FIB fib(*model.get_fib());
     fib.set_ipnhs(current_node, std::move(next_hops));
 
     // update FIB
-    FIB *new_fib = set_fib(state, std::move(fib));
+    FIB *new_fib = model.set_fib(std::move(fib));
     Logger::debug(new_fib->to_string());
 }

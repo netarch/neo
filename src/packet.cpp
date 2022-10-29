@@ -11,28 +11,26 @@
 #include "process/process.hpp"
 #include "protocols.hpp"
 
-#include "model.h"
-
 Packet::Packet()
     : conn(-1), interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0),
       dst_port(0), seq(0), ack(0), proto_state(0), payload(nullptr) {}
 
-Packet::Packet(State *state)
+Packet::Packet(const Model &model)
     : Packet() // make sure all members are initialized
 {
-    this->conn = ::get_conn(state);
-    this->interface = ::get_ingress_intf(state);
+    this->conn = model.get_conn();
+    this->interface = model.get_ingress_intf();
 
-    this->src_ip = ::get_src_ip(state);
-    this->dst_ip = ::get_dst_ip_ec(state)->representative_addr();
+    this->src_ip = model.get_src_ip();
+    this->dst_ip = model.get_dst_ip_ec()->representative_addr();
 
-    this->src_port = ::get_src_port(state);
-    this->dst_port = ::get_dst_port(state);
-    this->seq = ::get_seq(state);
-    this->ack = ::get_ack(state);
+    this->src_port = model.get_src_port();
+    this->dst_port = model.get_dst_port();
+    this->seq = model.get_seq();
+    this->ack = model.get_ack();
 
-    this->proto_state = ::get_proto_state(state);
-    this->payload = ::get_payload(state);
+    this->proto_state = model.get_proto_state();
+    this->payload = model.get_payload();
 }
 
 Packet::Packet(int conn,
@@ -116,29 +114,29 @@ Payload *Packet::get_payload() const {
     return payload;
 }
 
-void Packet::update_conn_state(State *state, const Network &network) const {
+void Packet::update_conn_state(const Network &network) const {
     assert(this->conn != -1);
-    int orig_conn = ::get_conn(state);
-    ::set_conn(state, this->conn);
+    int orig_conn = model.get_conn();
+    model.set_conn(this->conn);
 
-    EqClass *old_dst_ip_ec = ::get_dst_ip_ec(state);
+    EqClass *old_dst_ip_ec = model.get_dst_ip_ec();
 
-    ::set_executable(state, 2);
+    model.set_executable(2);
 
-    ::set_proto_state(state, proto_state);
-    ::set_src_ip(state, src_ip.get_value());
-    ::set_dst_ip_ec(state, EqClassMgr::get().find_ec(dst_ip));
-    ::set_src_port(state, src_port);
-    ::set_dst_port(state, dst_port);
-    ::set_seq(state, seq);
-    ::set_ack(state, ack);
-    ::set_payload(state, payload);
+    model.set_proto_state(proto_state);
+    model.set_src_ip(src_ip.get_value());
+    model.set_dst_ip_ec(EqClassMgr::get().find_ec(dst_ip));
+    model.set_src_port(src_port);
+    model.set_dst_port(dst_port);
+    model.set_seq(seq);
+    model.set_ack(ack);
+    model.set_payload(payload);
 
-    if (old_dst_ip_ec != ::get_dst_ip_ec(state)) {
-        network.update_fib(state);
+    if (old_dst_ip_ec != model.get_dst_ip_ec()) {
+        network.update_fib();
     }
 
-    ::set_conn(state, orig_conn);
+    model.set_conn(orig_conn);
 }
 
 void Packet::clear() {

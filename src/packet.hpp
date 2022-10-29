@@ -4,9 +4,9 @@
 
 #include "lib/ip.hpp"
 class Interface;
-class Payload;
+class Model;
 class Network;
-struct State;
+class Payload;
 
 /*
  * ID ethernet address.
@@ -40,7 +40,7 @@ private:
 
 public:
     Packet();
-    Packet(State *);
+    Packet(const Model &);
     Packet(int conn,
            Interface *intf,
            IPv4Address src_ip,
@@ -67,7 +67,7 @@ public:
     uint32_t get_ack() const;
     uint16_t get_proto_state() const;
     Payload *get_payload() const;
-    void update_conn_state(State *, const Network &) const;
+    void update_conn_state(const Network &) const;
     void clear();
     bool empty() const;
     bool same_flow_as(const Packet &) const;

@@ -19,8 +19,6 @@
 #include "model-access.hpp"
 #include "stats.hpp"
 
-#include "model.h"
-
 static bool verify_all_ECs =
     false; // verify all ECs even if a violation is found
 static bool policy_violated = false; // true when policy is violated
@@ -307,88 +305,88 @@ int Plankton::run() {
 
 /***** functions used by the Promela network model *****/
 
-void Plankton::initialize(State *state) {
+void Plankton::initialize() {
     // processes
-    forwarding.init(state, network);
-    openflow.init(state); // openflow has to be initialized before fib
+    forwarding.init(network);
+    openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
-    policy->init(state, &network);
+    policy->init(&network);
 
     // control state
-    set_process_id(state, pid::forwarding);
-    set_choice(state, 0);
-    set_choice_count(state, 1);
+    model.set_process_id(pid::forwarding);
+    model.set_choice(0);
+    model.set_choice_count(1);
 }
 
-void Plankton::reinit(State *state) {
+void Plankton::reinit() {
     // processes
-    forwarding.init(state, network);
-    openflow.init(state); // openflow has to be initialized before fib
+    forwarding.init(network);
+    openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
-    policy->reinit(state, &network);
+    policy->reinit(&network);
 
     // control state
-    set_process_id(state, pid::forwarding);
-    set_choice(state, 0);
-    set_choice_count(state, 1);
+    model.set_process_id(pid::forwarding);
+    model.set_choice(0);
+    model.set_choice_count(1);
 }
 
-void Plankton::exec_step(State *state) {
-    int process_id = get_process_id(state);
+void Plankton::exec_step() {
+    int process_id = model.get_process_id();
 
     switch (process_id) {
     case pid::choose_conn: // choose the next connection
-        conn_choice.exec_step(state, network);
+        conn_choice.exec_step(network);
         break;
     case pid::forwarding:
-        forwarding.exec_step(state, network);
+        forwarding.exec_step(network);
         break;
     case pid::openflow:
-        openflow.exec_step(state, network);
+        openflow.exec_step(network);
         break;
     default:
         Logger::error("Unknown process id " + std::to_string(process_id));
     }
 
-    this->check_to_switch_process(state);
+    this->check_to_switch_process();
 
-    int policy_result = policy->check_violation(state);
+    int policy_result = policy->check_violation();
     if (policy_result & POL_REINIT_DP) {
-        reinit(state);
+        reinit();
     }
 }
 
-void Plankton::check_to_switch_process(State *state) const {
-    if (get_executable(state) != 2) {
+void Plankton::check_to_switch_process() const {
+    if (model.get_executable() != 2) {
         /* 2: executable, not entering a middlebox
          * 1: executable, about to enter a middlebox
          * 0: not executable (missing packet or terminated) */
-        set_process_id(state, pid::choose_conn);
-        conn_choice.update_choice_count(state);
+        model.set_process_id(pid::choose_conn);
+        conn_choice.update_choice_count();
         return;
     }
 
-    int process_id = get_process_id(state);
-    int fwd_mode = get_fwd_mode(state);
-    Node *current_node = get_pkt_location(state);
+    int process_id = model.get_process_id();
+    int fwd_mode = model.get_fwd_mode();
+    Node *current_node = model.get_pkt_location();
 
     switch (process_id) {
     case pid::choose_conn:
-        set_process_id(state, pid::forwarding);
+        model.set_process_id(pid::forwarding);
         break;
     case pid::forwarding:
         if ((fwd_mode == fwd_mode::COLLECT_NHOPS ||
              fwd_mode == fwd_mode::FIRST_COLLECT) &&
-            openflow.has_updates(state, current_node)) {
-            set_process_id(state, pid::openflow);
-            state->choice_count = 2; // whether to install an update or not
+            openflow.has_updates(current_node)) {
+            model.set_process_id(pid::openflow);
+            model.set_choice_count(2); // whether to install an update or not
         }
         break;
     case pid::openflow:
-        if (state->choice_count == 1) {
-            set_process_id(state, pid::forwarding);
+        if (model.get_choice_count() == 1) {
+            model.set_process_id(pid::forwarding);
         }
         break;
     default:
@@ -396,6 +394,6 @@ void Plankton::check_to_switch_process(State *state) const {
     }
 }
 
-void Plankton::report(State *state) {
-    policy->report(state);
+void Plankton::report() {
+    policy->report();
 }

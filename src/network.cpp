@@ -6,8 +6,6 @@
 #include "model-access.hpp"
 #include "process/openflow.hpp"
 
-#include "model.h"
-
 void Network::add_node(Node *node) {
     auto res = nodes.insert(std::make_pair(node->get_name(), node));
     if (res.second == false) {
@@ -79,9 +77,9 @@ const std::unordered_set<Middlebox *> &Network::get_middleboxes() const {
     return middleboxes;
 }
 
-void Network::update_fib(State *state) const {
+void Network::update_fib() const {
     FIB fib;
-    EqClass *ec = get_dst_ip_ec(state);
+    EqClass *ec = model.get_dst_ip_ec();
     IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops from routing tables
@@ -91,9 +89,9 @@ void Network::update_fib(State *state) const {
     }
 
     // install openflow updates that have been installed
-    for (auto &pair : openflow->get_installed_updates(state)) {
+    for (auto &pair : openflow->get_installed_updates()) {
         fib.set_ipnhs(pair.first, std::move(pair.second));
     }
 
-    set_fib(state, std::move(fib));
+    model.set_fib(std::move(fib));
 }
