@@ -22,6 +22,6 @@ private:
 
 public:
     std::string to_string() const override;
-    void init(const Network *) override;
+    void init() override;
     int check_violation() override;
 };

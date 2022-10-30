@@ -6,19 +6,19 @@
 #include "interface.hpp"
 #include "lib/hash.hpp"
 #include "model-access.hpp"
-#include "network.hpp"
 #include "payload.hpp"
 #include "process/process.hpp"
 #include "protocols.hpp"
 
 Packet::Packet()
-    : conn(-1), interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0),
-      dst_port(0), seq(0), ack(0), proto_state(0), payload(nullptr) {}
+    : interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0), dst_port(0),
+      seq(0), ack(0), proto_state(0), payload(nullptr), _conn(-1),
+      _is_new(false), _opposite_dir(false), _next_phase(false) {}
 
 Packet::Packet(const Model &model)
     : Packet() // make sure all members are initialized
 {
-    this->conn = model.get_conn();
+    this->_conn = model.get_conn();
     this->interface = model.get_ingress_intf();
 
     this->src_ip = model.get_src_ip();
@@ -33,8 +33,7 @@ Packet::Packet(const Model &model)
     this->payload = model.get_payload();
 }
 
-Packet::Packet(int conn,
-               Interface *intf,
+Packet::Packet(Interface *intf,
                IPv4Address src_ip,
                IPv4Address dst_ip,
                uint16_t src_port,
@@ -42,13 +41,14 @@ Packet::Packet(int conn,
                uint32_t seq,
                uint32_t ack,
                uint16_t proto_state)
-    : conn(conn), interface(intf), src_ip(src_ip), dst_ip(dst_ip),
-      src_port(src_port), dst_port(dst_port), seq(seq), ack(ack),
-      proto_state(proto_state), payload(nullptr) {}
+    : interface(intf), src_ip(src_ip), dst_ip(dst_ip), src_port(src_port),
+      dst_port(dst_port), seq(seq), ack(ack), proto_state(proto_state),
+      payload(nullptr), _conn(-1), _is_new(false), _opposite_dir(false),
+      _next_phase(false) {}
 
 std::string Packet::to_string() const {
     int proto_state = this->proto_state;
-    std::string ret = "[conn " + std::to_string(conn) + "] ";
+    std::string ret = "[conn " + std::to_string(_conn) + "] ";
     if (interface) {
         ret += interface->to_string() + ": ";
     }
@@ -72,10 +72,6 @@ std::string Packet::to_string() const {
     }
     ret += " }";
     return ret;
-}
-
-int Packet::get_conn() const {
-    return conn;
 }
 
 Interface *Packet::get_intf() const {
@@ -114,29 +110,20 @@ Payload *Packet::get_payload() const {
     return payload;
 }
 
-void Packet::update_conn_state(const Network &network) const {
-    assert(this->conn != -1);
-    int orig_conn = model.get_conn();
-    model.set_conn(this->conn);
+int Packet::conn() const {
+    return _conn;
+}
 
-    EqClass *old_dst_ip_ec = model.get_dst_ip_ec();
+bool Packet::is_new() const {
+    return _is_new;
+}
 
-    model.set_executable(2);
+bool Packet::opposite_dir() const {
+    return _opposite_dir;
+}
 
-    model.set_proto_state(proto_state);
-    model.set_src_ip(src_ip.get_value());
-    model.set_dst_ip_ec(EqClassMgr::get().find_ec(dst_ip));
-    model.set_src_port(src_port);
-    model.set_dst_port(dst_port);
-    model.set_seq(seq);
-    model.set_ack(ack);
-    model.set_payload(payload);
-
-    if (old_dst_ip_ec != model.get_dst_ip_ec()) {
-        network.update_fib();
-    }
-
-    model.set_conn(orig_conn);
+bool Packet::next_phase() const {
+    return _next_phase;
 }
 
 void Packet::clear() {
@@ -162,10 +149,6 @@ bool Packet::same_flow_as(const Packet &other) const {
 
 bool Packet::same_header(const Packet &other) const {
     return (same_flow_as(other) && seq == other.seq && ack == other.ack);
-}
-
-void Packet::set_conn(int conn) {
-    this->conn = conn;
 }
 
 void Packet::set_intf(Interface *intf) {
@@ -202,6 +185,22 @@ void Packet::set_proto_state(uint16_t s) {
 
 void Packet::set_payload(Payload *pl) {
     this->payload = pl;
+}
+
+void Packet::set_conn(int conn) {
+    this->_conn = conn;
+}
+
+void Packet::set_is_new(bool is_new) {
+    this->_is_new = is_new;
+}
+
+void Packet::set_opposite_dir(bool opposite) {
+    this->_opposite_dir = opposite;
+}
+
+void Packet::set_next_phase(bool next_phase) {
+    this->_next_phase = next_phase;
 }
 
 bool operator==(const Packet &a, const Packet &b) {

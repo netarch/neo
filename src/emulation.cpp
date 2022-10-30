@@ -6,6 +6,7 @@
 
 #include "dropmon.hpp"
 #include "lib/logger.hpp"
+#include "lib/net.hpp"
 #include "mb-env/netns.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"
@@ -194,52 +195,17 @@ int Emulation::rewind(NodePacketHistory *nph) {
             std::list<Packet> recv_pkts = send_pkt(*packet);
 
             // Update seq_offsets
-            for (const auto &recv_pkt : recv_pkts) {
+            for (auto &recv_pkt : recv_pkts) {
                 // Skip any non-TCP packets
-                if (!(recv_pkt.get_proto_state() & 0x800U)) {
+                if (!PS_IS_TCP(recv_pkt.get_proto_state())) {
                     continue;
                 }
 
-                // Identify the connection
-                int conn;
-                int orig_conn = model.get_conn();
-                for (conn = 0; conn < model.get_num_conns(); ++conn) {
-                    model.set_conn(conn);
-                    uint32_t src_ip = model.get_src_ip();
-                    EqClass *dst_ip_ec = model.get_dst_ip_ec();
-                    uint16_t src_port = model.get_src_port();
-                    uint16_t dst_port = model.get_dst_port();
-                    int conn_protocol = PS_TO_PROTO(model.get_proto_state());
-                    model.set_conn(orig_conn);
-
-                    int pkt_protocol;
-                    if (recv_pkt.get_proto_state() & 0x800U) {
-                        pkt_protocol = proto::tcp;
-                    } else {
-                        pkt_protocol = PS_TO_PROTO(recv_pkt.get_proto_state());
-                    }
-
-                    if (recv_pkt.get_src_ip() == src_ip &&
-                        dst_ip_ec->contains(recv_pkt.get_dst_ip()) &&
-                        recv_pkt.get_src_port() == src_port &&
-                        recv_pkt.get_dst_port() == dst_port &&
-                        pkt_protocol == conn_protocol) {
-                        // same connection, same direction
-                        break;
-                    } else if (recv_pkt.get_dst_ip() == src_ip &&
-                               dst_ip_ec->contains(recv_pkt.get_src_ip()) &&
-                               recv_pkt.get_dst_port() == src_port &&
-                               recv_pkt.get_src_port() == dst_port &&
-                               pkt_protocol == conn_protocol) {
-                        // same connection, opposite direction
-                        break;
-                    }
-                }
-
-                assert(conn < model.get_num_conns());
+                Net::get().identify_conn(recv_pkt);
+                assert(!recv_pkt.is_new());
                 uint16_t flags = recv_pkt.get_proto_state() & (~0x800U);
                 if (flags == TH_SYN || flags == (TH_SYN | TH_ACK)) {
-                    this->set_offset(conn, recv_pkt.get_seq());
+                    this->set_offset(recv_pkt.conn(), recv_pkt.get_seq());
                 }
             }
         }
@@ -252,7 +218,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
 std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
     // Apply the seq offset on ack to create a new packet
     Packet new_pkt(pkt);
-    uint32_t seq_offset = this->get_offset(pkt.get_conn());
+    uint32_t seq_offset = this->get_offset(pkt.conn());
     new_pkt.set_ack(new_pkt.get_ack() + seq_offset);
 
     std::unique_lock<std::mutex> lck(mtx);
@@ -286,17 +252,12 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
 
     DropMon::get().stop_listening();
 
-    /*
-     * NOTE:
-     * We don't process the read packets in the critical section (i.e., here).
-     * Instead, we process the read packets in ForwardingProcess, which is also
-     * because the knowledge of the current connection state is required to
-     * process it correctly, as mentioned in lib/net.cpp.
-     */
-
-    // return the received packets
-    std::list<Packet> return_pkts(std::move(recv_pkts));
+    // Move and reset the received packets
+    std::list<Packet> pkts(std::move(recv_pkts));
     recv_pkts.clear();
     recv_pkts_hash.clear();
-    return return_pkts;
+    lck.unlock();
+
+    Net::get().reassemble_segments(pkts);
+    return pkts;
 }

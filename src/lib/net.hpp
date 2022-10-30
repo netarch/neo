@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <list>
 #include <string>
 
 struct libnet_context;
 typedef struct libnet_context libnet_t;
+class Emulation;
 class Packet;
 class PktBuffer;
 
@@ -53,10 +55,11 @@ public:
     void deserialize(Packet &, const uint8_t *, size_t) const;
     void deserialize(Packet &, const PktBuffer &) const;
     bool is_tcp_ack_or_psh_ack(const Packet &) const;
-    void convert_proto_state(Packet &,
-                             bool is_new,
-                             bool change_direction,
-                             uint16_t old_proto_state) const;
+    void convert_proto_state(Packet &, uint16_t old_proto_state) const;
+    void reassemble_segments(std::list<Packet> &) const;
+    void identify_conn(Packet &) const;
+    void process_proto_state(Packet &) const;
+    void process_seq_ack(Packet &, Emulation *) const;
 
     std::string mac_to_str(const uint8_t *) const;
 

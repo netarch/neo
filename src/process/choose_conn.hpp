@@ -1,7 +1,6 @@
 #pragma once
 
 #include "process/process.hpp"
-class Network;
 
 /*
  * Choose the next connection non-deterministically
@@ -11,5 +10,5 @@ public:
     ChooseConnProcess() = default;
 
     void update_choice_count() const;
-    void exec_step(const Network &) override;
+    void exec_step() override;
 };

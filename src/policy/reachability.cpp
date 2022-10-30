@@ -1,7 +1,6 @@
 #include "policy/reachability.hpp"
 
 #include "model-access.hpp"
-#include "network.hpp"
 #include "node.hpp"
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
@@ -17,8 +16,8 @@ std::string ReachabilityPolicy::to_string() const {
     return ret;
 }
 
-void ReachabilityPolicy::init(const Network *network) {
-    Policy::init(network);
+void ReachabilityPolicy::init() {
+    Policy::init();
     model.set_violated(false);
 }
 

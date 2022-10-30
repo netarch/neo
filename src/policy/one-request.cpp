@@ -15,11 +15,10 @@ std::string OneRequestPolicy::to_string() const {
     return ret;
 }
 
-void OneRequestPolicy::init(const Network *network) {
-    Policy::init(network);
+void OneRequestPolicy::init() {
+    Policy::init();
     model.set_violated(true);
-    ReachCounts reach_counts;
-    model.set_reach_counts(std::move(reach_counts));
+    model.set_reach_counts(ReachCounts());
 }
 
 int OneRequestPolicy::check_violation() {

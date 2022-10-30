@@ -11,6 +11,7 @@
 #include "fib.hpp"
 #include "interface.hpp"
 #include "lib/logger.hpp"
+#include "network.hpp"
 #include "node.hpp"
 #include "payload.hpp"
 #include "pkt-hist.hpp"
@@ -64,19 +65,24 @@ VariableHist::~VariableHist() {
 static VariableHist storage;
 const Model &model = Model::get();
 
-Model::Model() : state(nullptr) {}
+Model::Model() : state(nullptr), network(nullptr), openflow(nullptr) {}
 
 Model &Model::get() {
     static Model instance;
     return instance;
 }
 
-void Model::_set_state(State *state) {
+void Model::set_state(State *state) {
     if (this->state == nullptr) {
         this->state = state;
     } else {
         assert(this->state == state);
     }
+}
+
+void Model::init(Network *network, OpenflowProcess *openflow) {
+    this->network = network;
+    this->openflow = openflow;
 }
 
 void Model::print_conn_states() const {
@@ -309,6 +315,24 @@ FIB *Model::set_fib(FIB &&fib) const {
     }
     memcpy(state->conn_state[state->conn].fib, &new_fib, sizeof(FIB *));
     return new_fib;
+}
+
+void Model::update_fib() const {
+    FIB fib;
+    EqClass *ec = model.get_dst_ip_ec();
+    IPv4Address addr = ec->representative_addr();
+
+    // collect IP next hops from routing tables
+    for (const auto &[_, node] : this->network->get_nodes()) {
+        fib.set_ipnhs(node, node->get_ipnhs(addr));
+    }
+
+    // install openflow updates that have been installed
+    for (auto &[node, next_hops] : this->openflow->get_installed_updates()) {
+        fib.set_ipnhs(node, std::move(next_hops));
+    }
+
+    model.set_fib(std::move(fib));
 }
 
 Choices *Model::get_path_choices() const {

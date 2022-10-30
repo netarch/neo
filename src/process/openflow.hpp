@@ -9,7 +9,6 @@
 class Policy;
 class Node;
 class Route;
-class Network;
 class FIB_IPNH;
 
 /*
@@ -67,5 +66,5 @@ public:
     bool has_updates(Node *) const;
 
     void init();
-    void exec_step(const Network &) override;
+    void exec_step() override;
 };

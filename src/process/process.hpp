@@ -1,7 +1,5 @@
 #pragma once
 
-class Network;
-
 enum pid {
     choose_conn,
     forwarding,
@@ -19,5 +17,5 @@ public:
     void disable();
     bool is_enabled() const;
 
-    virtual void exec_step(const Network &) = 0;
+    virtual void exec_step() = 0;
 };

@@ -111,22 +111,22 @@ void Policy::report() const {
     }
 }
 
-void Policy::init(const Network *network) {
+void Policy::init() {
     if (correlated_policies.empty()) {
         // per-connection states
         for (size_t i = 0; i < conns.size(); ++i) {
-            conns[i].init(i, *network);
+            conns[i].init(i);
         }
         model.set_conn(0);
         model.set_num_conns(conns.size());
         model.print_conn_states();
     } else {
-        correlated_policies[model.get_correlated_policy_idx()]->init(network);
+        correlated_policies[model.get_correlated_policy_idx()]->init();
     }
 }
 
 // reinit should only be overwritten by policies with correlated sub-policies
-void Policy::reinit(const Network *network __attribute__((unused))) {
+void Policy::reinit() {
     Logger::error("This shouldn't be called");
 }
 

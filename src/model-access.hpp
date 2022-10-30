@@ -7,7 +7,9 @@ class Choices;
 class EqClass;
 class FIB;
 class Interface;
+class Network;
 class Node;
+class OpenflowProcess;
 class OpenflowUpdateState;
 class PacketHistory;
 class Payload;
@@ -20,10 +22,14 @@ private:
     // to safely assume that the pointer to that variable remains the same
     // through out the entire execution of the spin program.
     State *state;
+    Network *network;
+    OpenflowProcess *openflow;
 
     Model();
     friend class API;
-    void _set_state(State *);
+    friend class Plankton;
+    void set_state(State *);
+    void init(Network *, OpenflowProcess *);
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -80,6 +86,7 @@ public:
     // per-flow data plane state
     FIB *get_fib() const;
     FIB *set_fib(FIB &&) const;
+    void update_fib() const; // update FIB according to the current EC
     Choices *get_path_choices() const;
     Choices *set_path_choices(Choices &&) const;
 

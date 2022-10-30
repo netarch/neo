@@ -3,7 +3,6 @@
 #include "choices.hpp"
 #include "eqclassmgr.hpp"
 #include "model-access.hpp"
-#include "network.hpp"
 #include "packet.hpp"
 #include "payload.hpp"
 #include "process/forwarding.hpp"
@@ -31,7 +30,7 @@ std::string Connection::to_string() const {
     return ret;
 }
 
-void Connection::init(size_t conn_idx, const Network &network) const {
+void Connection::init(size_t conn_idx) const {
     int orig_conn = model.get_conn();
     model.set_conn(conn_idx);
 
@@ -64,7 +63,7 @@ void Connection::init(size_t conn_idx, const Network &network) const {
     model.set_ingress_intf(nullptr);
     model.reset_candidates();
 
-    network.update_fib();
+    model.update_fib();
     model.set_path_choices(Choices());
 
     // restore the original conn idx

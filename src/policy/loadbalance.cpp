@@ -16,11 +16,10 @@ std::string LoadBalancePolicy::to_string() const {
     return ret;
 }
 
-void LoadBalancePolicy::init(const Network *network) {
-    Policy::init(network);
+void LoadBalancePolicy::init() {
+    Policy::init();
     model.set_violated(false);
-    ReachCounts reach_counts;
-    model.set_reach_counts(std::move(reach_counts));
+    model.set_reach_counts(ReachCounts());
 }
 
 static inline double

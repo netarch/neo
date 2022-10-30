@@ -50,8 +50,7 @@ void ChooseConnProcess::update_choice_count() const {
     }
 }
 
-void ChooseConnProcess::exec_step(const Network &network
-                                  __attribute__((unused))) {
+void ChooseConnProcess::exec_step() {
     if (!enabled) {
         return;
     }

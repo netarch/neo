@@ -5,7 +5,6 @@
 #include "lib/ip.hpp"
 class Interface;
 class Model;
-class Network;
 class Payload;
 
 /*
@@ -21,8 +20,6 @@ class Payload;
  */
 class Packet {
 private:
-    // connection index
-    int conn;
     // ingress interface
     Interface *interface;
     // IP
@@ -35,14 +32,21 @@ private:
     // L7 payload
     Payload *payload;
 
+    /*
+     * Auxiliary variables, should not involved in PacketHash or PacketEq
+     */
+    int _conn;          // connection index
+    bool _is_new;       // the packet belongs to a new connection
+    bool _opposite_dir; // the packet is destined to the opposite direction
+    bool _next_phase; // the packet starts the next phase within the connection
+
     friend class PacketHash;
     friend bool operator==(const Packet &, const Packet &);
 
 public:
     Packet();
     Packet(const Model &);
-    Packet(int conn,
-           Interface *intf,
+    Packet(Interface *intf,
            IPv4Address src_ip,
            IPv4Address dst_ip,
            uint16_t src_port,
@@ -57,7 +61,6 @@ public:
     Packet &operator=(Packet &&) = default;
 
     std::string to_string() const;
-    int get_conn() const;
     Interface *get_intf() const;
     IPv4Address get_src_ip() const;
     IPv4Address get_dst_ip() const;
@@ -67,12 +70,14 @@ public:
     uint32_t get_ack() const;
     uint16_t get_proto_state() const;
     Payload *get_payload() const;
-    void update_conn_state(const Network &) const;
+    int conn() const;
+    bool is_new() const;
+    bool opposite_dir() const;
+    bool next_phase() const;
     void clear();
     bool empty() const;
     bool same_flow_as(const Packet &) const;
     bool same_header(const Packet &) const;
-    void set_conn(int);
     void set_intf(Interface *);
     void set_src_ip(const IPv4Address &);
     void set_dst_ip(const IPv4Address &);
@@ -82,6 +87,10 @@ public:
     void set_ack(uint32_t);
     void set_proto_state(uint16_t);
     void set_payload(Payload *);
+    void set_conn(int);
+    void set_is_new(bool);
+    void set_opposite_dir(bool);
+    void set_next_phase(bool);
 };
 
 bool operator==(const Packet &, const Packet &);

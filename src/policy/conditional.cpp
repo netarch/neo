@@ -10,13 +10,13 @@ std::string ConditionalPolicy::to_string() const {
     return ret;
 }
 
-void ConditionalPolicy::init(const Network *network) {
+void ConditionalPolicy::init() {
     model.set_correlated_policy_idx(0);
-    Policy::init(network);
+    Policy::init();
 }
 
-void ConditionalPolicy::reinit(const Network *network) {
-    Policy::init(network);
+void ConditionalPolicy::reinit() {
+    Policy::init();
 }
 
 int ConditionalPolicy::check_violation() {

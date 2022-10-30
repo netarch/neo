@@ -279,7 +279,7 @@ void Config::estimate_latency() {
      * (node1)-------------------(mb)-------------------(node2)
      *            [192.168.1.1/24]  [192.168.2.1/24]
      */
-    Network network(nullptr);
+    Network network;
 
     Middlebox *mb = new Middlebox();
     mb->name = "mb";
@@ -356,7 +356,7 @@ void Config::estimate_latency() {
     mb->emulation = &emulation;
 
     // inject packets
-    Packet packet(-1, mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0,
+    Packet packet(mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0,
                   PS_TCP_INIT_1);
     assert(emulation.dropmon == false);
     emulation.dropmon = true; // temporarily disable timeout
