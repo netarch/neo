@@ -595,7 +595,8 @@ void Net::process_proto_state(Packet &pkt) const {
         } else if (pkt.get_proto_state() > old_proto_state) {
             pkt.set_next_phase(true);
         } else {
-            Logger::error("Invalid protocol state");
+            Logger::warn("Invalid protocol state");
+            pkt.set_proto_state(PS_INVALID);
         }
     }
 }

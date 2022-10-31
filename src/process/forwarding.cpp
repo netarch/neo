@@ -363,6 +363,9 @@ void ForwardingProcess::update_model_from_pkts(
 
         Net::get().identify_conn(recv_pkt);
         Net::get().process_proto_state(recv_pkt);
+        if (recv_pkt.get_proto_state() == PS_INVALID) {
+            continue;
+        }
         Net::get().check_seq_ack(recv_pkt);
         Logger::info("Received packet " + recv_pkt.to_string());
 

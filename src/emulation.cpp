@@ -95,6 +95,90 @@ void Emulation::teardown() {
     stop_listener = false;
 }
 
+void Emulation::reset_offsets() {
+    this->seq_offsets.clear();
+    this->port_offsets.clear();
+}
+
+void Emulation::apply_offsets(Packet &pkt) const {
+    // Skip any non-TCP packets
+    if (!PS_IS_TCP(pkt.get_proto_state())) {
+        return;
+    }
+
+    // Skip if this middlebox is not an endpoint
+    if (!this->emulated_mb->has_ip(pkt.get_dst_ip())) {
+        return;
+    }
+
+    EmuPktKey key(pkt.get_src_ip(), pkt.get_src_port());
+
+    // Apply seq offset to the ack number
+    uint32_t seq_offset = 0;
+    auto i = this->seq_offsets.find(key);
+    if (i != this->seq_offsets.end()) {
+        seq_offset = i->second;
+    }
+    pkt.set_ack(pkt.get_ack() + seq_offset);
+
+    // Apply port offset to the dst port number
+    uint16_t port_offset = 0;
+    auto j = this->port_offsets.find(key);
+    if (j != this->port_offsets.end()) {
+        port_offset = j->second;
+    }
+    pkt.set_dst_port(pkt.get_dst_port() + port_offset);
+}
+
+void Emulation::update_offsets(std::list<Packet> &pkts) {
+    for (auto &pkt : pkts) {
+        this->update_offsets(pkt);
+    }
+}
+
+void Emulation::update_offsets(Packet &pkt) {
+    // Skip any non-TCP packets
+    if (!PS_IS_TCP(pkt.get_proto_state())) {
+        return;
+    }
+
+    // Skip if this middlebox is not an endpoint
+    if (!this->emulated_mb->has_ip(pkt.get_src_ip())) {
+        return;
+    }
+
+    EmuPktKey key(pkt.get_dst_ip(), pkt.get_dst_port());
+    uint16_t flags = pkt.get_proto_state() & (~0x800U);
+
+    // Update seq offset
+    if (flags == TH_SYN || flags == (TH_SYN | TH_ACK)) {
+        this->seq_offsets[key] = pkt.get_seq();
+        pkt.set_seq(0);
+    } else {
+        uint32_t offset = 0;
+        auto i = this->seq_offsets.find(key);
+        if (i != this->seq_offsets.end()) {
+            offset = i->second;
+        }
+        pkt.set_seq(pkt.get_seq() - offset);
+    }
+
+    // Update (src) port offset
+    if (flags == TH_SYN) {
+        if (pkt.get_src_port() >= 1024) {
+            this->port_offsets[key] = pkt.get_src_port() - DYNAMIC_PORT;
+            pkt.set_src_port(DYNAMIC_PORT);
+        }
+    } else {
+        uint16_t offset = 0;
+        auto i = this->port_offsets.find(key);
+        if (i != this->port_offsets.end()) {
+            offset = i->second;
+        }
+        pkt.set_src_port(pkt.get_src_port() - offset);
+    }
+}
+
 Middlebox *Emulation::get_mb() const {
     return emulated_mb;
 }
@@ -227,88 +311,4 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
     Net::get().reassemble_segments(pkts);
     this->update_offsets(pkts);
     return pkts;
-}
-
-void Emulation::reset_offsets() {
-    this->seq_offsets.clear();
-    this->port_offsets.clear();
-}
-
-void Emulation::apply_offsets(Packet &pkt) const {
-    // Skip any non-TCP packets
-    if (!PS_IS_TCP(pkt.get_proto_state())) {
-        return;
-    }
-
-    // Skip if this middlebox is not an endpoint
-    if (!this->emulated_mb->has_ip(pkt.get_dst_ip())) {
-        return;
-    }
-
-    EmuPktKey key(pkt.get_src_ip(), pkt.get_src_port());
-
-    // Apply seq offset to the ack number
-    uint32_t seq_offset = 0;
-    auto i = this->seq_offsets.find(key);
-    if (i != this->seq_offsets.end()) {
-        seq_offset = i->second;
-    }
-    pkt.set_ack(pkt.get_ack() + seq_offset);
-
-    // Apply port offset to the dst port number
-    uint16_t port_offset = 0;
-    auto j = this->port_offsets.find(key);
-    if (j != this->port_offsets.end()) {
-        port_offset = j->second;
-    }
-    pkt.set_dst_port(pkt.get_dst_port() + port_offset);
-}
-
-void Emulation::update_offsets(std::list<Packet> &pkts) {
-    for (auto &pkt : pkts) {
-        this->update_offsets(pkt);
-    }
-}
-
-void Emulation::update_offsets(Packet &pkt) {
-    // Skip any non-TCP packets
-    if (!PS_IS_TCP(pkt.get_proto_state())) {
-        return;
-    }
-
-    // Skip if this middlebox is not an endpoint
-    if (!this->emulated_mb->has_ip(pkt.get_src_ip())) {
-        return;
-    }
-
-    EmuPktKey key(pkt.get_dst_ip(), pkt.get_dst_port());
-    uint16_t flags = pkt.get_proto_state() & (~0x800U);
-
-    // Update seq offset
-    if (flags == TH_SYN || flags == (TH_SYN | TH_ACK)) {
-        this->seq_offsets[key] = pkt.get_seq();
-        pkt.set_seq(0);
-    } else {
-        uint32_t offset = 0;
-        auto i = this->seq_offsets.find(key);
-        if (i != this->seq_offsets.end()) {
-            offset = i->second;
-        }
-        pkt.set_seq(pkt.get_seq() - offset);
-    }
-
-    // Update (src) port offset
-    if (flags == TH_SYN) {
-        if (pkt.get_src_port() >= 1024) {
-            this->port_offsets[key] = pkt.get_src_port() - DYNAMIC_PORT;
-            pkt.set_src_port(DYNAMIC_PORT);
-        }
-    } else {
-        uint16_t offset = 0;
-        auto i = this->port_offsets.find(key);
-        if (i != this->port_offsets.end()) {
-            offset = i->second;
-        }
-        pkt.set_src_port(pkt.get_src_port() - offset);
-    }
 }

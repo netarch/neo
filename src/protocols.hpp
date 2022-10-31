@@ -18,22 +18,24 @@ static inline std::string proto_str(int n) {
 /*
  * Protocol state
  */
+// TODO: Make this an enum class
 // Note that for TCP four-way termination handshake, we assume that the second
 // (ACK) and third (FIN) steps are always set within the same packet.
-#define PS_TCP_INIT_1 0     // TCP 3-way handshake SYN
-#define PS_TCP_INIT_2 1     // TCP 3-way handshake SYN/ACK
-#define PS_TCP_INIT_3 2     // TCP 3-way handshake ACK
-#define PS_TCP_L7_REQ 3     // TCP L7 request
-#define PS_TCP_L7_REQ_A 4   // TCP L7 request ACK
-#define PS_TCP_L7_REP 5     // TCP L7 reply
-#define PS_TCP_L7_REP_A 6   // TCP L7 reply ACK
-#define PS_TCP_TERM_1 7     // TCP termination FIN/ACK
-#define PS_TCP_TERM_2 8     // TCP termination FIN/ACK
-#define PS_TCP_TERM_3 9     // TCP termination ACK
-#define PS_UDP_REQ 10       // UDP request
-#define PS_UDP_REP 11       // UDP reply
-#define PS_ICMP_ECHO_REQ 12 // ICMP echo request
-#define PS_ICMP_ECHO_REP 13 // ICMP echo reply
+#define PS_INVALID 0
+#define PS_TCP_INIT_1 1     // TCP 3-way handshake SYN
+#define PS_TCP_INIT_2 2     // TCP 3-way handshake SYN/ACK
+#define PS_TCP_INIT_3 3     // TCP 3-way handshake ACK
+#define PS_TCP_L7_REQ 4     // TCP L7 request
+#define PS_TCP_L7_REQ_A 5   // TCP L7 request ACK
+#define PS_TCP_L7_REP 6     // TCP L7 reply
+#define PS_TCP_L7_REP_A 7   // TCP L7 reply ACK
+#define PS_TCP_TERM_1 8     // TCP termination FIN/ACK
+#define PS_TCP_TERM_2 9     // TCP termination FIN/ACK
+#define PS_TCP_TERM_3 10    // TCP termination ACK
+#define PS_UDP_REQ 11       // UDP request
+#define PS_UDP_REP 12       // UDP reply
+#define PS_ICMP_ECHO_REQ 13 // ICMP echo request
+#define PS_ICMP_ECHO_REP 14 // ICMP echo reply
 
 #define PS_IS_REQUEST_DIR(x)                                                   \
     ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_3 || (x) == PS_TCP_L7_REQ ||   \
