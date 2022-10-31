@@ -600,24 +600,10 @@ void Net::process_proto_state(Packet &pkt) const {
     }
 }
 
-void Net::process_seq_ack(Packet &pkt, Emulation *emulation) const {
+void Net::check_seq_ack(Packet &pkt) const {
     if (!PS_IS_TCP(pkt.get_proto_state())) {
         return;
     }
-
-    // set the seq offsets
-    if (pkt.is_new()) { // new connection (SYN)
-        emulation->set_offset(pkt.conn(), pkt.get_seq());
-        pkt.set_seq(0);
-    } else if (pkt.next_phase()) { // old connection; next phase
-        if (pkt.get_proto_state() == PS_TCP_INIT_2) {
-            emulation->set_offset(pkt.conn(), pkt.get_seq());
-            pkt.set_seq(0);
-        } else {
-            uint32_t offset = emulation->get_offset(pkt.conn());
-            pkt.set_seq(pkt.get_seq() - offset);
-        }
-    } // else: old connection; same phase
 
     // verify seq/ack numbers
     int orig_conn = model.get_conn();
@@ -639,9 +625,7 @@ void Net::process_seq_ack(Packet &pkt, Emulation *emulation) const {
         }
 
         if (pkt.opposite_dir()) {
-            // if (pkt.get_proto_state() != PS_TCP_INIT_2) {
             assert(pkt.get_seq() == old_ack);
-            // }
             assert(pkt.get_ack() == old_seq);
         } else {
             assert(pkt.get_seq() == old_seq);

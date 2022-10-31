@@ -59,7 +59,7 @@ public:
     void reassemble_segments(std::list<Packet> &) const;
     void identify_conn(Packet &) const;
     void process_proto_state(Packet &) const;
-    void process_seq_ack(Packet &, Emulation *) const;
+    void check_seq_ack(Packet &) const;
 
     std::string mac_to_str(const uint8_t *) const;
 

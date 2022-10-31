@@ -537,7 +537,7 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
 
     if (conn_spec->protocol == proto::tcp ||
         conn_spec->protocol == proto::udp) {
-        conn_spec->src_port = src_port ? **src_port : 49152; // 49152 to 65535
+        conn_spec->src_port = src_port ? **src_port : DYNAMIC_PORT;
         if (dst_ports) {
             for (const auto &dst_port : *dst_ports) {
                 conn_spec->dst_ports.insert(**dst_port.as_integer());

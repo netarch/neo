@@ -363,7 +363,7 @@ void ForwardingProcess::update_model_from_pkts(
 
         Net::get().identify_conn(recv_pkt);
         Net::get().process_proto_state(recv_pkt);
-        Net::get().process_seq_ack(recv_pkt, mb->get_emulation());
+        Net::get().check_seq_ack(recv_pkt);
         Logger::info("Received packet " + recv_pkt.to_string());
 
         if (recv_pkt.conn() == orig_conn) {

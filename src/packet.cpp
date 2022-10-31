@@ -18,7 +18,6 @@ Packet::Packet()
 Packet::Packet(const Model &model)
     : Packet() // make sure all members are initialized
 {
-    this->_conn = model.get_conn();
     this->interface = model.get_ingress_intf();
 
     this->src_ip = model.get_src_ip();
@@ -31,6 +30,11 @@ Packet::Packet(const Model &model)
 
     this->proto_state = model.get_proto_state();
     this->payload = model.get_payload();
+
+    this->_conn = model.get_conn();
+    this->_is_new = PS_IS_FIRST(model.get_proto_state());
+    this->_opposite_dir = false;
+    this->_next_phase = false;
 }
 
 Packet::Packet(Interface *intf,
