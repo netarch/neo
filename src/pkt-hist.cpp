@@ -40,10 +40,7 @@ bool operator==(const NodePacketHistory &a, const NodePacketHistory &b) {
 /******************************************************************************/
 
 PacketHistory::PacketHistory(const Network &network) {
-    const std::map<std::string, Node *> &nodes = network.get_nodes();
-
-    for (const auto &pair : nodes) {
-        Node *node = pair.second;
+    for (const auto &[_, node] : network.get_nodes()) {
         if (typeid(*node) == typeid(Middlebox)) {
             tbl.emplace(node, nullptr);
         }

@@ -279,7 +279,7 @@ void Config::estimate_latency() {
      * (node1)-------------------(mb)-------------------(node2)
      *            [192.168.1.1/24]  [192.168.2.1/24]
      */
-    Network network(nullptr);
+    Network network;
 
     Middlebox *mb = new Middlebox();
     mb->name = "mb";
@@ -356,7 +356,7 @@ void Config::estimate_latency() {
     mb->emulation = &emulation;
 
     // inject packets
-    Packet packet(-1, mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0,
+    Packet packet(mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0,
                   PS_TCP_INIT_1);
     assert(emulation.dropmon == false);
     emulation.dropmon = true; // temporarily disable timeout
@@ -537,7 +537,7 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
 
     if (conn_spec->protocol == proto::tcp ||
         conn_spec->protocol == proto::udp) {
-        conn_spec->src_port = src_port ? **src_port : 49152; // 49152 to 65535
+        conn_spec->src_port = src_port ? **src_port : DYNAMIC_PORT;
         if (dst_ports) {
             for (const auto &dst_port : *dst_ports) {
                 conn_spec->dst_ports.insert(**dst_port.as_integer());

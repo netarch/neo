@@ -22,7 +22,6 @@ private:
 private:
     friend class Config;
     Middlebox();
-    void reassemble_segments(std::list<Packet> &);
 
 public:
     Middlebox(const Middlebox &) = delete;

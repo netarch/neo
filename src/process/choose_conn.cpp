@@ -47,11 +47,11 @@ void ChooseConnProcess::update_choice_count() const {
     } else {
         // every connection is dropped
         model.set_choice_count(0);
+        model.print_conn_states();
     }
 }
 
-void ChooseConnProcess::exec_step(const Network &network
-                                  __attribute__((unused))) {
+void ChooseConnProcess::exec_step() {
     if (!enabled) {
         return;
     }

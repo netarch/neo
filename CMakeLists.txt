@@ -7,7 +7,7 @@ include("ExternalProject")
 # compile options
 #
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(VECTORSZ 1024 CACHE STRING "Maximum number of communications")

@@ -99,7 +99,7 @@ signal_handler(int sig, siginfo_t *siginfo, void *ctx __attribute__((unused))) {
     }
 }
 
-Plankton::Plankton() : network(&openflow), policy(nullptr) {}
+Plankton::Plankton() : policy(nullptr) {}
 
 Plankton &Plankton::get() {
     static Plankton instance;
@@ -306,12 +306,14 @@ int Plankton::run() {
 /***** functions used by the Promela network model *****/
 
 void Plankton::initialize() {
+    Model::get().init(&network, &openflow);
+
     // processes
     forwarding.init(network);
     openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
-    policy->init(&network);
+    policy->init();
 
     // control state
     model.set_process_id(pid::forwarding);
@@ -325,7 +327,7 @@ void Plankton::reinit() {
     openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
-    policy->reinit(&network);
+    policy->reinit();
 
     // control state
     model.set_process_id(pid::forwarding);
@@ -338,13 +340,13 @@ void Plankton::exec_step() {
 
     switch (process_id) {
     case pid::choose_conn: // choose the next connection
-        conn_choice.exec_step(network);
+        conn_choice.exec_step();
         break;
     case pid::forwarding:
-        forwarding.exec_step(network);
+        forwarding.exec_step();
         break;
     case pid::openflow:
-        openflow.exec_step(network);
+        openflow.exec_step();
         break;
     default:
         Logger::error("Unknown process id " + std::to_string(process_id));

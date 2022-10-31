@@ -26,8 +26,7 @@ void EmulationMgr::set_num_middleboxes(size_t val) {
 Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
     auto mb_map = mb_emulations_map.find(mb);
 
-    if (mb_map ==
-        mb_emulations_map.end()) { // no emulation of this middlebox found
+    if (mb_map == mb_emulations_map.end()) { // no emulation
         if (emulations.size() < max_emulations) {
             // create a new emulation
             Emulation *emulation = new Emulation();

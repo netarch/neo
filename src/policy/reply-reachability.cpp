@@ -16,8 +16,8 @@ std::string ReplyReachabilityPolicy::to_string() const {
     return ret;
 }
 
-void ReplyReachabilityPolicy::init(const Network *network) {
-    Policy::init(network);
+void ReplyReachabilityPolicy::init() {
+    Policy::init();
     model.set_violated(false);
 }
 

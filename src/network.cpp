@@ -4,7 +4,6 @@
 #include "lib/logger.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"
-#include "process/openflow.hpp"
 
 void Network::add_node(Node *node) {
     auto res = nodes.insert(std::make_pair(node->get_name(), node));
@@ -51,8 +50,6 @@ void Network::grow_and_set_l2_lan(Node *node, Interface *interface) {
     }
 }
 
-Network::Network(OpenflowProcess *ofp) : openflow(ofp) {}
-
 Network::~Network() {
     for (const auto &node : nodes) {
         delete node.second;
@@ -75,23 +72,4 @@ const std::set<Link *, LinkCompare> &Network::get_links() const {
 
 const std::unordered_set<Middlebox *> &Network::get_middleboxes() const {
     return middleboxes;
-}
-
-void Network::update_fib() const {
-    FIB fib;
-    EqClass *ec = model.get_dst_ip_ec();
-    IPv4Address addr = ec->representative_addr();
-
-    // collect IP next hops from routing tables
-    for (const auto &pair : nodes) {
-        Node *node = pair.second;
-        fib.set_ipnhs(node, node->get_ipnhs(addr));
-    }
-
-    // install openflow updates that have been installed
-    for (auto &pair : openflow->get_installed_updates()) {
-        fib.set_ipnhs(pair.first, std::move(pair.second));
-    }
-
-    model.set_fib(std::move(fib));
 }

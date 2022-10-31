@@ -8,17 +8,17 @@ static Plankton &plankton = Plankton::get();
 class API {
 public:
     static void initialize(State *state) {
-        Model::get()._set_state(state);
+        Model::get().set_state(state);
         plankton.initialize();
     }
 
     static void exec_step(State *state) {
-        Model::get()._set_state(state);
+        Model::get().set_state(state);
         plankton.exec_step();
     }
 
     static void report(State *state) {
-        Model::get()._set_state(state);
+        Model::get().set_state(state);
         plankton.report();
     }
 

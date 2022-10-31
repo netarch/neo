@@ -11,7 +11,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "emulation.hpp"
+#include "eqclass.hpp"
 #include "lib/logger.hpp"
+#include "model-access.hpp"
 #include "packet.hpp"
 #include "payload.hpp"
 #include "pktbuffer.hpp"
@@ -316,9 +319,10 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             /*
              * NOTE:
              * Store the TCP flags in proto_state for now, which will be
-             * converted to the real proto_state in ForwardingProcess (calling
+             * converted to the real proto_state later (calling
              * Net::convert_proto_state), because the knowledge of the current
-             * connection state is required to interprete the proto_state. The
+             * connection state is required to interprete the proto_state and
+             * also we don't need to convert it for rewinding packets. The
              * highest bit of the variable is used to indicate unconverted TCP
              * flags.
              */
@@ -347,9 +351,8 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
              * NOTE:
              * Since UDP is connection-less, there is no way to know the actual
              * proto_state. Store PS_UDP_REQ for now, which will be converted to
-             * the correct state in ForwardingProcess (calling
-             * Net::convert_proto_state) based on the connection matching
-             * information.
+             * the correct state later (calling Net::convert_proto_state) based
+             * on the connection matching information.
              */
             // Payload
             uint8_t *data = new uint8_t[length];
@@ -394,17 +397,14 @@ bool Net::is_tcp_ack_or_psh_ack(const Packet &pkt) const {
             pkt.get_proto_state() == (0x800U | TH_PUSH | TH_ACK));
 }
 
-void Net::convert_proto_state(Packet &pkt,
-                              bool is_new,
-                              bool change_direction,
-                              uint16_t old_proto_state) const {
+void Net::convert_proto_state(Packet &pkt, uint16_t old_proto_state) const {
     // the highest bit (0x800U) is used to indicate unconverted TCP flags
     if (pkt.get_proto_state() & 0x800U) {
         uint16_t proto_state = 0;
         uint16_t flags = pkt.get_proto_state() & (~0x800U);
         size_t payloadlen = pkt.get_payload()->get_size();
 
-        if (is_new) {
+        if (pkt.is_new()) {
             assert(flags == TH_SYN);
         }
 
@@ -417,7 +417,7 @@ void Net::convert_proto_state(Packet &pkt,
             case PS_TCP_INIT_2:
             case PS_TCP_TERM_2:
                 proto_state = old_proto_state + 1;
-                assert(change_direction);
+                assert(pkt.opposite_dir());
                 break;
             case PS_TCP_INIT_3:
             case PS_TCP_L7_REQ_A:
@@ -426,23 +426,23 @@ void Net::convert_proto_state(Packet &pkt,
                 } else {
                     proto_state = old_proto_state + 1;
                 }
-                assert(!change_direction);
+                assert(!pkt.opposite_dir());
                 break;
             case PS_TCP_L7_REQ:
             case PS_TCP_L7_REP:
                 if (payloadlen == 0) {
                     proto_state = old_proto_state + 1;
-                    assert(change_direction);
+                    assert(pkt.opposite_dir());
                 } else {
                     proto_state = old_proto_state;
-                    assert(!change_direction);
+                    assert(!pkt.opposite_dir());
                 }
                 break;
             case PS_TCP_L7_REP_A:
             case PS_TCP_TERM_3:
                 proto_state = old_proto_state;
                 assert(payloadlen == 0);
-                assert(!change_direction);
+                assert(!pkt.opposite_dir());
                 break;
             default:
                 Logger::error("Invalid TCP flags: " + std::to_string(flags));
@@ -455,7 +455,7 @@ void Net::convert_proto_state(Packet &pkt,
                 proto_state = PS_TCP_TERM_1;
                 break;
             case PS_TCP_TERM_1:
-                if (change_direction) {
+                if (pkt.opposite_dir()) {
                     proto_state = PS_TCP_TERM_2;
                 } else {
                     proto_state = old_proto_state;
@@ -463,7 +463,7 @@ void Net::convert_proto_state(Packet &pkt,
                 break;
             case PS_TCP_TERM_2:
                 proto_state = old_proto_state;
-                assert(!change_direction);
+                assert(!pkt.opposite_dir());
                 break;
             default:
                 Logger::error("Invalid TCP flags: " + std::to_string(flags));
@@ -473,19 +473,172 @@ void Net::convert_proto_state(Packet &pkt,
         }
         pkt.set_proto_state(proto_state);
     } else if (PS_IS_UDP(pkt.get_proto_state())) {
-        if (is_new) {
+        if (pkt.is_new()) {
             pkt.set_proto_state(PS_UDP_REQ);
-        } else if (change_direction) {
+        } else if (pkt.opposite_dir()) {
             pkt.set_proto_state(old_proto_state + 1);
             assert(old_proto_state + 1 == PS_UDP_REP);
         } else {
             pkt.set_proto_state(old_proto_state);
         }
     } else if (PS_IS_ICMP_ECHO(pkt.get_proto_state())) {
-        if (is_new) {
+        if (pkt.is_new()) {
             assert(pkt.get_proto_state() == PS_ICMP_ECHO_REQ);
         }
     }
+}
+
+void Net::reassemble_segments(std::list<Packet> &pkts) const {
+    std::unordered_map<Interface *, std::list<Packet>> intf_pkts_map;
+    auto p = pkts.begin();
+
+    while (p != pkts.end()) {
+        auto &intf_pkts = intf_pkts_map[p->get_intf()];
+
+        if (!intf_pkts.empty()) {
+            auto &lp = intf_pkts.back();
+
+            if (lp.get_src_ip() == p->get_src_ip() &&
+                lp.get_dst_ip() == p->get_dst_ip() &&
+                lp.get_src_port() == p->get_src_port() &&
+                lp.get_dst_port() == p->get_dst_port() &&
+                Net::get().is_tcp_ack_or_psh_ack(lp) &&
+                Net::get().is_tcp_ack_or_psh_ack(*p) &&
+                lp.get_payload()->get_size() > 0 &&
+                lp.get_seq() + lp.get_payload()->get_size() == p->get_seq() &&
+                lp.get_ack() == p->get_ack()) {
+
+                lp.set_payload(PayloadMgr::get().get_payload(lp, *p));
+                pkts.erase(p++);
+                continue;
+            }
+        }
+
+        intf_pkts.emplace_back(std::move(*p));
+        pkts.erase(p++);
+    }
+
+    assert(pkts.empty());
+
+    for (auto &[intf, intf_pkts] : intf_pkts_map) {
+        pkts.splice(pkts.end(), intf_pkts);
+    }
+}
+
+void Net::identify_conn(Packet &pkt) const {
+    int conn;
+    int orig_conn = model.get_conn();
+
+    for (conn = 0; conn < model.get_num_conns(); ++conn) {
+        model.set_conn(conn);
+        uint32_t src_ip = model.get_src_ip();
+        EqClass *dst_ip_ec = model.get_dst_ip_ec();
+        uint16_t src_port = model.get_src_port();
+        uint16_t dst_port = model.get_dst_port();
+        int conn_protocol = PS_TO_PROTO(model.get_proto_state());
+        model.set_conn(orig_conn);
+
+        /*
+         * Note that at this moment we have not converted the received
+         * packet's proto_state, so only protocol type is compared.
+         */
+        int pkt_protocol;
+        if (pkt.get_proto_state() & 0x800U) {
+            pkt_protocol = proto::tcp;
+        } else {
+            pkt_protocol = PS_TO_PROTO(pkt.get_proto_state());
+        }
+
+        if (pkt.get_src_ip() == src_ip &&
+            dst_ip_ec->contains(pkt.get_dst_ip()) &&
+            pkt.get_src_port() == src_port && pkt.get_dst_port() == dst_port &&
+            pkt_protocol == conn_protocol) {
+            // same connection, same direction
+            pkt.set_is_new(false);
+            pkt.set_opposite_dir(false);
+            break;
+        } else if (pkt.get_dst_ip() == src_ip &&
+                   dst_ip_ec->contains(pkt.get_src_ip()) &&
+                   pkt.get_dst_port() == src_port &&
+                   pkt.get_src_port() == dst_port &&
+                   pkt_protocol == conn_protocol) {
+            // same connection, opposite direction
+            pkt.set_is_new(false);
+            pkt.set_opposite_dir(true);
+            break;
+        }
+    }
+
+    // new connection (NAT'd packets are also treated as new connections)
+    if (conn >= model.get_num_conns()) {
+        if (conn >= MAX_CONNS) {
+            Logger::error("Exceeding the maximum number of connections");
+        }
+
+        pkt.set_is_new(true);
+        pkt.set_opposite_dir(false);
+    }
+
+    pkt.set_conn(conn);
+}
+
+void Net::process_proto_state(Packet &pkt) const {
+    uint16_t old_proto_state = model.get_proto_state_for_conn(pkt.conn());
+    Net::get().convert_proto_state(pkt, old_proto_state);
+
+    if (pkt.is_new()) {
+        assert(PS_IS_FIRST(pkt.get_proto_state()));
+        pkt.set_next_phase(false);
+    } else {
+        if (pkt.get_proto_state() == old_proto_state) {
+            pkt.set_next_phase(false);
+        } else if (pkt.get_proto_state() > old_proto_state) {
+            pkt.set_next_phase(true);
+        } else {
+            Logger::error("Invalid protocol state");
+        }
+    }
+}
+
+void Net::check_seq_ack(Packet &pkt) const {
+    if (!PS_IS_TCP(pkt.get_proto_state())) {
+        return;
+    }
+
+    // verify seq/ack numbers
+    int orig_conn = model.get_conn();
+    model.set_conn(pkt.conn());
+
+    if (pkt.is_new()) { // new connection (SYN)
+        assert(pkt.get_seq() == 0);
+        assert(pkt.get_ack() == 0);
+    } else if (pkt.next_phase()) { // old connection; next phase
+        uint8_t old_proto_state = model.get_proto_state();
+        uint32_t old_seq = model.get_seq();
+        uint32_t old_ack = model.get_ack();
+        Payload *pl = model.get_payload();
+        uint32_t old_payload_size = pl ? pl->get_size() : 0;
+        if (old_payload_size > 0) {
+            old_seq += old_payload_size;
+        } else if (PS_HAS_SYN(old_proto_state) || PS_HAS_FIN(old_proto_state)) {
+            old_seq += 1;
+        }
+
+        if (pkt.opposite_dir()) {
+            assert(pkt.get_seq() == old_ack);
+            assert(pkt.get_ack() == old_seq);
+        } else {
+            assert(pkt.get_seq() == old_seq);
+            assert(pkt.get_ack() == old_ack);
+        }
+    } else { // old connection; same phase
+        // seq/ack should remain the same
+        assert(pkt.get_seq() == model.get_seq());
+        assert(pkt.get_ack() == model.get_ack());
+        assert(pkt.get_payload() == model.get_payload());
+    }
+
+    model.set_conn(orig_conn);
 }
 
 std::string Net::mac_to_str(const uint8_t *mac) const {

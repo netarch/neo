@@ -36,7 +36,7 @@ void ForwardingProcess::init(const Network &network) {
     model.set_pkt_hist(std::move(pkt_hist));
 }
 
-void ForwardingProcess::exec_step(const Network &network) {
+void ForwardingProcess::exec_step() {
     if (!enabled) {
         return;
     }
@@ -44,19 +44,19 @@ void ForwardingProcess::exec_step(const Network &network) {
     int mode = model.get_fwd_mode();
     switch (mode) {
     case fwd_mode::FIRST_COLLECT:
-        first_collect(network);
+        first_collect();
         break;
     case fwd_mode::FIRST_FORWARD:
         first_forward();
         break;
     case fwd_mode::COLLECT_NHOPS:
-        collect_next_hops(network);
+        collect_next_hops();
         break;
     case fwd_mode::FORWARD_PACKET:
         forward_packet();
         break;
     case fwd_mode::ACCEPTED:
-        accepted(network);
+        accepted();
         break;
     case fwd_mode::DROPPED:
         model.set_executable(0);
@@ -66,8 +66,8 @@ void ForwardingProcess::exec_step(const Network &network) {
     }
 }
 
-void ForwardingProcess::first_collect(const Network &network) {
-    collect_next_hops(network);
+void ForwardingProcess::first_collect() {
+    collect_next_hops();
     model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
 }
 
@@ -88,11 +88,11 @@ void ForwardingProcess::first_forward() {
     forward_packet();
 }
 
-void ForwardingProcess::collect_next_hops(const Network &network) {
+void ForwardingProcess::collect_next_hops() {
     Node *current_node = model.get_pkt_location();
     if (typeid(*current_node) == typeid(Middlebox)) {
         // current_node is a Middlebox; inject packet to update next hops
-        inject_packet(static_cast<Middlebox *>(current_node), network);
+        inject_packet(static_cast<Middlebox *>(current_node));
         return;
     } // else: current_node is a Node; look up next hops from FIB
 
@@ -184,53 +184,53 @@ void ForwardingProcess::forward_packet() {
     }
 }
 
-void ForwardingProcess::accepted(const Network &network) {
+void ForwardingProcess::accepted() {
     int proto_state = model.get_proto_state();
     Node &pkt_loc = *model.get_pkt_location();
 
     switch (proto_state) {
     case PS_TCP_INIT_1:
-        phase_transition(network, PS_TCP_INIT_2, true);
+        phase_transition(PS_TCP_INIT_2, true);
         break;
     case PS_TCP_INIT_2:
-        phase_transition(network, PS_TCP_INIT_3, true);
+        phase_transition(PS_TCP_INIT_3, true);
         break;
     case PS_TCP_INIT_3:
-        phase_transition(network, PS_TCP_L7_REQ, false);
+        phase_transition(PS_TCP_L7_REQ, false);
         break;
     case PS_TCP_L7_REQ:
-        phase_transition(network, PS_TCP_L7_REQ_A, true);
+        phase_transition(PS_TCP_L7_REQ_A, true);
         break;
     case PS_TCP_L7_REQ_A:
-        phase_transition(network, PS_TCP_L7_REP, false);
+        phase_transition(PS_TCP_L7_REP, false);
         break;
     case PS_TCP_L7_REP:
-        phase_transition(network, PS_TCP_L7_REP_A, true);
+        phase_transition(PS_TCP_L7_REP_A, true);
         break;
     case PS_TCP_L7_REP_A:
         if (typeid(pkt_loc) == typeid(Middlebox)) {
-            phase_transition(network, PS_TCP_TERM_1, false);
+            phase_transition(PS_TCP_TERM_1, false);
         } else {
-            phase_transition(network, PS_TCP_TERM_1, true);
+            phase_transition(PS_TCP_TERM_1, true);
         }
         break;
     case PS_TCP_TERM_1:
-        phase_transition(network, PS_TCP_TERM_2, true);
+        phase_transition(PS_TCP_TERM_2, true);
         break;
     case PS_TCP_TERM_2:
-        phase_transition(network, PS_TCP_TERM_3, true);
+        phase_transition(PS_TCP_TERM_3, true);
         break;
     case PS_TCP_TERM_3:
         model.set_executable(0);
         break;
     case PS_UDP_REQ:
-        phase_transition(network, PS_UDP_REP, true);
+        phase_transition(PS_UDP_REP, true);
         break;
     case PS_UDP_REP:
         model.set_executable(0);
         break;
     case PS_ICMP_ECHO_REQ:
-        phase_transition(network, PS_ICMP_ECHO_REP, true);
+        phase_transition(PS_ICMP_ECHO_REP, true);
         break;
     case PS_ICMP_ECHO_REP:
         model.set_executable(0);
@@ -240,8 +240,7 @@ void ForwardingProcess::accepted(const Network &network) {
     }
 }
 
-void ForwardingProcess::phase_transition(const Network &network,
-                                         uint8_t next_proto_state,
+void ForwardingProcess::phase_transition(uint8_t next_proto_state,
                                          bool change_direction) const {
     // check if the new src_node is a middlebox
     // if it is, do not inject packet and mark the connection as "not
@@ -293,7 +292,7 @@ void ForwardingProcess::phase_transition(const Network &network,
         model.set_src_port(dst_port);
         model.set_dst_port(src_port);
         // FIB
-        network.update_fib();
+        model.update_fib();
     } else {
         model.set_pkt_location(model.get_src_node());
     }
@@ -306,7 +305,7 @@ void ForwardingProcess::phase_transition(const Network &network,
     model.reset_candidates();
 }
 
-void ForwardingProcess::inject_packet(Middlebox *mb, const Network &network) {
+void ForwardingProcess::inject_packet(Middlebox *mb) {
     Stats::set_overall_lat_t1();
 
     // check out current pkt_hist and rewind the middlebox state
@@ -342,7 +341,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb, const Network &network) {
     // inject packet
     Logger::info("Injecting packet: " + new_pkt->to_string());
     std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
-    process_recv_pkts(mb, std::move(recv_pkts), network);
+    update_model_from_pkts(mb, recv_pkts);
 
     Stats::set_overall_latency();
 }
@@ -350,9 +349,10 @@ void ForwardingProcess::inject_packet(Middlebox *mb, const Network &network) {
 /*
  * No multicast.
  */
-void ForwardingProcess::process_recv_pkts(Middlebox *mb,
-                                          std::list<Packet> &&recv_pkts,
-                                          const Network &network) const {
+void ForwardingProcess::update_model_from_pkts(
+    Middlebox *mb,
+    std::list<Packet> &recv_pkts) const {
+    int orig_conn = model.get_conn();
     bool current_conn_updated = false;
 
     for (Packet &recv_pkt : recv_pkts) {
@@ -361,26 +361,37 @@ void ForwardingProcess::process_recv_pkts(Middlebox *mb,
             continue;
         }
 
-        // identify connection and sanitize packet
-        bool is_new, opposite_dir, next_phase;
-        identify_conn(recv_pkt, is_new, opposite_dir);
-        uint16_t old_proto_state =
-            model.get_proto_state_for_conn(recv_pkt.get_conn());
-        Net::get().convert_proto_state(recv_pkt, is_new, opposite_dir,
-                                       old_proto_state);
-        check_proto_state(recv_pkt, is_new, old_proto_state, next_phase);
+        Net::get().identify_conn(recv_pkt);
+        Net::get().process_proto_state(recv_pkt);
+        Net::get().check_seq_ack(recv_pkt);
+        Logger::info("Received packet " + recv_pkt.to_string());
+
+        if (recv_pkt.conn() == orig_conn) {
+            current_conn_updated = true;
+        }
 
         // set conn (and recover it later)
-        int orig_conn = model.get_conn();
-        model.set_conn(recv_pkt.get_conn());
+        model.set_conn(recv_pkt.conn());
 
-        if (orig_conn == recv_pkt.get_conn()) {
-            current_conn_updated = true;
+        // map the packet info (5-tuple + seq/ack + payload + FIB + control
+        // logic) back to the system state
+        EqClass *old_dst_ip_ec = model.get_dst_ip_ec();
+        model.set_executable(2);
+        model.set_proto_state(recv_pkt.get_proto_state());
+        model.set_src_ip(recv_pkt.get_src_ip().get_value());
+        model.set_dst_ip_ec(EqClassMgr::get().find_ec(recv_pkt.get_dst_ip()));
+        model.set_src_port(recv_pkt.get_src_port());
+        model.set_dst_port(recv_pkt.get_dst_port());
+        model.set_seq(recv_pkt.get_seq());
+        model.set_ack(recv_pkt.get_ack());
+        model.set_payload(recv_pkt.get_payload());
+        if (old_dst_ip_ec != model.get_dst_ip_ec()) {
+            model.update_fib();
         }
 
         // update the remaining connection state variables based on the inferred
         // connection info
-        if (is_new) {
+        if (recv_pkt.is_new()) {
             model.set_num_conns(model.get_num_conns() + 1);
             model.set_src_node(mb);
             model.set_tx_node(mb);
@@ -389,41 +400,18 @@ void ForwardingProcess::process_recv_pkts(Middlebox *mb,
             model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
             model.set_ingress_intf(nullptr);
             model.set_path_choices(Choices());
-            // update seq_offsets
-            if (recv_pkt.get_proto_state() == PS_TCP_INIT_1) {
-                mb->get_emulation()->set_offset(recv_pkt.get_conn(),
-                                                recv_pkt.get_seq());
-                recv_pkt.set_seq(0);
-            }
-        } else if (next_phase) {
-            if (opposite_dir) {
+        } else if (recv_pkt.next_phase()) {
+            if (recv_pkt.opposite_dir()) {
                 model.set_src_node(mb);
             } else {
                 model.set_pkt_location(model.get_src_node());
             }
             model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
             model.set_ingress_intf(nullptr);
-            // update seq_offsets
-            if (recv_pkt.get_proto_state() == PS_TCP_INIT_2) {
-                mb->get_emulation()->set_offset(recv_pkt.get_conn(),
-                                                recv_pkt.get_seq());
-                recv_pkt.set_seq(0);
-            } else if (PS_IS_TCP(recv_pkt.get_proto_state())) {
-                uint32_t offset =
-                    mb->get_emulation()->get_offset(recv_pkt.get_conn());
-                recv_pkt.set_seq(recv_pkt.get_seq() - offset);
-            }
         } else { // same phase (middlebox is not an endpoint)
             assert(model.get_fwd_mode() == fwd_mode::COLLECT_NHOPS);
             model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
         }
-
-        check_seq_ack(recv_pkt, is_new, opposite_dir, next_phase);
-
-        // map the packet info (5-tuple + seq/ack + FIB + control logic) back
-        // to the system state
-        recv_pkt.update_conn_state(network);
-        Logger::info("Received packet " + recv_pkt.to_string());
 
         // find the next hop and set candidates
         Candidates candidates;
@@ -466,136 +454,5 @@ void ForwardingProcess::process_recv_pkts(Middlebox *mb,
     } else {
         // update choice_count for the current connection
         model.set_choice_count(model.get_candidates()->size());
-    }
-}
-
-/*
- * It makes sure the 5-tuple values of the received packet comply with the
- * system.
- */
-void ForwardingProcess::identify_conn(Packet &pkt,
-                                      bool &is_new,
-                                      bool &opposite_dir) const {
-    int conn;
-    int orig_conn = model.get_conn();
-    is_new = false;
-
-    for (conn = 0; conn < model.get_num_conns(); ++conn) {
-        model.set_conn(conn);
-        uint32_t src_ip = model.get_src_ip();
-        EqClass *dst_ip_ec = model.get_dst_ip_ec();
-        uint16_t src_port = model.get_src_port();
-        uint16_t dst_port = model.get_dst_port();
-        int conn_protocol = PS_TO_PROTO(model.get_proto_state());
-        model.set_conn(orig_conn);
-
-        /*
-         * Note that at this moment we have not converted the received packet's
-         * proto_state, so only protocol type is compared.
-         */
-        int pkt_protocol;
-        if (pkt.get_proto_state() & 0x800U) {
-            pkt_protocol = proto::tcp;
-        } else {
-            pkt_protocol = PS_TO_PROTO(pkt.get_proto_state());
-        }
-
-        if (pkt.get_src_ip() == src_ip &&
-            dst_ip_ec->contains(pkt.get_dst_ip()) &&
-            pkt.get_src_port() == src_port && pkt.get_dst_port() == dst_port &&
-            pkt_protocol == conn_protocol) {
-            // same connection, same direction
-            opposite_dir = false;
-            break;
-        } else if (pkt.get_dst_ip() == src_ip &&
-                   dst_ip_ec->contains(pkt.get_src_ip()) &&
-                   pkt.get_dst_port() == src_port &&
-                   pkt.get_src_port() == dst_port &&
-                   pkt_protocol == conn_protocol) {
-            // same connection, opposite direction
-            opposite_dir = true;
-            break;
-        }
-    }
-
-    // new connection (NAT'd packets are also treated as new connections)
-    if (conn >= model.get_num_conns()) {
-        if (conn >= MAX_CONNS) {
-            Logger::error("Exceeding the maximum number of connections");
-        }
-
-        is_new = true;
-        opposite_dir = false;
-    }
-
-    pkt.set_conn(conn);
-}
-
-/*
- * It makes sure the protocol state of the received packet comply with the
- * system.
- */
-void ForwardingProcess::check_proto_state(const Packet &pkt,
-                                          bool is_new,
-                                          uint8_t old_proto_state,
-                                          bool &next_phase) const {
-    if (is_new) {
-        assert(PS_IS_FIRST(pkt.get_proto_state()));
-        next_phase = false;
-    } else {
-        if (pkt.get_proto_state() == old_proto_state) {
-            next_phase = false;
-        } else if (pkt.get_proto_state() > old_proto_state) {
-            next_phase = true;
-        } else {
-            Logger::error("Invalid protocol state");
-        }
-    }
-}
-
-/*
- * It makes sure the seq/ack numbers of the received packet comply with the
- * system.
- */
-void ForwardingProcess::check_seq_ack(const Packet &pkt,
-                                      bool is_new,
-                                      bool opposite_dir,
-                                      bool next_phase) const {
-    // verify seq/ack numbers if it's a TCP packet
-    if (PS_IS_TCP(pkt.get_proto_state())) {
-        int orig_conn = model.get_conn();
-        model.set_conn(pkt.get_conn());
-
-        if (is_new) { // new connection (SYN)
-            assert(pkt.get_ack() == 0);
-        } else if (next_phase) { // old connection; next phase
-            uint8_t old_proto_state = model.get_proto_state();
-            uint32_t old_seq = model.get_seq();
-            uint32_t old_ack = model.get_ack();
-            Payload *pl = model.get_payload();
-            uint32_t old_payload_size = pl ? pl->get_size() : 0;
-            if (old_payload_size > 0) {
-                old_seq += old_payload_size;
-            } else if (PS_HAS_SYN(old_proto_state) ||
-                       PS_HAS_FIN(old_proto_state)) {
-                old_seq += 1;
-            }
-            if (opposite_dir) {
-                if (pkt.get_proto_state() != PS_TCP_INIT_2) {
-                    assert(pkt.get_seq() == old_ack);
-                }
-                assert(pkt.get_ack() == old_seq);
-            } else {
-                assert(pkt.get_seq() == old_seq);
-                assert(pkt.get_ack() == old_ack);
-            }
-        } else { // old connection; same phase
-            // seq/ack should remain the same
-            assert(pkt.get_seq() == model.get_seq());
-            assert(pkt.get_ack() == model.get_ack());
-            assert(pkt.get_payload() == model.get_payload());
-        }
-
-        model.set_conn(orig_conn);
     }
 }

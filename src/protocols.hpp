@@ -69,3 +69,5 @@ static inline std::string proto_str(int n) {
          ? "TCP"                                                               \
          : (PS_IS_UDP(x) ? "UDP"                                               \
                          : (PS_IS_ICMP_ECHO(x) ? "ICMP" : "(unknown)")))
+
+#define DYNAMIC_PORT uint16_t(49152) // 49152 to 65535

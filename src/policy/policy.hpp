@@ -6,7 +6,6 @@
 #include "conn.hpp"
 #include "connmatrix.hpp"
 #include "connspec.hpp"
-class Network;
 
 #define POL_NULL 0
 #define POL_REINIT_DP 1
@@ -39,8 +38,8 @@ public:
     void report() const;
 
     virtual std::string to_string() const = 0;
-    virtual void init(const Network *);
-    virtual void reinit(const Network *);
+    virtual void init();
+    virtual void reinit();
     virtual int check_violation() = 0;
 };
 

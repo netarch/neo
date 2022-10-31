@@ -10,14 +10,14 @@ std::string ConsistencyPolicy::to_string() const {
     return ret;
 }
 
-void ConsistencyPolicy::init(const Network *network) {
+void ConsistencyPolicy::init() {
     model.set_correlated_policy_idx(0);
-    Policy::init(network);
+    Policy::init();
     unset = true;
 }
 
-void ConsistencyPolicy::reinit(const Network *network) {
-    Policy::init(network);
+void ConsistencyPolicy::reinit() {
+    Policy::init();
 }
 
 int ConsistencyPolicy::check_violation() {

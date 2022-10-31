@@ -14,6 +14,7 @@
 #include <mutex>
 #include <thread>
 
+#include "emu-pkt-key.hpp"
 #include "mb-env/mb-env.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
@@ -24,7 +25,8 @@ private:
     MB_Env *env;            // environment
     Middlebox *emulated_mb; // currently emulated middlebox node
     NodePacketHistory *node_pkt_hist;
-    std::unordered_map<int, uint32_t> seq_offsets;
+    std::unordered_map<EmuPktKey, uint32_t> seq_offsets;
+    std::unordered_map<EmuPktKey, uint16_t> port_offsets;
     bool dropmon;
 
     std::thread *packet_listener;
@@ -36,14 +38,17 @@ private:
     std::mutex mtx; // lock for recv_pkts, recv_pkts_hash, and drop_ts
     std::condition_variable cv; // for reading recv_pkts
 
+    Emulation();
     void listen_packets();
     void listen_drops();
     void teardown();
+    void reset_offsets();
+    void apply_offsets(Packet &) const;
+    void update_offsets(std::list<Packet> &);
+    void update_offsets(Packet &);
 
-private:
     friend class Config;
     friend class EmulationMgr;
-    Emulation();
 
 public:
     Emulation(const Emulation &) = delete;
@@ -54,9 +59,6 @@ public:
 
     Middlebox *get_mb() const;
     NodePacketHistory *get_node_pkt_hist() const;
-    void reset_offsets();
-    void set_offset(int conn, uint32_t offset);
-    uint32_t get_offset(int conn) const;
 
     void init(Middlebox *); // initialize and start the emulation
     int rewind(NodePacketHistory *);

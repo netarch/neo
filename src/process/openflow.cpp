@@ -6,7 +6,6 @@
 #include "lib/hash.hpp"
 #include "lib/logger.hpp"
 #include "model-access.hpp"
-#include "network.hpp"
 #include "node.hpp"
 #include "policy/policy.hpp"
 
@@ -124,8 +123,7 @@ void OpenflowProcess::init() {
     model.set_openflow_update_state(OpenflowUpdateState(this->updates.size()));
 }
 
-void OpenflowProcess::exec_step(const Network &network
-                                __attribute__((unused))) {
+void OpenflowProcess::exec_step() {
     if (!enabled) {
         return;
     }

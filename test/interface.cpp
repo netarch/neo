@@ -8,7 +8,7 @@
 #include "node.hpp"
 
 TEST_CASE("interface") {
-    Network network(nullptr);
+    Network network;
     const std::string input_filename = "networks/interface.toml";
     REQUIRE_NOTHROW(Config::start_parsing(input_filename));
     REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));
