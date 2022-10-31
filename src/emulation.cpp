@@ -40,12 +40,11 @@ void Emulation::listen_packets() {
             while (p != pkts.end()) {
                 size_t hash_value = hasher(&*p);
                 if (recv_pkts_hash.count(hash_value) > 0) {
-                    // Found a retransmitted packet, skip the remaining packets
-                    pkts.erase(p, pkts.end());
-                    break;
+                    pkts.erase(p++);
+                } else {
+                    recv_pkts_hash.insert(hash_value);
+                    p++;
                 }
-                recv_pkts_hash.insert(hash_value);
-                p++;
             }
 
             recv_pkts.splice(recv_pkts.end(), pkts);
@@ -223,7 +222,6 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
     // Move and reset the received packets
     std::list<Packet> pkts(std::move(recv_pkts));
     recv_pkts.clear();
-    recv_pkts_hash.clear();
     lck.unlock();
 
     Net::get().reassemble_segments(pkts);
