@@ -21,3 +21,6 @@ __pycache__
 # Development environment files
 *.code-workspace
 .vscode
+
+# Packages
+*.tar.*

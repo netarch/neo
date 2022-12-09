@@ -3,8 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-PROJECT_DIR="$(realpath "${SCRIPT_DIR}"/..)"
-BUILD_DIR="$(realpath "${PROJECT_DIR}"/build)"
+# PROJECT_DIR="$(realpath "${SCRIPT_DIR}"/..)"
+# BUILD_DIR="$(realpath "${PROJECT_DIR}"/build)"
 MAKEFLAGS="-j$(nproc)"
 export MAKEFLAGS
 
@@ -12,5 +12,5 @@ export MAKEFLAGS
 "${SCRIPT_DIR}"/build.sh --debug --tests --coverage
 "${SCRIPT_DIR}"/build.sh --debug --tests --coverage --clang
 
-cd "${BUILD_DIR}"
+# cd "${BUILD_DIR}"
 # ctest
