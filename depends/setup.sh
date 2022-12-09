@@ -191,8 +191,8 @@ main() {
         depends=(cmake pkg-config clang libpthread-stubs0-dev libnet1-dev
                  libnl-3-dev libnl-genl-3-dev libnet1 libnl-3-200
                  libnl-genl-3-200 ipvsadm squid python3-toml bc clang-format
-                 yapf3) # TODO: Add pcapplusplus
-        aur_pkgs=(spin-git)
+                 yapf3 libpcap-dev libstdc++-static)
+        aur_pkgs=(spin-git pcapplusplus)
 
         sudo apt update -y -qq
         sudo apt install -y -qq "${script_depends[@]}"
