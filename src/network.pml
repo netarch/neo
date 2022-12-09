@@ -1,4 +1,11 @@
-/*
+#ifndef SIZEOF_VOID_P
+#define SIZEOF_VOID_P 8
+#endif
+#ifndef SIZEOF_INT
+#define SIZEOF_INT 4
+#endif
+
+/**
  * Some parts of the system state are stored in hash tables. Pointers to the
  * actual objects are saved in the respective state variables. If the size of a
  * pointer isn't enough for it to represent possible states, the addressing
@@ -8,9 +15,11 @@
 typedef conn_state_t {
     /* control state */
     unsigned executable : 2;
-    /* 2: executable, not entering a middlebox
+    /**
+     * 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
-     * 0: not executable (missing packet) */
+     * 0: not executable (missing packet)
+     */
 
     /* flow information */
     unsigned proto_state : 16;                      /* (uint16_t) */
