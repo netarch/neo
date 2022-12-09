@@ -316,7 +316,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             flags = ntohs(flags);
             flags &= 0x0fff;
             pkt.set_proto_state(flags | 0x800U);
-            /*
+            /**
              * NOTE:
              * Store the TCP flags in proto_state for now, which will be
              * converted to the real proto_state later (calling
@@ -347,7 +347,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             length -= 8;
             // UDP proto_state
             pkt.set_proto_state(PS_UDP_REQ);
-            /*
+            /**
              * NOTE:
              * Since UDP is connection-less, there is no way to know the actual
              * proto_state. Store PS_UDP_REQ for now, which will be converted to

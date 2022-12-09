@@ -1,11 +1,15 @@
 #pragma once
 
 #include <list>
+#include <memory>
 #include <string>
 #include <sys/epoll.h>
 #include <unordered_map>
 
+#include <pcapplusplus/PcapFileDevice.h>
+
 #include "mb-env/mb-env.hpp"
+
 class Interface;
 class Node;
 class RoutingTable;
@@ -19,6 +23,8 @@ private:
     std::string xtables_lockpath;
     std::unordered_map<Interface *, int> tapfds;        // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> tapmacs; // intf --> mac addr
+    std::unordered_map<Interface *, std::unique_ptr<pcpp::PcapFileWriterDevice>>
+        pcapLoggers;
 
     void set_env_vars(const std::string &node_name = "");
     void set_interfaces(const Node &);

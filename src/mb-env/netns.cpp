@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <fcntl.h>
 #include <linux/if_tun.h>
 #include <list>
@@ -18,7 +19,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <pcapplusplus/PcapFileDevice.h>
+
 #include "interface.hpp"
+#include "lib/fs.hpp"
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
 #include "node.hpp"
@@ -26,7 +30,9 @@
 #include "pktbuffer.hpp"
 #include "routingtable.hpp"
 
-void NetNS::set_env_vars(const std::string &node_name) {
+using namespace std;
+
+void NetNS::set_env_vars(const string &node_name) {
     // set XTABLES_LOCKFILE for multiple iptables instances
     if (!node_name.empty() && xtables_lockpath.empty()) {
         xtables_lockpath = "/run/xtables.lock." + node_name;
@@ -99,8 +105,15 @@ void NetNS::set_interfaces(const Node &node) {
         }
 
 #ifdef ENABLE_DEBUG
-        system(("wireshark -k -i " + intf->get_name() + "&").c_str());
-        sleep(4);
+        string pcapFn = to_string(getpid()) + "." + node.get_name() + "-" +
+                        intf->get_name() + ".pcap";
+        pcapLoggers.emplace(intf, make_unique<pcpp::PcapFileWriterDevice>(
+                                      pcapFn, pcpp::LINKTYPE_ETHERNET));
+        auto &pcapLogger = pcapLoggers.at(intf);
+        bool appendMode = fs::exists(pcapFn);
+        if (!pcapLogger->open(appendMode)) {
+            Logger::error("Failed to open " + pcapFn);
+        }
 #endif
     }
 
@@ -177,7 +190,7 @@ void NetNS::set_arp_cache(const Node &node) {
     }
 
     // collect L3 peer IP addresses and egress interface
-    std::set<std::pair<IPv4Address, Interface *>> arp_inputs;
+    set<pair<IPv4Address, Interface *>> arp_inputs;
     for (auto intf : node.get_intfs()) {
         // find L3 peer
         auto l2peer = node.get_peer(intf.first);
@@ -189,7 +202,7 @@ void NetNS::set_arp_cache(const Node &node) {
                 // pure L2 peer, find all L3 peers in the L2 LAN
                 L2_LAN *l2_lan = l2peer.first->get_l2lan(l2peer.second);
                 for (auto l3_endpoint : l2_lan->get_l3_endpoints()) {
-                    const std::pair<Node *, Interface *> &l3peer =
+                    const pair<Node *, Interface *> &l3peer =
                         l3_endpoint.second;
                     if (l3peer.second != intf.second) {
                         arp_inputs.emplace(l3peer.second->addr(), intf.second);
@@ -251,12 +264,16 @@ NetNS::~NetNS() {
     close(epollfd);
     delete[] events;
     // delete the created tap devices
-    for (const auto &tap : tapfds) {
-        close(tap.second);
+    for (const auto &[intf, tapfd] : tapfds) {
+        close(tapfd);
     }
     // delete the allocated ethernet addresses
-    for (const auto &mac : tapmacs) {
-        delete[] mac.second;
+    for (const auto &[intf, mac] : tapmacs) {
+        delete[] mac;
+    }
+    // close pcap loggers
+    for (auto &[intf, pcapLogger] : pcapLoggers) {
+        pcapLogger->close();
     }
 
     // return to the original netns
@@ -329,6 +346,14 @@ size_t NetNS::inject_packet(const Packet &pkt) {
         Logger::error("Packet injection failed", errno);
     }
 
+#ifdef ENABLE_DEBUG
+    auto &pcapLogger = pcapLoggers.at(pkt.get_intf());
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    pcpp::RawPacket rawpkt(buf, len, ts, false);
+    pcapLogger->writePacket(rawpkt);
+#endif
+
     // free resources
     Net::get().free(buf);
 
@@ -340,8 +365,8 @@ size_t NetNS::inject_packet(const Packet &pkt) {
     return nwrite;
 }
 
-std::list<Packet> NetNS::read_packets() const {
-    std::list<PktBuffer> pktbuffs;
+list<Packet> NetNS::read_packets() const {
+    list<PktBuffer> pktbuffs;
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
@@ -352,7 +377,7 @@ std::list<Packet> NetNS::read_packets() const {
     int nfds = epoll_wait(epollfd, events, tapfds.size(), -1);
     if (nfds < 0) {
         if (errno == EINTR) { // SIGUSR1 - stop thread
-            return std::list<Packet>();
+            return list<Packet>();
         }
         Logger::error("epoll_wait", errno);
     }
@@ -377,7 +402,7 @@ std::list<Packet> NetNS::read_packets() const {
     }
 
     // deserialize the packets
-    std::list<Packet> pkts;
+    list<Packet> pkts;
     for (const PktBuffer &pb : pktbuffs) {
         Packet pkt;
         Net::get().deserialize(pkt, pb);
@@ -416,8 +441,7 @@ std::list<Packet> NetNS::read_packets() const {
         // actually create the interfaces
         int err = rtnl_link_add(sock, link, NLM_F_CREATE);
         if (err < 0) {
-            Logger::error(std::string("rtnl_link_add: ") +
-                                       nl_geterror(err));
+            Logger::error(string("rtnl_link_add: ") + nl_geterror(err));
         }
 
         // release the interface handles

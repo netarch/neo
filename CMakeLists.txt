@@ -76,9 +76,11 @@ add_subdirectory(third_party/tomlplusplus)
 add_subdirectory(third_party/spdlog)
 set(XXHASH_BUILD_ENABLE_INLINE_API ON)
 set(XXHASH_BUILD_XXHSUM OFF)
-add_subdirectory(third_party/xxhash/cmake_unofficial)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(third_party/xxhash/cmake_unofficial EXCLUDE_FROM_ALL)
 find_package(Libnet REQUIRED)
 find_package(Libnl REQUIRED)
+find_package(PcapPlusPlus REQUIRED)
 find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -126,9 +128,16 @@ add_library(libneo OBJECT ${SRC_FILES})
 target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
-target_link_libraries(libneo PRIVATE spin_model tomlplusplus::tomlplusplus
-                      spdlog::spdlog xxHash::xxhash Libnet::Libnet Libnl::Libnl
-                      Threads::Threads)
+target_link_libraries(libneo PRIVATE
+    Libnet::Libnet
+    Libnl::Libnl
+    PcapPlusPlus::pcap++
+    Threads::Threads
+    spdlog::spdlog
+    spin_model
+    tomlplusplus::tomlplusplus
+    xxHash::xxhash
+)
 
 #
 # main target

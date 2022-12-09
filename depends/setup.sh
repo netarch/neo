@@ -167,8 +167,8 @@ main() {
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
 
-        depends=(cmake clang spin-git libnet libnl ipvsadm squid python-toml bc
-                 yapf)
+        depends=(cmake clang spin-git libnet libnl pcapplusplus ipvsadm squid
+                 python-toml bc yapf)
         non_local_depends=()
 
         for dep in "${depends[@]}"; do
@@ -180,7 +180,8 @@ main() {
         done
 
         if [[ ${#non_local_depends[@]} -ne 0 ]]; then
-            paru -S --asdeps --needed --noconfirm --removemake "${non_local_depends[@]}" "$@"
+            paru -S --asdeps --needed --noconfirm --removemake \
+                "${non_local_depends[@]}" "$@"
         fi
 
         "makepkg_$DISTRO" neo-dev -srci --asdeps --noconfirm "$@"
@@ -190,7 +191,7 @@ main() {
         depends=(cmake pkg-config clang libpthread-stubs0-dev libnet1-dev
                  libnl-3-dev libnl-genl-3-dev libnet1 libnl-3-200
                  libnl-genl-3-200 ipvsadm squid python3-toml bc clang-format
-                 yapf3)
+                 yapf3) # TODO: Add pcapplusplus
         aur_pkgs=(spin-git)
 
         sudo apt update -y -qq
