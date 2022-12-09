@@ -191,7 +191,7 @@ main() {
         depends=(cmake pkg-config clang libpthread-stubs0-dev libnet1-dev
                  libnl-3-dev libnl-genl-3-dev libnet1 libnl-3-200
                  libnl-genl-3-200 ipvsadm squid python3-toml bc clang-format
-                 yapf3 libpcap-dev libstdc++-static)
+                 yapf3 libpcap-dev libstdc++-12-dev)
         aur_pkgs=(spin-git pcapplusplus)
 
         sudo apt update -y -qq
