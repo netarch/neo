@@ -11,8 +11,9 @@
 #include "payload.hpp"
 #include "stats.hpp"
 
-Middlebox::Middlebox()
-    : emulation(nullptr), app(nullptr), dropmon(false), dev_scalar(0) {}
+Middlebox::Middlebox(bool packet_logging)
+    : emulation(nullptr), app(nullptr), enable_packet_logging(packet_logging),
+      dropmon(false), dev_scalar(0) {}
 
 Middlebox::~Middlebox() {
     delete app;
@@ -33,6 +34,10 @@ MB_App *Middlebox::get_app() const {
 
 std::chrono::microseconds Middlebox::get_timeout() const {
     return timeout;
+}
+
+bool Middlebox::packet_logging_enabled() const {
+    return enable_packet_logging;
 }
 
 bool Middlebox::dropmon_enabled() const {

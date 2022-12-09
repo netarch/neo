@@ -9,6 +9,7 @@
 #include <pcapplusplus/PcapFileDevice.h>
 
 #include "mb-env/mb-env.hpp"
+#include "middlebox.hpp"
 
 class Interface;
 class Node;
@@ -36,7 +37,7 @@ public:
     NetNS();
     ~NetNS() override;
 
-    void init(const Node &) override;
+    void init(const Middlebox &) override;
     void run(void (*)(MB_App *), MB_App *) override;
     size_t inject_packet(const Packet &) override;
     std::list<Packet> read_packets() const override;

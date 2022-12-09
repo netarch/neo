@@ -103,18 +103,6 @@ void NetNS::set_interfaces(const Node &node) {
         if (ioctl(ctrl_sock, SIOCSIFFLAGS, &ifr) < 0) {
             goto error;
         }
-
-#ifdef ENABLE_DEBUG
-        string pcapFn = to_string(getpid()) + "." + node.get_name() + "-" +
-                        intf->get_name() + ".pcap";
-        pcapLoggers.emplace(intf, make_unique<pcpp::PcapFileWriterDevice>(
-                                      pcapFn, pcpp::LINKTYPE_ETHERNET));
-        auto &pcapLogger = pcapLoggers.at(intf);
-        bool appendMode = fs::exists(pcapFn);
-        if (!pcapLogger->open(appendMode)) {
-            Logger::error("Failed to open " + pcapFn);
-        }
-#endif
     }
 
     close(ctrl_sock);
@@ -284,7 +272,7 @@ NetNS::~NetNS() {
     close(new_net);
 }
 
-void NetNS::init(const Node &node) {
+void NetNS::init(const Middlebox &node) {
     const char *netns_path = "/proc/self/ns/net";
 
     // save the original netns fd
@@ -308,6 +296,22 @@ void NetNS::init(const Node &node) {
     if (setns(old_net, CLONE_NEWNET) < 0) {
         Logger::error("setns()", errno);
     }
+
+#ifdef ENABLE_DEBUG
+    if (node.packet_logging_enabled()) {
+        for (const auto &[_, intf] : node.get_intfs_l3()) {
+            string pcapFn = to_string(getpid()) + "." + node.get_name() + "-" +
+                            intf->get_name() + ".pcap";
+            pcapLoggers.emplace(intf, make_unique<pcpp::PcapFileWriterDevice>(
+                                          pcapFn, pcpp::LINKTYPE_ETHERNET));
+            auto &pcapLogger = pcapLoggers.at(intf);
+            bool appendMode = fs::exists(pcapFn);
+            if (!pcapLogger->open(appendMode)) {
+                Logger::error("Failed to open " + pcapFn);
+            }
+        }
+    }
+#endif
 }
 
 void NetNS::run(void (*app_action)(MB_App *), MB_App *app) {
@@ -347,11 +351,13 @@ size_t NetNS::inject_packet(const Packet &pkt) {
     }
 
 #ifdef ENABLE_DEBUG
-    auto &pcapLogger = pcapLoggers.at(pkt.get_intf());
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    pcpp::RawPacket rawpkt(buf, len, ts, false);
-    pcapLogger->writePacket(rawpkt);
+    if (pcapLoggers.count(pkt.get_intf()) > 0) {
+        auto &pcapLogger = pcapLoggers.at(pkt.get_intf());
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        pcpp::RawPacket rawpkt(buf, len, ts, false);
+        pcapLogger->writePacket(rawpkt);
+    }
 #endif
 
     // free resources

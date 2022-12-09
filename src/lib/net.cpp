@@ -20,6 +20,8 @@
 #include "pktbuffer.hpp"
 #include "protocols.hpp"
 
+using namespace std;
+
 Net::Net() {
     char errbuf[LIBNET_ERRBUF_SIZE];
     l = libnet_init(LIBNET_LINK_ADV, NULL, errbuf);
@@ -328,10 +330,14 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
              */
             // Payload
             int dataoff = 34 + int(offset) * 4;
-            int datalen = buflen - dataoff;
-            uint8_t *data = new uint8_t[datalen];
-            memcpy(data, buffer + dataoff, datalen);
-            pkt.set_payload(PayloadMgr::get().get_payload(data, datalen));
+            size_t datalen = buflen - dataoff;
+            if (datalen == 0) {
+                pkt.set_payload(nullptr);
+            } else {
+                uint8_t *data = new uint8_t[datalen];
+                memcpy(data, buffer + dataoff, datalen);
+                pkt.set_payload(PayloadMgr::get().get_payload(data, datalen));
+            }
         } else if (ip_proto == IPPROTO_UDP) { // UDP packets
             // source and destination port
             uint16_t src_port, dst_port;
@@ -355,9 +361,13 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
              * on the connection matching information.
              */
             // Payload
-            uint8_t *data = new uint8_t[length];
-            memcpy(data, buffer + 42, length);
-            pkt.set_payload(PayloadMgr::get().get_payload(data, length));
+            if (length == 0) {
+                pkt.set_payload(nullptr);
+            } else {
+                uint8_t *data = new uint8_t[length];
+                memcpy(data, buffer + 42, length);
+                pkt.set_payload(PayloadMgr::get().get_payload(data, length));
+            }
         } else if (ip_proto == IPPROTO_ICMP) { // ICMP packets
             // ICMP type
             uint8_t icmp_type;
@@ -402,7 +412,8 @@ void Net::convert_proto_state(Packet &pkt, uint16_t old_proto_state) const {
     if (pkt.get_proto_state() & 0x800U) {
         uint16_t proto_state = 0;
         uint16_t flags = pkt.get_proto_state() & (~0x800U);
-        size_t payloadlen = pkt.get_payload()->get_size();
+        size_t payloadlen =
+            pkt.get_payload() ? pkt.get_payload()->get_size() : 0;
 
         if (pkt.is_new()) {
             assert(flags == TH_SYN);

@@ -346,7 +346,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     Stats::set_overall_latency();
 }
 
-/*
+/**
  * No multicast.
  */
 void ForwardingProcess::update_model_from_pkts(

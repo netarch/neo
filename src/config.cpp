@@ -281,7 +281,7 @@ void Config::estimate_latency() {
      */
     Network network;
 
-    Middlebox *mb = new Middlebox();
+    Middlebox *mb = new Middlebox(false);
     mb->name = "mb";
     Interface *mb_eth0 = new Interface();
     mb_eth0->name = "eth0";
@@ -453,7 +453,7 @@ void Config::parse_network(Network *network,
                 node = new Node();
                 Config::parse_node(node, tbl);
             } else if (**type == "middlebox") {
-                node = new Middlebox();
+                node = new Middlebox(true);
                 Config::parse_middlebox(static_cast<Middlebox *>(node), tbl,
                                         dropmon);
                 network->add_middlebox(static_cast<Middlebox *>(node));

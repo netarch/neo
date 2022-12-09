@@ -157,6 +157,10 @@ Payload *PayloadMgr::get_payload_from_model() {
 }
 
 Payload *PayloadMgr::get_payload(uint8_t *data, size_t len) {
+    if (len == 0) {
+        return nullptr;
+    }
+
     Payload *payload = new Payload(data, len);
     auto res = this->all_payloads.insert(payload);
     if (!res.second) {

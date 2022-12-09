@@ -16,12 +16,13 @@ private:
     std::string env;
     MB_App *app; // appliance
     std::chrono::microseconds latency_avg, latency_mdev, timeout;
+    bool enable_packet_logging;
     bool dropmon;
     int dev_scalar;
 
 private:
     friend class Config;
-    Middlebox();
+    Middlebox(bool packet_logging);
 
 public:
     Middlebox(const Middlebox &) = delete;
@@ -34,6 +35,7 @@ public:
     std::string get_env() const;
     MB_App *get_app() const;
     std::chrono::microseconds get_timeout() const;
+    bool packet_logging_enabled() const;
     bool dropmon_enabled() const;
     void update_timeout();
     void increase_latency_estimate_by_DOP(int DOP);
@@ -42,7 +44,7 @@ public:
     void set_node_pkt_hist(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 
-    /*
+    /**
      * Return an empty set. We use emulations to get next hops for middleboxes,
      * instead of looking up from routing tables. The forwarding process will
      * inject a concrete packet to the emulation instance.
