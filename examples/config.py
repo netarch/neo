@@ -3,7 +3,9 @@
 from typing import List
 from typing import Dict
 
+
 class Interface:
+
     def __init__(self, name, ipv4=None):
         self.name: str = name
         self.ipv4: str = ipv4
@@ -14,9 +16,11 @@ class Interface:
             data['ipv4'] = self.ipv4
         return data
 
+
 class Route:
+
     def __init__(self, network, next_hop, adm_dist=None):
-        self.network: str  = network
+        self.network: str = network
         self.next_hop: str = next_hop
         self.adm_dist: int = adm_dist
 
@@ -26,13 +30,15 @@ class Route:
             data['adm_dist'] = self.adm_dist
         return data
 
+
 class Node:
+
     def __init__(self, name, type=None):
-        self.name: str                      = name
-        self.type: str                      = type
-        self.interfaces: List[Interface]    = list()
-        self.static_routes: List[Route]     = list()
-        self.installed_routes: List[Route]  = list()
+        self.name: str = name
+        self.type: str = type
+        self.interfaces: List[Interface] = list()
+        self.static_routes: List[Route] = list()
+        self.installed_routes: List[Route] = list()
 
     def add_interface(self, intf):
         self.interfaces.append(intf)
@@ -50,12 +56,18 @@ class Node:
         if self.interfaces:
             data['interfaces'] = [intf.to_dict() for intf in self.interfaces]
         if self.static_routes:
-            data['static_routes'] = [route.to_dict() for route in self.static_routes]
+            data['static_routes'] = [
+                route.to_dict() for route in self.static_routes
+            ]
         if self.installed_routes:
-            data['installed_routes'] = [route.to_dict() for route in self.installed_routes]
+            data['installed_routes'] = [
+                route.to_dict() for route in self.installed_routes
+            ]
         return data
 
+
 class Middlebox(Node):
+
     def __init__(self, name, env, app):
         Node.__init__(self, name, 'middlebox')
         self.env: str = env
@@ -71,7 +83,9 @@ class Middlebox(Node):
         data.update(self.other_configs)
         return data
 
+
 class Link:
+
     def __init__(self, node1, intf1, node2, intf2):
         self.node1: str = node1
         self.intf1: str = intf1
@@ -81,7 +95,9 @@ class Link:
     def to_dict(self):
         return self.__dict__
 
+
 class Network:
+
     def __init__(self):
         self.nodes: List[Node] = list()
         self.links: List[Link] = list()
@@ -100,7 +116,9 @@ class Network:
             data['links'] = [link.to_dict() for link in self.links]
         return data
 
+
 class OpenflowUpdate:
+
     def __init__(self, node_name, network, outport):
         self.node: str = node_name
         self.network: str = network
@@ -109,27 +127,38 @@ class OpenflowUpdate:
     def to_dict(self):
         return self.__dict__
 
+
 class Openflow:
+
     def __init__(self):
         self.updates: List[OpenflowUpdate] = list()
 
     def add_update(self, update):
-        self.updates.append(update);
+        self.updates.append(update)
 
     def to_dict(self):
         data = {}
         if self.updates:
-            data['openflow'] = {'updates': [update.to_dict() for update in self.updates]}
+            data['openflow'] = {
+                'updates': [update.to_dict() for update in self.updates]
+            }
         return data
 
+
 class Connection:
-    def __init__(self, protocol, src_node, dst_ip, src_port=None, dst_port=None,
+
+    def __init__(self,
+                 protocol,
+                 src_node,
+                 dst_ip,
+                 src_port=None,
+                 dst_port=None,
                  owned_dst_only=None):
-        self.protocol: str        = protocol
-        self.src_node: str        = src_node
-        self.dst_ip: str          = dst_ip
-        self.src_port: int        = src_port
-        self.dst_port: List[int]  = dst_port
+        self.protocol: str = protocol
+        self.src_node: str = src_node
+        self.dst_ip: str = dst_ip
+        self.src_port: int = src_port
+        self.dst_port: List[int] = dst_port
         self.owned_dst_only: bool = owned_dst_only
 
     def to_dict(self):
@@ -142,7 +171,9 @@ class Connection:
             data.pop('owned_dst_only')
         return data
 
+
 class Policy:
+
     def __init__(self, type):
         self.type: str = type
         self.connections: List[Connection] = list()
@@ -156,47 +187,83 @@ class Policy:
             data['connections'] = [conn.to_dict() for conn in self.connections]
         return data
 
+
 ##
 ## single-connection policies
 ##
 
+
 class ReachabilityPolicy(Policy):
-    def __init__(self, target_node, reachable, protocol, src_node, dst_ip,
-                 src_port=None, dst_port=None, owned_dst_only=None):
+
+    def __init__(self,
+                 target_node,
+                 reachable,
+                 protocol,
+                 src_node,
+                 dst_ip,
+                 src_port=None,
+                 dst_port=None,
+                 owned_dst_only=None):
         Policy.__init__(self, 'reachability')
         self.target_node: str = target_node
         self.reachable: bool = reachable
-        self.add_connection(Connection(protocol, src_node, dst_ip, src_port,
-                                       dst_port, owned_dst_only))
+        self.add_connection(
+            Connection(protocol, src_node, dst_ip, src_port, dst_port,
+                       owned_dst_only))
+
 
 class ReplyReachabilityPolicy(Policy):
-    def __init__(self, target_node, reachable, protocol, src_node, dst_ip,
-                 src_port=None, dst_port=None, owned_dst_only=None):
+
+    def __init__(self,
+                 target_node,
+                 reachable,
+                 protocol,
+                 src_node,
+                 dst_ip,
+                 src_port=None,
+                 dst_port=None,
+                 owned_dst_only=None):
         Policy.__init__(self, 'reply-reachability')
         self.target_node: str = target_node
         self.reachable: bool = reachable
-        self.add_connection(Connection(protocol, src_node, dst_ip, src_port,
-                                       dst_port, owned_dst_only))
+        self.add_connection(
+            Connection(protocol, src_node, dst_ip, src_port, dst_port,
+                       owned_dst_only))
+
 
 class WaypointPolicy(Policy):
-    def __init__(self, target_node, pass_through, protocol, src_node, dst_ip,
-                 src_port=None, dst_port=None, owned_dst_only=None):
+
+    def __init__(self,
+                 target_node,
+                 pass_through,
+                 protocol,
+                 src_node,
+                 dst_ip,
+                 src_port=None,
+                 dst_port=None,
+                 owned_dst_only=None):
         Policy.__init__(self, 'waypoint')
         self.target_node: str = target_node
         self.pass_through: bool = pass_through
-        self.add_connection(Connection(protocol, src_node, dst_ip, src_port,
-                                       dst_port, owned_dst_only))
+        self.add_connection(
+            Connection(protocol, src_node, dst_ip, src_port, dst_port,
+                       owned_dst_only))
+
 
 ##
 ## multi-connection policies
 ##
 
+
 class OneRequestPolicy(Policy):
+
     def __init__(self, target_node):
         Policy.__init__(self, 'one-request')
         self.target_node: str = target_node
 
+
 class LoadBalancePolicy(Policy):
+
     def __init__(self, target_node, max_dispersion_index=None):
         Policy.__init__(self, 'loadbalance')
         self.target_node: str = target_node
@@ -208,11 +275,14 @@ class LoadBalancePolicy(Policy):
             data.pop('max_dispersion_index')
         return data
 
+
 ##
 ## policies with multiple single-connection correlated policies
 ##
 
+
 class ConditionalPolicy(Policy):
+
     def __init__(self, correlated_policies):
         Policy.__init__(self, 'conditional')
         self.correlated_policies: List[Policy] = correlated_policies
@@ -220,11 +290,14 @@ class ConditionalPolicy(Policy):
     def to_dict(self):
         data = Policy.to_dict(self)
         if self.correlated_policies:
-            data['correlated_policies'] = [policy.to_dict()
-                    for policy in self.correlated_policies]
+            data['correlated_policies'] = [
+                policy.to_dict() for policy in self.correlated_policies
+            ]
         return data
 
+
 class ConsistencyPolicy(Policy):
+
     def __init__(self, correlated_policies):
         Policy.__init__(self, 'consistency')
         self.correlated_policies: List[Policy] = correlated_policies
@@ -232,11 +305,14 @@ class ConsistencyPolicy(Policy):
     def to_dict(self):
         data = Policy.to_dict(self)
         if self.correlated_policies:
-            data['correlated_policies'] = [policy.to_dict()
-                    for policy in self.correlated_policies]
+            data['correlated_policies'] = [
+                policy.to_dict() for policy in self.correlated_policies
+            ]
         return data
 
+
 class Policies:
+
     def __init__(self):
         self.policies: List[Policy] = list()
 
@@ -249,7 +325,9 @@ class Policies:
         else:
             return {}
 
+
 import toml
+
 
 def output_toml(network, openflow, policies):
     config = {}

@@ -6,7 +6,7 @@ arch=('any')
 url="https://github.com/netarch/neo"
 license=()
 depends=('cmake' 'clang' 'spin-git' 'libnet' 'libnl' 'ipvsadm' 'squid'
-         'python-toml' 'bc')
+         'python-toml' 'bc' 'yapf')
 makedepends=()
 checkdepends=()
 optdepends=()

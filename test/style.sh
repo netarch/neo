@@ -6,10 +6,6 @@ msg() {
     echo -e "[+] ${1-}" >&2
 }
 
-hurt() {
-    echo -e "[-] ${1-}" >&2
-}
-
 die() {
     echo -e "[!] ${1-}" >&2
     exit 1
@@ -47,33 +43,36 @@ parse_params() {
     done
 }
 
-verle() {
-    [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
-}
-
-verlt() {
-    if [ "$1" = "$2" ]; then
-        return 1
-    else
-        verle "$1" "$2"
-    fi
-}
-
 main() {
     OVERWRITE=0
     parse_params "$@"
-    check_depends clang-format
+
+    if command -v yapf3 >/dev/null 2>&1; then
+        YAPF=yapf3
+    elif command -v yapf >/dev/null 2>&1; then
+        YAPF=yapf
+    fi
+
+    check_depends clang-format $YAPF
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
     TEST_DIR="$(realpath "${SCRIPT_DIR}"/../test)"
+    EXAMPLES_DIR="$(realpath "${SCRIPT_DIR}"/../examples)"
 
     if [ $OVERWRITE -eq 0 ]; then
+        # C++: clang-format
         find "$SRC_DIR" "$TEST_DIR" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror --dry-run {} +
+        # Python: yapf
+        $YAPF -p -r -d "$EXAMPLES_DIR"
+        msg "Coding style is compliant"
     else
+        # C++: clang-format
         find "$SRC_DIR" "$TEST_DIR" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror -i {} +
+        # Python: yapf
+        $YAPF -p -r -i "$EXAMPLES_DIR"
     fi
 }
 

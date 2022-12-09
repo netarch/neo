@@ -5,6 +5,7 @@ import toml
 import argparse
 from config import *
 
+
 def confgen(lbs, servers, algorithm):
     network = Network()
     policies = Policies()
@@ -44,9 +45,11 @@ def confgen(lbs, servers, algorithm):
             server = Node('server%d.%d' % (lb, srv))
             third = ((srv + 1) // 256) % 256
             last = (srv + 1) % 256
-            server.add_interface(Interface('eth0', '9.%d.%d.%d/24' % (lb, third, last)))
+            server.add_interface(
+                Interface('eth0', '9.%d.%d.%d/24' % (lb, third, last)))
             server.add_static_route(Route('0.0.0.0/0', '9.%d.0.1' % lb))
-            lb_config += '-a -t 8.0.%d.2:80 -r 9.%d.%d.%d:80 -m\n' % (lb, lb, third, last)
+            lb_config += '-a -t 8.0.%d.2:80 -r 9.%d.%d.%d:80 -m\n' % (
+                lb, lb, third, last)
             network.add_node(server)
             network.add_link(Link(sw.name, 'eth%d' % srv, server.name, 'eth0'))
         load_balancer.add_config('config', lb_config)
@@ -54,29 +57,35 @@ def confgen(lbs, servers, algorithm):
     ## add policies
     #for lb in range(1, lbs + 1):
     lb = 1
-    policy = LoadBalancePolicy(
-            target_node = 'server%d\.[0-9]+' % lb,
-            max_dispersion_index = 2)
+    policy = LoadBalancePolicy(target_node='server%d\.[0-9]+' % lb,
+                               max_dispersion_index=2)
     num_conns = int(lbs * 1.5)
     for repeat in range(num_conns):
-        policy.add_connection(Connection(
-            protocol = 'tcp',
-            src_node = internet_node.name,
-            dst_ip = '8.0.%d.2' % lb,
-            src_port = 50000 + repeat,
-            dst_port = [80]))
+        policy.add_connection(
+            Connection(protocol='tcp',
+                       src_node=internet_node.name,
+                       dst_ip='8.0.%d.2' % lb,
+                       src_port=50000 + repeat,
+                       dst_port=[80]))
     policies.add_policy(policy)
 
     ## output as TOML
     output_toml(network, None, policies)
 
+
 def main():
     parser = argparse.ArgumentParser(description='03-load-balancing')
-    parser.add_argument('-l', '--lbs', type=int,
+    parser.add_argument('-l',
+                        '--lbs',
+                        type=int,
                         help='Number of load balancers (HTTP servers)')
-    parser.add_argument('-s', '--servers', type=int,
+    parser.add_argument('-s',
+                        '--servers',
+                        type=int,
                         help='Number of servers behind each LB')
-    parser.add_argument('-a', '--algorithm', choices=['rr', 'sh', 'dh'],
+    parser.add_argument('-a',
+                        '--algorithm',
+                        choices=['rr', 'sh', 'dh'],
                         help='Load balancing algorithm')
     arg = parser.parse_args()
 
@@ -86,6 +95,7 @@ def main():
         sys.exit('Invalid number of servers: ' + str(arg.servers))
 
     confgen(arg.lbs, arg.servers, arg.algorithm)
+
 
 if __name__ == '__main__':
     main()
