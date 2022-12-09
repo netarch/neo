@@ -144,9 +144,23 @@ store_id_extras "%>a %un %>rm myip=%la myport=%lp"
 [[policies]]
     type = "reachability"
     target_node = "server"
+#     reachable = false
+#     [[policies.connections]]
+#     protocol = "tcp"
+#     src_node = "h[12]"
+#     dst_ip = "10.0.1.2"
+#     dst_port = 80
+# [[policies]]
+#     type = "reachability"
+#     target_node = "proxy"
     reachable = true
     [[policies.connections]]
     protocol = "tcp"
-    src_node = "h[12]"
+    src_node = "h1"
     dst_ip = "10.0.1.2"
     dst_port = 80
+# [[policies]]
+#     type = "one-request"
+#     target_node = "<node name regex>"
+#     [[policies.connections]]
+#     # < connection spec >

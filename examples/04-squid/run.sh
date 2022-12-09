@@ -3,8 +3,6 @@
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/../common.sh"
 
-build "$@" #-DCMAKE_BUILD_TYPE=Debug
-
 sudo "$NEO" -fj16 -i "$CONF" -o "$RESULTS_DIR"
 sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR"
 cp "$CONF" "$RESULTS_DIR"
