@@ -27,6 +27,7 @@ usage()
     Options:
     -h, --help          Print this message and exit
     -d, --debug         Enable debugging
+    -r, --rebuild       Reconfigure and rebuild everything
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
     --clang             Use Clang compiler
@@ -35,11 +36,15 @@ EOF
 }
 
 parse_params() {
+    REBUILD=0
+
     while :; do
         case "${1-}" in
         -h | --help) usage; exit ;;
         -d | --debug)
             CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug') ;;
+        -r | --rebuild)
+            REBUILD=1 ;;
         -t | --tests)
             CMAKE_ARGS+=('-DENABLE_TESTS=ON') ;;
         -c | --coverage)
@@ -71,9 +76,11 @@ main() {
     cd "${PROJECT_DIR}"
     git submodule update --init
 
-    # clean up old builds
-    git submodule foreach --recursive git clean -xdf
-    rm -rf "${BUILD_DIR}"
+    if [ $REBUILD -ne 0 ]; then
+        # clean up old builds
+        git submodule foreach --recursive git clean -xdf
+        rm -rf "${BUILD_DIR}"
+    fi
 
     # fresh build
     cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" "${CMAKE_ARGS[@]}"
