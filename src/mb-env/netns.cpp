@@ -357,6 +357,7 @@ size_t NetNS::inject_packet(const Packet &pkt) {
         clock_gettime(CLOCK_REALTIME, &ts);
         pcpp::RawPacket rawpkt(buf, len, ts, false);
         pcapLogger->writePacket(rawpkt);
+        pcapLogger->flush();
     }
 #endif
 
@@ -414,6 +415,18 @@ list<Packet> NetNS::read_packets() const {
         Net::get().deserialize(pkt, pb);
         if (!pkt.empty()) {
             pkts.push_back(pkt);
+
+#ifdef ENABLE_DEBUG
+            if (pcapLoggers.count(pb.get_intf()) > 0) {
+                auto &pcapLogger = pcapLoggers.at(pb.get_intf());
+                struct timespec ts;
+                clock_gettime(CLOCK_REALTIME, &ts);
+                pcpp::RawPacket rawpkt(pb.get_buffer(), pb.get_len(), ts,
+                                       false);
+                pcapLogger->writePacket(rawpkt);
+                pcapLogger->flush();
+            }
+#endif
         }
     }
 
