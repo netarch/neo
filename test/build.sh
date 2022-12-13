@@ -31,7 +31,7 @@ usage()
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
     --clang             Use Clang compiler
-    --max-comms N       Maximum number of concurrent communications
+    --max-conns N       Maximum number of concurrent connections
 EOF
 }
 
@@ -51,8 +51,8 @@ parse_params() {
             CMAKE_ARGS+=('-DENABLE_COVERAGE=ON') ;;
         --clang)
             CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++') ;;
-        --max-comms)
-            CMAKE_ARGS+=("-DMAX_COMMS=${2-}")
+        --max-conns)
+            CMAKE_ARGS+=("-DMAX_CONNS=${2-}")
             shift
             ;;
         -?*) die "Unknown option: $1\n$(usage)" ;;
