@@ -2,6 +2,7 @@
 
 from typing import List
 from typing import Dict
+import toml
 
 
 class Interface:
@@ -102,6 +103,9 @@ class Network:
         self.nodes: List[Node] = list()
         self.links: List[Link] = list()
 
+    def is_empty(self):
+        return len(self.nodes) + len(self.links) == 0
+
     def add_node(self, node):
         self.nodes.append(node)
 
@@ -132,6 +136,9 @@ class Openflow:
 
     def __init__(self):
         self.updates: List[OpenflowUpdate] = list()
+
+    def is_empty(self):
+        return len(self.updates) == 0
 
     def add_update(self, update):
         self.updates.append(update)
@@ -316,6 +323,9 @@ class Policies:
     def __init__(self):
         self.policies: List[Policy] = list()
 
+    def is_empty(self):
+        return len(self.policies) == 0
+
     def add_policy(self, policy):
         self.policies.append(policy)
 
@@ -326,15 +336,31 @@ class Policies:
             return {}
 
 
-import toml
+class Config:
 
+    def __init__(self):
+        self.network = Network()
+        self.openflow = Openflow()
+        self.policies = Policies()
 
-def output_toml(network, openflow, policies):
-    config = {}
-    if network != None:
-        config.update(network.to_dict())
-    if openflow != None:
-        config.update(openflow.to_dict())
-    if policies != None:
-        config.update(policies.to_dict())
-    print(toml.dumps(config))
+    def add_node(self, node):
+        self.network.add_node(node)
+
+    def add_link(self, link):
+        self.network.add_link(link)
+
+    def add_update(self, update):
+        self.openflow.add_update(update)
+
+    def add_policy(self, policy):
+        self.policies.add_policy(policy)
+
+    def output_toml(self):
+        config = {}
+        if not self.network.is_empty():
+            config.update(self.network.to_dict())
+        if not self.openflow.is_empty():
+            config.update(self.openflow.to_dict())
+        if not self.policies.is_empty():
+            config.update(self.policies.to_dict())
+        print(toml.dumps(config))

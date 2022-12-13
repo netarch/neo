@@ -24,6 +24,7 @@ for lbs in 2 4; do
             sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
             cp "$CONF" "$RESULTS_DIR/$name"
         done
+        rm "$CONF"
     done
 done
 

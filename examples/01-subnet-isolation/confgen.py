@@ -1,12 +1,15 @@
 #!/usr/bin/python3
 
+import os
 import sys
 import argparse
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
 from config import *
 
 
 def confgen(subnets, hosts, fault):
-    network = Network()
+    config = Config()
 
     ## firewall rules
     fw_rules = """
@@ -38,7 +41,7 @@ COMMIT
     internet_node.add_static_route(Route('10.0.0.0/8', '8.0.0.2'))
     internet_node.add_static_route(Route('11.0.0.0/8', '8.0.0.2'))
     internet_node.add_static_route(Route('12.0.0.0/8', '8.0.0.2'))
-    network.add_node(internet_node)
+    config.add_node(internet_node)
     fw = Middlebox('fw', 'netns', 'netfilter')
     fw.add_interface(Interface('eth0', '8.0.0.2/24'))
     fw.add_interface(Interface('eth1', '9.0.0.1/24'))
@@ -51,7 +54,7 @@ COMMIT
         fw.add_config('rules', fw_bad_rules)
     else:
         fw.add_config('rules', fw_rules)
-    network.add_node(fw)
+    config.add_node(fw)
     gw = Node('gw')
     gw.add_interface(Interface('eth0', '9.0.0.2/24'))
     for subnet in range(subnets):  # add "public"-connecting interfaces
@@ -66,9 +69,9 @@ COMMIT
                          '10.%d.0.1/16' % subnet)
         gw.add_interface(intf)
     gw.add_static_route(Route('0.0.0.0/0', '9.0.0.1'))
-    network.add_node(gw)
-    network.add_link(Link('internet', 'eth0', 'fw', 'eth0'))
-    network.add_link(Link('fw', 'eth1', 'gw', 'eth0'))
+    config.add_node(gw)
+    config.add_link(Link('internet', 'eth0', 'fw', 'eth0'))
+    config.add_link(Link('fw', 'eth1', 'gw', 'eth0'))
 
     ## add nodes and links in the public subnets
     for subnet in range(subnets):
@@ -76,8 +79,8 @@ COMMIT
         sw.add_interface(Interface('eth0'))
         for i in range(1, hosts + 1):
             sw.add_interface(Interface('eth%d' % i))
-        network.add_node(sw)
-        network.add_link(Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1)))
+        config.add_node(sw)
+        config.add_link(Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1)))
         for i in range(1, hosts + 1):
             host = Node('public%d-host%d' % (subnet, i - 1))
             second_last = ((i + 1) // 256) % 256
@@ -86,8 +89,8 @@ COMMIT
                 Interface('eth0',
                           '12.%d.%d.%d/16' % (subnet, second_last, last)))
             host.add_static_route(Route('0.0.0.0/0', '12.%d.0.1' % subnet))
-            network.add_node(host)
-            network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
+            config.add_node(host)
+            config.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add nodes and links in the private subnets
     for subnet in range(subnets):
@@ -95,8 +98,8 @@ COMMIT
         sw.add_interface(Interface('eth0'))
         for i in range(1, hosts + 1):
             sw.add_interface(Interface('eth%d' % i))
-        network.add_node(sw)
-        network.add_link(
+        config.add_node(sw)
+        config.add_link(
             Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1 + subnets)))
         for i in range(1, hosts + 1):
             host = Node('private%d-host%d' % (subnet, i - 1))
@@ -106,8 +109,8 @@ COMMIT
                 Interface('eth0',
                           '11.%d.%d.%d/16' % (subnet, second_last, last)))
             host.add_static_route(Route('0.0.0.0/0', '11.%d.0.1' % subnet))
-            network.add_node(host)
-            network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
+            config.add_node(host)
+            config.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add nodes and links in the quarantined subnets
     for subnet in range(subnets):
@@ -115,8 +118,8 @@ COMMIT
         sw.add_interface(Interface('eth0'))
         for i in range(1, hosts + 1):
             sw.add_interface(Interface('eth%d' % i))
-        network.add_node(sw)
-        network.add_link(
+        config.add_node(sw)
+        config.add_link(
             Link(sw.name, 'eth0', 'gw', 'eth%d' % (subnet + 1 + subnets * 2)))
         for i in range(1, hosts + 1):
             host = Node('quarantined%d-host%d' % (subnet, i - 1))
@@ -126,13 +129,12 @@ COMMIT
                 Interface('eth0',
                           '10.%d.%d.%d/16' % (subnet, second_last, last)))
             host.add_static_route(Route('0.0.0.0/0', '10.%d.0.1' % subnet))
-            network.add_node(host)
-            network.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
+            config.add_node(host)
+            config.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
     ## add policies
-    policies = Policies()
     # public subnets can initiate connections to the outside world
-    policies.add_policy(
+    config.add_policy(
         ReachabilityPolicy(target_node='internet',
                            reachable=True,
                            protocol='tcp',
@@ -141,7 +143,7 @@ COMMIT
                            dst_port=[80],
                            owned_dst_only=True))
     # public subnets can accept connections from the outside world
-    policies.add_policy(
+    config.add_policy(
         ReachabilityPolicy(target_node='(public.*-host.*)|gw',
                            reachable=True,
                            protocol='tcp',
@@ -151,7 +153,7 @@ COMMIT
                            owned_dst_only=True))
     # private subnets can initiate connections to the outside world and replies
     # from the outside world can reach the private subnets
-    policies.add_policy(
+    config.add_policy(
         ReplyReachabilityPolicy(target_node='internet',
                                 reachable=True,
                                 protocol='tcp',
@@ -160,7 +162,7 @@ COMMIT
                                 dst_port=[80],
                                 owned_dst_only=True))
     # private subnets can't accept connections from the outside world
-    policies.add_policy(
+    config.add_policy(
         ReachabilityPolicy(target_node='(private.*-host.*)|gw',
                            reachable=False,
                            protocol='tcp',
@@ -169,7 +171,7 @@ COMMIT
                            dst_port=[80],
                            owned_dst_only=True))
     # quarantined subnets can't initiate connections to the outside world
-    policies.add_policy(
+    config.add_policy(
         ReachabilityPolicy(target_node='internet',
                            reachable=False,
                            protocol='tcp',
@@ -178,7 +180,7 @@ COMMIT
                            dst_port=[80],
                            owned_dst_only=True))
     # quarantined subnets can't accept connections from the outside world
-    policies.add_policy(
+    config.add_policy(
         ReachabilityPolicy(target_node='(quarantined.*-host.*)|gw',
                            reachable=False,
                            protocol='tcp',
@@ -188,7 +190,7 @@ COMMIT
                            owned_dst_only=True))
 
     ## output as TOML
-    output_toml(network, None, policies)
+    config.output_toml()
 
 
 def main():

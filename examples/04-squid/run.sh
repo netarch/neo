@@ -6,6 +6,7 @@ source "${SCRIPT_DIR}/../common.sh"
 sudo "$NEO" -fj16 -i "$CONF" -o "$RESULTS_DIR"
 sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR"
 cp "$CONF" "$RESULTS_DIR"
+rm "$CONF"
 
 # msg "Populating measurements..."
 # extract_stats "$RESULTS_DIR" > "$RESULTS_DIR/stats.csv"

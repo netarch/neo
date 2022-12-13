@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 
+import os
 import sys
-import toml
 import argparse
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
 from config import *
 
 
 def confgen(apps, hosts, fault):
-    network = Network()
+    config = Config()
 
     ## set firewall rules
     fw_rules = """
@@ -81,22 +83,22 @@ def confgen(apps, hosts, fault):
     agg2_source = Node('agg2-source')
     agg2_source.add_interface(Interface('eth0', '8.0.7.2/24'))
     agg2_source.add_interface(Interface('eth1', '8.0.5.2/24'))
-    network.add_node(core1)
-    network.add_node(agg1_sink)
-    network.add_node(fw1)
-    network.add_node(agg1_source)
-    network.add_node(core2)
-    network.add_node(agg2_sink)
-    network.add_node(fw2)
-    network.add_node(agg2_source)
-    network.add_link(Link('core1', 'eth0', 'agg1-sink', 'eth1'))
-    network.add_link(Link('core1', 'eth1', 'agg1-source', 'eth1'))
-    network.add_link(Link('agg1-sink', 'eth0', 'fw1', 'eth0'))
-    network.add_link(Link('agg1-source', 'eth0', 'fw1', 'eth1'))
-    network.add_link(Link('core2', 'eth0', 'agg2-sink', 'eth1'))
-    network.add_link(Link('core2', 'eth1', 'agg2-source', 'eth1'))
-    network.add_link(Link('agg2-sink', 'eth0', 'fw2', 'eth0'))
-    network.add_link(Link('agg2-source', 'eth0', 'fw2', 'eth1'))
+    config.add_node(core1)
+    config.add_node(agg1_sink)
+    config.add_node(fw1)
+    config.add_node(agg1_source)
+    config.add_node(core2)
+    config.add_node(agg2_sink)
+    config.add_node(fw2)
+    config.add_node(agg2_source)
+    config.add_link(Link('core1', 'eth0', 'agg1-sink', 'eth1'))
+    config.add_link(Link('core1', 'eth1', 'agg1-source', 'eth1'))
+    config.add_link(Link('agg1-sink', 'eth0', 'fw1', 'eth0'))
+    config.add_link(Link('agg1-source', 'eth0', 'fw1', 'eth1'))
+    config.add_link(Link('core2', 'eth0', 'agg2-sink', 'eth1'))
+    config.add_link(Link('core2', 'eth1', 'agg2-source', 'eth1'))
+    config.add_link(Link('agg2-sink', 'eth0', 'fw2', 'eth0'))
+    config.add_link(Link('agg2-source', 'eth0', 'fw2', 'eth1'))
 
     for app in range(apps):
         ## add access nodes/links
@@ -164,23 +166,23 @@ def confgen(apps, hosts, fault):
             Route('0.0.0.0/0', '9.%d.%d.5' % (second, third)))
         access2.add_static_route(
             Route('0.0.0.0/0', '9.%d.%d.21' % (second, third)))
-        network.add_node(access1)
-        network.add_node(access2)
-        network.add_link(
+        config.add_node(access1)
+        config.add_node(access2)
+        config.add_link(
             Link(access1.name, 'eth0', 'agg1-sink', 'eth%d' % (2 * app + 2)))
-        network.add_link(
+        config.add_link(
             Link(access1.name, 'eth1', 'agg1-source', 'eth%d' % (2 * app + 2)))
-        network.add_link(
+        config.add_link(
             Link(access1.name, 'eth2', 'agg2-sink', 'eth%d' % (2 * app + 2)))
-        network.add_link(
+        config.add_link(
             Link(access1.name, 'eth3', 'agg2-source', 'eth%d' % (2 * app + 2)))
-        network.add_link(
+        config.add_link(
             Link(access2.name, 'eth0', 'agg1-sink', 'eth%d' % (2 * app + 3)))
-        network.add_link(
+        config.add_link(
             Link(access2.name, 'eth1', 'agg1-source', 'eth%d' % (2 * app + 3)))
-        network.add_link(
+        config.add_link(
             Link(access2.name, 'eth2', 'agg2-sink', 'eth%d' % (2 * app + 3)))
-        network.add_link(
+        config.add_link(
             Link(access2.name, 'eth3', 'agg2-source', 'eth%d' % (2 * app + 3)))
 
         ## add application hosts and related nodes/links
@@ -198,7 +200,7 @@ def confgen(apps, hosts, fault):
                 node.add_static_route(
                     Route('0.0.0.0/0',
                           '10.%d.%d.%d' % (second, third, last - 1)))
-                network.add_link(
+                config.add_link(
                     Link(node.name, 'eth0', access1.name,
                          'eth%d' % acc_intf_num))
             elif host % 2 == 1:  # hosts under access2
@@ -211,13 +213,12 @@ def confgen(apps, hosts, fault):
                 node.add_static_route(
                     Route('0.0.0.0/0',
                           '11.%d.%d.%d' % (second, third, last - 1)))
-                network.add_link(
+                config.add_link(
                     Link(node.name, 'eth0', access2.name,
                          'eth%d' % acc_intf_num))
-            network.add_node(node)
+            config.add_node(node)
 
     ## add policies
-    policies = Policies()
     for app in range(apps):
         second = (app // 256) % 256  # second octet
         third = app % 256  # third octet
@@ -245,7 +246,7 @@ def confgen(apps, hosts, fault):
                                                   for i in other_apps]))))
         # In the same application, hosts under access1 can reach hosts under
         # access2
-        policies.add_policy(
+        config.add_policy(
             ConsistencyPolicy([
                 ReachabilityPolicy(target_node=hosts_acc2 +
                                    '|access2-app%d' % app,
@@ -258,7 +259,7 @@ def confgen(apps, hosts, fault):
             ]))
         # In the same application, hosts under access2 can reach hosts under
         # access1
-        policies.add_policy(
+        config.add_policy(
             ConsistencyPolicy([
                 ReachabilityPolicy(target_node=hosts_acc1 +
                                    '|access1-app%d' % app,
@@ -270,7 +271,7 @@ def confgen(apps, hosts, fault):
                                    owned_dst_only=True)
             ]))
         # Hosts of an application cannot reach hosts of other applications
-        policies.add_policy(
+        config.add_policy(
             ConsistencyPolicy([
                 ReachabilityPolicy(target_node=hosts_other_apps,
                                    reachable=False,
@@ -283,7 +284,7 @@ def confgen(apps, hosts, fault):
         break
 
     ## output as TOML
-    output_toml(network, None, policies)
+    config.output_toml()
 
 
 def main():

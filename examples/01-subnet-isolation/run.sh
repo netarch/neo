@@ -20,6 +20,7 @@ for subnets in 4 8 10 12; do
         sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
         cp "$CONF" "$RESULTS_DIR/$name"
     done
+    rm "$CONF"
 done
 
 # faulty configuration
@@ -40,6 +41,7 @@ for subnets in 4 8 10 12; do
         sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
         cp "$CONF" "$RESULTS_DIR/$name"
     done
+    rm "$CONF"
 done
 
 # msg "Populating measurements..."
