@@ -351,6 +351,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             uint16_t length;
             memcpy(&length, buffer + 38, 2);
             length -= 8;
+            length = min(length, uint16_t(buflen - 42));
             // UDP proto_state
             pkt.set_proto_state(PS_UDP_REQ);
             /**
