@@ -36,23 +36,28 @@ EOF
 }
 
 parse_params() {
+    DEBUG=0
     REBUILD=0
+    TESTS=0
+    COVERAGE=0
+    CLANG=0
+    MAX_CONNS=2
 
     while :; do
         case "${1-}" in
         -h | --help) usage; exit ;;
         -d | --debug)
-            CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug') ;;
+            DEBUG=1 ;;
         -r | --rebuild)
             REBUILD=1 ;;
         -t | --tests)
-            CMAKE_ARGS+=('-DENABLE_TESTS=ON') ;;
+            TESTS=1 ;;
         -c | --coverage)
-            CMAKE_ARGS+=('-DENABLE_COVERAGE=ON') ;;
+            COVERAGE=1 ;;
         --clang)
-            CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++') ;;
+            CLANG=1 ;;
         --max-conns)
-            CMAKE_ARGS+=("-DMAX_CONNS=${2-}")
+            MAX_CONNS="${2-}"
             shift
             ;;
         -?*) die "Unknown option: $1\n$(usage)" ;;
@@ -82,7 +87,27 @@ main() {
         rm -rf "${BUILD_DIR}"
     fi
 
-    # fresh build
+    if [ $DEBUG -ne 0 ]; then
+        CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug')
+    else
+        CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Release')
+    fi
+    if [ $TESTS -ne 0 ]; then
+        CMAKE_ARGS+=('-DENABLE_TESTS=ON')
+    else
+        CMAKE_ARGS+=('-DENABLE_TESTS=OFF')
+    fi
+    if [ $COVERAGE -ne 0 ]; then
+        CMAKE_ARGS+=('-DENABLE_COVERAGE=ON')
+    else
+        CMAKE_ARGS+=('-DENABLE_COVERAGE=OFF')
+    fi
+    if [ $CLANG -ne 0 ]; then
+        CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
+    fi
+    CMAKE_ARGS+=("-DMAX_CONNS=${MAX_CONNS}")
+
+    # configure and build
     cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" "${CMAKE_ARGS[@]}"
     cmake --build "${BUILD_DIR}"
 }
