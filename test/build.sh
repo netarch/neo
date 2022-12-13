@@ -41,7 +41,7 @@ parse_params() {
     TESTS=0
     COVERAGE=0
     CLANG=0
-    MAX_CONNS=2
+    MAX_CONNS=10
 
     while :; do
         case "${1-}" in
