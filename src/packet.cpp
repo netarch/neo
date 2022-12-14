@@ -114,6 +114,10 @@ Payload *Packet::get_payload() const {
     return payload;
 }
 
+size_t Packet::get_payload_size() const {
+    return this->payload ? this->payload->get_size() : 0;
+}
+
 int Packet::conn() const {
     return _conn;
 }

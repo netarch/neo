@@ -29,13 +29,21 @@ Payload::Payload(uint8_t *data, size_t len) {
 }
 
 Payload::Payload(const Payload *const a, const Payload *const b) {
-    this->size = a->get_size() + b->get_size();
+    uint32_t a_size = a ? a->get_size() : 0;
+    uint32_t b_size = b ? b->get_size() : 0;
+
+    this->size = a_size + b_size;
+
     if (this->size == 0) {
         this->buffer = nullptr;
     } else {
         this->buffer = new uint8_t[this->size];
-        memcpy(this->buffer, a->get(), a->get_size());
-        memcpy(this->buffer + a->get_size(), b->get(), b->get_size());
+        if (a) {
+            memcpy(this->buffer, a->get(), a_size);
+        }
+        if (b) {
+            memcpy(this->buffer + a_size, b->get(), b_size);
+        }
     }
 }
 

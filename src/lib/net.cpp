@@ -508,7 +508,7 @@ void Net::reassemble_segments(std::list<Packet> &pkts) const {
         auto &intf_pkts = intf_pkts_map[p->get_intf()];
 
         if (!intf_pkts.empty()) {
-            auto &lp = intf_pkts.back();
+            auto &lp = intf_pkts.back(); // located packet
 
             if (lp.get_src_ip() == p->get_src_ip() &&
                 lp.get_dst_ip() == p->get_dst_ip() &&
@@ -516,8 +516,7 @@ void Net::reassemble_segments(std::list<Packet> &pkts) const {
                 lp.get_dst_port() == p->get_dst_port() &&
                 Net::get().is_tcp_ack_or_psh_ack(lp) &&
                 Net::get().is_tcp_ack_or_psh_ack(*p) &&
-                lp.get_payload()->get_size() > 0 &&
-                lp.get_seq() + lp.get_payload()->get_size() == p->get_seq() &&
+                lp.get_seq() + lp.get_payload_size() == p->get_seq() &&
                 lp.get_ack() == p->get_ack()) {
 
                 lp.set_payload(PayloadMgr::get().get_payload(lp, *p));

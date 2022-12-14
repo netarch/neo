@@ -70,6 +70,7 @@ public:
     uint32_t get_ack() const;
     uint16_t get_proto_state() const;
     Payload *get_payload() const;
+    size_t get_payload_size() const;
     int conn() const;
     bool is_new() const;
     bool opposite_dir() const;
