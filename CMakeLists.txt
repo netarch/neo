@@ -72,6 +72,7 @@ endif()
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_subdirectory(third_party/catch2)
+add_subdirectory(third_party/curlpp)
 add_subdirectory(third_party/tomlplusplus)
 add_subdirectory(third_party/spdlog)
 set(XXHASH_BUILD_ENABLE_INLINE_API ON)
@@ -129,6 +130,7 @@ target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE
+    curlpp_static
     Libnet::Libnet
     Libnl::Libnl
     PcapPlusPlus::pcap++
@@ -148,9 +150,9 @@ target_link_libraries(neo PRIVATE libneo)
 #
 # set main target capability
 #
-add_custom_target(setcap ALL
-    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
-    DEPENDS neo)
+# add_custom_target(setcap ALL
+#     sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
+#     DEPENDS neo)
 
 #
 # tests targets
