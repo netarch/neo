@@ -13,6 +13,7 @@ class MB_App;
 class NetFilter;
 class IPVS;
 class Squid;
+class Docker;
 class Middlebox;
 class Link;
 class Network;
@@ -47,6 +48,7 @@ private:
     static void parse_netfilter(NetFilter *, const toml::table &);
     static void parse_ipvs(IPVS *, const toml::table &);
     static void parse_squid(Squid *, const toml::table &);
+    static void parse_docker(Docker *, const toml::table &);
     static void parse_middlebox(Middlebox *, const toml::table &, bool);
     static void estimate_latency();
 

@@ -12,6 +12,7 @@
 #include "connspec.hpp"
 #include "interface.hpp"
 #include "link.hpp"
+#include "mb-app/docker.hpp"
 #include "mb-app/ipvs.hpp"
 #include "mb-app/mb-app.hpp"
 #include "mb-app/netfilter.hpp"
@@ -227,6 +228,38 @@ void Config::parse_squid(Squid *squid, const toml::table &config) {
     Config::parse_appliance_config(squid, squid->config);
 }
 
+void Config::parse_docker(Docker *docker, const toml::table &config) {
+    assert(docker != nullptr);
+
+    // three special docker fields
+    auto container_name = config.get_as<std::string>("container_name");
+    auto image = config.get_as<std::string>("image");
+    auto cmd = config.get("command");
+
+    if (!container_name || !image || !cmd) {
+        Logger::error("Missing config");
+    }
+
+    auto docker_config = config.get_as<std::string>("config");
+
+    if (!docker_config) {
+        Logger::error("Missing config");
+    }
+
+
+    docker->container_name = **container_name;
+    docker->image = **image;
+    if (const toml::array* arr = cmd->as_array()) {
+        // visitation with for_each() helps deal with heterogeneous data
+        arr->for_each([&docker](auto&& el) {
+            if constexpr (toml::is_string<decltype(el)>) {
+                docker->cmd.push_back(*el);
+            }
+        });
+    }
+    Config::parse_appliance_config(docker, docker->config);
+}
+
 void Config::parse_middlebox(Middlebox *middlebox,
                              const toml::table &config,
                              bool dropmon) {
@@ -264,6 +297,9 @@ void Config::parse_middlebox(Middlebox *middlebox,
     } else if (**appliance == "squid") {
         middlebox->app = new Squid();
         Config::parse_squid(static_cast<Squid *>(middlebox->app), config);
+    } else if (**appliance == "docker") {
+        middlebox->app = new Docker();
+        Config::parse_docker(static_cast<Docker *>(middlebox->app), config);
     } else {
         Logger::error("Unknown appliance: " + **appliance);
     }
