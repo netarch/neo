@@ -150,6 +150,8 @@ rapidjson::Document DockerUtil::executeCurlRequest(Method method,
     headers = curl_slist_append(headers, "Content-Type: application/json");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
+    std::string paramString;
+
     // curl: request body
     if (method == POST) {
         // serialize json document to string
@@ -158,7 +160,7 @@ rapidjson::Document DockerUtil::executeCurlRequest(Method method,
         rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
         request_body.Accept(writer);
 
-        std::string paramString = std::string(buffer.GetString());
+        paramString = std::string(buffer.GetString());
         const char *paramChar = paramString.c_str();
 
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, paramChar);
