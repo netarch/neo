@@ -11,6 +11,6 @@
 [submodule "xxhash"]
 	path = third_party/xxhash
 	url = git@github.com:Cyan4973/xxHash.git
-[submodule "curlpp"]
-	path = third_party/curlpp
-	url = https://github.com/jpbarrette/curlpp.git
+[submodule "third_party/rapidjson"]
+	path = third_party/rapidjson
+	url = https://github.com/Tencent/rapidjson.git

@@ -72,7 +72,7 @@ endif()
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_subdirectory(third_party/catch2)
-add_subdirectory(third_party/curlpp)
+add_subdirectory(third_party/rapidjson)
 add_subdirectory(third_party/tomlplusplus)
 add_subdirectory(third_party/spdlog)
 set(XXHASH_BUILD_ENABLE_INLINE_API ON)
@@ -84,6 +84,8 @@ find_package(Libnl REQUIRED)
 find_package(PcapPlusPlus REQUIRED)
 find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
+find_package(CURL REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 #
 # source directory and files
@@ -127,10 +129,12 @@ add_custom_command(
 #
 add_library(libneo OBJECT ${SRC_FILES})
 target_include_directories(libneo PUBLIC ${SRC_DIR})
+target_include_directories(libneo PUBLIC ${RapidJSON_INCLUDE_DIRS})
+#target_include_directories(libneo PUBLIC ${CMAKE_SOURCE_DIR}/third_party/rapidjson/include)
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE
-    curlpp_static
+    CURL::libcurl
     Libnet::Libnet
     Libnl::Libnl
     PcapPlusPlus::pcap++
