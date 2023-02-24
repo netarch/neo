@@ -17,6 +17,10 @@ public:
     static rapidjson::Document create_container(rapidjson::Document &request_body,
                                                 const std::string &name = "");
 
+    static rapidjson::Document start_container(const std::string& container_name);
+
+    static rapidjson::Document stop_container(const std::string& container_name);
+
     static rapidjson::Document inspect_container(const std::string &name);
 
     static int inspect_container_pid(const std::string &name);
@@ -46,8 +50,8 @@ private:
     // must be root or in docker group
     static constexpr std::string_view uri_path = "/var/run/docker.sock";
 
-    // specifies docker version. Assumes using unix socket
-    static constexpr std::string_view uri_prefix = "http://localhost/v1.41";
+    // specifies docker version. Assumes using unix socket. the "docker" will become HTTP Host header, only the path matters
+    static constexpr std::string_view uri_prefix = "http://docker/v1.41";
 
     /**
      * Sends request to the Docker API Engine. Then parses the output as JSON.

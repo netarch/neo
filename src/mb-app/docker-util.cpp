@@ -112,6 +112,18 @@ DockerUtil::create_container(rapidjson::Document &request_body,
     return executeCurlRequest(POST, path, 201, request_body);
 }
 
+rapidjson::Document
+DockerUtil::start_container(const std::string &container_name) {
+    std::string path = "/containers/" + container_name + "/start";
+    return executeCurlRequest(POST, path, 204);
+}
+rapidjson::Document
+DockerUtil::stop_container(const std::string &container_name) {
+    std::string path = "/containers/" + container_name + "/stop";
+    return executeCurlRequest(POST, path, 204);
+}
+
+
 rapidjson::Document DockerUtil::executeCurlRequest(Method method,
                                                 const std::string &path,
                                                 unsigned int success_code,
