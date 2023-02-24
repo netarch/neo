@@ -246,17 +246,18 @@ void Config::parse_docker(Docker *docker, const toml::table &config) {
         Logger::error("Missing config");
     }
 
-
     docker->container_name = **container_name;
     docker->image = **image;
-    if (const toml::array* arr = cmd->as_array()) {
+    if (const toml::array *arr = cmd->as_array()) {
         // visitation with for_each() helps deal with heterogeneous data
-        arr->for_each([&docker](auto&& el) {
+        arr->for_each([&docker](auto &&el) {
             if constexpr (toml::is_string<decltype(el)>) {
                 docker->cmd.push_back(*el);
             }
         });
     }
+
+    // TODO: concatenate and parse
     Config::parse_appliance_config(docker, docker->config);
 }
 

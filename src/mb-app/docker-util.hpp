@@ -4,22 +4,25 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
-
 class DockerUtil {
 public:
     static rapidjson::Document system_info();
 
-    [[maybe_unused]] static rapidjson::Document create_macvlan_network(const std::string &name,
-                                               const std::string &subnet,
-                                               const std::string &gateway,
-                                               const std::string &parent);
+    [[maybe_unused]] static rapidjson::Document
+    create_macvlan_network(const std::string &name,
+                           const std::string &subnet,
+                           const std::string &gateway,
+                           const std::string &parent);
 
-    static rapidjson::Document create_container(rapidjson::Document &request_body,
-                                                const std::string &name = "");
+    static rapidjson::Document
+    create_container(rapidjson::Document &request_body,
+                     const std::string &name = "");
 
-    static rapidjson::Document start_container(const std::string& container_name);
+    static rapidjson::Document
+    start_container(const std::string &container_name);
 
-    static rapidjson::Document stop_container(const std::string& container_name);
+    static rapidjson::Document
+    stop_container(const std::string &container_name);
 
     static rapidjson::Document inspect_container(const std::string &name);
 
@@ -34,7 +37,7 @@ private:
     } Method;
 
     static inline const std::string method2str(Method m) {
-        std::string methods[] {
+        std::string methods[]{
             "GET",
             "POST",
             "DELETE",
@@ -50,7 +53,8 @@ private:
     // must be root or in docker group
     static constexpr std::string_view uri_path = "/var/run/docker.sock";
 
-    // specifies docker version. Assumes using unix socket. the "docker" will become HTTP Host header, only the path matters
+    // specifies docker version. Assumes using unix socket. the "docker" will
+    // become HTTP Host header, only the path matters
     static constexpr std::string_view uri_prefix = "http://docker/v1.41";
 
     /**

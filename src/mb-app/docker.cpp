@@ -1,35 +1,37 @@
 #include "docker.hpp"
 
-#include <iostream>
 #include <curl/curl.h>
+#include <iostream>
 
 #include "docker-util.hpp"
 
 Docker::Docker() {
     pid = 0;
-    curl_global_init(CURL_GLOBAL_ALL);
+    //    curl_global_init(CURL_GLOBAL_ALL);
 }
 
 Docker::~Docker() {
-    curl_global_cleanup();
+    //    curl_global_cleanup();
 }
-
 
 void Docker::init() {
     // start docker container with no network
     Logger::info("docker container initializing");
 
-/*
-{
-    "Cmd": [
-       "-text=hello world"
-    ],
-    "Image": "hashicorp/http-echo",
-    "HostConfig": {
-       "NetworkMode": "none"
+    // if container exists and active, kill
+    // if container exists, delete
+
+    /*
+    {
+        "Cmd": [
+           "-text=hello world"
+        ],
+        "Image": "hashicorp/http-echo",
+        "HostConfig": {
+           "NetworkMode": "none"
+        }
     }
-}
- */
+     */
 
     rapidjson::Document request_body = {};
     request_body.SetObject();
@@ -41,7 +43,10 @@ void Docker::init() {
     rapidjson::Value HostConfig = {};
     HostConfig.SetObject();
     HostConfig.AddMember("NetworkMode", "none", request_body.GetAllocator());
-    request_body.AddMember("HostConfig", HostConfig, request_body.GetAllocator());
+    request_body.AddMember("HostConfig", HostConfig,
+                           request_body.GetAllocator());
+
+    //    std::cout << request_body << std::endl;
 
     rapidjson::Value array;
     array.SetArray();
@@ -56,10 +61,8 @@ void Docker::init() {
 
     pid = DockerUtil::inspect_container_pid(container_name);
     Logger::info("docker container has pid " + std::to_string(pid));
-
-    // switch to netns?
 }
 
 void Docker::reset() {
-    // shutdown docker container
+    // POST /restart ?
 }

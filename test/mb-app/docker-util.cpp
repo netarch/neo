@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-#include <iostream>
 #include "mb-app/docker-util.hpp"
+#include <iostream>
 
 TEST_CASE("docker-utils") {
     using namespace rapidjson;
@@ -24,21 +24,22 @@ TEST_CASE("docker-utils") {
     SECTION("Print PID") {
         auto response = DockerUtil::inspect_container("naughty_lovelace");
 
-        if (!response.HasMember("data") || !response["data"].HasMember("State") || !response["data"]["State"].HasMember("Pid")) {
+        if (!response.HasMember("data") ||
+            !response["data"].HasMember("State") ||
+            !response["data"]["State"].HasMember("Pid")) {
             // field does not exist, error
             exit(1);
         }
-        rapidjson::Value& pid = response["data"]["State"]["Pid"];
+        rapidjson::Value &pid = response["data"]["State"]["Pid"];
 
         // serialize to text
-//        StringBuffer buffer;
-//        Writer<StringBuffer> writer(buffer);
-//        pid.Accept(writer);
+        // StringBuffer buffer;
+        // Writer<StringBuffer> writer(buffer);
+        // id.Accept(writer);
 
         std::cout << "system info" << std::endl;
         std::cout << pid.GetInt() << std::endl;
 
         CHECK(response["success"].GetBool());
     }
-
 }

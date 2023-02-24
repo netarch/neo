@@ -3,18 +3,19 @@
 //
 
 #include "docker-util.hpp"
-#include <iostream>
 #include <curl/curl.h>
+#include <iostream>
 
 const rapidjson::Document DockerUtil::empty_json = {};
 
-rapidjson::Document DockerUtil::system_info(){
+rapidjson::Document DockerUtil::system_info() {
     std::string path = "/info";
     return executeCurlRequest(GET, path, 200, empty_json);
 }
 
 // get the PID of a container
-// curl --unix-socket /var/run/docker.sock http://localhost/containers/mb-app-1/json
+// curl --unix-socket /var/run/docker.sock
+// http://localhost/containers/mb-app-1/json
 rapidjson::Document DockerUtil::inspect_container(const std::string &name) {
     std::string path = "/containers/" + name + "/json";
     return executeCurlRequest(GET, path, 200, empty_json);
@@ -28,12 +29,13 @@ int DockerUtil::inspect_container_pid(const std::string &name) {
         return -1;
     }
 
-    if (!response.HasMember("data") || !response["data"].HasMember("State") || !response["data"]["State"].HasMember("Pid")) {
+    if (!response.HasMember("data") || !response["data"].HasMember("State") ||
+        !response["data"]["State"].HasMember("Pid")) {
         // field does not exist, error
         return -2;
     }
 
-    rapidjson::Value& pid = response["data"]["State"]["Pid"];
+    rapidjson::Value &pid = response["data"]["State"]["Pid"];
 
     if (!pid.IsInt()) {
         return -3;
@@ -42,32 +44,36 @@ int DockerUtil::inspect_container_pid(const std::string &name) {
     return pid.GetInt();
 }
 
-// docker network create -d macvlan --attachable --subnet=192.168.1.1/25 --gateway=192.168.1.2 -o parent=watertap0 dockervlan_3
+// docker network create -d macvlan --attachable --subnet=192.168.1.1/25
+// --gateway=192.168.1.2 -o parent=watertap0 dockervlan_3
 [[maybe_unused]] rapidjson::Document
-DockerUtil::create_macvlan_network(const std::string& name, const std::string& subnet, const std::string& gateway, const std::string& parent) {
+DockerUtil::create_macvlan_network(const std::string &name,
+                                   const std::string &subnet,
+                                   const std::string &gateway,
+                                   const std::string &parent) {
     std::string path = "/networks/create";
 
-/*
-"Scope": "local",
-"Driver": "macvlan",
-"EnableIPv6": false,
-"IPAM": {
-  "Driver": "default",
-  "Options": {},
-  "Config": [
-    {
-      "Subnet": "192.168.1.1/25",
-      "Gateway": "192.168.1.2"
-    }
-  ]
-},
-"Internal": false,
-"Attachable": true,
-"Ingress": false,
-"Options": {
-  "parent": "watertap0"
-},
- */
+    /*
+    "Scope": "local",
+    "Driver": "macvlan",
+    "EnableIPv6": false,
+    "IPAM": {
+      "Driver": "default",
+      "Options": {},
+      "Config": [
+        {
+          "Subnet": "192.168.1.1/25",
+          "Gateway": "192.168.1.2"
+        }
+      ]
+    },
+    "Internal": false,
+    "Attachable": true,
+    "Ingress": false,
+    "Options": {
+      "parent": "watertap0"
+    },
+     */
 
     rapidjson::Document request_body = {};
     request_body.SetObject();
@@ -123,15 +129,16 @@ DockerUtil::stop_container(const std::string &container_name) {
     return executeCurlRequest(POST, path, 204);
 }
 
-
-rapidjson::Document DockerUtil::executeCurlRequest(Method method,
-                                                const std::string &path,
-                                                unsigned int success_code,
-                                                const rapidjson::Document &request_body) {
+rapidjson::Document
+DockerUtil::executeCurlRequest(Method method,
+                               const std::string &path,
+                               unsigned int success_code,
+                               const rapidjson::Document &request_body) {
     // initialize curl
-    // note that `curl_global_init(CURL_GLOBAL_ALL)` should have already been called
+    // note that `curl_global_init(CURL_GLOBAL_ALL)` should have already been
+    // called
     CURL *curl = curl_easy_init();
-    if(!curl){
+    if (!curl) {
         std::cerr << "err: Cannot initialize curl" << std::endl;
         curl_global_cleanup();
         exit(1);
@@ -140,7 +147,8 @@ rapidjson::Document DockerUtil::executeCurlRequest(Method method,
     // curl: set socket path, request path, and method
     std::string host_uri = std::string(uri_prefix);
     std::string method_str = method2str(method);
-    curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, std::string(uri_path).c_str());
+    curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH,
+                     std::string(uri_path).c_str());
     curl_easy_setopt(curl, CURLOPT_URL, (host_uri + path).c_str());
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method_str.c_str());
 
@@ -174,10 +182,11 @@ rapidjson::Document DockerUtil::executeCurlRequest(Method method,
 
     // curl: execute request and collect response code
     CURLcode res = curl_easy_perform(curl);
-    if(res != CURLE_OK)
-        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+    if (res != CURLE_OK)
+        std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res)
+                  << std::endl;
     unsigned res_code = 0;
-    curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &res_code);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res_code);
 
     // curl: cleanup
     // should also call curl_global_cleanup() at end of program
@@ -187,12 +196,9 @@ rapidjson::Document DockerUtil::executeCurlRequest(Method method,
     // handle the responses
     rapidjson::Document response;
     response.SetObject();
-    if(res_code == success_code){
+    if (res_code == success_code) {
         response.AddMember("success", true, response.GetAllocator());
-//        rapidjson::Value dataString;
-//        dataString.SetString(readBuffer.c_str(), doc.GetAllocator());
-//        doc.AddMember("data", dataString, doc.GetAllocator());
-    }else{
+    } else {
         response.AddMember("success", false, response.GetAllocator());
     }
     response.AddMember("code", res_code, response.GetAllocator());
