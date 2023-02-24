@@ -21,7 +21,7 @@ TEST_CASE("docker-utils") {
         CHECK(response["success"].GetBool());
     }
 
-    SECTION("System Info") {
+    SECTION("Print PID") {
         auto response = DockerUtil::inspect_container("naughty_lovelace");
 
         if (!response.HasMember("data") || !response["data"].HasMember("State") || !response["data"]["State"].HasMember("Pid")) {
