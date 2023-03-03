@@ -17,7 +17,7 @@ class RoutingTable;
 class Packet;
 
 class NetNS : public MB_Env {
-private:
+protected:
     int old_net, new_net;
     int epollfd;
     struct epoll_event *events;
