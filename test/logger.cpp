@@ -1,8 +1,9 @@
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers.hpp>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include "lib/fs.hpp"
 #include "logger.hpp"

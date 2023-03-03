@@ -1,6 +1,7 @@
-#include <catch2/catch_test_macros.hpp>
 #include <iterator>
 #include <string>
+
+#include <catch2/catch_test_macros.hpp>
 
 #include "config.hpp"
 #include "network.hpp"

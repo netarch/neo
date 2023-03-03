@@ -1,8 +1,9 @@
+#include <iostream>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
 #include "mb-app/docker-util.hpp"
-#include <iostream>
 
 TEST_CASE("docker-utils") {
     using namespace rapidjson;
