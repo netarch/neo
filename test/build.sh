@@ -27,6 +27,7 @@ usage()
     Options:
     -h, --help          Print this message and exit
     -d, --debug         Enable debugging
+    --clean             Clean all build files
     -r, --rebuild       Reconfigure and rebuild everything
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
@@ -38,6 +39,7 @@ EOF
 
 parse_params() {
     DEBUG=0
+    CLEAN=0
     REBUILD=0
     TESTS=0
     COVERAGE=0
@@ -49,6 +51,8 @@ parse_params() {
         -h | --help) usage; exit ;;
         -d | --debug)
             DEBUG=1 ;;
+        --clean)
+            CLEAN=1 ;;
         -r | --rebuild)
             REBUILD=1 ;;
         -t | --tests)
@@ -84,10 +88,14 @@ main() {
     cd "${PROJECT_DIR}"
     git submodule update --init --recursive
 
-    if [ $REBUILD -ne 0 ]; then
+    if [ $REBUILD -ne 0 ] || [ $CLEAN -ne 0 ]; then
         # clean up old builds
         git submodule foreach --recursive git clean -xdf
         rm -rf "${BUILD_DIR}"
+
+        if [ $CLEAN -ne 0 ]; then
+            return
+        fi
     fi
 
     if [ $DEBUG -ne 0 ]; then

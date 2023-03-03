@@ -9,7 +9,7 @@ MAKEFLAGS="-j$(nproc)"
 export MAKEFLAGS
 
 "${SCRIPT_DIR}"/style.sh
-"${SCRIPT_DIR}"/build.sh --debug --tests --coverage
+"${SCRIPT_DIR}"/build.sh --debug --tests --coverage --gcc
 "${SCRIPT_DIR}"/build.sh --debug --tests --coverage --clang
 
 # cd "${BUILD_DIR}"
