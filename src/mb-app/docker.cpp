@@ -1,7 +1,8 @@
 #include "docker.hpp"
 
-#include <curl/curl.h>
 #include <iostream>
+
+#include <curl/curl.h>
 
 #include "docker-util.hpp"
 

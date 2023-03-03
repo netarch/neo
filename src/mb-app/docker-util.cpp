@@ -3,8 +3,10 @@
 //
 
 #include "docker-util.hpp"
-#include <curl/curl.h>
+
 #include <iostream>
+
+#include <curl/curl.h>
 
 const rapidjson::Document DockerUtil::empty_json = {};
 
