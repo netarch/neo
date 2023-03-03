@@ -5,8 +5,8 @@ pkgdesc="meta package for neo development"
 arch=('any')
 url="https://github.com/netarch/neo"
 license=()
-depends=('cmake' 'clang' 'spin-git' 'libnet' 'libnl' 'pcapplusplus' 'ipvsadm'
-         'squid' 'python-toml' 'bc' 'yapf')
+depends=('cmake' 'clang' 'spin-git' 'libnet' 'libnl' 'boost' 'pcapplusplus'
+         'python-toml' 'bc' 'yapf')
 makedepends=()
 checkdepends=()
 optdepends=()
