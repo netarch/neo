@@ -7,6 +7,7 @@
 #include "dropmon.hpp"
 #include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "mb-env/docker_netns.hpp"
 #include "mb-env/netns.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"
@@ -191,8 +192,11 @@ void Emulation::init(Middlebox *mb) {
     if (emulated_mb != mb) {
         this->teardown();
 
-        if (mb->get_env() == "netns") {
+        auto mb_env = mb->get_env();
+        if (mb_env == "netns") {
             env = new NetNS();
+        } else if (mb_env == "docker_netns") {
+            env = new Docker_NetNS();
         } else {
             Logger::error("Unknown environment: " + mb->get_env());
         }
