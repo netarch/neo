@@ -1,0 +1,4 @@
+set(CATCH_INSTALL_DOCS OFF)
+set(CATCH_DEVELOPMENT_BUILD OFF)
+
+add_subdirectory(catch2)

@@ -49,30 +49,31 @@ main() {
 
     if command -v yapf3 >/dev/null 2>&1; then
         YAPF=yapf3
-    elif command -v yapf >/dev/null 2>&1; then
+    else
         YAPF=yapf
     fi
 
-    check_depends clang-format $YAPF
+    check_depends clang-format "$YAPF"
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
     TEST_DIR="$(realpath "${SCRIPT_DIR}"/../test)"
     EXAMPLES_DIR="$(realpath "${SCRIPT_DIR}"/../examples)"
+    TARGET_DIRS=("$SRC_DIR" "$TEST_DIR" "$EXAMPLES_DIR")
 
     if [ $OVERWRITE -eq 0 ]; then
         # C++: clang-format
-        find "$SRC_DIR" "$TEST_DIR" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
+        find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror --dry-run {} +
         # Python: yapf
-        $YAPF -p -r -d "$EXAMPLES_DIR"
+        $YAPF -p -r -d "${TARGET_DIRS[@]}"
         msg "Coding style is compliant"
     else
         # C++: clang-format
-        find "$SRC_DIR" "$TEST_DIR" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
+        find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror -i {} +
         # Python: yapf
-        $YAPF -p -r -i "$EXAMPLES_DIR"
+        $YAPF -p -r -i "${TARGET_DIRS[@]}"
     fi
 }
 

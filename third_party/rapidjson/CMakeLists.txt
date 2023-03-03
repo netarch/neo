@@ -1,0 +1,22 @@
+set(RAPIDJSON_BUILD_DOC OFF)
+set(RAPIDJSON_BUILD_EXAMPLES OFF)
+set(RAPIDJSON_BUILD_TESTS OFF)
+set(RAPIDJSON_BUILD_THIRDPARTY_GTEST OFF)
+set(RAPIDJSON_BUILD_CXX11 ON)
+set(RAPIDJSON_BUILD_CXX17 ON)
+set(RAPIDJSON_BUILD_ASAN OFF)
+set(RAPIDJSON_BUILD_UBSAN OFF)
+set(RAPIDJSON_ENABLE_INSTRUMENTATION_OPT ON)
+
+add_subdirectory(rapidjson)
+
+# if(RapidJSON_INCLUDE_DIRS)
+#     message(FATAL_ERROR ":: ${RapidJSON_INCLUDE_DIRS}")
+# else()
+#     message(FATAL_ERROR ":: ${RapidJSON_INCLUDE_DIRS}")
+# endif()
+
+# if (NOT TARGET rapidjson)
+#     add_library(rapidjson INTERFACE IMPORTED)
+#     target_include_directories(rapidjson SYSTEM INTERFACE "${RapidJSON_INCLUDE_DIRS}")
+# endif()

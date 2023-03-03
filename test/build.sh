@@ -30,7 +30,8 @@ usage()
     -r, --rebuild       Reconfigure and rebuild everything
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
-    --clang             Use Clang compiler
+    --gcc               Use GCC
+    --clang             Use Clang
     --max-conns N       Maximum number of concurrent connections
 EOF
 }
@@ -40,7 +41,7 @@ parse_params() {
     REBUILD=0
     TESTS=0
     COVERAGE=0
-    CLANG=0
+    COMPILER=clang
     MAX_CONNS=10
 
     while :; do
@@ -54,8 +55,10 @@ parse_params() {
             TESTS=1 ;;
         -c | --coverage)
             COVERAGE=1 ;;
+        --gcc)
+            COMPILER=gcc ;;
         --clang)
-            CLANG=1 ;;
+            COMPILER=clang ;;
         --max-conns)
             MAX_CONNS="${2-}"
             shift
@@ -79,7 +82,7 @@ main() {
     BUILD_DIR="$(realpath "${PROJECT_DIR}"/build)"
 
     cd "${PROJECT_DIR}"
-    git submodule update --init
+    git submodule update --init --recursive
 
     if [ $REBUILD -ne 0 ]; then
         # clean up old builds
@@ -102,8 +105,10 @@ main() {
     else
         CMAKE_ARGS+=('-DENABLE_COVERAGE=OFF')
     fi
-    if [ $CLANG -ne 0 ]; then
+    if [ "$COMPILER" = 'clang' ]; then
         CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
+    elif [ "$COMPILER" = 'gcc' ]; then
+        CMAKE_ARGS+=('-DCMAKE_C_COMPILER=gcc' '-DCMAKE_CXX_COMPILER=g++')
     fi
     CMAKE_ARGS+=("-DMAX_CONNS=${MAX_CONNS}")
 

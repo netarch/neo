@@ -163,11 +163,11 @@ void NetNS::set_rttable(const RoutingTable &rib) {
 void NetNS::set_arp_cache(const Node &node) {
     int ctrl_sock;
     struct arpreq arp = {
-        .arp_pa = {     AF_INET, {0}},
+        .arp_pa = {AF_INET, {0}},
         .arp_ha = {ARPHRD_ETHER, {0}},
         .arp_flags = ATF_COM | ATF_PERM,
-        .arp_netmask = {   AF_UNSPEC, {0}},
-        .arp_dev = {           0    }
+        .arp_netmask = {AF_UNSPEC, {0}},
+        .arp_dev = {0}
     };
     uint8_t id_mac[6] = ID_ETH_ADDR;
     memcpy(arp.arp_ha.sa_data, id_mac, 6);

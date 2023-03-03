@@ -6,8 +6,9 @@ include("ExternalProject")
 #
 # compile options
 #
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(VECTORSZ 2048 CACHE STRING "Maximum number of communications")
@@ -15,15 +16,20 @@ set(MAX_CONNS 10 CACHE STRING "Maximum number of communications")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror -O2)
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Wno-c99-designator -Wno-uninitialized)
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
-            AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
-        add_compile_options(-Wno-stringop-overflow)
-    endif()
-    add_compile_options(-Wno-maybe-uninitialized)
+    add_compile_options(-Wno-c99-designator)
 endif()
+# if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+#     add_compile_options(-Wno-c99-designator -Wno-uninitialized)
+# elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
+#             AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
+#         add_compile_options(-Wno-stringop-overflow)
+#     endif()
+#     add_compile_options(-Wno-maybe-uninitialized)
+# endif()
+
 # See http://spinroot.com/spin/Man/Pan.html
 add_compile_definitions(
     NIBIS
@@ -73,19 +79,18 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_subdirectory(third_party/catch2)
 add_subdirectory(third_party/rapidjson)
-add_subdirectory(third_party/tomlplusplus)
 add_subdirectory(third_party/spdlog)
+add_subdirectory(third_party/tomlplusplus)
 set(XXHASH_BUILD_ENABLE_INLINE_API ON)
 set(XXHASH_BUILD_XXHSUM OFF)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(third_party/xxhash/cmake_unofficial EXCLUDE_FROM_ALL)
+find_package(CURL REQUIRED)
 find_package(Libnet REQUIRED)
 find_package(Libnl REQUIRED)
 find_package(PcapPlusPlus REQUIRED)
 find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
-find_package(CURL REQUIRED)
-find_package(RapidJSON REQUIRED)
 
 #
 # source directory and files
@@ -130,7 +135,6 @@ add_custom_command(
 add_library(libneo OBJECT ${SRC_FILES})
 target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_include_directories(libneo PUBLIC ${RapidJSON_INCLUDE_DIRS})
-#target_include_directories(libneo PUBLIC ${CMAKE_SOURCE_DIR}/third_party/rapidjson/include)
 target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE

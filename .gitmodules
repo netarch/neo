@@ -2,15 +2,15 @@
 	path = third_party/spdlog
 	url = https://github.com/gabime/spdlog.git
 	ignore = dirty
-[submodule "catch2"]
-	path = third_party/catch2
-	url = git@github.com:catchorg/Catch2.git
 [submodule "tomlplusplus"]
 	path = third_party/tomlplusplus
 	url = git@github.com:marzer/tomlplusplus.git
 [submodule "xxhash"]
 	path = third_party/xxhash
 	url = git@github.com:Cyan4973/xxHash.git
-[submodule "third_party/rapidjson"]
-	path = third_party/rapidjson
+[submodule "rapidjson"]
+	path = third_party/rapidjson/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "catch2"]
+	path = third_party/catch2/catch2
+	url = https://github.com/catchorg/Catch2.git
