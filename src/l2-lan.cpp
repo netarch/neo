@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "node.hpp"
 
 void L2_LAN::collect_intfs(Node *node,

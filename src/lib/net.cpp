@@ -13,7 +13,7 @@
 
 #include "emulation.hpp"
 #include "eqclass.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "model-access.hpp"
 #include "packet.hpp"
 #include "payload.hpp"
@@ -26,7 +26,7 @@ Net::Net() {
     char errbuf[LIBNET_ERRBUF_SIZE];
     l = libnet_init(LIBNET_LINK_ADV, NULL, errbuf);
     if (!l) {
-        Logger::error(std::string("libnet_init() failed: ") + errbuf);
+        logger.error(std::string("libnet_init() failed: ") + errbuf);
     }
 }
 
@@ -86,8 +86,8 @@ void Net::build_tcp(const Packet &pkt,
                            l,                           // libnet context
                            0); // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build TCP header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build TCP header: ") +
+                     libnet_geterror(l));
     }
 
     tag = libnet_build_ipv4(
@@ -105,8 +105,8 @@ void Net::build_tcp(const Packet &pkt,
         l,                                           // libnet context
         0); // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build IP header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build IP header: ") +
+                     libnet_geterror(l));
     }
 
     tag = libnet_build_ethernet(dst_mac,      // destination ethernet address
@@ -117,8 +117,8 @@ void Net::build_tcp(const Packet &pkt,
                                 l,            // libnet context
                                 0);           // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build ethernet header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build ethernet header: ") +
+                     libnet_geterror(l));
     }
 }
 
@@ -139,8 +139,8 @@ void Net::build_udp(const Packet &pkt,
                            l,            // libnet context
                            0);           // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build UDP header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build UDP header: ") +
+                     libnet_geterror(l));
     }
 
     tag = libnet_build_ipv4(
@@ -158,8 +158,8 @@ void Net::build_udp(const Packet &pkt,
         l,                                           // libnet context
         0); // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build IP header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build IP header: ") +
+                     libnet_geterror(l));
     }
 
     tag = libnet_build_ethernet(dst_mac,      // destination ethernet address
@@ -170,8 +170,8 @@ void Net::build_udp(const Packet &pkt,
                                 l,            // libnet context
                                 0);           // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build ethernet header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build ethernet header: ") +
+                     libnet_geterror(l));
     }
 }
 
@@ -186,7 +186,7 @@ void Net::build_icmp_echo(const Packet &pkt,
     } else if (pkt.get_proto_state() == PS_ICMP_ECHO_REP) {
         icmp_type = ICMP_ECHOREPLY;
     } else {
-        Logger::error("proto_state is not related to ICMP echo");
+        logger.error("proto_state is not related to ICMP echo");
     }
 
     tag = libnet_build_icmpv4_echo(icmp_type, // ICMP type
@@ -199,8 +199,8 @@ void Net::build_icmp_echo(const Packet &pkt,
                                    l,         // libnet context
                                    0);        // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build TCP header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build TCP header: ") +
+                     libnet_geterror(l));
     }
 
     tag = libnet_build_ipv4(
@@ -218,8 +218,8 @@ void Net::build_icmp_echo(const Packet &pkt,
         l,                                    // libnet context
         0);                                   // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build IP header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build IP header: ") +
+                     libnet_geterror(l));
     }
 
     tag = libnet_build_ethernet(dst_mac,      // destination ethernet address
@@ -230,8 +230,8 @@ void Net::build_icmp_echo(const Packet &pkt,
                                 l,            // libnet context
                                 0);           // ptag (0: build a new one)
     if (tag < 0) {
-        Logger::error(std::string("Can't build ethernet header: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("Can't build ethernet header: ") +
+                     libnet_geterror(l));
     }
 }
 
@@ -249,13 +249,13 @@ void Net::serialize(uint8_t **buffer,
     } else if (PS_IS_ICMP_ECHO(proto_state)) {
         build_icmp_echo(pkt, src_mac, dst_mac);
     } else {
-        Logger::error("Unsupported packet state " +
-                      std::to_string(pkt.get_proto_state()));
+        logger.error("Unsupported packet state " +
+                     std::to_string(pkt.get_proto_state()));
     }
 
     if (libnet_adv_cull_packet(l, buffer, buffer_size) < 0) {
-        Logger::error(std::string("libnet_adv_cull_packet() failed: ") +
-                      libnet_geterror(l));
+        logger.error(std::string("libnet_adv_cull_packet() failed: ") +
+                     libnet_geterror(l));
     }
 
     libnet_clear_packet(l);
@@ -378,7 +378,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             } else if (icmp_type == ICMP_ECHOREPLY) {
                 pkt.set_proto_state(PS_ICMP_ECHO_REP);
             } else {
-                Logger::warn("ICMP type: " + std::to_string(icmp_type));
+                logger.warn("ICMP type: " + std::to_string(icmp_type));
                 goto bad_packet;
             }
             // TODO
@@ -457,7 +457,7 @@ void Net::convert_proto_state(Packet &pkt, uint16_t old_proto_state) const {
                 assert(!pkt.opposite_dir());
                 break;
             default:
-                Logger::error("Invalid TCP flags: " + std::to_string(flags));
+                logger.error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else if (flags == (TH_FIN | TH_ACK)) {
             switch (old_proto_state) {
@@ -478,10 +478,10 @@ void Net::convert_proto_state(Packet &pkt, uint16_t old_proto_state) const {
                 assert(!pkt.opposite_dir());
                 break;
             default:
-                Logger::error("Invalid TCP flags: " + std::to_string(flags));
+                logger.error("Invalid TCP flags: " + std::to_string(flags));
             }
         } else {
-            Logger::error("Invalid TCP flags: " + std::to_string(flags));
+            logger.error("Invalid TCP flags: " + std::to_string(flags));
         }
         pkt.set_proto_state(proto_state);
     } else if (PS_IS_UDP(pkt.get_proto_state())) {
@@ -583,7 +583,7 @@ void Net::identify_conn(Packet &pkt) const {
     // new connection (NAT'd packets are also treated as new connections)
     if (conn >= model.get_num_conns()) {
         if (conn >= MAX_CONNS) {
-            Logger::error("Exceeding the maximum number of connections");
+            logger.error("Exceeding the maximum number of connections");
         }
 
         pkt.set_is_new(true);
@@ -606,7 +606,7 @@ void Net::process_proto_state(Packet &pkt) const {
         } else if (pkt.get_proto_state() > old_proto_state) {
             pkt.set_next_phase(true);
         } else {
-            Logger::warn("Invalid protocol state");
+            logger.warn("Invalid protocol state");
             pkt.set_proto_state(PS_INVALID);
         }
     }
@@ -667,11 +667,11 @@ std::string Net::mac_to_str(const uint8_t *mac) const {
 static void write_value_to_file(int val, const std::string &filename) {
     int fd = open(filename.c_str(), O_WRONLY);
     if (fd < 0) {
-        Logger::error("Failed to open " + filename, errno);
+        logger.error("Failed to open " + filename, errno);
     }
     std::string val_s = std::to_string(val);
     if (write(fd, val_s.c_str(), val_s.size()) < 0) {
-        Logger::error("Failed writting \"" + val_s + "\" to " + filename);
+        logger.error("Failed writting \"" + val_s + "\" to " + filename);
     }
     close(fd);
 }

@@ -10,7 +10,7 @@
 #include "eqclass.hpp"
 #include "fib.hpp"
 #include "interface.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "network.hpp"
 #include "node.hpp"
 #include "payload.hpp"
@@ -102,7 +102,7 @@ void Model::print_conn_states() const {
                           std::to_string(get_dst_port()) +
                           " (loc: " + get_pkt_location()->get_name() +
                           ") executable: " + std::to_string(get_executable());
-        Logger::info(str);
+        logger.info(str);
     }
     set_conn(orig_conn);
 }

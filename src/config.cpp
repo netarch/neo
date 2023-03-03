@@ -13,6 +13,7 @@
 #include "connspec.hpp"
 #include "interface.hpp"
 #include "link.hpp"
+#include "logger.hpp"
 #include "mb-app/docker.hpp"
 #include "mb-app/ipvs.hpp"
 #include "mb-app/mb-app.hpp"
@@ -43,14 +44,14 @@ void Config::start_parsing(const std::string &filename) {
     auto config = std::make_shared<toml::table>(toml::parse_file(filename));
     auto res = configs.emplace(filename, std::move(config));
     if (!res.second) {
-        Logger::error("Duplicate config: " + res.first->first);
+        logger.error("Duplicate config: " + res.first->first);
     }
-    Logger::info("Parsing configuration file " + filename);
+    logger.info("Parsing configuration file " + filename);
 }
 
 void Config::finish_parsing(const std::string &filename) {
     configs.erase(filename);
-    Logger::info("Finished parsing");
+    logger.info("Finished parsing");
 }
 
 void Config::parse_interface(Interface *interface, const toml::table &config) {
@@ -60,7 +61,7 @@ void Config::parse_interface(Interface *interface, const toml::table &config) {
     auto ipv4_addr = config.get_as<std::string>("ipv4");
 
     if (!intf_name) {
-        Logger::error("Missing interface name");
+        logger.error("Missing interface name");
     }
 
     interface->name = **intf_name;
@@ -82,10 +83,10 @@ void Config::parse_route(Route *route, const toml::table &config) {
     auto adm_dist = config.get_as<int64_t>("adm_dist");
 
     if (!network) {
-        Logger::error("Missing network");
+        logger.error("Missing network");
     }
     if (!next_hop && !interface) {
-        Logger::error("Missing next hop IP address and interface");
+        logger.error("Missing next hop IP address and interface");
     }
 
     route->network = IPNetwork<IPv4Address>(**network);
@@ -97,8 +98,8 @@ void Config::parse_route(Route *route, const toml::table &config) {
     }
     if (adm_dist) {
         if (**adm_dist < 1 || **adm_dist > 254) {
-            Logger::error("Invalid administrative distance: " +
-                          std::to_string(**adm_dist));
+            logger.error("Invalid administrative distance: " +
+                         std::to_string(**adm_dist));
         }
         route->adm_dist = **adm_dist;
     }
@@ -113,7 +114,7 @@ void Config::parse_node(Node *node, const toml::table &config) {
     auto installed_routes = config.get_as<toml::array>("installed_routes");
 
     if (!node_name) {
-        Logger::error("Missing node name");
+        logger.error("Missing node name");
     }
     node->name = **node_name;
 
@@ -188,7 +189,7 @@ void Config::parse_netfilter(NetFilter *netfilter, const toml::table &config) {
     auto rules = config.get_as<std::string>("rules");
 
     if (!rules) {
-        Logger::error("Missing rules");
+        logger.error("Missing rules");
     }
 
     if (!rpf) {
@@ -196,7 +197,7 @@ void Config::parse_netfilter(NetFilter *netfilter, const toml::table &config) {
     } else if (**rpf >= 0 && **rpf <= 2) {
         netfilter->rp_filter = **rpf;
     } else {
-        Logger::error("Invalid rp_filter value: " + std::to_string(**rpf));
+        logger.error("Invalid rp_filter value: " + std::to_string(**rpf));
     }
 
     netfilter->rules = **rules;
@@ -209,7 +210,7 @@ void Config::parse_ipvs(IPVS *ipvs, const toml::table &config) {
     auto ipvs_config = config.get_as<std::string>("config");
 
     if (!ipvs_config) {
-        Logger::error("Missing config");
+        logger.error("Missing config");
     }
 
     ipvs->config = **ipvs_config;
@@ -222,7 +223,7 @@ void Config::parse_squid(Squid *squid, const toml::table &config) {
     auto squid_config = config.get_as<std::string>("config");
 
     if (!squid_config) {
-        Logger::error("Missing config");
+        logger.error("Missing config");
     }
 
     squid->config = **squid_config;
@@ -240,7 +241,7 @@ void Config::parse_docker(Docker *docker, const toml::table &config) {
     std::string concatenated_string;
 
     if (!container_name || !image || !cmd) {
-        Logger::error("Missing config");
+        logger.error("Missing config");
     }
 
     docker->container_name = **container_name;
@@ -277,10 +278,10 @@ void Config::parse_middlebox(Middlebox *middlebox,
     auto appliance = config.get_as<std::string>("app");
 
     if (!environment) {
-        Logger::error("Missing environment");
+        logger.error("Missing environment");
     }
     if (!appliance) {
-        Logger::error("Missing appliance");
+        logger.error("Missing appliance");
     }
 
     if (**environment == "netns") {
@@ -288,7 +289,7 @@ void Config::parse_middlebox(Middlebox *middlebox,
     } else if (**environment == "docker_netns") {
         middlebox->env = **environment;
     } else {
-        Logger::error("Unknown environment: " + **environment);
+        logger.error("Unknown environment: " + **environment);
     }
 
     if (**appliance == "netfilter") {
@@ -305,7 +306,7 @@ void Config::parse_middlebox(Middlebox *middlebox,
         middlebox->app = new Docker();
         Config::parse_docker(static_cast<Docker *>(middlebox->app), config);
     } else {
-        Logger::error("Unknown appliance: " + **appliance);
+        logger.error("Unknown appliance: " + **appliance);
     }
 
     middlebox->latency_avg = Config::latency_avg;
@@ -441,26 +442,26 @@ void Config::parse_link(Link *link,
     auto intf2_name = config.get_as<std::string>("intf2");
 
     if (!node1_name) {
-        Logger::error("Missing node1");
+        logger.error("Missing node1");
     }
     if (!intf1_name) {
-        Logger::error("Missing intf1");
+        logger.error("Missing intf1");
     }
     if (!node2_name) {
-        Logger::error("Missing node2");
+        logger.error("Missing node2");
     }
     if (!intf2_name) {
-        Logger::error("Missing intf2");
+        logger.error("Missing intf2");
     }
 
     auto node1_entry = nodes.find(**node1_name);
     if (node1_entry == nodes.end()) {
-        Logger::error("Unknown node: " + **node1_name);
+        logger.error("Unknown node: " + **node1_name);
     }
     link->node1 = node1_entry->second;
     auto node2_entry = nodes.find(**node2_name);
     if (node2_entry == nodes.end()) {
-        Logger::error("Unknown node: " + **node2_name);
+        logger.error("Unknown node: " + **node2_name);
     }
     link->node2 = node2_entry->second;
     link->intf1 = link->node1->get_interface(**intf1_name);
@@ -471,7 +472,7 @@ void Config::parse_link(Link *link,
         std::swap(link->node1, link->node2);
         std::swap(link->intf1, link->intf2);
     } else if (link->node1 == link->node2) {
-        Logger::error("Invalid link: " + link->to_string());
+        logger.error("Invalid link: " + link->to_string());
     }
 }
 
@@ -498,13 +499,13 @@ void Config::parse_network(Network *network,
                                         dropmon);
                 network->add_middlebox(static_cast<Middlebox *>(node));
             } else {
-                Logger::error("Unknown node type: " + **type);
+                logger.error("Unknown node type: " + **type);
             }
             network->add_node(node);
         }
     }
-    Logger::info("Loaded " + std::to_string(network->get_nodes().size()) +
-                 " nodes");
+    logger.info("Loaded " + std::to_string(network->get_nodes().size()) +
+                " nodes");
 
     if (links_config) {
         for (const auto &cfg : *links_config) {
@@ -514,8 +515,8 @@ void Config::parse_network(Network *network,
             network->add_link(link);
         }
     }
-    Logger::info("Loaded " + std::to_string(network->get_links().size()) +
-                 " links");
+    logger.info("Loaded " + std::to_string(network->get_links().size()) +
+                " links");
 
     // populate L2 LANs (assuming there is no VLAN for now)
     for (const auto &pair : network->get_nodes()) {
@@ -541,13 +542,13 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
     auto owned_dst_only = config.get_as<bool>("owned_dst_only");
 
     if (!proto_str) {
-        Logger::error("Missing protocol");
+        logger.error("Missing protocol");
     }
     if (!src_node_regex) {
-        Logger::error("Missing src_node");
+        logger.error("Missing src_node");
     }
     if (!dst_ip_str) {
-        Logger::error("Missing dst_ip");
+        logger.error("Missing dst_ip");
     }
 
     std::string proto_s = **proto_str;
@@ -560,7 +561,7 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
     } else if (proto_s == "icmp-echo") {
         conn_spec->protocol = proto::icmp_echo;
     } else {
-        Logger::error("Unknown protocol: " + **proto_str);
+        logger.error("Unknown protocol: " + **proto_str);
     }
 
     for (const auto &node : network.get_nodes()) {
@@ -595,7 +596,7 @@ void Config::parse_connections(Policy *policy,
 
     auto conns_cfg = config.get_as<toml::array>("connections");
     if (!conns_cfg) {
-        Logger::error("Missing connections");
+        logger.error("Missing connections");
     }
     for (const auto &conn_cfg : *conns_cfg) {
         ConnSpec conn;
@@ -613,10 +614,10 @@ void Config::parse_reachabilitypolicy(ReachabilityPolicy *policy,
     auto reachable = config.get_as<bool>("reachable");
 
     if (!target_node_regex) {
-        Logger::error("Missing target_node");
+        logger.error("Missing target_node");
     }
     if (!reachable) {
-        Logger::error("Missing reachable");
+        logger.error("Missing reachable");
     }
 
     for (const auto &node : network.get_nodes()) {
@@ -638,10 +639,10 @@ void Config::parse_replyreachabilitypolicy(ReplyReachabilityPolicy *policy,
     auto reachable = config.get_as<bool>("reachable");
 
     if (!target_node_regex) {
-        Logger::error("Missing target_node");
+        logger.error("Missing target_node");
     }
     if (!reachable) {
-        Logger::error("Missing reachable");
+        logger.error("Missing reachable");
     }
 
     for (const auto &node : network.get_nodes()) {
@@ -663,10 +664,10 @@ void Config::parse_waypointpolicy(WaypointPolicy *policy,
     auto pass_through = config.get_as<bool>("pass_through");
 
     if (!target_node_regex) {
-        Logger::error("Missing target_node");
+        logger.error("Missing target_node");
     }
     if (!pass_through) {
-        Logger::error("Missing pass_through");
+        logger.error("Missing pass_through");
     }
 
     for (const auto &node : network.get_nodes()) {
@@ -687,7 +688,7 @@ void Config::parse_onerequestpolicy(OneRequestPolicy *policy,
     auto target_node_regex = config.get_as<std::string>("target_node");
 
     if (!target_node_regex) {
-        Logger::error("Missing target_node");
+        logger.error("Missing target_node");
     }
 
     for (const auto &node : network.get_nodes()) {
@@ -708,7 +709,7 @@ void Config::parse_loadbalancepolicy(LoadBalancePolicy *policy,
     auto max_vmr = config.get_as<double>("max_dispersion_index");
 
     if (!target_node_regex) {
-        Logger::error("Missing target_node");
+        logger.error("Missing target_node");
     }
 
     for (const auto &node : network.get_nodes()) {
@@ -729,7 +730,7 @@ void Config::parse_correlated_policies(Policy *policy,
     auto policies_config = config.get_as<toml::array>("correlated_policies");
 
     if (!policies_config) {
-        Logger::error("Missing correlated policies");
+        logger.error("Missing correlated policies");
     }
 
     Config::parse_policy_array(policy->correlated_policies, true,
@@ -762,7 +763,7 @@ void Config::parse_policy_array(std::vector<Policy *> &policies,
 
         auto type = tbl.get_as<std::string>("type");
         if (!type) {
-            Logger::error("Missing policy type");
+            logger.error("Missing policy type");
         }
 
         if (**type == "reachability") {
@@ -794,7 +795,7 @@ void Config::parse_policy_array(std::vector<Policy *> &policies,
             Config::parse_consistencypolicy(
                 static_cast<ConsistencyPolicy *>(policy), tbl, network);
         } else {
-            Logger::error("Unknown policy type: " + **type);
+            logger.error("Unknown policy type: " + **type);
         }
 
         assert(policy->conn_specs.size() <= MAX_CONNS);
@@ -814,10 +815,10 @@ void Config::parse_policies(Policies *policies,
     }
 
     if (policies->policies.size() == 1) {
-        Logger::info("Loaded 1 policy");
+        logger.info("Loaded 1 policy");
     } else {
-        Logger::info("Loaded " + std::to_string(policies->policies.size()) +
-                     " policies");
+        logger.info("Loaded " + std::to_string(policies->policies.size()) +
+                    " policies");
     }
 }
 
@@ -833,23 +834,23 @@ void Config::parse_openflow_update(Node **node,
     auto outport = config.get_as<std::string>("outport");
 
     if (!node_name) {
-        Logger::error("Missing node name");
+        logger.error("Missing node name");
     }
     if (!network_cidr) {
-        Logger::error("Missing network");
+        logger.error("Missing network");
     }
     if (!outport) {
-        Logger::error("Missing outport");
+        logger.error("Missing outport");
     }
 
     auto node_itr = network.get_nodes().find(**node_name);
     if (node_itr == network.get_nodes().end()) {
-        Logger::error("Unknown node: " + **node_name);
+        logger.error("Unknown node: " + **node_name);
     }
 
     *node = node_itr->second;
     if (typeid(**node) != typeid(Node)) {
-        Logger::error("Unsupported node type");
+        logger.error("Unsupported node type");
     }
 
     route->network = IPNetwork<IPv4Address>(**network_cidr);
@@ -881,8 +882,8 @@ void Config::parse_openflow(OpenflowProcess *openflow,
     }
 
     if (openflow->num_nodes() > 0) {
-        Logger::info("Loaded " + std::to_string(openflow->num_updates()) +
-                     " openflow updates for " +
-                     std::to_string(openflow->num_nodes()) + " nodes");
+        logger.info("Loaded " + std::to_string(openflow->num_updates()) +
+                    " openflow updates for " +
+                    std::to_string(openflow->num_nodes()) + " nodes");
     }
 }

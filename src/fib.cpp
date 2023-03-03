@@ -2,7 +2,7 @@
 
 #include "interface.hpp"
 #include "lib/hash.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "node.hpp"
 
 FIB_IPNH::FIB_IPNH(Node *l3nh,

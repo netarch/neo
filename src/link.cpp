@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 
 std::string Link::to_string() const {
     return node1->to_string() + ":" + intf1->to_string() + " --- " +

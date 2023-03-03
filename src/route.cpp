@@ -1,6 +1,6 @@
 #include "route.hpp"
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 
 Route::Route(const IPNetwork<IPv4Address> &net,
              const IPv4Address &nh,
@@ -56,7 +56,7 @@ bool Route::relevant_to_ec(const EqClass &ec) const {
                  * The "network" of this route should either contain all the EC
                  * ranges or none at all.
                  */
-                Logger::error("Route splits an EC");
+                logger.error("Route splits an EC");
             }
         } else {
             // first loop

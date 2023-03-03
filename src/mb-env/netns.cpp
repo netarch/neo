@@ -23,8 +23,8 @@
 
 #include "interface.hpp"
 #include "lib/fs.hpp"
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 #include "node.hpp"
 #include "packet.hpp"
 #include "pktbuffer.hpp"
@@ -41,7 +41,7 @@ void NetNS::set_env_vars(const string &node_name) {
     assert(!xtables_lockpath.empty());
 
     if (setenv("XTABLES_LOCKFILE", xtables_lockpath.c_str(), 1) < 0) {
-        Logger::error("setenv XTABLES_LOCKFILE", errno);
+        logger.error("setenv XTABLES_LOCKFILE", errno);
     }
 }
 
@@ -51,7 +51,7 @@ void NetNS::set_interfaces(const Node &node) {
 
     // open a ctrl_sock for setting up IP addresses
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::error("socket()", errno);
+        logger.error("socket()", errno);
     }
 
     for (const auto &pair : node.get_intfs_l3()) {
@@ -59,7 +59,7 @@ void NetNS::set_interfaces(const Node &node) {
 
         // create a new tap device
         if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
-            Logger::error("/dev/net/tun", errno);
+            logger.error("/dev/net/tun", errno);
         }
         memset(&ifr, 0, sizeof(ifr));
         ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
@@ -110,7 +110,7 @@ void NetNS::set_interfaces(const Node &node) {
 
 error:
     close(ctrl_sock);
-    Logger::error(ifr.ifr_name, errno);
+    logger.error(ifr.ifr_name, errno);
 }
 
 void NetNS::set_rttable(const RoutingTable &rib) {
@@ -120,7 +120,7 @@ void NetNS::set_rttable(const RoutingTable &rib) {
 
     // open a ctrl_sock for setting up routing entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::error("socket()", errno);
+        logger.error("socket()", errno);
     }
 
     for (const Route &route : rib) {
@@ -153,7 +153,7 @@ void NetNS::set_rttable(const RoutingTable &rib) {
 
         if (ioctl(ctrl_sock, SIOCADDRT, &rt) < 0) {
             close(ctrl_sock);
-            Logger::error(route.to_string(), errno);
+            logger.error(route.to_string(), errno);
         }
     }
 
@@ -174,7 +174,7 @@ void NetNS::set_arp_cache(const Node &node) {
 
     // open a ctrl_sock for setting up arp cache entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
-        Logger::error("socket()", errno);
+        logger.error("socket()", errno);
     }
 
     // collect L3 peer IP addresses and egress interface
@@ -209,9 +209,9 @@ void NetNS::set_arp_cache(const Node &node) {
 
         if (ioctl(ctrl_sock, SIOCSARP, &arp) < 0) {
             close(ctrl_sock);
-            Logger::error("Failed to set ARP cache for " +
-                              arp_input.first.to_string(),
-                          errno);
+            logger.error("Failed to set ARP cache for " +
+                             arp_input.first.to_string(),
+                         errno);
         }
     }
 
@@ -221,7 +221,7 @@ void NetNS::set_arp_cache(const Node &node) {
 void NetNS::set_epoll_events() {
     // create an epoll instance for IO multiplexing
     if ((epollfd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
-        Logger::error("epoll_create1", errno);
+        logger.error("epoll_create1", errno);
     }
     // register interesting interface fds in the epoll instance
     struct epoll_event event;
@@ -229,7 +229,7 @@ void NetNS::set_epoll_events() {
         event.events = EPOLLIN;
         event.data.ptr = tap.first;
         if (epoll_ctl(epollfd, EPOLL_CTL_ADD, tap.second, &event) < 0) {
-            Logger::error("epoll_ctl", errno);
+            logger.error("epoll_ctl", errno);
         }
     }
     // allocate space for receiving events
@@ -245,7 +245,7 @@ NetNS::~NetNS() {
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
     // epoll
@@ -266,7 +266,7 @@ NetNS::~NetNS() {
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
     // remove the new network namespace
     close(new_net);
@@ -277,15 +277,15 @@ void NetNS::init(const Middlebox &node) {
 
     // save the original netns fd
     if ((old_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::error(netns_path, errno);
+        logger.error(netns_path, errno);
     }
     // create and enter a new netns
     if (unshare(CLONE_NEWNET) < 0) {
-        Logger::error("Failed to create a new netns", errno);
+        logger.error("Failed to create a new netns", errno);
     }
     // save the new netns fd
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::error(netns_path, errno);
+        logger.error(netns_path, errno);
     }
     set_env_vars(node.get_name()); // set environment variables
     set_interfaces(node);          // create tap interfaces and set IP addresses
@@ -294,7 +294,7 @@ void NetNS::init(const Middlebox &node) {
     set_epoll_events();            // set epoll events for future packet reads
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
 #ifdef ENABLE_DEBUG
@@ -307,7 +307,7 @@ void NetNS::init(const Middlebox &node) {
             auto &pcapLogger = pcapLoggers.at(intf);
             bool appendMode = fs::exists(pcapFn);
             if (!pcapLogger->open(appendMode)) {
-                Logger::error("Failed to open " + pcapFn);
+                logger.error("Failed to open " + pcapFn);
             }
         }
     }
@@ -317,7 +317,7 @@ void NetNS::init(const Middlebox &node) {
 void NetNS::run(void (*app_action)(MB_App *), MB_App *app) {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
     set_env_vars();
 
@@ -325,14 +325,14 @@ void NetNS::run(void (*app_action)(MB_App *), MB_App *app) {
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 }
 
 size_t NetNS::inject_packet(const Packet &pkt) {
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
     // serialize the packet
@@ -347,7 +347,7 @@ size_t NetNS::inject_packet(const Packet &pkt) {
     int fd = tapfds.at(pkt.get_intf());
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
-        Logger::error("Packet injection failed", errno);
+        logger.error("Packet injection failed", errno);
     }
 
 #ifdef ENABLE_DEBUG
@@ -366,7 +366,7 @@ size_t NetNS::inject_packet(const Packet &pkt) {
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
     return nwrite;
@@ -377,7 +377,7 @@ list<Packet> NetNS::read_packets() const {
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
     // wait until at least one of the fds becomes available
@@ -386,7 +386,7 @@ list<Packet> NetNS::read_packets() const {
         if (errno == EINTR) { // SIGUSR1 - stop thread
             return list<Packet>();
         }
-        Logger::error("epoll_wait", errno);
+        logger.error("epoll_wait", errno);
     }
 
     // read from available tap fds
@@ -397,7 +397,7 @@ list<Packet> NetNS::read_packets() const {
         ssize_t nread;
         if ((nread = read(tapfd, pktbuff.get_buffer(), pktbuff.get_len())) <
             0) {
-            Logger::error("Failed to read packet", errno);
+            logger.error("Failed to read packet", errno);
         }
         pktbuff.set_len(nread);
         pktbuffs.push_back(pktbuff);
@@ -405,7 +405,7 @@ list<Packet> NetNS::read_packets() const {
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("Failed to setns", errno);
+        logger.error("Failed to setns", errno);
     }
 
     // deserialize the packets
@@ -440,7 +440,7 @@ list<Packet> NetNS::read_packets() const {
 
     // create and connect to a netlink socket
     if (!(sock = nl_socket_alloc())) {
-        Logger::error("nl_socket_alloc", ENOMEM);
+        logger.error("nl_socket_alloc", ENOMEM);
     }
     nl_connect(sock, NETLINK_ROUTE);
 
@@ -449,7 +449,7 @@ list<Packet> NetNS::read_packets() const {
 
         // configure veth interfaces and put the peer to the original netns
         if (!(link = rtnl_link_veth_alloc())) {
-            Logger::error("rtnl_link_veth_alloc", ENOMEM);
+            logger.error("rtnl_link_veth_alloc", ENOMEM);
         }
         peer = rtnl_link_veth_get_peer(link);
         rtnl_link_set_name(link, intf->get_name().c_str());
@@ -460,7 +460,7 @@ list<Packet> NetNS::read_packets() const {
         // actually create the interfaces
         int err = rtnl_link_add(sock, link, NLM_F_CREATE);
         if (err < 0) {
-            Logger::error(string("rtnl_link_add: ") + nl_geterror(err));
+            logger.error(string("rtnl_link_add: ") + nl_geterror(err));
         }
 
         // release the interface handles

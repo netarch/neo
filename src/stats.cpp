@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "policy/policy.hpp"
 
 using namespace std::chrono;
@@ -35,14 +35,14 @@ std::map<uint64_t, uint64_t> Stats::kernel_drop_latencies;
 high_resolution_clock::duration
 Stats::get_duration(const high_resolution_clock::time_point &t1) {
     if (t1.time_since_epoch().count() == 0) {
-        Logger::error("t1 not set");
+        logger.error("t1 not set");
     }
     return high_resolution_clock::now() - t1;
 }
 
 uint64_t Stats::get_duration(uint64_t t1) {
     if (t1 == 0) {
-        Logger::error("t1 not set");
+        logger.error("t1 not set");
     }
     return duration_cast<nanoseconds>(
                high_resolution_clock::now().time_since_epoch())
@@ -53,17 +53,17 @@ uint64_t Stats::get_duration(uint64_t t1) {
 /********************* control functions *********************/
 
 void Stats::output_main_stats() {
-    Logger::info("====================");
-    Logger::info("Time: " + std::to_string(total_time.count()) +
-                 " microseconds");
-    Logger::info("Memory: " + std::to_string(total_maxrss) + " kilobytes");
+    logger.info("====================");
+    logger.info("Time: " + std::to_string(total_time.count()) +
+                " microseconds");
+    logger.info("Memory: " + std::to_string(total_maxrss) + " kilobytes");
 }
 
 void Stats::output_policy_stats(int nodes, int links, Policy *policy) {
     const std::string filename = "policy.stats.csv";
     std::ofstream outfile(filename, std::ios_base::app);
     if (outfile.fail()) {
-        Logger::error("Failed to open " + filename);
+        logger.error("Failed to open " + filename);
     }
 
     outfile << "# of nodes, # of links, Policy, # of connection ECs, "
@@ -78,7 +78,7 @@ void Stats::output_ec_stats() {
     const std::string filename = std::to_string(getpid()) + ".stats.csv";
     std::ofstream outfile(filename, std::ios_base::app);
     if (outfile.fail()) {
-        Logger::error("Failed to open " + filename);
+        logger.error("Failed to open " + filename);
     }
 
     outfile << "Time (microseconds), Memory (kilobytes)" << std::endl
@@ -128,7 +128,7 @@ void Stats::set_total_time() {
 void Stats::set_total_maxrss() {
     struct rusage ru;
     if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        Logger::error("getrusage()", errno);
+        logger.error("getrusage()", errno);
     }
     total_maxrss = ru.ru_maxrss;
 }
@@ -146,7 +146,7 @@ void Stats::set_policy_time() {
 void Stats::set_policy_maxrss() {
     struct rusage ru;
     if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        Logger::error("getrusage()", errno);
+        logger.error("getrusage()", errno);
     }
     policy_maxrss = ru.ru_maxrss;
 }
@@ -164,7 +164,7 @@ void Stats::set_ec_time() {
 void Stats::set_ec_maxrss() {
     struct rusage ru;
     if (getrusage(RUSAGE_SELF, &ru) < 0) {
-        Logger::error("getrusage()", errno);
+        logger.error("getrusage()", errno);
     }
     ec_maxrss = ru.ru_maxrss;
 }

@@ -2,8 +2,8 @@
 
 #include <cstdlib>
 
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 
 void IPVS::init() {
     Net::get().set_forwarding(1);
@@ -11,13 +11,13 @@ void IPVS::init() {
 
     // clear filtering states and rules
     if (system("iptables -F")) {
-        Logger::error("iptables -F");
+        logger.error("iptables -F");
     }
     if (system("iptables -Z")) {
-        Logger::error("iptables -Z");
+        logger.error("iptables -Z");
     }
     if (system("iptables-restore /etc/iptables/empty.rules")) {
-        Logger::error("iptables-restore");
+        logger.error("iptables-restore");
     }
 
     reset();
@@ -27,9 +27,9 @@ void IPVS::init() {
 void IPVS::reset() {
     // set IPVS config
     if (system("ipvsadm -C")) {
-        Logger::error("ipvsadm -C");
+        logger.error("ipvsadm -C");
     }
     if (system(("echo '" + config + "' | ipvsadm-restore").c_str())) {
-        Logger::error("ipvsadm-restore");
+        logger.error("ipvsadm-restore");
     }
 }

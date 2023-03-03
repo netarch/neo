@@ -3,14 +3,14 @@
 #include "eqclass.hpp"
 #include "fib.hpp"
 #include "lib/hash.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "node.hpp"
 
 void Choices::add_choice(EqClass *ec, Node *node, const FIB_IPNH &choice) {
     auto res = tbl.emplace(std::make_pair(ec, node), choice);
     if (!res.second) {
-        Logger::error("Duplicate choice key: (" + ec->to_string() + ", " +
-                      node->to_string() + ")");
+        logger.error("Duplicate choice key: (" + ec->to_string() + ", " +
+                     node->to_string() + ")");
     }
 }
 

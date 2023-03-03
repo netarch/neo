@@ -2,14 +2,14 @@
 
 #include <utility>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 
 void Node::add_interface(Interface *interface) {
     // Add the new interface to intfs
     auto res =
         this->intfs.insert(std::make_pair(interface->get_name(), interface));
     if (res.second == false) {
-        Logger::error("Duplicate interface name: " + res.first->first);
+        logger.error("Duplicate interface name: " + res.first->first);
     }
 
     if (interface->is_l2()) {
@@ -20,8 +20,8 @@ void Node::add_interface(Interface *interface) {
         auto res =
             this->intfs_l3.insert(std::make_pair(interface->addr(), interface));
         if (res.second == false) {
-            Logger::error("Duplicate interface IP: " +
-                          res.first->first.to_string());
+            logger.error("Duplicate interface IP: " +
+                         res.first->first.to_string());
         }
 
         // Add the directly connected route to rib
@@ -55,7 +55,7 @@ bool Node::is_l3_only() const {
 Interface *Node::get_interface(const std::string &intf_name) const {
     auto intf = intfs.find(intf_name);
     if (intf == intfs.end()) {
-        Logger::error(to_string() + " doesn't have interface " + intf_name);
+        logger.error(to_string() + " doesn't have interface " + intf_name);
     }
     return intf->second;
 }
@@ -67,7 +67,7 @@ Interface *Node::get_interface(const char *intf_name) const {
 Interface *Node::get_interface(const IPv4Address &addr) const {
     auto intf = intfs_l3.find(addr);
     if (intf == intfs_l3.end()) {
-        Logger::error(to_string() + " doesn't own " + addr.to_string());
+        logger.error(to_string() + " doesn't own " + addr.to_string());
     }
     return intf->second;
 }
@@ -105,7 +105,7 @@ void Node::add_peer(const std::string &intf_name, Node *node, Interface *intf) {
     auto res =
         l2_peers.insert(std::make_pair(intf_name, std::make_pair(node, intf)));
     if (res.second == false) {
-        Logger::error("Two peers on interface: " + intf_name);
+        logger.error("Two peers on interface: " + intf_name);
     }
 }
 

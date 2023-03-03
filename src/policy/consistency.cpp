@@ -24,9 +24,9 @@ int ConsistencyPolicy::check_violation() {
     correlated_policies[model.get_correlated_policy_idx()]->check_violation();
 
     if (model.get_choice_count() == 0) {
-        Logger::info("Subpolicy " +
-                     std::to_string(model.get_correlated_policy_idx()) +
-                     (model.get_violated() ? " violated!" : " verified"));
+        logger.info("Subpolicy " +
+                    std::to_string(model.get_correlated_policy_idx()) +
+                    (model.get_violated() ? " violated!" : " verified"));
 
         // for the first execution path of the first subpolicy, store the
         // verification result

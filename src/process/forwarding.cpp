@@ -9,8 +9,8 @@
 #include "choices.hpp"
 #include "eqclassmgr.hpp"
 #include "fib.hpp"
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"
 #include "network.hpp"
@@ -62,7 +62,7 @@ void ForwardingProcess::exec_step() {
         model.set_executable(0);
         break;
     default:
-        Logger::error("Unknown forwarding mode: " + std::to_string(mode));
+        logger.error("Unknown forwarding mode: " + std::to_string(mode));
     }
 }
 
@@ -98,8 +98,8 @@ void ForwardingProcess::collect_next_hops() {
 
     std::set<FIB_IPNH> next_hops = model.get_fib()->lookup(current_node);
     if (next_hops.empty()) {
-        Logger::info("Connection " + std::to_string(model.get_conn()) +
-                     " dropped by " + current_node->to_string());
+        logger.info("Connection " + std::to_string(model.get_conn()) +
+                    " dropped by " + current_node->to_string());
         model.set_fwd_mode(fwd_mode::DROPPED);
         model.set_executable(0);
         return;
@@ -154,15 +154,15 @@ void ForwardingProcess::forward_packet() {
             // Note: Either tx or rx node can initiate the termination process,
             // so don't check endpoint consistency for PS_TCP_TERM_*
             // inconsistent endpoints: dropped by middlebox
-            Logger::info("Inconsistent endpoints");
-            Logger::info("Connection " + std::to_string(model.get_conn()) +
-                         " dropped by " + current_node->to_string());
+            logger.info("Inconsistent endpoints");
+            logger.info("Connection " + std::to_string(model.get_conn()) +
+                        " dropped by " + current_node->to_string());
             model.set_fwd_mode(fwd_mode::DROPPED);
             model.set_executable(0);
             return;
         }
 
-        Logger::info("Packet delivered at " + current_node->to_string());
+        logger.info("Packet delivered at " + current_node->to_string());
         model.set_fwd_mode(fwd_mode::ACCEPTED);
         model.set_choice_count(1);
     } else {
@@ -177,8 +177,8 @@ void ForwardingProcess::forward_packet() {
 
         model.set_pkt_location(next_hop);
         model.set_ingress_intf(ingress_intf);
-        Logger::info("Packet forwarded to " + next_hop->to_string() + ", " +
-                     ingress_intf->to_string());
+        logger.info("Packet forwarded to " + next_hop->to_string() + ", " +
+                    ingress_intf->to_string());
         model.set_fwd_mode(fwd_mode::COLLECT_NHOPS);
         model.set_choice_count(1);
     }
@@ -236,7 +236,7 @@ void ForwardingProcess::accepted() {
         model.set_executable(0);
         break;
     default:
-        Logger::error("Unknown protocol state " + std::to_string(proto_state));
+        logger.error("Unknown protocol state " + std::to_string(proto_state));
     }
 }
 
@@ -248,7 +248,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
     Node *new_src_node =
         change_direction ? model.get_pkt_location() : model.get_src_node();
     if (typeid(*new_src_node) == typeid(Middlebox)) {
-        Logger::debug("Freeze conn " + std::to_string(model.get_conn()));
+        logger.debug("Freeze conn " + std::to_string(model.get_conn()));
         model.set_executable(0);
         return;
     }
@@ -339,7 +339,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     model.set_pkt_hist(std::move(new_pkt_hist));
 
     // inject packet
-    Logger::info("Injecting packet: " + new_pkt->to_string());
+    logger.info("Injecting packet: " + new_pkt->to_string());
     std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
     update_model_from_pkts(mb, recv_pkts);
 
@@ -357,7 +357,7 @@ void ForwardingProcess::update_model_from_pkts(
 
     for (Packet &recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
-            Logger::info("Received packet: (empty)");
+            logger.info("Received packet: (empty)");
             continue;
         }
 
@@ -367,7 +367,7 @@ void ForwardingProcess::update_model_from_pkts(
             continue;
         }
         Net::get().check_seq_ack(recv_pkt);
-        Logger::info("Received packet " + recv_pkt.to_string());
+        logger.info("Received packet " + recv_pkt.to_string());
 
         if (recv_pkt.conn() == orig_conn) {
             current_conn_updated = true;
@@ -423,7 +423,7 @@ void ForwardingProcess::update_model_from_pkts(
         if (next_hop.get_l3_node()) {
             candidates.add(next_hop);
         } else {
-            Logger::warn("No next hop found");
+            logger.warn("No next hop found");
         }
         model.set_candidates(std::move(candidates));
 
@@ -437,9 +437,9 @@ void ForwardingProcess::update_model_from_pkts(
     // because we can assume that packets of PS_TCP_INIT_3, PS_TCP_L7_REQ_A,
     // PS_TCP_L7_REP_A in TCP are delivered even when there's no response.
     if (!current_conn_updated) {
-        Logger::info("No packets are received for conn " +
-                     std::to_string(model.get_conn()) +
-                     ", assuming the injected packet is delivered");
+        logger.info("No packets are received for conn " +
+                    std::to_string(model.get_conn()) +
+                    ", assuming the injected packet is delivered");
         model.set_executable(2);
         model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
         Candidates candidates;
@@ -450,8 +450,8 @@ void ForwardingProcess::update_model_from_pkts(
     if (model.get_candidates()->empty()) {
         // this only happens if the current connection is updated, but no next
         // hop is available for the received outgoing packet
-        Logger::info("Connection " + std::to_string(model.get_conn()) +
-                     " dropped by " + mb->to_string());
+        logger.info("Connection " + std::to_string(model.get_conn()) +
+                    " dropped by " + mb->to_string());
         model.set_fwd_mode(fwd_mode::DROPPED);
         model.set_executable(0);
     } else {

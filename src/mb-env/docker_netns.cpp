@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include "lib/fs.hpp"
+#include "logger.hpp"
 #include "mb-app/docker.hpp"
 
 void Docker_NetNS::init(const Middlebox &node) {
@@ -10,7 +11,7 @@ void Docker_NetNS::init(const Middlebox &node) {
 
     // save the original netns fd
     if ((old_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::error(netns_path, errno);
+        logger.error(netns_path, errno);
     }
     // create and enter a new netns
     auto docker_node = dynamic_cast<Docker *>(node.get_app());
@@ -20,7 +21,7 @@ void Docker_NetNS::init(const Middlebox &node) {
 
     // save the new netns fd
     if ((new_net = open(netns_path, O_RDONLY)) < 0) {
-        Logger::error(netns_path, errno);
+        logger.error(netns_path, errno);
     }
     set_env_vars(node.get_name()); // set environment variables
     set_interfaces(node);          // create tap interfaces and set IP addresses
@@ -29,7 +30,7 @@ void Docker_NetNS::init(const Middlebox &node) {
     set_epoll_events();            // set epoll events for future packet reads
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
 #ifdef ENABLE_DEBUG
@@ -43,7 +44,7 @@ void Docker_NetNS::init(const Middlebox &node) {
             auto &pcapLogger = pcapLoggers.at(intf);
             bool appendMode = fs::exists(pcapFn);
             if (!pcapLogger->open(appendMode)) {
-                Logger::error("Failed to open " + pcapFn);
+                logger.error("Failed to open " + pcapFn);
             }
         }
     }
@@ -57,7 +58,7 @@ Docker_NetNS::~Docker_NetNS() {
 
     // enter the isolated netns
     if (setns(new_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
 
     // epoll
@@ -78,7 +79,7 @@ Docker_NetNS::~Docker_NetNS() {
 
     // return to the original netns
     if (setns(old_net, CLONE_NEWNET) < 0) {
-        Logger::error("setns()", errno);
+        logger.error("setns()", errno);
     }
     // close the new network namespace (docker will remove it)
     close(new_net);

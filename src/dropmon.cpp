@@ -8,8 +8,8 @@
 #include <netlink/genl/genl.h>
 #include <netlink/netlink.h>
 
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 
 DropMon::DropMon()
     : family(0), enabled(false), dm_sock(nullptr), listener(nullptr),
@@ -31,8 +31,8 @@ void DropMon::init(bool enable) {
         genl_connect(sock);
         family = genl_ctrl_resolve(sock, "NET_DM");
         if (family < 0) {
-            Logger::error("genl_ctrl_resolve NET_DM: " +
-                          std::string(nl_geterror(family)));
+            logger.error("genl_ctrl_resolve NET_DM: " +
+                         std::string(nl_geterror(family)));
         }
         nl_socket_free(sock);
     }
@@ -75,7 +75,7 @@ void DropMon::connect() {
     }
 
     if (dm_sock) {
-        Logger::error("dropmon socket already connected");
+        logger.error("dropmon socket already connected");
     }
 
     dm_sock = nl_socket_alloc();
@@ -162,7 +162,7 @@ uint64_t DropMon::is_dropped() {
 
 void DropMon::listen_msgs() {
     if (!dm_sock) {
-        Logger::error("dropmon socket not connected");
+        logger.error("dropmon socket not connected");
     }
 
     Packet sent_pkt, dropped_pkt;
@@ -191,7 +191,7 @@ void DropMon::listen_msgs() {
 struct nl_msg *DropMon::new_msg(uint8_t cmd, int flags, size_t hdrlen) const {
     struct nl_msg *msg = nlmsg_alloc();
     if (!msg) {
-        Logger::error("nlmsg_alloc failed");
+        logger.error("nlmsg_alloc failed");
     }
     genlmsg_put(msg, 0, NL_AUTO_SEQ, family, hdrlen, flags, cmd, 1);
     return msg;
@@ -205,11 +205,11 @@ void DropMon::send_msg(struct nl_sock *sock, struct nl_msg *msg) const {
     int err;
     err = nl_send_auto(sock, msg);
     if (err < 0) {
-        Logger::error("nl_send_auto: " + std::string(nl_geterror(err)));
+        logger.error("nl_send_auto: " + std::string(nl_geterror(err)));
     }
     err = nl_wait_for_ack(sock);
     if (err < 0) {
-        Logger::error("nl_wait_for_ack: " + std::string(nl_geterror(err)));
+        logger.error("nl_wait_for_ack: " + std::string(nl_geterror(err)));
     }
 }
 
@@ -217,7 +217,7 @@ void DropMon::send_msg_async(struct nl_sock *sock, struct nl_msg *msg) const {
     int err;
     err = nl_send_auto(sock, msg);
     if (err < 0) {
-        Logger::error("nl_send_auto: " + std::string(nl_geterror(err)));
+        logger.error("nl_send_auto: " + std::string(nl_geterror(err)));
     }
 }
 
@@ -260,9 +260,9 @@ Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
     // receive netlink messages (Note: nl_recv will retry on EINTR)
     nbytes = nl_recv(sock, &addr, (unsigned char **)&nlh, nullptr);
     if (nbytes < 0) {
-        Logger::error("nl_recv: " + std::string(nl_geterror(nbytes)));
+        logger.error("nl_recv: " + std::string(nl_geterror(nbytes)));
     } else if (nbytes == 0) {
-        Logger::warn("nl_recv: socket disconnected");
+        logger.warn("nl_recv: socket disconnected");
         goto out_free;
     }
     // filter out ACKs and error messages
@@ -277,7 +277,7 @@ Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
     // parse genetlink message attributes
     err = genlmsg_parse(nlh, 0, attrs, NET_DM_ATTR_MAX, net_dm_policy);
     if (err < 0) {
-        Logger::warn("genlmsg_parse: " + std::string(nl_geterror(err)));
+        logger.warn("genlmsg_parse: " + std::string(nl_geterror(err)));
         goto out_free;
     }
     // filter out messages without packet payload
@@ -306,7 +306,7 @@ void DropMon::set_alert_mode(struct nl_sock *sock) const {
         new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
     int err = nla_put_u8(msg, NET_DM_ATTR_ALERT_MODE, NET_DM_ALERT_MODE_PACKET);
     if (err < 0) {
-        Logger::error("nla_put_u8: " + std::string(nl_geterror(err)));
+        logger.error("nla_put_u8: " + std::string(nl_geterror(err)));
     }
     send_msg(sock, msg);
     del_msg(msg);
@@ -317,7 +317,7 @@ void DropMon::set_queue_length(struct nl_sock *sock, int qlen) const {
         new_msg(NET_DM_CMD_CONFIG, NLM_F_REQUEST | NLM_F_ACK, 0);
     int err = nla_put_u32(msg, NET_DM_ATTR_QUEUE_LEN, qlen);
     if (err < 0) {
-        Logger::error("nla_put_u32: " + std::string(nl_geterror(err)));
+        logger.error("nla_put_u32: " + std::string(nl_geterror(err)));
     }
     send_msg(sock, msg);
     del_msg(msg);

@@ -30,18 +30,18 @@ compute_dispersion_index(const std::unordered_set<Node *> &target_nodes,
         mean += reach_counts[node];
     }
     mean /= target_nodes.size();
-    Logger::debug("(compute_dispersion_index) mean: " + std::to_string(mean));
+    logger.debug("(compute_dispersion_index) mean: " + std::to_string(mean));
 
     double variance = 0;
     for (Node *node : target_nodes) {
         variance += (reach_counts[node] - mean) * (reach_counts[node] - mean);
     }
     variance /= target_nodes.size();
-    Logger::debug("(compute_dispersion_index) variance: " +
-                  std::to_string(variance));
+    logger.debug("(compute_dispersion_index) variance: " +
+                 std::to_string(variance));
 
     double index = variance / mean;
-    Logger::debug("(compute_dispersion_index) index: " + std::to_string(index));
+    logger.debug("(compute_dispersion_index) index: " + std::to_string(index));
     return index;
 }
 
@@ -53,14 +53,14 @@ int LoadBalancePolicy::check_violation() {
         Node *rx_node = model.get_rx_node();
         ReachCounts new_reach_counts(*model.get_reach_counts());
         new_reach_counts.increase(rx_node);
-        // Logger::debug(new_reach_counts.to_string());
+        // logger.debug(new_reach_counts.to_string());
 
         if (target_nodes.count(rx_node)) {
             double current_dispersion_index =
                 compute_dispersion_index(target_nodes, new_reach_counts);
             if (current_dispersion_index > max_dispersion_index) {
-                Logger::info("Current dispersion index: " +
-                             std::to_string(current_dispersion_index));
+                logger.info("Current dispersion index: " +
+                            std::to_string(current_dispersion_index));
                 model.set_violated(true); // violation
                 model.set_choice_count(0);
             }

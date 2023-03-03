@@ -3,7 +3,7 @@
 #include <cassert>
 #include <iterator>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "middlebox.hpp"
 #include "network.hpp"
 #include "process/openflow.hpp"
@@ -175,7 +175,7 @@ const std::set<uint16_t> &EqClassMgr::get_ports() const {
 EqClass *EqClassMgr::find_ec(const IPv4Address &ip) const {
     auto it = allranges.find(ECRange(ip, ip));
     if (it == allranges.end()) {
-        Logger::error("Cannot find the EC of " + ip.to_string());
+        logger.error("Cannot find the EC of " + ip.to_string());
         return nullptr;
     }
     return it->get_ec();

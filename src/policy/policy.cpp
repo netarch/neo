@@ -4,7 +4,7 @@
 #include <csignal>
 #include <unistd.h>
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "model-access.hpp"
 #include "policy/conditional.hpp"
 #include "policy/consistency.hpp"
@@ -104,10 +104,10 @@ std::string Policy::conns_str() const {
 
 void Policy::report() const {
     if (model.get_violated()) {
-        Logger::info("*** Policy violated! ***");
+        logger.info("*** Policy violated! ***");
         kill(getppid(), SIGUSR1);
     } else {
-        Logger::info("*** Policy holds! ***");
+        logger.info("*** Policy holds! ***");
     }
 }
 
@@ -127,7 +127,7 @@ void Policy::init() {
 
 // reinit should only be overwritten by policies with correlated sub-policies
 void Policy::reinit() {
-    Logger::error("This shouldn't be called");
+    logger.error("This shouldn't be called");
 }
 
 /******************************************************************************/

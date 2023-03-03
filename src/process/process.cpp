@@ -1,6 +1,6 @@
 #include "process/process.hpp"
 
-#include "lib/logger.hpp"
+#include "logger.hpp"
 
 Process::Process() : enabled(true) {}
 

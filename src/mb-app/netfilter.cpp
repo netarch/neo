@@ -4,8 +4,8 @@
 #include <unistd.h>
 
 #include "lib/fs.hpp"
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 
 void NetFilter::init() {
     Net::get().set_forwarding(1);
@@ -19,23 +19,23 @@ void NetFilter::reset() {
     int fd;
     char filename[] = "/tmp/netfilter-rules.XXXXXX";
     if ((fd = mkstemp(filename)) < 0) {
-        Logger::error(filename, errno);
+        logger.error(filename, errno);
     }
     if (write(fd, rules.c_str(), rules.size()) < 0) {
-        Logger::error(filename, errno);
+        logger.error(filename, errno);
     }
     if (close(fd) < 0) {
-        Logger::error(filename, errno);
+        logger.error(filename, errno);
     }
 
     if (system("iptables -F")) {
-        Logger::error("iptables -F");
+        logger.error("iptables -F");
     }
     if (system("iptables -Z")) {
-        Logger::error("iptables -Z");
+        logger.error("iptables -Z");
     }
     if (system((std::string("iptables-restore ") + filename).c_str())) {
-        Logger::error("iptables-restore");
+        logger.error("iptables-restore");
     }
     fs::remove(filename);
 }

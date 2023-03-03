@@ -9,8 +9,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 
 void Squid::stop() {
     if (pid == 0) {
@@ -18,17 +18,17 @@ void Squid::stop() {
     }
 
     if (kill(pid, SIGTERM) < 0) {
-        Logger::error("SIGTERM squid process", errno);
+        logger.error("SIGTERM squid process", errno);
     }
 
     int waited_pid = wait(NULL);
 
     if (waited_pid < 0) {
         if (errno != ECHILD) {
-            Logger::error("Failed to wait for squid", errno);
+            logger.error("Failed to wait for squid", errno);
         }
     } else if (waited_pid != pid) {
-        Logger::error("Squid PID mismatch");
+        logger.error("Squid PID mismatch");
     }
 
     pid = 0;
@@ -44,13 +44,13 @@ void Squid::init() {
 
     // clear filtering states and rules
     if (system("iptables -F")) {
-        Logger::error("iptables -F");
+        logger.error("iptables -F");
     }
     if (system("iptables -Z")) {
-        Logger::error("iptables -Z");
+        logger.error("iptables -Z");
     }
     if (system("iptables-restore /etc/iptables/empty.rules")) {
-        Logger::error("iptables-restore");
+        logger.error("iptables-restore");
     }
 
     // reset();
@@ -60,27 +60,27 @@ void Squid::init() {
     int fd;
     char squid_conf[] = "/tmp/squid-conf.XXXXXX";
     if ((fd = mkstemp(squid_conf)) < 0) {
-        Logger::error(squid_conf, errno);
+        logger.error(squid_conf, errno);
     }
     if (write(fd, config.c_str(), config.size()) < 0) {
-        Logger::error(squid_conf, errno);
+        logger.error(squid_conf, errno);
     }
     if (close(fd) < 0) {
-        Logger::error(squid_conf, errno);
+        logger.error(squid_conf, errno);
     }
 
     // launch
     if ((pid = fork()) < 0) {
-        Logger::error("fork()", errno);
+        logger.error("fork()", errno);
     } else if (pid == 0) {
         // duplicate file descriptors for logging squid output
         std::string squid_log =
-            Logger::filename() + "." + std::to_string(getpid()) + ".squid";
+            logger.filename() + "." + std::to_string(getpid()) + ".squid";
         mode_t old_mask = umask(0111);
         int fd = open(squid_log.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0666);
         umask(old_mask);
         if (fd < 0) {
-            Logger::error("Failed to open " + squid_log, errno);
+            logger.error("Failed to open " + squid_log, errno);
         }
         dup2(fd, STDOUT_FILENO);
         dup2(fd, STDERR_FILENO);
@@ -90,7 +90,7 @@ void Squid::init() {
 
         execlp("squid", "squid", "-N", "-n", std::to_string(getpid()).c_str(),
                "-f", squid_conf, NULL);
-        Logger::error("exec squid", errno);
+        logger.error("exec squid", errno);
     }
 
     // wait for the service to start
@@ -103,7 +103,7 @@ void Squid::reset() {
     }
 
     if (kill(pid, SIGHUP) < 0) {
-        Logger::error("SIGHUP squid process", errno);
+        logger.error("SIGHUP squid process", errno);
     }
 
     // reconfigure takes less than 1s.

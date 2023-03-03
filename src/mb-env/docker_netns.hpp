@@ -1,8 +1,8 @@
 #ifndef NEO_SRC_MB_ENV_DOCKER_NETNS_H_
 #define NEO_SRC_MB_ENV_DOCKER_NETNS_H_
 
-#include "mb-env.hpp"
-#include "netns.hpp"
+#include "mb-env/mb-env.hpp"
+#include "mb-env/netns.hpp"
 
 class Docker_NetNS : public NetNS {
     void init(const Middlebox &) override;

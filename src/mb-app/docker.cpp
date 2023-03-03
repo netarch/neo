@@ -5,6 +5,7 @@
 #include <curl/curl.h>
 
 #include "docker-util.hpp"
+#include "logger.hpp"
 
 Docker::Docker() {
     pid = 0;
@@ -17,7 +18,7 @@ Docker::~Docker() {
 
 void Docker::init() {
     // start docker container with no network
-    Logger::info("docker container initializing");
+    logger.info("docker container initializing");
 
     // if container running, kill; if exists, delete
     auto status = DockerUtil::inspect_container_running(container_name);
@@ -65,12 +66,12 @@ void Docker::init() {
     DockerUtil::start_container(container_name);
 
     pid = DockerUtil::inspect_container_pid(container_name);
-    Logger::info("docker container has pid " + std::to_string(pid));
+    logger.info("docker container has pid " + std::to_string(pid));
 }
 
 void Docker::reset() {
     // POST /restart ? we could shift to kill instead later
-    Logger::info("docker container resetting");
+    logger.info("docker container resetting");
     DockerUtil::restart_container(container_name);
 }
 

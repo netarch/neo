@@ -4,7 +4,7 @@
 
 #include "fib.hpp"
 #include "lib/hash.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "model-access.hpp"
 #include "node.hpp"
 #include "policy/policy.hpp"
@@ -137,7 +137,7 @@ void OpenflowProcess::exec_step() {
  */
 void OpenflowProcess::install_update() {
     if (model.get_choice() == 0) {
-        Logger::info("Openflow: not installing update");
+        logger.info("Openflow: not installing update");
         model.set_choice_count(1); // back to forwarding
         return;
     }
@@ -168,8 +168,8 @@ void OpenflowProcess::install_update() {
     const Route &update = all_updates[num_installed];
 
     // actually install the update to FIB
-    Logger::info("Openflow: installing update at " + current_node->get_name() +
-                 ": " + update.to_string());
+    logger.info("Openflow: installing update at " + current_node->get_name() +
+                ": " + update.to_string());
 
     // check route precedence (longest prefix match)
     RoutingTable of_rib = current_node->get_rib();
@@ -191,5 +191,5 @@ void OpenflowProcess::install_update() {
 
     // update FIB
     FIB *new_fib = model.set_fib(std::move(fib));
-    Logger::debug(new_fib->to_string());
+    logger.debug(new_fib->to_string());
 }

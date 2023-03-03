@@ -5,8 +5,8 @@
 #include <libnet.h>
 
 #include "dropmon.hpp"
-#include "lib/logger.hpp"
 #include "lib/net.hpp"
+#include "logger.hpp"
 #include "mb-env/docker_netns.hpp"
 #include "mb-env/netns.hpp"
 #include "middlebox.hpp"
@@ -198,7 +198,7 @@ void Emulation::init(Middlebox *mb) {
         } else if (mb_env == "docker_netns") {
             env = new Docker_NetNS();
         } else {
-            Logger::error("Unknown environment: " + mb->get_env());
+            logger.error("Unknown environment: " + mb->get_env());
         }
         env->init(*mb);
         env->run(mb_app_init, mb->get_app());
@@ -241,12 +241,12 @@ int Emulation::rewind(NodePacketHistory *nph) {
     const std::string node_name = emulated_mb->get_name();
 
     if (node_pkt_hist == nph) {
-        Logger::info(node_name + " up to date, no need to rewind");
+        logger.info(node_name + " up to date, no need to rewind");
         return -1;
     }
 
     int rewind_injections = 0;
-    Logger::info("Rewinding " + node_name + "...");
+    logger.info("Rewinding " + node_name + "...");
 
     // reset middlebox state
     if (!nph || !nph->contains(node_pkt_hist)) {
@@ -255,7 +255,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
         recv_pkts_hash.clear();
         env->run(mb_app_reset, emulated_mb->get_app());
         this->reset_offsets();
-        Logger::info("Reset " + node_name);
+        logger.info("Reset " + node_name);
     }
 
     // replay history
@@ -267,7 +267,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
         }
     }
 
-    Logger::info(std::to_string(rewind_injections) + " rewind injections");
+    logger.info(std::to_string(rewind_injections) + " rewind injections");
     return rewind_injections;
 }
 
@@ -297,7 +297,7 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
 
             if (status == std::cv_status::timeout && recv_pkts.empty() &&
                 drop_ts == 0) {
-                Logger::error("Drop monitor timed out!");
+                logger.error("Drop monitor timed out!");
             }
         } else { // use timeout (new injection)
             cv.wait_for(lck, emulated_mb->get_timeout());

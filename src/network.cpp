@@ -1,14 +1,14 @@
 #include "network.hpp"
 
 #include "fib.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"
 
 void Network::add_node(Node *node) {
     auto res = nodes.insert(std::make_pair(node->get_name(), node));
     if (res.second == false) {
-        Logger::error("Duplicate node: " + res.first->first);
+        logger.error("Duplicate node: " + res.first->first);
     }
 }
 
@@ -16,7 +16,7 @@ void Network::add_link(Link *link) {
     // Add the new link to links
     auto res = links.insert(link);
     if (res.second == false) {
-        Logger::error("Duplicate link: " + (*res.first)->to_string());
+        logger.error("Duplicate link: " + (*res.first)->to_string());
     }
 
     // Add the new peer to the respective node structures
@@ -31,7 +31,7 @@ void Network::add_link(Link *link) {
 void Network::add_middlebox(Middlebox *mb) {
     auto res = middleboxes.insert(mb);
     if (res.second == false) {
-        Logger::error("Duplicate middlebox: " + (*res.first)->to_string());
+        logger.error("Duplicate middlebox: " + (*res.first)->to_string());
     }
 }
 

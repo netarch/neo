@@ -3,7 +3,7 @@
 #include <cassert>
 
 #include "candidates.hpp"
-#include "lib/logger.hpp"
+#include "logger.hpp"
 #include "model-access.hpp"
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
@@ -79,14 +79,13 @@ void ChooseConnProcess::exec_step() {
         int proto_state = model.get_proto_state();
         if (!(mode == fwd_mode::DROPPED) &&
             !(mode == fwd_mode::ACCEPTED && PS_IS_LAST(proto_state))) {
-            Logger::info("Connection " + std::to_string(conn_map[0][0]) +
-                         " dropped by " +
-                         model.get_pkt_location()->to_string());
+            logger.info("Connection " + std::to_string(conn_map[0][0]) +
+                        " dropped by " + model.get_pkt_location()->to_string());
             model.set_fwd_mode(fwd_mode::DROPPED);
         }
         model.print_conn_states();
     } else {
-        Logger::error("No executable connection");
+        logger.error("No executable connection");
     }
 
     // update choice_count for the connection chosen

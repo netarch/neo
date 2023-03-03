@@ -44,7 +44,7 @@ void Connection::init(size_t conn_idx) const {
     } else if (protocol == proto::icmp_echo) {
         proto_state = PS_ICMP_ECHO_REQ;
     } else {
-        Logger::error("Unknown protocol: " + std::to_string(protocol));
+        logger.error("Unknown protocol: " + std::to_string(protocol));
     }
     model.set_proto_state(proto_state);
     model.set_src_ip(src_ip.get_value());
