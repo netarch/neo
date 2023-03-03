@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 project(Neo VERSION 0.1 HOMEPAGE_URL https://github.com/netarch/neo LANGUAGES C CXX)
 include("CheckTypeSize")
 include("ExternalProject")
@@ -89,8 +89,10 @@ find_package(CURL REQUIRED)
 find_package(Libnet REQUIRED)
 find_package(Libnl REQUIRED)
 find_package(PcapPlusPlus REQUIRED)
+find_package(RapidJSON REQUIRED)
 find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
+find_package(spdlog REQUIRED)
 
 #
 # source directory and files
@@ -134,8 +136,6 @@ add_custom_command(
 #
 add_library(libneo OBJECT ${SRC_FILES})
 target_include_directories(libneo PUBLIC ${SRC_DIR})
-target_include_directories(libneo PUBLIC ${RapidJSON_INCLUDE_DIRS})
-target_include_directories(libneo SYSTEM PRIVATE ${spdlog_INCLUDE_DIRS})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE
     CURL::libcurl
@@ -143,6 +143,7 @@ target_link_libraries(libneo PRIVATE
     Libnl::Libnl
     PcapPlusPlus::pcap++
     Threads::Threads
+    rapidjson
     spdlog::spdlog
     spin_model
     tomlplusplus::tomlplusplus

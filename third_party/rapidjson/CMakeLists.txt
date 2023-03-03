@@ -1,3 +1,7 @@
+# https://cmake.org/cmake/help/latest/policy/CMP0077.html
+cmake_policy(VERSION 3.13)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+
 set(RAPIDJSON_BUILD_DOC OFF)
 set(RAPIDJSON_BUILD_EXAMPLES OFF)
 set(RAPIDJSON_BUILD_TESTS OFF)
@@ -10,13 +14,18 @@ set(RAPIDJSON_ENABLE_INSTRUMENTATION_OPT ON)
 
 add_subdirectory(rapidjson)
 
-# if(RapidJSON_INCLUDE_DIRS)
-#     message(FATAL_ERROR ":: ${RapidJSON_INCLUDE_DIRS}")
-# else()
-#     message(FATAL_ERROR ":: ${RapidJSON_INCLUDE_DIRS}")
-# endif()
+find_path(RapidJSON_INCLUDE_DIRS
+    NAMES rapidjson.h
+    PATHS "${CMAKE_CURRENT_SOURCE_DIR}/rapidjson/include"
+    PATH_SUFFIXES rapidjson
+    NO_DEFAULT_PATH)
 
-# if (NOT TARGET rapidjson)
-#     add_library(rapidjson INTERFACE IMPORTED)
-#     target_include_directories(rapidjson SYSTEM INTERFACE "${RapidJSON_INCLUDE_DIRS}")
-# endif()
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(RapidJSON
+    FOUND_VAR RapidJSON_FOUND
+    REQUIRED_VARS RapidJSON_INCLUDE_DIRS)
+
+if (RapidJSON_FOUND AND NOT TARGET rapidjson)
+    add_library(rapidjson INTERFACE IMPORTED)
+    target_include_directories(rapidjson SYSTEM INTERFACE "${RapidJSON_INCLUDE_DIRS}")
+endif()
