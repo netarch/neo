@@ -4,11 +4,11 @@
 
 [[nodes]]
     name = "<string>"
-    type = "generic" or "middlebox" # default: generic
+    type = "<string>"           # "model" or "emulation"
     [[nodes.interfaces]]        # optional
     name = "<string>"
-    ipv4 = "<ip addr w mask>"   # optional
-    vlans = [1, 3, 6, 100]      # optional
+    ipv4 = "<ip addr/mask>"     # optional
+    vlans = [1, 3, 6, 100]      # optional (not supported yet)
     [[nodes.static_routes]]     # optional
     network = "<ip prefix>"
     next_hop = "<ip addr>"
@@ -19,32 +19,29 @@
     adm_dist = 254              # optional (1..254), default: 255
 [[nodes]]
     name = "<string>"
-    type = "middlebox"
-    env = "netns"
-    app = "netfilter"
-    rp_filter = 0               # optional (0..2), default: 0
-    # 0 - No source validation.
-    # 1 - Strict mode as defined in RFC3704 Strict Reverse Path
-    #     Each incoming packet is tested against the FIB and if the interface
-    #     is not the best reverse path the packet check will fail.
-    #     By default failed packets are discarded.
-    # 2 - Loose mode as defined in RFC3704 Loose Reverse Path
-    #     Each incoming packet's source address is also tested against the FIB
-    #     and if the source address is not reachable via any interface the
-    #     packet check will fail.
-    rules = "<string>"
-[[nodes]]
-    name = "<string>"
-    type = "middlebox"
-    env = "netns"
-    app = "ipvs"
-    config = "<string>"
-[[nodes]]
-    name = "<string>"
-    type = "middlebox"
-    env = "netns"
-    app = "squid"
-    config = "<string>"
+    type = "emulation"
+    driver = "docker"           # optional ("docker"), default: "docker"
+    # Optional, socket endpoint of the docker daemon.
+    # For a remote service, use something like "10.0.0.1:33444".
+    # Default: "/var/run/docker.sock"
+    docker-daemon = "/var/run/docker.sock"
+    [nodes.container]
+    # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
+    image = "alpine:3.17"
+    workingDir = "/"
+    command = ["/bin/bash"]     # optional
+    args = ["-l"]               # optional
+    [[nodes.container.ports]]   # optional
+    containerPort = 1234
+    protocol = "tcp"            # "tcp" or "udp"
+    [[nodes.container.env]]     # optional
+    name = "PATH"
+    value = "/usr/sbin/:/usr/bin:/sbin:/bin"
+    [[nodes.container.volumeMounts]]    # optional
+    mountPath = ""
+    hostPath = ""
+    driver = "local"            # optional ("local"), default: "local"
+    readOnly = false            # optional, default: false
 
 # undirected (only need to specify once for each link)
 [[links]]
@@ -78,24 +75,24 @@
 [[policies]]
     type = "reachability"
     target_node = "<node name regex>"
-    reachable = true or false
-    [[policies.connections]]    # < connection spec >
-    protocol = "tcp", "udp", or "icmp-echo"
+    reachable = true
+    [[policies.connections]]        # < connection spec >
+    protocol = "<string>"           # "tcp", "udp", or "icmp-echo"
     src_node = "<node name regex>"
     dst_ip = "<ip prefix or addr>"
     src_port = 12345                # optional
     dst_port = [80, 443]            # optional, default: all interesting ports
-    owned_dst_only = true or false  # optional, default: false
+    owned_dst_only = false          # optional, default: false
 [[policies]]
     type = "reply-reachability"
     target_node = "<node name regex>"
-    reachable = true or false
+    reachable = true
     [[policies.connections]]
     # < connection spec >
 [[policies]]
     type = "waypoint"
     target_node = "<node name regex>"
-    pass_through = true or false
+    pass_through = true
     [[policies.connections]]
     # < connection spec >
 

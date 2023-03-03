@@ -1,6 +1,6 @@
 [[nodes]]
     name = "h1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.1/24"
@@ -9,7 +9,7 @@
     next_hop = "192.168.0.254"
 [[nodes]]
     name = "h2"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.2/24"
@@ -18,7 +18,7 @@
     next_hop = "192.168.0.254"
 [[nodes]]
     name = "h3"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.3/24"
@@ -27,7 +27,7 @@
     next_hop = "192.168.0.254"
 [[nodes]]
     name = "s1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     [[nodes.interfaces]]
@@ -38,7 +38,7 @@
     name = "eth3"
 [[nodes]]
     name = "r1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.1.2/25"
@@ -53,7 +53,7 @@
     next_hop = "192.168.1.1"
 [[nodes]]
     name = "r2"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.2.2/25"
@@ -68,7 +68,7 @@
     next_hop = "192.168.2.1"
 [[nodes]]
     name = "r3"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.254/24"
@@ -86,23 +86,37 @@
     next_hop = "192.168.2.129"
 [[nodes]]
     name = "fw"
-    type = "middlebox"
-    env = "netns"
-    app = "netfilter"
-    rp_filter = 1   # misconfiguration, should be 0
-    rules = """
-*filter
-:INPUT DROP [0:0]
-:FORWARD DROP [0:0]
-:OUTPUT ACCEPT [0:0]
--A INPUT -i eth1 -j ACCEPT
--A INPUT -i eth2 -j ACCEPT
--A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
--A FORWARD -i eth1 -j ACCEPT
--A FORWARD -i eth2 -j ACCEPT
--A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-COMMIT
-"""
+    type = "emulation"
+    driver = "docker"
+    docker-daemon = "/var/run/docker.sock"
+
+#     env = "netns"
+#     app = "netfilter"
+#     rp_filter = 1   # misconfiguration, should be 0
+#     rules = """
+# *filter
+# :INPUT DROP [0:0]
+# :FORWARD DROP [0:0]
+# :OUTPUT ACCEPT [0:0]
+# -A INPUT -i eth1 -j ACCEPT
+# -A INPUT -i eth2 -j ACCEPT
+# -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+# -A FORWARD -i eth1 -j ACCEPT
+# -A FORWARD -i eth2 -j ACCEPT
+# -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+# COMMIT
+# """
+
+    [nodes.container]
+    # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
+    image = "kyechou/netfilter-faulty-rp_filter:latest"
+    workingDir = "/"
+    command = []
+    args = []
+    [[nodes.container.volumeMounts]]
+    mountPath = ""
+    hostPath = ""
+
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.2/24"
@@ -117,7 +131,7 @@ COMMIT
     next_hop = "192.168.1.2"
 [[nodes]]
     name = "server"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.1/24"

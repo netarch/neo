@@ -5,9 +5,10 @@
 #include <memory>
 #include <regex>
 #include <string>
-#include <toml++/toml.h>
 #include <typeinfo>
 #include <utility>
+
+#include <toml++/toml.h>
 
 #include "connspec.hpp"
 #include "interface.hpp"
