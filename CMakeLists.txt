@@ -20,10 +20,10 @@ add_compile_options(-Wall -Wextra -Werror -O2)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wno-c99-designator -Wno-uninitialized)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
-    #         AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
-    #     add_compile_options(-Wno-stringop-overflow)
-    # endif()
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
+        add_compile_options(-Wno-stringop-overflow)
+    endif()
     add_compile_options(-Wno-maybe-uninitialized)
 endif()
 
