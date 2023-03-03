@@ -44,6 +44,31 @@ int DockerUtil::inspect_container_pid(const std::string &name) {
     return pid.GetInt();
 }
 
+// returns <running, exists>
+std::pair<bool, bool>
+DockerUtil::inspect_container_running(const std::string &name) {
+    auto response = inspect_container(name);
+
+    if (!response["success"].GetBool()) {
+        // error (probably 404 container does not exist)
+        return {false, false};
+    }
+
+    if (!response.HasMember("data") || !response["data"].HasMember("State") ||
+        !response["data"]["State"].HasMember("Running")) {
+        // field does not exist, error
+        return {false, false};
+    }
+
+    rapidjson::Value &running = response["data"]["State"]["Running"];
+
+    if (!running.IsBool()) {
+        return {false, false};
+    }
+
+    return {running.GetBool(), true};
+}
+
 // docker network create -d macvlan --attachable --subnet=192.168.1.1/25
 // --gateway=192.168.1.2 -o parent=watertap0 dockervlan_3
 [[maybe_unused]] rapidjson::Document
@@ -127,6 +152,24 @@ rapidjson::Document
 DockerUtil::stop_container(const std::string &container_name) {
     std::string path = "/containers/" + container_name + "/stop";
     return executeCurlRequest(POST, path, 204);
+}
+
+rapidjson::Document
+DockerUtil::restart_container(const std::string &container_name) {
+    std::string path = "/containers/" + container_name + "/restart";
+    return executeCurlRequest(POST, path, 204);
+}
+
+rapidjson::Document
+DockerUtil::kill_container(const std::string &container_name) {
+    std::string path = "/containers/" + container_name + "/kill";
+    return executeCurlRequest(POST, path, 204);
+}
+
+rapidjson::Document
+DockerUtil::remove_container(const std::string &container_name) {
+    std::string path = "/containers/" + container_name + "?force=true";
+    return executeCurlRequest(DELETE, path, 204);
 }
 
 rapidjson::Document

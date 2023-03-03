@@ -237,29 +237,29 @@ void Config::parse_docker(Docker *docker, const toml::table &config) {
     auto image = config.get_as<std::string>("image");
     auto cmd = config.get("command");
 
+    std::string concatenated_string;
+
     if (!container_name || !image || !cmd) {
-        Logger::error("Missing config");
-    }
-
-    auto docker_config = config.get_as<std::string>("config");
-
-    if (!docker_config) {
         Logger::error("Missing config");
     }
 
     docker->container_name = **container_name;
     docker->image = **image;
+
+    concatenated_string = **container_name + " " + **image + " ";
+
     if (const toml::array *arr = cmd->as_array()) {
         // visitation with for_each() helps deal with heterogeneous data
-        arr->for_each([&docker](auto &&el) {
+        arr->for_each([&docker, &concatenated_string](auto &&el) {
             if constexpr (toml::is_string<decltype(el)>) {
                 docker->cmd.push_back(*el);
+                concatenated_string += *el + " ";
             }
         });
     }
 
-    // TODO: concatenate and parse
-    Config::parse_appliance_config(docker, docker->config);
+    // parse IP and port info from docker commands
+    Config::parse_appliance_config(docker, concatenated_string);
 }
 
 void Config::parse_middlebox(Middlebox *middlebox,
@@ -284,6 +284,8 @@ void Config::parse_middlebox(Middlebox *middlebox,
     }
 
     if (**environment == "netns") {
+        middlebox->env = **environment;
+    } else if (**environment == "docker_netns") {
         middlebox->env = **environment;
     } else {
         Logger::error("Unknown environment: " + **environment);

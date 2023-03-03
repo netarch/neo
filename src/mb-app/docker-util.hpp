@@ -24,9 +24,22 @@ public:
     static rapidjson::Document
     stop_container(const std::string &container_name);
 
+    static rapidjson::Document
+    restart_container(const std::string &container_name);
+
+    static rapidjson::Document
+    kill_container(const std::string &container_name);
+
+    static rapidjson::Document
+    remove_container(const std::string &container_name);
+
     static rapidjson::Document inspect_container(const std::string &name);
 
     static int inspect_container_pid(const std::string &name);
+
+    // returns <running, exists>
+    static std::pair<bool, bool>
+    inspect_container_running(const std::string &name);
 
 private:
     typedef enum {

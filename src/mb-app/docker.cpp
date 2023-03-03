@@ -18,8 +18,14 @@ void Docker::init() {
     // start docker container with no network
     Logger::info("docker container initializing");
 
-    // if container exists and active, kill
-    // if container exists, delete
+    // if container running, kill; if exists, delete
+    auto status = DockerUtil::inspect_container_running(container_name);
+    if (status.first) {
+        DockerUtil::kill_container(container_name);
+    }
+    if (status.second) {
+        DockerUtil::remove_container(container_name);
+    }
 
     /*
     {
@@ -46,8 +52,6 @@ void Docker::init() {
     request_body.AddMember("HostConfig", HostConfig,
                            request_body.GetAllocator());
 
-    //    std::cout << request_body << std::endl;
-
     rapidjson::Value array;
     array.SetArray();
     for (const std::string &str : cmd) {
@@ -64,5 +68,11 @@ void Docker::init() {
 }
 
 void Docker::reset() {
-    // POST /restart ?
+    // POST /restart ? we could shift to kill instead later
+    Logger::info("docker container resetting");
+    DockerUtil::restart_container(container_name);
+}
+
+std::string Docker::net_ns_path() const {
+    return "/proc/" + std::to_string(pid) + "/ns/net";
 }

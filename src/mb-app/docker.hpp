@@ -14,9 +14,6 @@ private:
     std::string image;
     std::vector<std::string> cmd;
 
-    // ???
-    const std::string config;
-
     // pid of container
     pid_t pid;
 
@@ -28,4 +25,6 @@ public:
 
     void init() override;  // hard-reset, restart, start
     void reset() override; // soft-reset, reload
+
+    std::string net_ns_path() const;
 };
