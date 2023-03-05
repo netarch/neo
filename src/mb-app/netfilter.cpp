@@ -3,9 +3,13 @@
 #include <cstdlib>
 #include <unistd.h>
 
-#include "lib/fs.hpp"
+#include <boost/filesystem.hpp>
+
 #include "lib/net.hpp"
 #include "logger.hpp"
+
+using namespace std;
+namespace fs = boost::filesystem;
 
 void NetFilter::init() {
     Net::get().set_forwarding(1);

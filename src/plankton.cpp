@@ -1,6 +1,5 @@
 #include "plankton.hpp"
 
-#include <csignal>
 #include <cstdlib>
 #include <fcntl.h>
 #include <set>
@@ -9,265 +8,73 @@
 #include <thread>
 #include <unistd.h>
 
+#include <boost/filesystem.hpp>
+
 #include "config.hpp"
-#include "dropmon.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
-#include "lib/fs.hpp"
-#include "lib/ip.hpp"
 #include "logger.hpp"
 #include "model-access.hpp"
 #include "stats.hpp"
 
-static bool verify_all_ECs =
-    false; // verify all ECs even if a violation is found
-static bool policy_violated = false; // true when policy is violated
-static std::set<int> tasks;
-static const int sigs[] = {SIGCHLD, SIGUSR1, SIGHUP, SIGINT, SIGQUIT, SIGTERM};
+using namespace std;
+namespace fs = boost::filesystem;
 
-/*
- * signal handler used by the per-connection tasks
- */
-static void worker_sig_handler(int sig) {
-    // SIGUSR1 is used for unblocking the emulation listener thread
-    int pid, status, rc;
-    switch (sig) {
-    case SIGCHLD:
-        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-            if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
-                logger.error("Process " + std::to_string(pid) + " exited " +
-                             std::to_string(rc));
-            }
-        }
-        break;
-    case SIGHUP:
-    case SIGINT:
-    case SIGQUIT:
-    case SIGTERM:
-        kill(-getpid(), sig);
-        while (wait(nullptr) != -1 || errno != ECHILD)
-            ;
-        logger.info("Killed");
-        exit(0);
-    }
-}
+bool Plankton::_all_ecs = false;
+bool Plankton::_violated = false;
+set<pid_t> Plankton::_tasks;
+const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
+                              SIGINT,  SIGQUIT, SIGTERM};
 
-static void kill_all_child_tasks(int sig) {
-    for (int childpid : tasks) {
-        kill(childpid, sig);
-    }
-}
-
-/*
- * signal handler used by the main task and the policy tasks
- */
-static void
-signal_handler(int sig, siginfo_t *siginfo, void *ctx __attribute__((unused))) {
-    int pid, status, rc;
-    switch (sig) {
-    case SIGCHLD:
-        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-            tasks.erase(pid);
-            if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
-                kill_all_child_tasks(SIGTERM);
-                while (wait(nullptr) != -1 || errno != ECHILD)
-                    ;
-                DropMon::get().stop();
-                logger.error("Process " + std::to_string(pid) + " exited " +
-                             std::to_string(rc));
-            }
-        }
-        break;
-    case SIGUSR1: // policy violated; kill all other children
-        pid = siginfo->si_pid;
-        policy_violated = true;
-        if (!verify_all_ECs) {
-            tasks.erase(pid);
-            kill_all_child_tasks(SIGTERM);
-        }
-        logger.warn("Policy violated in process " + std::to_string(pid));
-        break;
-    case SIGHUP:
-    case SIGINT:
-    case SIGQUIT:
-    case SIGTERM:
-        kill_all_child_tasks(sig);
-        while (wait(nullptr) != -1 || errno != ECHILD)
-            ;
-        DropMon::get().stop();
-        exit(0);
-    }
-}
-
-Plankton::Plankton() : policy(nullptr) {}
+Plankton::Plankton() : _policy(nullptr) {}
 
 Plankton &Plankton::get() {
     static Plankton instance;
     return instance;
 }
 
-void Plankton::init(bool all_ECs,
-                    bool rm_out_dir,
+void Plankton::init(bool all_ecs,
                     bool dropmon,
-                    size_t dop,
-                    int emulations,
-                    const std::string &input_file,
-                    const std::string &output_dir) {
-    verify_all_ECs = all_ECs;
-    max_jobs = std::min(dop, size_t(std::thread::hardware_concurrency()));
-    if (rm_out_dir && fs::exists(output_dir)) {
-        fs::remove(output_dir);
-    }
-    fs::mkdir(output_dir);
-    in_file = fs::realpath(input_file);
-    out_dir = fs::realpath(output_dir);
+                    size_t max_jobs,
+                    size_t max_emu,
+                    const string &input_file,
+                    const string &output_dir) {
+    // Initialize system-wide configuration
+    this->_all_ecs = all_ecs;
+    this->_dropmon = dropmon;
+    this->_max_jobs = min(max_jobs, size_t(thread::hardware_concurrency()));
+    this->_max_emu = max_emu;
+    fs::create_directories(output_dir);
+    this->_in_file = fs::canonical(input_file).string();
+    this->_out_dir = fs::canonical(output_dir).string();
     logger.enable_console_logging();
-    logger.enable_file_logging(fs::append(out_dir, "main.log"));
+    logger.enable_file_logging((fs::path(_out_dir) / "main.log").string());
 
-    Config::start_parsing(in_file);
-    Config::parse_network(&network, in_file, dropmon);
-    Config::parse_openflow(&openflow, in_file, network);
-    Config::parse_policies(&policies, in_file, network);
-    Config::finish_parsing(in_file);
+    // Set the initial system state based on input configuration
+    // TODO: Make Config a non-static ConfigParser object
+    Config::start_parsing(_in_file);
+    Config::parse_network(&_network, _in_file, _dropmon);
+    Config::parse_openflow(&openflow, _in_file, _network);
+    Config::parse_policies(&_policies, _in_file, _network);
+    Config::finish_parsing(_in_file);
 
-    if (emulations < 0) {
-        emulations = network.get_middleboxes().size();
+    if (this->_max_emu == 0) {
+        this->_max_emu = _network.get_middleboxes().size();
     }
-    EmulationMgr::get().set_max_emulations(emulations);
-    EmulationMgr::get().set_num_middleboxes(network.get_middleboxes().size());
 
-    DropMon::get().init(dropmon);
+    EmulationMgr::get().set_max_emulations(_max_emu);
+    EmulationMgr::get().set_num_middleboxes(_network.get_middleboxes().size());
+
+    // DropMon::get().init(dropmon);
 
     // compute policy oblivious ECs
-    EqClassMgr::get().compute_policy_oblivious_ecs(network, openflow);
-}
-
-extern "C" int spin_main(int argc, const char *argv[]);
-
-void Plankton::verify_exit(int status) {
-    // output per EC proecess stats
-    Stats::set_ec_time();
-    Stats::set_ec_maxrss();
-    Stats::output_ec_stats();
-
-    exit(status);
-}
-
-void Plankton::verify_conn() {
-    const std::string logfile = std::to_string(getpid()) + ".log";
-    const std::string suffix = "-t" + std::to_string(getpid()) + ".trail";
-    static const char *spin_args[] = {
-        // See http://spinroot.com/spin/Man/Pan.html
-        "neo",
-        "-b", // consider it error to exceed the depth limit
-        "-E", // suppress invalid end state errors
-        "-n", // suppress report for unreached states
-        suffix.c_str(),
-    };
-
-    // register signal handlers
-    struct sigaction action;
-    action.sa_handler = worker_sig_handler;
-    sigemptyset(&action.sa_mask);
-    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaddset(&action.sa_mask, sigs[i]);
-    }
-    action.sa_flags = SA_NOCLDSTOP;
-    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
-        sigaction(sigs[i], &action, nullptr);
-    }
-
-    // reset logger
-    logger.disable_console_logging();
-    logger.enable_file_logging(logfile);
-    logger.info("Policy: " + policy->to_string());
-
-    // duplicate file descriptors
-    int fd = open(logfile.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
-    if (fd < 0) {
-        logger.error("Failed to open " + logfile, errno);
-    }
-    dup2(fd, STDOUT_FILENO);
-    dup2(fd, STDERR_FILENO);
-    close(fd);
-
-    // spawn a dropmon thread (will be joined and disconnected on exit)
-    DropMon::get().connect();
-
-    // record time usage for this EC
-    Stats::set_ec_t1();
-
-    // run SPIN verifier
-    spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
-    logger.error("verify_exit isn't called by Spin");
-}
-
-void Plankton::verify_policy(Policy *policy) {
-    // cd to the policy working directory
-    const std::string policy_wd =
-        fs::append(out_dir, std::to_string(policy->get_id()));
-    if (!fs::exists(policy_wd)) {
-        fs::mkdir(policy_wd);
-    }
-    fs::chdir(policy_wd);
-
-    // reset static variables
-    policy_violated = false;
-    tasks.clear();
-
-    // configure per OS process variables
-    this->policy = policy;
-
-    // compute connection matrix (Cartesian product)
-    policy->compute_conn_matrix();
-
-    // update latency estimate by DOP
-    int DOP = std::min(policy->num_conn_ecs(), max_jobs);
-    for (Middlebox *mb : network.get_middleboxes()) {
-        mb->increase_latency_estimate_by_DOP(DOP);
-    }
-
-    logger.info("====================");
-    logger.info(std::to_string(policy->get_id()) + ". Verifying policy " +
-                policy->to_string());
-    logger.info("Connection ECs: " + std::to_string(policy->num_conn_ecs()));
-
-    Stats::set_policy_t1();
-
-    // fork for each combination of concurrent connections
-    while ((!policy_violated || verify_all_ECs) && policy->set_conns()) {
-        int childpid;
-        if ((childpid = fork()) < 0) {
-            logger.error("fork()", errno);
-        } else if (childpid == 0) {
-            verify_conn(); // connection kid dies here
-        }
-
-        tasks.insert(childpid);
-        while (tasks.size() >= max_jobs) {
-            pause();
-        }
-    }
-
-    while (!tasks.empty()) {
-        pause();
-    }
-
-    Stats::set_policy_time();
-    Stats::set_policy_maxrss();
-    Stats::output_policy_stats(network.get_nodes().size(),
-                               network.get_links().size(), policy);
-
-    exit(0);
+    EqClassMgr::get().compute_policy_oblivious_ecs(_network, openflow);
 }
 
 int Plankton::run() {
-    // cd to the main working directory (output directory)
-    fs::chdir(out_dir);
-
-    // register signal handler
+    // Register signal handler
     struct sigaction action;
-    action.sa_sigaction = signal_handler;
+    action.sa_sigaction = inv_sig_handler;
     sigemptyset(&action.sa_mask);
     for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
         sigaddset(&action.sa_mask, sigs[i]);
@@ -277,20 +84,23 @@ int Plankton::run() {
         sigaction(sigs[i], &action, nullptr);
     }
 
-    DropMon::get().start();
+    // DropMon::get().start();
     Stats::set_total_t1();
 
     // fork for each policy to get their memory usage measurements
-    for (Policy *policy : policies) {
-        int childpid;
+    for (Policy *policy : _policies) {
+        pid_t childpid;
+
         if ((childpid = fork()) < 0) {
             logger.error("fork()", errno);
         } else if (childpid == 0) {
-            verify_policy(policy); // policy kid dies here
+            verify_policy(policy);
+            exit(0);
         }
 
-        tasks.insert(childpid);
-        while (!tasks.empty()) {
+        this->_tasks.insert(childpid);
+
+        while (!this->_tasks.empty()) {
             pause();
         }
     }
@@ -298,22 +108,218 @@ int Plankton::run() {
     Stats::set_total_time();
     Stats::set_total_maxrss();
     Stats::output_main_stats();
-    DropMon::get().stop();
+    // DropMon::get().stop();
 
     return 0;
+}
+
+/**
+ * This signal handler is used by both the main process and the invariant/policy
+ * processes.
+ */
+void Plankton::inv_sig_handler(int sig,
+                               siginfo_t *siginfo,
+                               void *ctx __attribute__((unused))) {
+    pid_t pid;
+
+    switch (sig) {
+    case SIGCHLD: {
+        int status, rc;
+
+        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+            _tasks.erase(pid);
+
+            if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
+                // A task exited abnormally. Halt all verification tasks.
+                kill_all_tasks(SIGTERM);
+                // DropMon::get().stop();
+                logger.error("Process " + to_string(pid) + " exited " +
+                             to_string(rc));
+            }
+        }
+        break;
+    }
+    case SIGUSR1: {
+        // Policy violated. Stop all remaining tasks
+        pid = siginfo->si_pid;
+        _violated = true;
+
+        if (!_all_ecs) {
+            _tasks.erase(pid);
+            kill_all_tasks(SIGTERM);
+        }
+
+        logger.warn("Policy violated in process " + to_string(pid));
+        break;
+    }
+    case SIGHUP:
+    case SIGINT:
+    case SIGQUIT:
+    case SIGTERM: {
+        kill_all_tasks(sig);
+        // DropMon::get().stop();
+        exit(0);
+    }
+    }
+}
+
+void Plankton::kill_all_tasks(int sig) {
+    for (pid_t pid : _tasks) {
+        kill(pid, sig);
+    }
+
+    while (wait(nullptr) != -1 || errno != ECHILD)
+        ;
+}
+
+void Plankton::verify_policy(Policy *policy) {
+    // Initialize per-policy system states
+    this->_policy = policy;
+    this->_violated = false;
+    this->_tasks.clear();
+
+    // Compute connection matrix (Cartesian product)
+    this->_policy->compute_conn_matrix();
+
+    // Update latency estimate
+    int num_tasks = min(this->_policy->num_conn_ecs(), _max_jobs);
+    for (Middlebox *mb : this->_network.get_middleboxes()) {
+        mb->increase_latency_estimate_by_DOP(num_tasks);
+    }
+
+    logger.info("====================");
+    logger.info(to_string(_policy->get_id()) + ". Verifying policy " +
+                _policy->to_string());
+    logger.info("Connection ECs: " + to_string(_policy->num_conn_ecs()));
+
+    Stats::set_policy_t1();
+
+    // Fork for each combination of concurrent connections
+    while ((!_violated || _all_ecs) && _policy->set_conns()) {
+        pid_t childpid;
+
+        if ((childpid = fork()) < 0) {
+            logger.error("fork()", errno);
+        } else if (childpid == 0) {
+            verify_conn(); // connection kid dies here
+            exit(0);
+        }
+
+        _tasks.insert(childpid);
+
+        while (_tasks.size() >= _max_jobs) {
+            pause();
+        }
+    }
+
+    while (!_tasks.empty()) {
+        pause();
+    }
+
+    Stats::set_policy_time();
+    Stats::set_policy_maxrss();
+    Stats::output_policy_stats(_network.get_nodes().size(),
+                               _network.get_links().size(), _policy);
+}
+
+void Plankton::verify_conn() {
+    // Change to the invariant output directory
+    const auto inv_dir = fs::path(_out_dir) / to_string(_policy->get_id());
+    const auto log_path = inv_dir / (to_string(getpid()) + ".log");
+    const auto trail_path = inv_dir / (to_string(getpid()) + ".trail");
+    fs::create_directory(inv_dir);
+    fs::current_path(inv_dir);
+
+    // Reset logger
+    logger.disable_console_logging();
+    logger.disable_file_logging();
+    logger.enable_file_logging(log_path.string());
+    logger.info("Policy: " + _policy->to_string());
+
+    // Duplicate file descriptors for SPIN stdout/stderr
+    int fd = open(log_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+    if (fd < 0) {
+        logger.error("Failed to open " + log_path.string(), errno);
+    }
+    dup2(fd, STDOUT_FILENO);
+    dup2(fd, STDERR_FILENO);
+    close(fd);
+
+    // Register signal handlers
+    struct sigaction action;
+    action.sa_handler = ec_sig_handler;
+    sigemptyset(&action.sa_mask);
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaddset(&action.sa_mask, sigs[i]);
+    }
+    action.sa_flags = SA_NOCLDSTOP;
+    for (size_t i = 0; i < sizeof(sigs) / sizeof(int); ++i) {
+        sigaction(sigs[i], &action, nullptr);
+    }
+
+    // Spawn a dropmon thread (will be joined and disconnected on exit)
+    // DropMon::get().connect();
+
+    // Record time usage for this EC
+    Stats::set_ec_t1();
+
+    // run SPIN verifier
+    const string trail_op = "-t " + trail_path.string();
+    const char *spin_args[] = {
+        // See http://spinroot.com/spin/Man/Pan.html
+        "neo",
+        "-b", // consider it error to exceed the depth limit
+        "-E", // suppress invalid end state errors
+        "-n", // suppress report for unreached states
+        trail_op.c_str(),
+    };
+    spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
+    logger.error("verify_exit isn't called by Spin");
+}
+
+/**
+ * This signal handler is used by the connection EC processes.
+ */
+void Plankton::ec_sig_handler(int sig) {
+    // SIGUSR1 is used for unblocking the emulation listener thread, so we
+    // capture the signal but do nothing for it.
+    switch (sig) {
+    case SIGCHLD: {
+        pid_t pid;
+        int status, rc;
+
+        while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+            if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
+                logger.error("Process " + to_string(pid) + " exited " +
+                             to_string(rc));
+            }
+        }
+        break;
+    }
+    case SIGHUP:
+    case SIGINT:
+    case SIGQUIT:
+    case SIGTERM: {
+        kill(-getpid(), sig);
+        while (wait(nullptr) != -1 || errno != ECHILD)
+            ;
+        logger.info("Killed");
+        exit(0);
+    }
+    }
 }
 
 /***** functions used by the Promela network model *****/
 
 void Plankton::initialize() {
-    Model::get().init(&network, &openflow);
+    Model::get().init(&_network, &openflow);
 
     // processes
-    forwarding.init(network);
+    forwarding.init(_network);
     openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
-    policy->init();
+    _policy->init();
 
     // control state
     model.set_process_id(pid::forwarding);
@@ -323,11 +329,11 @@ void Plankton::initialize() {
 
 void Plankton::reinit() {
     // processes
-    forwarding.init(network);
+    forwarding.init(_network);
     openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
-    policy->reinit();
+    _policy->reinit();
 
     // control state
     model.set_process_id(pid::forwarding);
@@ -349,12 +355,12 @@ void Plankton::exec_step() {
         openflow.exec_step();
         break;
     default:
-        logger.error("Unknown process id " + std::to_string(process_id));
+        logger.error("Unknown process id " + to_string(process_id));
     }
 
     this->check_to_switch_process();
 
-    int policy_result = policy->check_violation();
+    int policy_result = _policy->check_violation();
     if (policy_result & POL_REINIT_DP) {
         reinit();
     }
@@ -362,9 +368,11 @@ void Plankton::exec_step() {
 
 void Plankton::check_to_switch_process() const {
     if (model.get_executable() != 2) {
-        /* 2: executable, not entering a middlebox
+        /**
+         * 2: executable, not entering a middlebox
          * 1: executable, about to enter a middlebox
-         * 0: not executable (missing packet or terminated) */
+         * 0: not executable (missing packet or terminated)
+         */
         model.set_process_id(pid::choose_conn);
         conn_choice.update_choice_count();
         return;
@@ -392,10 +400,19 @@ void Plankton::check_to_switch_process() const {
         }
         break;
     default:
-        logger.error("Unknown process id " + std::to_string(process_id));
+        logger.error("Unknown process id " + to_string(process_id));
     }
 }
 
 void Plankton::report() {
-    policy->report();
+    _policy->report();
+}
+
+void Plankton::verify_exit(int status) {
+    // output per EC proecess stats
+    Stats::set_ec_time();
+    Stats::set_ec_maxrss();
+    Stats::output_ec_stats();
+
+    exit(status);
 }

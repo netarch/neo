@@ -1,5 +1,6 @@
 #pragma once
 
+#include <csignal>
 #include <string>
 
 #include "network.hpp"
@@ -8,25 +9,43 @@
 #include "process/forwarding.hpp"
 #include "process/openflow.hpp"
 
+extern "C" int spin_main(int argc, const char *argv[]);
+
 class Plankton {
 private:
-    size_t max_jobs;     // degree of parallelism
-    std::string in_file; // input TOML file
-    std::string out_dir; // output directory
-    Network network;     // network information (inc. dataplane)
-    Policies policies;
+    // System-wide configuration
+    static bool _all_ecs; // Verify all ECs
+    bool _dropmon;        // Enable drop_monitor
+    size_t _max_jobs;     // Max number of parallel tasks
+    size_t _max_emu;      // Max number of emulations
+    std::string _in_file; // Input TOML file
+    std::string _out_dir; // Output directory
 
-    /* processes */
+    // System states
+    Network _network;   // Network information (inc. data plane)
+    Policies _policies; // Network invariants
+    // TODO: Rename policies to invariants
+
+    // Per-policy system states
+    Policy *_policy;       // Currently verified policy
+    static bool _violated; // A violation has occurred
+
+    // Network processes/actors
     ChooseConnProcess conn_choice;
     ForwardingProcess forwarding;
     OpenflowProcess openflow;
 
-    /* per OS process variables */
-    Policy *policy; // the policy being verified
-
     Plankton();
-    void verify_conn();
     void verify_policy(Policy *);
+    void verify_conn();
+
+    static std::set<pid_t> _tasks; // Policy or EC tasks
+    static const int sigs[];
+    static void inv_sig_handler(int sig, siginfo_t *siginfo, void *ctx);
+    static void ec_sig_handler(int sig);
+    static void kill_all_tasks(int sig);
+
+    /***** functions used by the Promela network model *****/
     void check_to_switch_process() const;
 
 public:
@@ -36,11 +55,10 @@ public:
 
     static Plankton &get();
 
-    void init(bool all_ECs,
-              bool rm_out_dir,
+    void init(bool all_ecs,
               bool dropmon,
-              size_t dop,
-              int emulations,
+              size_t max_jobs,
+              size_t max_emu,
               const std::string &input_file,
               const std::string &output_dir);
     int run();

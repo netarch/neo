@@ -3,26 +3,24 @@
 #include "model-access.hpp"
 #include "plankton.hpp"
 
-static Plankton &plankton = Plankton::get();
-
 class API {
 public:
     static void initialize(State *state) {
         Model::get().set_state(state);
-        plankton.initialize();
+        Plankton::get().initialize();
     }
 
     static void exec_step(State *state) {
         Model::get().set_state(state);
-        plankton.exec_step();
+        Plankton::get().exec_step();
     }
 
     static void report(State *state) {
         Model::get().set_state(state);
-        plankton.report();
+        Plankton::get().report();
     }
 
-    static void verify_exit(int status) { plankton.verify_exit(status); }
+    static void verify_exit(int status) { Plankton::get().verify_exit(status); }
 };
 
 void initialize(State *state) {

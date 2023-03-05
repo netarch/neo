@@ -19,10 +19,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <boost/filesystem.hpp>
 #include <pcapplusplus/PcapFileDevice.h>
 
 #include "interface.hpp"
-#include "lib/fs.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
 #include "node.hpp"
@@ -31,6 +31,7 @@
 #include "routingtable.hpp"
 
 using namespace std;
+namespace fs = boost::filesystem;
 
 void NetNS::set_env_vars(const string &node_name) {
     // set XTABLES_LOCKFILE for multiple iptables instances

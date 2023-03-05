@@ -35,13 +35,15 @@
 #include "route.hpp"
 #include "stats.hpp"
 
-std::unordered_map<std::string, std::shared_ptr<toml::table>> Config::configs;
-std::chrono::microseconds Config::latency_avg;
-std::chrono::microseconds Config::latency_mdev;
+using namespace std;
+
+unordered_map<string, shared_ptr<toml::table>> Config::configs;
+chrono::microseconds Config::latency_avg;
+chrono::microseconds Config::latency_mdev;
 bool Config::got_latency_estimate = false;
 
-void Config::start_parsing(const std::string &filename) {
-    auto config = std::make_shared<toml::table>(toml::parse_file(filename));
+void Config::start_parsing(const string &filename) {
+    auto config = make_shared<toml::table>(toml::parse_file(filename));
     auto res = configs.emplace(filename, std::move(config));
     if (!res.second) {
         logger.error("Duplicate config: " + res.first->first);
@@ -49,7 +51,7 @@ void Config::start_parsing(const std::string &filename) {
     logger.info("Parsing configuration file " + filename);
 }
 
-void Config::finish_parsing(const std::string &filename) {
+void Config::finish_parsing(const string &filename) {
     configs.erase(filename);
     logger.info("Finished parsing");
 }
@@ -57,8 +59,8 @@ void Config::finish_parsing(const std::string &filename) {
 void Config::parse_interface(Interface *interface, const toml::table &config) {
     assert(interface != nullptr);
 
-    auto intf_name = config.get_as<std::string>("name");
-    auto ipv4_addr = config.get_as<std::string>("ipv4");
+    auto intf_name = config.get_as<string>("name");
+    auto ipv4_addr = config.get_as<string>("ipv4");
 
     if (!intf_name) {
         logger.error("Missing interface name");
@@ -77,9 +79,9 @@ void Config::parse_interface(Interface *interface, const toml::table &config) {
 void Config::parse_route(Route *route, const toml::table &config) {
     assert(route != nullptr);
 
-    auto network = config.get_as<std::string>("network");
-    auto next_hop = config.get_as<std::string>("next_hop");
-    auto interface = config.get_as<std::string>("interface");
+    auto network = config.get_as<string>("network");
+    auto next_hop = config.get_as<string>("next_hop");
+    auto interface = config.get_as<string>("interface");
     auto adm_dist = config.get_as<int64_t>("adm_dist");
 
     if (!network) {
@@ -94,12 +96,12 @@ void Config::parse_route(Route *route, const toml::table &config) {
         route->next_hop = IPv4Address(**next_hop);
     }
     if (interface) {
-        route->egress_intf = std::string(**interface);
+        route->egress_intf = string(**interface);
     }
     if (adm_dist) {
         if (**adm_dist < 1 || **adm_dist > 254) {
             logger.error("Invalid administrative distance: " +
-                         std::to_string(**adm_dist));
+                         to_string(**adm_dist));
         }
         route->adm_dist = **adm_dist;
     }
@@ -108,7 +110,7 @@ void Config::parse_route(Route *route, const toml::table &config) {
 void Config::parse_node(Node *node, const toml::table &config) {
     assert(node != nullptr);
 
-    auto node_name = config.get_as<std::string>("name");
+    auto node_name = config.get_as<string>("name");
     auto interfaces = config.get_as<toml::array>("interfaces");
     auto static_routes = config.get_as<toml::array>("static_routes");
     auto installed_routes = config.get_as<toml::array>("installed_routes");
@@ -152,32 +154,32 @@ void Config::parse_node(Node *node, const toml::table &config) {
 #define PORT_REGEX                                                             \
     "(?:port\\s+|\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:)(\\d+)\\b"
 
-static const std::regex ip_prefix_regex(IPV4_PREF_REGEX);
-static const std::regex ip_addr_regex(IPV4_ADDR_REGEX);
-static const std::regex port_regex(PORT_REGEX);
+static const regex ip_prefix_regex(IPV4_PREF_REGEX);
+static const regex ip_addr_regex(IPV4_ADDR_REGEX);
+static const regex port_regex(PORT_REGEX);
 
-void Config::parse_appliance_config(MB_App *app, const std::string &config) {
-    std::smatch match;
-    std::string subject;
+void Config::parse_appliance_config(MB_App *app, const string &config) {
+    smatch match;
+    string subject;
 
     // search for IP prefix patterns
     subject = config;
-    while (std::regex_search(subject, match, ip_prefix_regex)) {
+    while (regex_search(subject, match, ip_prefix_regex)) {
         app->ip_prefixes.emplace(match.str(0));
         subject = match.suffix();
     }
 
     // search for IP address patterns
     subject = config;
-    while (std::regex_search(subject, match, ip_addr_regex)) {
+    while (regex_search(subject, match, ip_addr_regex)) {
         app->ip_addrs.emplace(match.str(1));
         subject = match.suffix();
     }
 
     // search for port patterns
     subject = config;
-    while (std::regex_search(subject, match, port_regex)) {
-        app->ports.insert(std::stoul(match.str(1)));
+    while (regex_search(subject, match, port_regex)) {
+        app->ports.insert(stoul(match.str(1)));
         subject = match.suffix();
     }
 }
@@ -186,7 +188,7 @@ void Config::parse_netfilter(NetFilter *netfilter, const toml::table &config) {
     assert(netfilter != nullptr);
 
     auto rpf = config.get_as<int64_t>("rp_filter");
-    auto rules = config.get_as<std::string>("rules");
+    auto rules = config.get_as<string>("rules");
 
     if (!rules) {
         logger.error("Missing rules");
@@ -197,7 +199,7 @@ void Config::parse_netfilter(NetFilter *netfilter, const toml::table &config) {
     } else if (**rpf >= 0 && **rpf <= 2) {
         netfilter->rp_filter = **rpf;
     } else {
-        logger.error("Invalid rp_filter value: " + std::to_string(**rpf));
+        logger.error("Invalid rp_filter value: " + to_string(**rpf));
     }
 
     netfilter->rules = **rules;
@@ -207,7 +209,7 @@ void Config::parse_netfilter(NetFilter *netfilter, const toml::table &config) {
 void Config::parse_ipvs(IPVS *ipvs, const toml::table &config) {
     assert(ipvs != nullptr);
 
-    auto ipvs_config = config.get_as<std::string>("config");
+    auto ipvs_config = config.get_as<string>("config");
 
     if (!ipvs_config) {
         logger.error("Missing config");
@@ -220,7 +222,7 @@ void Config::parse_ipvs(IPVS *ipvs, const toml::table &config) {
 void Config::parse_squid(Squid *squid, const toml::table &config) {
     assert(squid != nullptr);
 
-    auto squid_config = config.get_as<std::string>("config");
+    auto squid_config = config.get_as<string>("config");
 
     if (!squid_config) {
         logger.error("Missing config");
@@ -234,11 +236,11 @@ void Config::parse_docker(Docker *docker, const toml::table &config) {
     assert(docker != nullptr);
 
     // three special docker fields
-    auto container_name = config.get_as<std::string>("container_name");
-    auto image = config.get_as<std::string>("image");
+    auto container_name = config.get_as<string>("container_name");
+    auto image = config.get_as<string>("image");
     auto cmd = config.get("command");
 
-    std::string concatenated_string;
+    string concatenated_string;
 
     if (!container_name || !image || !cmd) {
         logger.error("Missing config");
@@ -274,8 +276,8 @@ void Config::parse_middlebox(Middlebox *middlebox,
 
     Config::parse_node(middlebox, config);
 
-    auto environment = config.get_as<std::string>("env");
-    auto appliance = config.get_as<std::string>("app");
+    auto environment = config.get_as<string>("env");
+    auto appliance = config.get_as<string>("app");
 
     if (!environment) {
         logger.error("Missing environment");
@@ -369,8 +371,8 @@ void Config::estimate_latency() {
     link->intf1 = mb_eth0;
     link->intf2 = node1_eth0;
     if (link->node1 > link->node2) {
-        std::swap(link->node1, link->node2);
-        std::swap(link->intf1, link->intf2);
+        swap(link->node1, link->node2);
+        swap(link->intf1, link->intf2);
     }
     network.add_link(link);
     link = new Link();
@@ -379,8 +381,8 @@ void Config::estimate_latency() {
     link->intf1 = mb_eth1;
     link->intf2 = node2_eth0;
     if (link->node1 > link->node2) {
-        std::swap(link->node1, link->node2);
-        std::swap(link->intf1, link->intf2);
+        swap(link->node1, link->node2);
+        swap(link->intf1, link->intf2);
     }
     network.add_link(link);
 
@@ -408,20 +410,20 @@ void Config::estimate_latency() {
     emulation.dropmon = false;
 
     // calculate latency average and mean deviation
-    const std::vector<std::pair<uint64_t, uint64_t>> &pkt_latencies =
+    const vector<pair<uint64_t, uint64_t>> &pkt_latencies =
         Stats::get_pkt_latencies();
     long long avg = 0;
     for (const auto &lat : pkt_latencies) {
         avg += lat.second / 1000 + 1;
     }
     avg /= pkt_latencies.size();
-    Config::latency_avg = std::chrono::microseconds(avg);
+    Config::latency_avg = chrono::microseconds(avg);
     long long mdev = 0;
     for (const auto &lat : pkt_latencies) {
-        mdev += std::abs((long long)(lat.second / 1000 + 1) - avg);
+        mdev += abs((long long)(lat.second / 1000 + 1) - avg);
     }
     mdev /= pkt_latencies.size();
-    Config::latency_mdev = std::chrono::microseconds(mdev);
+    Config::latency_mdev = chrono::microseconds(mdev);
 
     // reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);
@@ -433,13 +435,13 @@ void Config::estimate_latency() {
 
 void Config::parse_link(Link *link,
                         const toml::table &config,
-                        const std::map<std::string, Node *> &nodes) {
+                        const map<string, Node *> &nodes) {
     assert(link != nullptr);
 
-    auto node1_name = config.get_as<std::string>("node1");
-    auto intf1_name = config.get_as<std::string>("intf1");
-    auto node2_name = config.get_as<std::string>("node2");
-    auto intf2_name = config.get_as<std::string>("intf2");
+    auto node1_name = config.get_as<string>("node1");
+    auto intf1_name = config.get_as<string>("intf1");
+    auto node2_name = config.get_as<string>("node2");
+    auto intf2_name = config.get_as<string>("intf2");
 
     if (!node1_name) {
         logger.error("Missing node1");
@@ -469,15 +471,15 @@ void Config::parse_link(Link *link,
 
     // normalize
     if (link->node1 > link->node2) {
-        std::swap(link->node1, link->node2);
-        std::swap(link->intf1, link->intf2);
+        swap(link->node1, link->node2);
+        swap(link->intf1, link->intf2);
     } else if (link->node1 == link->node2) {
         logger.error("Invalid link: " + link->to_string());
     }
 }
 
 void Config::parse_network(Network *network,
-                           const std::string &filename,
+                           const string &filename,
                            bool dropmon) {
     assert(network != nullptr);
 
@@ -489,7 +491,7 @@ void Config::parse_network(Network *network,
         for (const auto &cfg : *nodes_config) {
             const toml::table &tbl = *cfg.as_table();
             Node *node = nullptr;
-            auto type = tbl.get_as<std::string>("type");
+            auto type = tbl.get_as<string>("type");
             if (!type || **type == "generic") {
                 node = new Node();
                 Config::parse_node(node, tbl);
@@ -504,8 +506,7 @@ void Config::parse_network(Network *network,
             network->add_node(node);
         }
     }
-    logger.info("Loaded " + std::to_string(network->get_nodes().size()) +
-                " nodes");
+    logger.info("Loaded " + to_string(network->get_nodes().size()) + " nodes");
 
     if (links_config) {
         for (const auto &cfg : *links_config) {
@@ -515,8 +516,7 @@ void Config::parse_network(Network *network,
             network->add_link(link);
         }
     }
-    logger.info("Loaded " + std::to_string(network->get_links().size()) +
-                " links");
+    logger.info("Loaded " + to_string(network->get_links().size()) + " links");
 
     // populate L2 LANs (assuming there is no VLAN for now)
     for (const auto &pair : network->get_nodes()) {
@@ -534,9 +534,9 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
                              const Network &network) {
     assert(conn_spec != nullptr);
 
-    auto proto_str = config.get_as<std::string>("protocol");
-    auto src_node_regex = config.get_as<std::string>("src_node");
-    auto dst_ip_str = config.get_as<std::string>("dst_ip");
+    auto proto_str = config.get_as<string>("protocol");
+    auto src_node_regex = config.get_as<string>("src_node");
+    auto dst_ip_str = config.get_as<string>("dst_ip");
     auto src_port = config.get_as<int64_t>("src_port");
     auto dst_ports = config.get_as<toml::array>("dst_port");
     auto owned_dst_only = config.get_as<bool>("owned_dst_only");
@@ -551,9 +551,9 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
         logger.error("Missing dst_ip");
     }
 
-    std::string proto_s = **proto_str;
-    std::transform(proto_s.begin(), proto_s.end(), proto_s.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    string proto_s = **proto_str;
+    transform(proto_s.begin(), proto_s.end(), proto_s.begin(),
+              [](unsigned char c) { return tolower(c); });
     if (proto_s == "tcp") {
         conn_spec->protocol = proto::tcp;
     } else if (proto_s == "udp") {
@@ -565,13 +565,13 @@ void Config::parse_conn_spec(ConnSpec *conn_spec,
     }
 
     for (const auto &node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(**src_node_regex))) {
+        if (regex_match(node.first, regex(**src_node_regex))) {
             conn_spec->src_nodes.insert(node.second);
         }
     }
 
-    std::string ip_str = **dst_ip_str;
-    if (ip_str.find('/') == std::string::npos) {
+    string ip_str = **dst_ip_str;
+    if (ip_str.find('/') == string::npos) {
         ip_str += "/32";
     }
     conn_spec->dst_ip = IPRange<IPv4Address>(ip_str);
@@ -610,7 +610,7 @@ void Config::parse_reachabilitypolicy(ReachabilityPolicy *policy,
                                       const Network &network) {
     assert(policy != nullptr);
 
-    auto target_node_regex = config.get_as<std::string>("target_node");
+    auto target_node_regex = config.get_as<string>("target_node");
     auto reachable = config.get_as<bool>("reachable");
 
     if (!target_node_regex) {
@@ -621,7 +621,7 @@ void Config::parse_reachabilitypolicy(ReachabilityPolicy *policy,
     }
 
     for (const auto &node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(**target_node_regex))) {
+        if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
     }
@@ -635,7 +635,7 @@ void Config::parse_replyreachabilitypolicy(ReplyReachabilityPolicy *policy,
                                            const Network &network) {
     assert(policy != nullptr);
 
-    auto target_node_regex = config.get_as<std::string>("target_node");
+    auto target_node_regex = config.get_as<string>("target_node");
     auto reachable = config.get_as<bool>("reachable");
 
     if (!target_node_regex) {
@@ -646,7 +646,7 @@ void Config::parse_replyreachabilitypolicy(ReplyReachabilityPolicy *policy,
     }
 
     for (const auto &node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(**target_node_regex))) {
+        if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
     }
@@ -660,7 +660,7 @@ void Config::parse_waypointpolicy(WaypointPolicy *policy,
                                   const Network &network) {
     assert(policy != nullptr);
 
-    auto target_node_regex = config.get_as<std::string>("target_node");
+    auto target_node_regex = config.get_as<string>("target_node");
     auto pass_through = config.get_as<bool>("pass_through");
 
     if (!target_node_regex) {
@@ -671,7 +671,7 @@ void Config::parse_waypointpolicy(WaypointPolicy *policy,
     }
 
     for (const auto &node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(**target_node_regex))) {
+        if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
     }
@@ -685,14 +685,14 @@ void Config::parse_onerequestpolicy(OneRequestPolicy *policy,
                                     const Network &network) {
     assert(policy != nullptr);
 
-    auto target_node_regex = config.get_as<std::string>("target_node");
+    auto target_node_regex = config.get_as<string>("target_node");
 
     if (!target_node_regex) {
         logger.error("Missing target_node");
     }
 
     for (const auto &node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(**target_node_regex))) {
+        if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
     }
@@ -705,7 +705,7 @@ void Config::parse_loadbalancepolicy(LoadBalancePolicy *policy,
                                      const Network &network) {
     assert(policy != nullptr);
 
-    auto target_node_regex = config.get_as<std::string>("target_node");
+    auto target_node_regex = config.get_as<string>("target_node");
     auto max_vmr = config.get_as<double>("max_dispersion_index");
 
     if (!target_node_regex) {
@@ -713,7 +713,7 @@ void Config::parse_loadbalancepolicy(LoadBalancePolicy *policy,
     }
 
     for (const auto &node : network.get_nodes()) {
-        if (std::regex_match(node.first, std::regex(**target_node_regex))) {
+        if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
     }
@@ -753,7 +753,7 @@ void Config::parse_consistencypolicy(ConsistencyPolicy *policy,
     parse_correlated_policies(policy, config, network);
 }
 
-void Config::parse_policy_array(std::vector<Policy *> &policies,
+void Config::parse_policy_array(vector<Policy *> &policies,
                                 bool correlated,
                                 const toml::array &policies_config,
                                 const Network &network) {
@@ -761,7 +761,7 @@ void Config::parse_policy_array(std::vector<Policy *> &policies,
         const toml::table &tbl = *cfg.as_table();
         Policy *policy = nullptr;
 
-        auto type = tbl.get_as<std::string>("type");
+        auto type = tbl.get_as<string>("type");
         if (!type) {
             logger.error("Missing policy type");
         }
@@ -804,7 +804,7 @@ void Config::parse_policy_array(std::vector<Policy *> &policies,
 }
 
 void Config::parse_policies(Policies *policies,
-                            const std::string &filename,
+                            const string &filename,
                             const Network &network) {
     auto config = configs.at(filename);
     auto policies_config = config->get_as<toml::array>("policies");
@@ -817,7 +817,7 @@ void Config::parse_policies(Policies *policies,
     if (policies->policies.size() == 1) {
         logger.info("Loaded 1 policy");
     } else {
-        logger.info("Loaded " + std::to_string(policies->policies.size()) +
+        logger.info("Loaded " + to_string(policies->policies.size()) +
                     " policies");
     }
 }
@@ -829,9 +829,9 @@ void Config::parse_openflow_update(Node **node,
     assert(node != nullptr);
     assert(route != nullptr);
 
-    auto node_name = config.get_as<std::string>("node");
-    auto network_cidr = config.get_as<std::string>("network");
-    auto outport = config.get_as<std::string>("outport");
+    auto node_name = config.get_as<string>("node");
+    auto network_cidr = config.get_as<string>("network");
+    auto outport = config.get_as<string>("outport");
 
     if (!node_name) {
         logger.error("Missing node name");
@@ -854,11 +854,11 @@ void Config::parse_openflow_update(Node **node,
     }
 
     route->network = IPNetwork<IPv4Address>(**network_cidr);
-    route->egress_intf = std::string(**outport);
+    route->egress_intf = string(**outport);
 }
 
 void Config::parse_openflow(OpenflowProcess *openflow,
-                            const std::string &filename,
+                            const string &filename,
                             const Network &network) {
     auto config = configs.at(filename);
     auto openflow_cfg = config->get_as<toml::table>("openflow");
@@ -882,8 +882,8 @@ void Config::parse_openflow(OpenflowProcess *openflow,
     }
 
     if (openflow->num_nodes() > 0) {
-        logger.info("Loaded " + std::to_string(openflow->num_updates()) +
+        logger.info("Loaded " + to_string(openflow->num_updates()) +
                     " openflow updates for " +
-                    std::to_string(openflow->num_nodes()) + " nodes");
+                    to_string(openflow->num_nodes()) + " nodes");
     }
 }

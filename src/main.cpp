@@ -1,106 +1,73 @@
-#include <cstdlib>
-#include <getopt.h>
+#include <exception>
 #include <iostream>
 #include <string>
 
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+
 #include "plankton.hpp"
 
-static void usage(const std::string &progname) {
-    std::cout
-        << "Usage: " + progname +
-               " [OPTIONS] -i <file> -o <dir>\n"
-               "Options:\n"
-               "    -h, --help           print this help message\n"
-               "    -a, --all            verify all ECs after violation\n"
-               "    -f, --force          remove pre-existent output directory\n"
-               "    -d, --dropmon        use drop monitor instead of timer\n"
-               "    -j, --jobs <N>       number of parallel tasks\n"
-               "    -e, --emulations <N> maximum number of emulation "
-               "instances\n"
-               "    -i, --input <file>   network configuration file\n"
-               "    -o, --output <dir>   output directory\n";
-}
-
-static void parse_args(int argc,
-                       char **argv,
-                       bool &all_ECs,
-                       bool &rm_out_dir,
-                       bool &dropmon,
-                       size_t &max_jobs,
-                       int &emulations,
-                       std::string &input_file,
-                       std::string &output_dir) {
-    int opt;
-    const char *optstring = "hafdj:e:i:o:";
-
-    const struct option longopts[] = {
-        {      "help",       no_argument, 0, 'h'},
-        {       "all",       no_argument, 0, 'a'},
-        {     "force",       no_argument, 0, 'f'},
-        {   "dropmon",       no_argument, 0, 'd'},
-        {      "jobs", required_argument, 0, 'j'},
-        {"emulations", required_argument, 0, 'e'},
-        {     "input", required_argument, 0, 'i'},
-        {    "output", required_argument, 0, 'o'},
-        {           0,                 0, 0,   0}
-    };
-
-    while ((opt = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
-        switch (opt) {
-        case 'h':
-            usage(argv[0]);
-            exit(0);
-        case 'a':
-            all_ECs = true;
-            break;
-        case 'f':
-            rm_out_dir = true;
-            break;
-        case 'd':
-            dropmon = true;
-            break;
-        case 'j':
-            max_jobs = atoi(optarg);
-            break;
-        case 'e':
-            emulations = atoi(optarg);
-            break;
-        case 'i':
-            input_file = optarg;
-            break;
-        case 'o':
-            output_dir = optarg;
-            break;
-        default:
-            usage(argv[0]);
-            exit(1);
-        }
-    }
-
-    if (max_jobs < 1) {
-        std::cerr << "Error: invalid number of parallel tasks" << std::endl;
-        exit(1);
-    }
-    if (input_file.empty()) {
-        std::cerr << "Error: missing input file" << std::endl;
-        exit(1);
-    }
-    if (output_dir.empty()) {
-        std::cerr << "Error: missing output directory" << std::endl;
-        exit(1);
-    }
-}
+using namespace std;
+namespace fs = boost::filesystem;
+namespace po = boost::program_options;
 
 int main(int argc, char **argv) {
-    bool all_ECs = false, rm_out_dir = false, dropmon = false;
-    size_t max_jobs = 1;
-    int emulations = -1;
-    std::string input_file, output_dir;
-    parse_args(argc, argv, all_ECs, rm_out_dir, dropmon, max_jobs, emulations,
-               input_file, output_dir);
+    po::options_description desc("Neo options");
+    desc.add_options()("help,h", "Show help message");
+    desc.add_options()("all,a", "Verify all ECs after violation");
+    desc.add_options()("force,f", "Remove output dir if exists");
+    desc.add_options()("dropmon,d", "Use drop_monitor for packet drops");
+    desc.add_options()("jobs,j", po::value<size_t>()->default_value(1),
+                       "Max number of parallel tasks [default: 1]");
+    desc.add_options()("emulations,e", po::value<size_t>()->default_value(0),
+                       "Max number of emulations");
+    desc.add_options()("input,i", po::value<string>()->default_value(""),
+                       "Input configuration file");
+    desc.add_options()("output,o", po::value<string>()->default_value(""),
+                       "Output directory");
+    po::variables_map vm;
+
+    try {
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+    } catch (const exception &e) {
+        cerr << e.what() << endl;
+        return 1;
+    }
+
+    if (vm.count("help")) {
+        cout << desc << endl;
+        return 0;
+    }
+
+    bool all_ecs = vm.count("all");
+    bool rm_out_dir = vm.count("force");
+    bool dropmon = vm.count("dropmon");
+    size_t max_jobs = vm.at("jobs").as<size_t>();
+    size_t max_emu = vm.at("emulations").as<size_t>();
+    string input_file = vm.at("input").as<string>();
+    string output_dir = vm.at("output").as<string>();
+
+    if (max_jobs < 1) {
+        cerr << "Invalid number of parallel tasks" << endl;
+        return 1;
+    }
+
+    if (input_file.empty() || !fs::exists(input_file)) {
+        cerr << "Missing input file " << input_file << endl;
+        return 1;
+    }
+
+    if (output_dir.empty()) {
+        cerr << "Missing output directory" << endl;
+        return 1;
+    }
+
+    if (rm_out_dir && fs::exists(output_dir)) {
+        fs::remove_all(output_dir);
+    }
 
     Plankton &plankton = Plankton::get();
-    plankton.init(all_ECs, rm_out_dir, dropmon, max_jobs, emulations,
-                  input_file, output_dir);
+    plankton.init(all_ecs, dropmon, max_jobs, max_emu, input_file, output_dir);
     return plankton.run();
 }

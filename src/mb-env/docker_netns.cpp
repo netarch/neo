@@ -2,9 +2,13 @@
 
 #include <fcntl.h>
 
-#include "lib/fs.hpp"
+#include <boost/filesystem.hpp>
+
 #include "logger.hpp"
 #include "mb-app/docker.hpp"
+
+using namespace std;
+namespace fs = boost::filesystem;
 
 void Docker_NetNS::init(const Middlebox &node) {
     const char *netns_path = "/proc/self/ns/net";

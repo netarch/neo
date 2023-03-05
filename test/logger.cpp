@@ -2,11 +2,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <boost/filesystem.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-#include "lib/fs.hpp"
 #include "logger.hpp"
+
+using namespace std;
+namespace fs = boost::filesystem;
 
 TEST_CASE("logger") {
     SECTION("no log file") {

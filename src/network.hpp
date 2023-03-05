@@ -8,18 +8,21 @@
 #include "l2-lan.hpp"
 #include "link.hpp"
 #include "node.hpp"
+
 class Middlebox;
+class Plankton;
 class Route;
 
-/*
+/**
  * A network is an undirected graph. Nodes and links will remain constant once
- * they are constructed from the network configurations.
+ * they are constructed from the input configuration.
  *
  * The state of a network consists of the current FIB (dataplane) and the failed
  * links.
  */
 class Network {
 private:
+    Plankton *_plankton;
     std::map<std::string, Node *> nodes;
     std::set<Link *, LinkCompare> links;
     std::unordered_set<Middlebox *> middleboxes;
