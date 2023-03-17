@@ -46,4 +46,5 @@ public:
 
     void init(const Network &);
     void exec_step() override;
+    void reset() override;
 };

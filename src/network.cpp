@@ -51,15 +51,27 @@ void Network::grow_and_set_l2_lan(Node *node, Interface *interface) {
 }
 
 Network::~Network() {
-    for (const auto &node : nodes) {
-        delete node.second;
+    this->reset();
+}
+
+void Network::reset() {
+    for (const auto &[name, node] : this->nodes) {
+        delete node;
     }
-    for (const auto &link : links) {
+
+    this->nodes.clear();
+
+    for (const auto &link : this->links) {
         delete link;
     }
-    for (L2_LAN *const &l2_lan : l2_lans) {
+
+    this->links.clear();
+
+    for (L2_LAN *const &l2_lan : this->l2_lans) {
         delete l2_lan;
     }
+
+    this->l2_lans.clear();
 }
 
 const std::map<std::string, Node *> &Network::get_nodes() const {

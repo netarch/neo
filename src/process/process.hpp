@@ -8,14 +8,16 @@ enum pid {
 
 class Process {
 protected:
-    bool enabled;
+    bool _enabled;
 
 public:
-    Process();
+    Process() : _enabled(false) {}
+    virtual ~Process() = default;
 
-    void enable();
-    void disable();
-    bool is_enabled() const;
+    void enable() { _enabled = true; }
+    void disable() { _enabled = false; }
+    bool enabled() const { return _enabled; }
 
     virtual void exec_step() = 0;
+    virtual void reset() {}
 };

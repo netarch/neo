@@ -12,6 +12,8 @@
 // [second.microsecond] [pid] [log_level] log_msg
 #define LOG_PATTERN "[%E.%f] [%P] [%^%L%L%$] %v"
 
+using namespace std;
+
 Logger logger; // global logger
 
 Logger::Logger(const std::string &name) : _name(name) {}
@@ -102,7 +104,7 @@ void Logger::error(const std::string &msg) {
     if (this->_file_logger) {
         this->_file_logger->error(msg);
     }
-    exit(1);
+    throw runtime_error(msg);
 }
 
 void Logger::error(const std::string &msg, int err_num) {

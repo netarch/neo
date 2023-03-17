@@ -45,6 +45,7 @@ public:
     Network &operator=(const Network &) = delete;
     Network &operator=(Network &&) = delete;
 
+    void reset();
     const std::map<std::string, Node *> &get_nodes() const;
     const std::set<Link *, LinkCompare> &get_links() const;
     const std::unordered_set<Middlebox *> &get_middleboxes() const;

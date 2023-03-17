@@ -25,7 +25,7 @@ set<pid_t> Plankton::_tasks;
 const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
                               SIGINT,  SIGQUIT, SIGTERM};
 
-Plankton::Plankton() : _policy(nullptr) {}
+Plankton::Plankton() : _dropmon(false), _max_jobs(0), _max_emu(0) {}
 
 Plankton &Plankton::get() {
     static Plankton instance;
@@ -63,6 +63,25 @@ void Plankton::init(bool all_ecs,
 
     // Compute policy oblivious ECs
     EqClassMgr::get().compute_policy_oblivious_ecs(_network, _openflow);
+}
+
+// Reset to as if it was just constructed
+void Plankton::reset() {
+    this->_all_ecs = false;
+    this->_dropmon = false;
+    this->_max_jobs = 0;
+    this->_max_emu = 0;
+    this->_in_file.clear();
+    this->_out_dir.clear();
+    this->_network.reset();
+    this->_policies.clear();
+    this->_choose_conn.reset();
+    this->_forwarding.reset();
+    this->_openflow.reset();
+    this->_policy.reset();
+    this->_violated = false;
+    this->kill_all_tasks(SIGKILL);
+    this->_tasks.clear();
 }
 
 int Plankton::run() {

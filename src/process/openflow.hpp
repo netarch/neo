@@ -11,7 +11,7 @@ class Node;
 class Route;
 class FIB_IPNH;
 
-/*
+/**
  * The state of how many updates have been installed.
  */
 class OpenflowUpdateState {
@@ -41,7 +41,7 @@ struct OFUpdateStateEq {
                     const OpenflowUpdateState *const &) const;
 };
 
-/*
+/**
  * An openflow process handles the openflow updates within one verification
  * session.
  */
@@ -67,4 +67,5 @@ public:
 
     void init();
     void exec_step() override;
+    void reset() override;
 };

@@ -29,7 +29,7 @@ static inline std::vector<std::vector<int>> get_conn_map() {
 }
 
 void ChooseConnProcess::update_choice_count() const {
-    if (!enabled) {
+    if (!_enabled) {
         return;
     }
 
@@ -52,7 +52,7 @@ void ChooseConnProcess::update_choice_count() const {
 }
 
 void ChooseConnProcess::exec_step() {
-    if (!enabled) {
+    if (!_enabled) {
         return;
     }
 

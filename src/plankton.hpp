@@ -70,6 +70,7 @@ public:
               size_t max_emu,
               const std::string &input_file,
               const std::string &output_dir);
+    void reset(); // Reset to as if it was just constructed
     int run();
 
     /***** functions used by the Promela network model *****/

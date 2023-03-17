@@ -1,0 +1,29 @@
+[[nodes]]
+    name = "fw"
+    type = "emulation"
+    driver = "docker"
+    docker-daemon = "/var/run/docker.sock"
+    [nodes.container]
+    image = "kyechou/iptables:latest"
+    workingDir = "/"
+    command = ["/start.sh"]
+    args = []
+    config_files = ["/start.sh"]
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.forwarding"
+    value = "1"
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.rp_filter"
+    value = "1"     # misconfiguration, should be 0
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.1.1/25"
+    [[nodes.interfaces]]
+    name = "eth2"
+    ipv4 = "192.168.2.1/25"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "192.168.1.2"

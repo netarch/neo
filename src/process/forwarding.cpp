@@ -19,16 +19,11 @@
 #include "stats.hpp"
 
 ForwardingProcess::~ForwardingProcess() {
-    for (auto &packet : all_pkts) {
-        delete packet;
-    }
-    for (auto &node_pkt_hist : node_pkt_hist_hist) {
-        delete node_pkt_hist;
-    }
+    this->reset();
 }
 
 void ForwardingProcess::init(const Network &network) {
-    if (!enabled) {
+    if (!_enabled) {
         return;
     }
 
@@ -37,7 +32,7 @@ void ForwardingProcess::init(const Network &network) {
 }
 
 void ForwardingProcess::exec_step() {
-    if (!enabled) {
+    if (!_enabled) {
         return;
     }
 
@@ -64,6 +59,20 @@ void ForwardingProcess::exec_step() {
     default:
         logger.error("Unknown forwarding mode: " + std::to_string(mode));
     }
+}
+
+void ForwardingProcess::reset() {
+    for (auto &packet : this->all_pkts) {
+        delete packet;
+    }
+
+    this->all_pkts.clear();
+
+    for (auto &node_pkt_hist : this->node_pkt_hist_hist) {
+        delete node_pkt_hist;
+    }
+
+    this->node_pkt_hist_hist.clear();
 }
 
 void ForwardingProcess::first_collect() {

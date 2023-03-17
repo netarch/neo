@@ -111,7 +111,7 @@ bool OpenflowProcess::has_updates(Node *node) const {
 }
 
 void OpenflowProcess::init() {
-    if (!enabled) {
+    if (!_enabled) {
         return;
     }
 
@@ -124,14 +124,18 @@ void OpenflowProcess::init() {
 }
 
 void OpenflowProcess::exec_step() {
-    if (!enabled) {
+    if (!_enabled) {
         return;
     }
 
     this->install_update();
 }
 
-/*
+void OpenflowProcess::reset() {
+    this->updates.clear();
+}
+
+/**
  * For now, setting choice_count to 1 means not continuing installing updates
  * since there is no update left, 2 otherwise.
  */

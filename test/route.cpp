@@ -11,9 +11,13 @@
 
 using namespace std;
 
+extern string test_data_dir;
+
 TEST_CASE("route") {
     auto &plankton = Plankton::get();
-    ConfigParser().parse("networks/route.toml", plankton);
+    plankton.reset();
+    const string inputfn = test_data_dir + "/route.toml";
+    REQUIRE_NOTHROW(ConfigParser().parse(inputfn, plankton));
     const auto &network = plankton.network();
 
     Node *node;
