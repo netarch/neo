@@ -2,6 +2,10 @@
 
 RULES_FILE="iptables.rules"
 
+sig_handler() {
+    exit 0
+}
+
 cat <<EOF >"$RULES_FILE"
 *filter
 :INPUT DROP [0:0]
@@ -19,4 +23,5 @@ EOF
 iptables -F
 iptables -Z
 iptables-restore "$RULES_FILE"
+trap sig_handler HUP INT QUIT ABRT TERM
 sleep infinity
