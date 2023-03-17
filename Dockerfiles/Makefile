@@ -4,7 +4,7 @@ TARGETS = \
 PUSH_TARGETS = $(TARGETS:%=%-push)
 
 CONTAINERS := $(shell docker ps -a -q)
-NON_TAGGED_IMGS := $(shell docker images | grep '<none>' | awk -F ' ' '{print $3}')
+NON_TAGGED_IMGS := $(shell docker images | grep '<none>' | awk -F ' ' '{print $$3}')
 IMAGES := $(shell docker images -q)
 
 all: $(TARGETS)

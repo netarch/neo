@@ -3,6 +3,7 @@
 RULES_FILE="iptables.rules"
 
 sig_handler() {
+    kill -KILL -- 0 # all processes in the current process group
     exit 0
 }
 
@@ -24,4 +25,5 @@ iptables -F
 iptables -Z
 iptables-restore "$RULES_FILE"
 trap sig_handler HUP INT QUIT ABRT TERM
-sleep infinity
+sleep infinity &
+wait

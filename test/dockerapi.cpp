@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "configparser.hpp"
 #include "dockerapi.hpp"
@@ -8,6 +10,7 @@
 
 using namespace std;
 using namespace rapidjson;
+using Catch::Matchers::ContainsSubstring;
 
 extern string test_data_dir;
 
@@ -37,13 +40,23 @@ TEST_CASE("dockerapi") {
         REQUIRE(dapi.remove_cntr(name)["success"].GetBool());
     }
 
-    // SECTION("Image API") {
-    //     ;
-    // }
+    SECTION("Image API") {
+        REQUIRE(dapi.create_img(node->image())["success"].GetBool());
+        REQUIRE(dapi.inspect_img(node->image())["success"].GetBool());
+        REQUIRE(dapi.rm_img(node->image())["success"].GetBool());
+    }
 
-    // SECTION("Exec API") {
-    //     ;
-    // }
+    SECTION("Exec API") {
+        REQUIRE_NOTHROW(dapi.pull(node->image()));
+        REQUIRE_NOTHROW(dapi.run(*node));
+        REQUIRE(dapi.stop_cntr(name)["success"].GetBool());
+        CHECK_THROWS_WITH(dapi.exec(name, node->env_vars(), {"/bin/sh"}, "/"),
+                          ContainsSubstring("is not running"));
+        REQUIRE(dapi.start_cntr(name)["success"].GetBool());
+        CHECK_NOTHROW(dapi.exec(name, node->env_vars(), {"/bin/ls"}, "/"));
+        REQUIRE(dapi.kill_cntr(name)["success"].GetBool());
+        REQUIRE(dapi.remove_cntr(name)["success"].GetBool());
+    }
 
     SECTION("System API") {
         REQUIRE(dapi.info()["success"].GetBool());

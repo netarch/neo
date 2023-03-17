@@ -389,7 +389,7 @@ int DockerAPI::run(const DockerNode &node) {
     return this->get_cntr_pid(node.get_name());
 }
 
-int DockerAPI::get_cntr_pid(const std::string &name) {
+int DockerAPI::get_cntr_pid(const string &name) {
     auto res = this->inspect_cntr(name);
     if (!res["success"].GetBool()) {
         logger.error("inspect_cntr: " + json_str(res));
@@ -407,4 +407,48 @@ int DockerAPI::get_cntr_pid(const std::string &name) {
     }
 
     return res["data"]["State"]["Pid"].GetInt();
+}
+
+bool DockerAPI::is_cntr_running(const string &name) {
+    auto res = this->inspect_cntr(name);
+    if (!res["success"].GetBool()) {
+        logger.error("inspect_cntr: " + json_str(res));
+    }
+
+    // Note that a running container can be paused. The Running and Paused
+    // booleans are not mutually exclusive
+    return res["data"]["State"]["Running"].GetBool();
+}
+
+pair<int, string> DockerAPI::exec(const string &cntr_name,
+                                  const unordered_map<string, string> &envs,
+                                  const vector<string> &cmd,
+                                  const string &working_dir) {
+    auto res = this->create_exec(cntr_name, envs, cmd, working_dir);
+    if (!res["success"].GetBool()) {
+        logger.error("create_exec: " + json_str(res));
+    }
+
+    string exec_id = res["data"]["Id"].GetString();
+
+    res = this->start_exec(exec_id);
+    if (!res["success"].GetBool()) {
+        logger.error("start_exec: " + json_str(res));
+    }
+
+    res = this->inspect_exec(exec_id);
+    if (!res["success"].GetBool()) {
+        logger.error("inspect_exec: " + json_str(res));
+    }
+
+    return {res["data"]["Pid"].GetInt(), exec_id};
+}
+
+bool DockerAPI::is_exec_running(const string &exec_id) {
+    auto res = this->inspect_exec(exec_id);
+    if (!res["success"].GetBool()) {
+        logger.error("inspect_exec: " + json_str(res));
+    }
+
+    return res["data"]["Running"].GetBool();
 }
