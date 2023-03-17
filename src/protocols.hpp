@@ -15,7 +15,14 @@ static inline std::string proto_str(int n) {
                                    : "(unknown)";
 }
 
-/*
+static inline std::string proto_str_lower(int n) {
+    return n == proto::tcp         ? "tcp"
+           : n == proto::udp       ? "udp"
+           : n == proto::icmp_echo ? "icmp"
+                                   : "(unknown)";
+}
+
+/**
  * Protocol state
  */
 // TODO: Make this an enum class

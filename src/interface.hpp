@@ -11,7 +11,7 @@ private:
     bool is_switchport;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     Interface() = default;
 
 public:

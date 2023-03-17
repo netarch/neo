@@ -16,7 +16,7 @@ private:
     double max_dispersion_index; // variance-to-mean ratio (VMR)
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     LoadBalancePolicy(bool correlated = false) : Policy(correlated) {}
 
 public:

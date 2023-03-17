@@ -23,14 +23,14 @@ class Route;
 class Network {
 private:
     Plankton *_plankton;
-    std::map<std::string, Node *> nodes;
+    std::map<std::string, Node *> nodes; // TODO: map -> unordered_map
     std::set<Link *, LinkCompare> links;
     std::unordered_set<Middlebox *> middleboxes;
 
     std::unordered_set<L2_LAN *> l2_lans; // history L2 LANs
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     void add_node(Node *);
     void add_link(Link *);
     void add_middlebox(Middlebox *);

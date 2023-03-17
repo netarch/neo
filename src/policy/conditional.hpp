@@ -12,7 +12,7 @@ private:
     bool result;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     ConditionalPolicy() = default;
 
 public:

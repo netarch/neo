@@ -4,25 +4,25 @@
 #include <csignal>
 #include <libnet.h>
 
-#include "dropmon.hpp"
+#include "dockernode.hpp"
+#include "driver/docker.hpp"
+#include "driver/driver.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
-#include "mb-env/docker_netns.hpp"
-#include "mb-env/netns.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"
 #include "protocols.hpp"
 #include "stats.hpp"
 
 Emulation::Emulation()
-    : env(nullptr), emulated_mb(nullptr), node_pkt_hist(nullptr),
+    : driver(nullptr), emulated_mb(nullptr), node_pkt_hist(nullptr),
       dropmon(false), packet_listener(nullptr), drop_listener(nullptr),
       stop_listener(false) {}
 
 Emulation::~Emulation() {
     delete packet_listener;
     delete drop_listener;
-    delete env;
+    delete driver;
 }
 
 void Emulation::listen_packets() {
@@ -31,7 +31,7 @@ void Emulation::listen_packets() {
 
     while (!stop_listener) {
         // read the output packets (it will block if there is no packet)
-        pkts = env->read_packets();
+        pkts = driver->read_packets();
 
         if (!pkts.empty()) {
             std::unique_lock<std::mutex> lck(mtx);
@@ -55,10 +55,10 @@ void Emulation::listen_packets() {
 }
 
 void Emulation::listen_drops() {
-    uint64_t ts;
+    uint64_t ts = 0;
 
     while (!stop_listener) {
-        ts = DropMon::get().is_dropped();
+        // ts = DropMon::get().is_dropped();
 
         if (ts) {
             std::unique_lock<std::mutex> lck(mtx);
@@ -87,8 +87,8 @@ void Emulation::teardown() {
     }
     delete packet_listener;
     delete drop_listener;
-    delete env;
-    env = nullptr;
+    delete driver;
+    driver = nullptr;
     emulated_mb = nullptr;
     node_pkt_hist = nullptr;
     packet_listener = nullptr;
@@ -192,16 +192,12 @@ void Emulation::init(Middlebox *mb) {
     if (emulated_mb != mb) {
         this->teardown();
 
-        auto mb_env = mb->get_env();
-        if (mb_env == "netns") {
-            env = new NetNS();
-        } else if (mb_env == "docker_netns") {
-            env = new Docker_NetNS();
+        if (mb->driver() == "docker") {
+            driver = new Docker(dynamic_cast<DockerNode *>(mb));
         } else {
-            logger.error("Unknown environment: " + mb->get_env());
+            logger.error("Unknown driver: " + mb->driver());
         }
-        env->init(*mb);
-        env->run(mb_app_init, mb->get_app());
+        driver->init();
         std::unique_lock<std::mutex> lck(mtx);
         recv_pkts.clear();
         recv_pkts_hash.clear();
@@ -219,16 +215,16 @@ void Emulation::init(Middlebox *mb) {
         pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
 
         // spawn the drop_listener thread (block all signals but SIGUSR1)
-        if (mb->dropmon_enabled()) {
-            dropmon = true;
-            pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-            drop_listener = new std::thread(&Emulation::listen_drops, this);
-            pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-        }
+        // if (mb->dropmon_enabled()) {
+        //     dropmon = true;
+        //     pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
+        //     drop_listener = new std::thread(&Emulation::listen_drops, this);
+        //     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
+        // }
 
         emulated_mb = mb;
     } else {
-        env->run(mb_app_init, mb->get_app());
+        driver->init();
         std::unique_lock<std::mutex> lck(mtx);
         recv_pkts.clear();
         recv_pkts_hash.clear();
@@ -253,7 +249,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
         std::unique_lock<std::mutex> lck(mtx);
         recv_pkts.clear();
         recv_pkts_hash.clear();
-        env->run(mb_app_reset, emulated_mb->get_app());
+        driver->reset();
         this->reset_offsets();
         logger.info("Reset " + node_name);
     }
@@ -278,10 +274,10 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
 
     std::unique_lock<std::mutex> lck(mtx);
     size_t num_pkts = recv_pkts.size();
-    DropMon::get().start_listening_for(new_pkt);
+    // DropMon::get().start_listening_for(new_pkt);
 
     Stats::set_pkt_lat_t1();
-    env->inject_packet(new_pkt);
+    driver->inject_packet(new_pkt);
 
     // Read packets iteratively until no new packets are read within one
     // complete timeout period.
@@ -289,23 +285,23 @@ std::list<Packet> Emulation::send_pkt(const Packet &pkt) {
         num_pkts = recv_pkts.size();
 
         if (dropmon) { // use drop monitor
-            // TODO: Think about how to incorporate dropmon with timeouts
-            drop_ts = 0;
-            std::chrono::microseconds timeout(5000);
-            std::cv_status status = cv.wait_for(lck, timeout);
-            Stats::set_pkt_latency(timeout, drop_ts);
+            // // TODO: Think about how to incorporate dropmon with timeouts
+            // drop_ts = 0;
+            // std::chrono::microseconds timeout(5000);
+            // std::cv_status status = cv.wait_for(lck, timeout);
+            // Stats::set_pkt_latency(timeout, drop_ts);
 
-            if (status == std::cv_status::timeout && recv_pkts.empty() &&
-                drop_ts == 0) {
-                logger.error("Drop monitor timed out!");
-            }
+            // if (status == std::cv_status::timeout && recv_pkts.empty() &&
+            //     drop_ts == 0) {
+            //     logger.error("Drop monitor timed out!");
+            // }
         } else { // use timeout (new injection)
-            cv.wait_for(lck, emulated_mb->get_timeout());
-            Stats::set_pkt_latency(emulated_mb->get_timeout());
+            cv.wait_for(lck, emulated_mb->timeout());
+            Stats::set_pkt_latency(emulated_mb->timeout());
         }
     } while (recv_pkts.size() > num_pkts);
 
-    DropMon::get().stop_listening();
+    // DropMon::get().stop_listening();
 
     // Move and reset the received packets
     std::list<Packet> pkts(std::move(recv_pkts));

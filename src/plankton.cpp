@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <fcntl.h>
-#include <set>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <thread>
@@ -10,7 +9,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include "config.hpp"
+#include "configparser.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
 #include "logger.hpp"
@@ -51,12 +50,7 @@ void Plankton::init(bool all_ecs,
     logger.enable_file_logging((fs::path(_out_dir) / "main.log").string());
 
     // Set the initial system state based on input configuration
-    // TODO: Make Config a non-static ConfigParser object
-    Config::start_parsing(_in_file);
-    Config::parse_network(&_network, _in_file, _dropmon);
-    Config::parse_openflow(&openflow, _in_file, _network);
-    Config::parse_policies(&_policies, _in_file, _network);
-    Config::finish_parsing(_in_file);
+    ConfigParser().parse(_in_file, *this);
 
     if (this->_max_emu == 0) {
         this->_max_emu = _network.get_middleboxes().size();
@@ -67,8 +61,8 @@ void Plankton::init(bool all_ecs,
 
     // DropMon::get().init(dropmon);
 
-    // compute policy oblivious ECs
-    EqClassMgr::get().compute_policy_oblivious_ecs(_network, openflow);
+    // Compute policy oblivious ECs
+    EqClassMgr::get().compute_policy_oblivious_ecs(_network, _openflow);
 }
 
 int Plankton::run() {
@@ -87,14 +81,15 @@ int Plankton::run() {
     // DropMon::get().start();
     Stats::set_total_t1();
 
-    // fork for each policy to get their memory usage measurements
-    for (Policy *policy : _policies) {
+    // Fork for each policy to get their memory usage measurements
+    for (const auto &policy : _policies) {
         pid_t childpid;
 
         if ((childpid = fork()) < 0) {
             logger.error("fork()", errno);
         } else if (childpid == 0) {
-            verify_policy(policy);
+            this->_policy = policy;
+            verify_policy();
             exit(0);
         }
 
@@ -172,9 +167,9 @@ void Plankton::kill_all_tasks(int sig) {
         ;
 }
 
-void Plankton::verify_policy(Policy *policy) {
+void Plankton::verify_policy() {
     // Initialize per-policy system states
-    this->_policy = policy;
+    assert(this->_policy);
     this->_violated = false;
     this->_tasks.clear();
 
@@ -312,11 +307,11 @@ void Plankton::ec_sig_handler(int sig) {
 /***** functions used by the Promela network model *****/
 
 void Plankton::initialize() {
-    Model::get().init(&_network, &openflow);
+    Model::get().init(&_network, &_openflow);
 
     // processes
-    forwarding.init(_network);
-    openflow.init(); // openflow has to be initialized before fib
+    _forwarding.init(_network);
+    _openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
     _policy->init();
@@ -329,8 +324,8 @@ void Plankton::initialize() {
 
 void Plankton::reinit() {
     // processes
-    forwarding.init(_network);
-    openflow.init(); // openflow has to be initialized before fib
+    _forwarding.init(_network);
+    _openflow.init(); // openflow has to be initialized before fib
 
     // policy (also initializes all connection states)
     _policy->reinit();
@@ -346,13 +341,13 @@ void Plankton::exec_step() {
 
     switch (process_id) {
     case pid::choose_conn: // choose the next connection
-        conn_choice.exec_step();
+        _choose_conn.exec_step();
         break;
     case pid::forwarding:
-        forwarding.exec_step();
+        _forwarding.exec_step();
         break;
     case pid::openflow:
-        openflow.exec_step();
+        _openflow.exec_step();
         break;
     default:
         logger.error("Unknown process id " + to_string(process_id));
@@ -374,7 +369,7 @@ void Plankton::check_to_switch_process() const {
          * 0: not executable (missing packet or terminated)
          */
         model.set_process_id(pid::choose_conn);
-        conn_choice.update_choice_count();
+        _choose_conn.update_choice_count();
         return;
     }
 
@@ -389,7 +384,7 @@ void Plankton::check_to_switch_process() const {
     case pid::forwarding:
         if ((fwd_mode == fwd_mode::COLLECT_NHOPS ||
              fwd_mode == fwd_mode::FIRST_COLLECT) &&
-            openflow.has_updates(current_node)) {
+            _openflow.has_updates(current_node)) {
             model.set_process_id(pid::openflow);
             model.set_choice_count(2); // whether to install an update or not
         }

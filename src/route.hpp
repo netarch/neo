@@ -33,7 +33,7 @@ private:
     friend bool operator!=(const Route &, const Route &);
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     Route() : adm_dist(255) {} // default administrative distance
 
 public:

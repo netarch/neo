@@ -4,7 +4,7 @@
 
 std::string ConditionalPolicy::to_string() const {
     std::string ret = "Conditional policy of:\n";
-    for (Policy *p : correlated_policies) {
+    for (const auto &p : correlated_policies) {
         ret += p->to_string() + "\n";
     }
     return ret;

@@ -29,7 +29,7 @@ protected:
     std::map<Interface *, L2_LAN *> l2_lans;
 
 protected:
-    friend class Config;
+    friend class ConfigParser;
     Node() = default;
     void add_interface(Interface *interface);
 

@@ -3,17 +3,18 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "config.hpp"
+#include "configparser.hpp"
 #include "network.hpp"
 #include "node.hpp"
+#include "plankton.hpp"
 #include "route.hpp"
 
+using namespace std;
+
 TEST_CASE("route") {
-    Network network;
-    const std::string input_filename = "networks/route.toml";
-    REQUIRE_NOTHROW(Config::start_parsing(input_filename));
-    REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));
-    REQUIRE_NOTHROW(Config::finish_parsing(input_filename));
+    auto &plankton = Plankton::get();
+    ConfigParser().parse("networks/route.toml", plankton);
+    const auto &network = plankton.network();
 
     Node *node;
     REQUIRE_NOTHROW(node = network.get_nodes().at("r0"));
@@ -23,7 +24,7 @@ TEST_CASE("route") {
     SECTION("basic access") {
         auto res = rib.lookup(IPv4Address("10.0.0.1"));
         REQUIRE(res.first != res.second);
-        REQUIRE(std::distance(res.first, res.second) == 1);
+        REQUIRE(distance(res.first, res.second) == 1);
         const Route &route = *(res.first);
         CHECK(route.to_string() == "10.0.0.0/8 --> 1.2.3.4");
         CHECK(route.get_network() == "10.0.0.0/8");
@@ -76,9 +77,9 @@ TEST_CASE("route") {
         CHECK_FALSE(route1.has_same_path(route2));
     }
 
-    /* (TODO move to config.cpp)
+    /* // TODO: move to config.cpp
     SECTION("missing network") {
-        std::string content =
+        string content =
             "[route]\n"
             "next_hop = \"1.2.3.4\"\n"
             ;
@@ -86,12 +87,12 @@ TEST_CASE("route") {
         REQUIRE(config);
         auto route_config = config->get_table("route");
         REQUIRE(route_config);
-        CHECK_THROWS_WITH(route = std::make_shared<Route>(route_config),
+        CHECK_THROWS_WITH(route = make_shared<Route>(route_config),
                           "Missing network");
     }
 
     SECTION("missing next hop") {
-        std::string content =
+        string content =
             "[route]\n"
             "network = \"10.0.0.0/8\"\n"
             ;
@@ -99,12 +100,12 @@ TEST_CASE("route") {
         REQUIRE(config);
         auto route_config = config->get_table("route");
         REQUIRE(route_config);
-        CHECK_THROWS_WITH(route = std::make_shared<Route>(route_config),
+        CHECK_THROWS_WITH(route = make_shared<Route>(route_config),
                           "Missing next hop IP address or interface");
     }
 
     SECTION("invalid administrative distance") {
-        std::string content =
+        string content =
             "[route]\n"
             "network = \"10.0.0.0/8\"\n"
             "next_hop = \"1.2.3.4\"\n"
@@ -114,7 +115,7 @@ TEST_CASE("route") {
         REQUIRE(config);
         auto route_config = config->get_table("route");
         REQUIRE(route_config);
-        CHECK_THROWS_WITH(route = std::make_shared<Route>(route_config),
+        CHECK_THROWS_WITH(route = make_shared<Route>(route_config),
                           "Invalid administrative distance: 256");
     }
     */

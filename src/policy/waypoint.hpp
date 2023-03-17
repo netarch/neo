@@ -16,7 +16,7 @@ private:
     bool pass_through;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     WaypointPolicy(bool correlated = false) : Policy(correlated) {}
 
 public:

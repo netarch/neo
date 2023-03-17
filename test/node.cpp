@@ -2,16 +2,17 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "config.hpp"
+#include "configparser.hpp"
 #include "network.hpp"
 #include "node.hpp"
+#include "plankton.hpp"
+
+using namespace std;
 
 TEST_CASE("node") {
-    Network network;
-    const std::string input_filename = "networks/node.toml";
-    REQUIRE_NOTHROW(Config::start_parsing(input_filename));
-    REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));
-    REQUIRE_NOTHROW(Config::finish_parsing(input_filename));
+    auto &plankton = Plankton::get();
+    ConfigParser().parse("networks/node.toml", plankton);
+    const auto &network = plankton.network();
 
     Node *r0, *r1;
     REQUIRE_NOTHROW(r0 = network.get_nodes().at("r0"));
@@ -56,10 +57,10 @@ TEST_CASE("node") {
     }
 
     SECTION("peer check") {
-        std::pair<Node *, Interface *> r0eth0_peer = r0->get_peer("eth0");
-        std::pair<Node *, Interface *> r0eth1_peer = r0->get_peer("eth1");
-        std::pair<Node *, Interface *> r1eth0_peer = r1->get_peer("eth0");
-        std::pair<Node *, Interface *> r1eth1_peer = r1->get_peer("eth1");
+        pair<Node *, Interface *> r0eth0_peer = r0->get_peer("eth0");
+        pair<Node *, Interface *> r0eth1_peer = r0->get_peer("eth1");
+        pair<Node *, Interface *> r1eth0_peer = r1->get_peer("eth0");
+        pair<Node *, Interface *> r1eth1_peer = r1->get_peer("eth1");
         CHECK(r0eth0_peer.first == r1);
         CHECK(r0eth0_peer.second == r1->get_interface("eth0"));
         CHECK(r0eth1_peer.first == r1);

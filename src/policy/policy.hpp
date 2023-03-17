@@ -16,18 +16,18 @@ protected:
     std::vector<ConnSpec> conn_specs; // specs of concurrent connections
     ConnectionMatrix conn_matrix;     // conn matrix computed from spec
     std::vector<Connection> conns;    // initial conns for verification
-    /*
+    /**
      * If there is any correlated policy, conn_specs should be empty. There
      * should be only one conn_spec within each correlated policy.
      */
-    std::vector<Policy *> correlated_policies;
+    std::vector<std::shared_ptr<Policy>> correlated_policies;
 
 protected:
-    friend class Config;
+    friend class ConfigParser;
     Policy(bool correlated = false);
 
 public:
-    virtual ~Policy();
+    virtual ~Policy() = default;
 
     int get_id() const;
     size_t num_conn_ecs() const;
@@ -48,7 +48,7 @@ private:
     std::vector<Policy *> policies;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
 
 public:
     typedef std::vector<Policy *>::size_type size_type;

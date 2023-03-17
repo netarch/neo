@@ -1,7 +1,11 @@
 #pragma once
 
 #include <csignal>
+#include <cstdint>
+#include <memory>
+#include <set>
 #include <string>
+#include <vector>
 
 #include "network.hpp"
 #include "policy/policy.hpp"
@@ -22,21 +26,20 @@ private:
     std::string _out_dir; // Output directory
 
     // System states
-    Network _network;   // Network information (inc. data plane)
-    Policies _policies; // Network invariants
-    // TODO: Rename policies to invariants
-
-    // Per-policy system states
-    Policy *_policy;       // Currently verified policy
-    static bool _violated; // A violation has occurred
+    Network _network; // Network information (inc. data plane)
+    std::vector<std::shared_ptr<Policy>> _policies; // Network invariants
+    // TODO: policies -> invariants
 
     // Network processes/actors
-    ChooseConnProcess conn_choice;
-    ForwardingProcess forwarding;
-    OpenflowProcess openflow;
+    ChooseConnProcess _choose_conn;
+    ForwardingProcess _forwarding;
+    OpenflowProcess _openflow;
 
-    Plankton();
-    void verify_policy(Policy *);
+    // Per-policy system states
+    std::shared_ptr<Policy> _policy; // Currently verified policy
+    static bool _violated;           // A violation has occurred
+
+    void verify_policy();
     void verify_conn();
 
     static std::set<pid_t> _tasks; // Policy or EC tasks
@@ -48,12 +51,18 @@ private:
     /***** functions used by the Promela network model *****/
     void check_to_switch_process() const;
 
+private:
+    friend class ConfigParser;
+    Plankton();
+
 public:
     // Disable the copy constructor and the copy assignment operator
     Plankton(const Plankton &) = delete;
     Plankton &operator=(const Plankton &) = delete;
 
     static Plankton &get();
+    const decltype(_network) &network() const { return _network; }
+    const decltype(_policies) &policies() const { return _policies; }
 
     void init(bool all_ecs,
               bool dropmon,

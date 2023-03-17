@@ -20,7 +20,7 @@ private:
     friend bool operator!=(const Link &, const Link &);
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     Link() = default;
 
 public:

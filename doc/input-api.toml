@@ -22,15 +22,16 @@
     type = "emulation"
     driver = "docker"           # optional ("docker"), default: "docker"
     # Optional, socket endpoint of the docker daemon.
-    # For a remote service, use something like "10.0.0.1:33444".
+    # For a remote service, use something like "http://10.0.0.1:33444".
     # Default: "/var/run/docker.sock"
     docker-daemon = "/var/run/docker.sock"
     [nodes.container]
     # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
     image = "alpine:3.17"
     workingDir = "/"
-    command = ["/bin/bash"]     # optional
-    args = ["-l"]               # optional
+    command = ["/bin/sh"]       # optional
+    args = []                   # optional
+    config_files = []           # optional
     [[nodes.container.ports]]   # optional
     containerPort = 1234
     protocol = "tcp"            # "tcp" or "udp"
@@ -42,6 +43,9 @@
     hostPath = ""
     driver = "local"            # optional ("local"), default: "local"
     readOnly = false            # optional, default: false
+    [[nodes.container.sysctls]] # optional
+    key = ""
+    value = ""
 
 # undirected (only need to specify once for each link)
 [[links]]

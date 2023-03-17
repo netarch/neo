@@ -11,71 +11,42 @@
 #include "payload.hpp"
 #include "stats.hpp"
 
-Middlebox::Middlebox(bool packet_logging)
-    : emulation(nullptr), app(nullptr), enable_packet_logging(packet_logging),
-      dropmon(false), dev_scalar(0) {}
+using namespace std;
 
-Middlebox::~Middlebox() {
-    delete app;
-}
-
-Emulation *Middlebox::get_emulation() const {
-    assert(this->emulation->get_mb() == this);
-    return this->emulation;
-}
-
-std::string Middlebox::get_env() const {
-    return env;
-}
-
-MB_App *Middlebox::get_app() const {
-    return app;
-}
-
-std::chrono::microseconds Middlebox::get_timeout() const {
-    return timeout;
-}
-
-bool Middlebox::packet_logging_enabled() const {
-    return enable_packet_logging;
-}
-
-bool Middlebox::dropmon_enabled() const {
-    return dropmon;
-}
+Middlebox::Middlebox() : _mdev_scalar(0), _emulation(nullptr) {}
 
 void Middlebox::update_timeout() {
-    timeout = latency_avg + latency_mdev * dev_scalar;
+    _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
 }
 
 void Middlebox::increase_latency_estimate_by_DOP(int DOP) {
-    static const int total_cores = std::thread::hardware_concurrency();
+    static const int total_cores = thread::hardware_concurrency();
     double load = (double)DOP / total_cores;
-    dev_scalar = std::max(4.0, ceil(sqrt(DOP) * 2 * load));
-    latency_avg *= DOP;
-    update_timeout();
+    _mdev_scalar = max(4.0, ceil(sqrt(DOP) * 2 * load));
+    _lat_avg *= DOP;
+    this->update_timeout();
 }
 
 int Middlebox::rewind(NodePacketHistory *nph) {
-    emulation = EmulationMgr::get().get_emulation(this, nph);
-    return emulation->rewind(nph);
+    _emulation = EmulationMgr::get().get_emulation(this, nph);
+    return _emulation->rewind(nph);
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {
-    assert(emulation->get_mb() == this);
-    EmulationMgr::get().update_node_pkt_hist(emulation, nph);
+    assert(_emulation->get_mb() == this);
+    EmulationMgr::get().update_node_pkt_hist(_emulation, nph);
 }
 
 std::list<Packet> Middlebox::send_pkt(const Packet &pkt) {
-    assert(emulation->get_mb() == this);
-    std::list<Packet> recv_pkts = emulation->send_pkt(pkt);
+    assert(_emulation->get_mb() == this);
+    std::list<Packet> recv_pkts = _emulation->send_pkt(pkt);
 
-    if (!recv_pkts.empty() && !dropmon) {
+    // if (!recv_pkts.empty() && !dropmon) {
+    if (!recv_pkts.empty()) {
         long long err = Stats::get_pkt_latencies().back().second / 1000 + 1 -
-                        latency_avg.count();
-        latency_avg += std::chrono::microseconds(err >> 2);
-        latency_mdev += std::chrono::microseconds(
-            (std::abs(err) - latency_mdev.count()) >> 2);
+                        _lat_avg.count();
+        _lat_avg += chrono::microseconds(err >> 2);
+        _lat_mdev += chrono::microseconds((abs(err) - _lat_mdev.count()) >> 2);
         this->update_timeout();
     }
 

@@ -158,8 +158,8 @@ Node::get_ipnhs(const IPv4Address &dst,
     return next_hops;
 }
 
-FIB_IPNH Node::get_ipnh(const std::string &egress_intf_name,
-                        const IPv4Address &dst) {
+FIB_IPNH
+Node::get_ipnh(const std::string &egress_intf_name, const IPv4Address &dst) {
     auto l2nh = get_peer(egress_intf_name); // L2 next hop
     if (l2nh.first) { // if the interface is truly connected (has peer)
         if (!l2nh.second->is_l2()) { // L2 next hop == L3 next hop

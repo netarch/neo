@@ -1,8 +1,7 @@
-/*
+/**
  * Middlebox emulation instance.
  * An emulation instance consists of:
- *     - a network environment (e.g., network namespace) where the appliance
- * runs.
+ *     - an emulation driver that interacts with the actual NFVs.
  *     - a listener thread for reading packets asynchronously.
  *     - a listener thread for monitoring packet drops asynchronously.
  */
@@ -14,15 +13,15 @@
 #include <mutex>
 #include <thread>
 
+#include "driver/driver.hpp"
 #include "emu-pkt-key.hpp"
-#include "mb-env/mb-env.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
 class Middlebox;
 
 class Emulation {
 private:
-    MB_Env *env;            // environment
+    Driver *driver;         // emulation driver
     Middlebox *emulated_mb; // currently emulated middlebox node
     NodePacketHistory *node_pkt_hist;
     std::unordered_map<EmuPktKey, uint32_t> seq_offsets;
@@ -47,7 +46,7 @@ private:
     void update_offsets(std::list<Packet> &);
     void update_offsets(Packet &);
 
-    friend class Config;
+    friend class ConfigParser;
     friend class EmulationMgr;
 
 public:

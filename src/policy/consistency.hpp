@@ -12,7 +12,7 @@ private:
     bool result, unset;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     ConsistencyPolicy() = default;
 
 public:

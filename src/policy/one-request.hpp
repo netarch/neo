@@ -14,7 +14,7 @@ private:
     std::unordered_set<Node *> target_nodes;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     OneRequestPolicy(bool correlated = false) : Policy(correlated) {}
 
 public:

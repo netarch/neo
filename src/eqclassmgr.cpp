@@ -134,14 +134,13 @@ void EqClassMgr::compute_policy_oblivious_ecs(const Network &network,
     }
 
     for (const Middlebox *mb : network.get_middleboxes()) {
-        MB_App *app = mb->get_app();
-        for (const auto &prefix : app->get_ip_prefixes()) {
+        for (const auto &prefix : mb->ec_ip_prefixes()) {
             this->add_ec(prefix);
         }
-        for (const auto &addr : app->get_ip_addrs()) {
+        for (const auto &addr : mb->ec_ip_addrs()) {
             this->add_ec(addr);
         }
-        const auto &app_ports = app->get_ports();
+        const auto &app_ports = mb->ec_ports();
         this->ports.insert(app_ports.begin(), app_ports.end());
     }
 }

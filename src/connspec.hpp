@@ -7,7 +7,7 @@
 #include "lib/ip.hpp"
 #include "node.hpp"
 
-/*
+/**
  * Connection specification:
  *  - Specify a set of independent connections.
  *  - Each connection within one ConnSpec will be populated to individual tasks.
@@ -22,7 +22,7 @@ private:
     bool owned_dst_only;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     ConnSpec();
 
 public:

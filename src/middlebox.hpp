@@ -2,41 +2,54 @@
 
 #include <chrono>
 #include <list>
+#include <set>
 #include <string>
 
 #include "emulation.hpp"
-#include "mb-app/mb-app.hpp"
+#include "lib/ip.hpp"
 #include "node.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
 
 class Middlebox : public Node {
-private:
-    Emulation *emulation;
-    std::string env;
-    MB_App *app; // appliance
-    std::chrono::microseconds latency_avg, latency_mdev, timeout;
-    bool enable_packet_logging;
-    bool dropmon;
-    int dev_scalar;
+protected:
+    // Emulation driver type, currently only "docker" is supported
+    std::string _driver;
 
-private:
-    friend class Config;
-    Middlebox(bool packet_logging);
+    // Packet injection latency and drop timeout estimate
+    std::chrono::microseconds _lat_avg, _lat_mdev, _timeout;
+    int _mdev_scalar;
+
+    // The actual emulation instance
+    Emulation *_emulation;
+
+    // Interesting IP and port values parsed from the config files
+    std::set<IPNetwork<IPv4Address>> _ec_ip_prefixes;
+    std::set<IPv4Address> _ec_ip_addrs;
+    std::set<uint16_t> _ec_ports;
+
+protected:
+    friend class ConfigParser;
+    Middlebox();
 
 public:
     Middlebox(const Middlebox &) = delete;
     Middlebox(Middlebox &&) = delete;
-    ~Middlebox() override;
     Middlebox &operator=(const Middlebox &) = delete;
     Middlebox &operator=(Middlebox &&) = delete;
 
-    Emulation *get_emulation() const;
-    std::string get_env() const;
-    MB_App *get_app() const;
-    std::chrono::microseconds get_timeout() const;
-    bool packet_logging_enabled() const;
-    bool dropmon_enabled() const;
+    const decltype(_driver) &driver() const { return _driver; }
+    decltype(_lat_avg) lat_avg() const { return _lat_avg; }
+    decltype(_lat_mdev) lat_mdev() const { return _lat_mdev; }
+    decltype(_timeout) timeout() const { return _timeout; }
+    decltype(_mdev_scalar) mdev_scalar() const { return _mdev_scalar; }
+    decltype(_emulation) emulation() const { return _emulation; }
+    const decltype(_ec_ip_prefixes) &ec_ip_prefixes() const {
+        return _ec_ip_prefixes;
+    }
+    const decltype(_ec_ip_addrs) &ec_ip_addrs() const { return _ec_ip_addrs; }
+    const decltype(_ec_ports) &ec_ports() const { return _ec_ports; }
+
     void update_timeout();
     void increase_latency_estimate_by_DOP(int DOP);
 

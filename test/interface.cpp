@@ -3,17 +3,18 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-#include "config.hpp"
+#include "configparser.hpp"
 #include "interface.hpp"
 #include "network.hpp"
 #include "node.hpp"
+#include "plankton.hpp"
+
+using namespace std;
 
 TEST_CASE("interface") {
-    Network network;
-    const std::string input_filename = "networks/interface.toml";
-    REQUIRE_NOTHROW(Config::start_parsing(input_filename));
-    REQUIRE_NOTHROW(Config::parse_network(&network, input_filename));
-    REQUIRE_NOTHROW(Config::finish_parsing(input_filename));
+    auto &plankton = Plankton::get();
+    ConfigParser().parse("networks/interface.toml", plankton);
+    const auto &network = plankton.network();
 
     Node *node;
     REQUIRE_NOTHROW(node = network.get_nodes().at("r0"));

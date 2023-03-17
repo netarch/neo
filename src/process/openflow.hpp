@@ -52,7 +52,7 @@ private:
     void install_update();
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     void add_update(Node *, Route &&);
 
 public:

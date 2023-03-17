@@ -2,7 +2,7 @@
 
 #include "process/process.hpp"
 
-/*
+/**
  * Choose the next connection non-deterministically
  */
 class ChooseConnProcess : public Process {

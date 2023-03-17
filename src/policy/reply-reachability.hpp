@@ -15,7 +15,7 @@ private:
     bool reachable;
 
 private:
-    friend class Config;
+    friend class ConfigParser;
     ReplyReachabilityPolicy(bool correlated = false) : Policy(correlated) {}
 
 public:

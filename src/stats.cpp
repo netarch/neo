@@ -9,6 +9,7 @@
 #include "logger.hpp"
 #include "policy/policy.hpp"
 
+using namespace std;
 using namespace std::chrono;
 
 /********************* private definitions *********************/
@@ -59,7 +60,9 @@ void Stats::output_main_stats() {
     logger.info("Memory: " + std::to_string(total_maxrss) + " kilobytes");
 }
 
-void Stats::output_policy_stats(int nodes, int links, Policy *policy) {
+void Stats::output_policy_stats(int nodes,
+                                int links,
+                                const shared_ptr<Policy> &policy) {
     const std::string filename = "policy.stats.csv";
     std::ofstream outfile(filename, std::ios_base::app);
     if (outfile.fail()) {

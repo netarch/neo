@@ -18,6 +18,7 @@ check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror -O2)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    # -Wno-c99-designator is for dropmon
     add_compile_options(-Wno-c99-designator -Wno-uninitialized)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0

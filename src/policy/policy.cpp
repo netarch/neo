@@ -22,12 +22,6 @@ Policy::Policy(bool correlated) {
     }
 }
 
-Policy::~Policy() {
-    for (Policy *p : correlated_policies) {
-        delete p;
-    }
-}
-
 int Policy::get_id() const {
     return id;
 }
@@ -37,7 +31,7 @@ size_t Policy::num_conn_ecs() const {
         return conn_matrix.num_conns();
     } else {
         size_t num = 1;
-        for (Policy *p : correlated_policies) {
+        for (const auto &p : correlated_policies) {
             num *= p->conn_matrix.num_conns();
         }
         return num;
@@ -51,7 +45,7 @@ void Policy::compute_conn_matrix() {
             conn_spec.update_policy_ecs();
         }
     } else {
-        for (Policy *p : correlated_policies) {
+        for (const auto &p : correlated_policies) {
             p->conn_specs[0].update_policy_ecs();
         }
     }
@@ -63,7 +57,7 @@ void Policy::compute_conn_matrix() {
             conn_matrix.add(conn_spec.compute_connections());
         }
     } else {
-        for (Policy *p : correlated_policies) {
+        for (const auto &p : correlated_policies) {
             p->conn_matrix.clear();
             p->conn_matrix.add(p->conn_specs[0].compute_connections());
         }
@@ -78,7 +72,7 @@ bool Policy::set_conns() {
         }
         return false;
     } else {
-        for (Policy *p : correlated_policies) {
+        for (const auto &p : correlated_policies) {
             if (p->set_conns()) {
                 assert(p->conns.size() == 1);
                 return true;

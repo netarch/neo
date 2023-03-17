@@ -39,7 +39,7 @@ private:
     DropMon();
 
 private:
-    friend class Config;
+    friend class ConfigParser;
 
 public:
     // Disable the copy constructor and the copy assignment operator

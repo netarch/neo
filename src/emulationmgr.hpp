@@ -8,7 +8,7 @@
 #include "middlebox.hpp"
 #include "pkt-hist.hpp"
 
-/*
+/**
  * Class for managing the pool of emulations.
  * The emulations are indexed firstly by their emulating middlebox nodes and
  * secondly by the packet histories in the alphabetical order. For example:

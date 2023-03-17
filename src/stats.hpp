@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <map>
+#include <memory>
 #include <vector>
 
 class Policy;
@@ -60,7 +61,8 @@ public:
      * control functions
      */
     static void output_main_stats();
-    static void output_policy_stats(int nodes, int links, Policy *);
+    static void
+    output_policy_stats(int nodes, int links, const std::shared_ptr<Policy> &);
     static void output_ec_stats();
     static void clear_latencies();
 

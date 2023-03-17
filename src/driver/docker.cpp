@@ -1,7 +1,6 @@
-#include "mb-env/netns.hpp"
+#include "driver/docker.hpp"
 
 #include <arpa/inet.h>
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -20,11 +19,15 @@
 #include <unistd.h>
 
 #include <boost/filesystem.hpp>
+#include <curl/curl.h>
 #include <pcapplusplus/PcapFileDevice.h>
 
+#include "dockerapi.hpp"
+#include "dockernode.hpp"
 #include "interface.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
+#include "middlebox.hpp"
 #include "node.hpp"
 #include "packet.hpp"
 #include "pktbuffer.hpp"
@@ -33,20 +36,133 @@
 using namespace std;
 namespace fs = boost::filesystem;
 
-void NetNS::set_env_vars(const string &node_name) {
-    // set XTABLES_LOCKFILE for multiple iptables instances
-    if (!node_name.empty() && xtables_lockpath.empty()) {
-        xtables_lockpath = "/run/xtables.lock." + node_name;
+Docker::Docker(DockerNode *node)
+    : _node(node), _dapi(node->daemon()), _pid(0), _hnet_fd(-1), _cnet_fd(-1),
+      _hmnt_fd(-1), _cmnt_fd(-1), _epollfd(-1), _events(nullptr) {}
+
+Docker::~Docker() {
+    this->teardown();
+}
+
+void Docker::fetchns() {
+    if (_pid <= 0) {
+        logger.error("Invalid pid " + to_string(_pid));
     }
 
-    assert(!xtables_lockpath.empty());
+    // Save the host's namespace fds
+    string nspath = "/proc/self/ns/net";
+    if ((_hnet_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
 
-    if (setenv("XTABLES_LOCKFILE", xtables_lockpath.c_str(), 1) < 0) {
-        logger.error("setenv XTABLES_LOCKFILE", errno);
+    nspath = "/proc/self/ns/mnt";
+    if ((_hmnt_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
+
+    // Save the container's namespace fds
+    nspath = "/proc/" + to_string(_pid) + "/ns/net";
+    if ((_cnet_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
+
+    nspath = "/proc/" + to_string(_pid) + "/ns/mnt";
+    if ((_cmnt_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
     }
 }
 
-void NetNS::set_interfaces(const Node &node) {
+void Docker::enterns() const {
+    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
+        return;
+    }
+
+    if (setns(_cnet_fd, CLONE_NEWNET) < 0) {
+        logger.error("setns()", errno);
+    }
+
+    if (setns(_cmnt_fd, CLONE_NEWNS) < 0) {
+        logger.error("setns()", errno);
+    }
+}
+
+void Docker::leavens() const {
+    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
+        return;
+    }
+
+    if (setns(_hnet_fd, CLONE_NEWNET) < 0) {
+        logger.error("setns()", errno);
+    }
+
+    if (setns(_hmnt_fd, CLONE_NEWNS) < 0) {
+        logger.error("setns()", errno);
+    }
+}
+
+void Docker::closens() {
+    if (_hnet_fd >= 0) {
+        close(_hnet_fd);
+        _hnet_fd = -1;
+    }
+
+    if (_cnet_fd >= 0) {
+        close(_cnet_fd);
+        _cnet_fd = -1;
+    }
+
+    if (_hmnt_fd >= 0) {
+        close(_hmnt_fd);
+        _hmnt_fd = -1;
+    }
+
+    if (_cmnt_fd >= 0) {
+        close(_cmnt_fd);
+        _cmnt_fd = -1;
+    }
+}
+
+void Docker::teardown() {
+    // Close pcap loggers
+    for (auto &[_, pcap_logger] : this->_pcap_loggers) {
+        pcap_logger->close();
+    }
+    this->_pcap_loggers.clear();
+
+    enterns();
+
+    // Epoll
+    if (_epollfd >= 0) {
+        close(_epollfd);
+        _epollfd = -1;
+    }
+
+    if (_events) {
+        delete[] _events;
+        _events = nullptr;
+    }
+
+    // Delete the created tap devices
+    for (const auto &[_, tapfd] : this->_tapfds) {
+        close(tapfd);
+    }
+    this->_tapfds.clear();
+
+    // Delete the allocated ethernet addresses
+    for (const auto &[_, mac] : this->_macs) {
+        delete[] mac;
+    }
+    this->_macs.clear();
+
+    leavens();
+    closens();
+
+    // Terminate and remove container
+    _dapi.remove_cntr(_node->get_name());
+    _pid = 0;
+}
+
+void Docker::set_interfaces() {
     struct ifreq ifr;
     int tapfd, ctrl_sock;
 
@@ -55,9 +171,7 @@ void NetNS::set_interfaces(const Node &node) {
         logger.error("socket()", errno);
     }
 
-    for (const auto &pair : node.get_intfs_l3()) {
-        Interface *intf = pair.second;
-
+    for (const auto &[addr, intf] : _node->get_intfs_l3()) {
         // create a new tap device
         if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
             logger.error("/dev/net/tun", errno);
@@ -69,7 +183,7 @@ void NetNS::set_interfaces(const Node &node) {
             close(tapfd);
             goto error;
         }
-        tapfds.emplace(intf, tapfd);
+        this->_tapfds.emplace(intf, tapfd);
 
         // set up IP address
         memset(&ifr, 0, sizeof(ifr));
@@ -80,12 +194,14 @@ void NetNS::set_interfaces(const Node &node) {
         if (ioctl(ctrl_sock, SIOCSIFADDR, &ifr) < 0) {
             goto error;
         }
+
         // set up network mask
         ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr =
             htonl(intf->mask().get_value());
         if (ioctl(ctrl_sock, SIOCSIFNETMASK, &ifr) < 0) {
             goto error;
         }
+
         // save ethernet address
         memset(&ifr, 0, sizeof(ifr));
         strncpy(ifr.ifr_name, intf->get_name().c_str(), IFNAMSIZ - 1);
@@ -95,7 +211,7 @@ void NetNS::set_interfaces(const Node &node) {
         }
         uint8_t *mac = new uint8_t[6];
         memcpy(mac, ifr.ifr_hwaddr.sa_data, sizeof(uint8_t) * 6);
-        tapmacs.emplace(intf, mac);
+        this->_macs.emplace(intf, mac);
 
         // bring up the interface
         memset(&ifr, 0, sizeof(ifr));
@@ -114,7 +230,8 @@ error:
     logger.error(ifr.ifr_name, errno);
 }
 
-void NetNS::set_rttable(const RoutingTable &rib) {
+void Docker::set_rttable() {
+    const RoutingTable &rib = _node->get_rib();
     int ctrl_sock;
     struct rtentry rt;
     char intf_name[IFNAMSIZ];
@@ -161,14 +278,14 @@ void NetNS::set_rttable(const RoutingTable &rib) {
     close(ctrl_sock);
 }
 
-void NetNS::set_arp_cache(const Node &node) {
+void Docker::set_arp_cache() {
     int ctrl_sock;
     struct arpreq arp = {
-        .arp_pa = {AF_INET, {0}},
-        .arp_ha = {ARPHRD_ETHER, {0}},
-        .arp_flags = ATF_COM | ATF_PERM,
-        .arp_netmask = {AF_UNSPEC, {0}},
-        .arp_dev = {0}
+        {AF_INET, {0}},
+        {ARPHRD_ETHER, {0}},
+        ATF_COM | ATF_PERM,
+        {AF_UNSPEC, {0}},
+        {0}
     };
     uint8_t id_mac[6] = ID_ETH_ADDR;
     memcpy(arp.arp_ha.sa_data, id_mac, 6);
@@ -180,9 +297,11 @@ void NetNS::set_arp_cache(const Node &node) {
 
     // collect L3 peer IP addresses and egress interface
     set<pair<IPv4Address, Interface *>> arp_inputs;
-    for (auto intf : node.get_intfs()) {
+
+    for (auto intf : _node->get_intfs()) {
         // find L3 peer
-        auto l2peer = node.get_peer(intf.first);
+        auto l2peer = _node->get_peer(intf.first);
+
         if (l2peer.first) { // if the interface is truly connected
             if (!l2peer.second->is_l2()) {
                 // L2 peer == L3 peer
@@ -190,6 +309,7 @@ void NetNS::set_arp_cache(const Node &node) {
             } else {
                 // pure L2 peer, find all L3 peers in the L2 LAN
                 L2_LAN *l2_lan = l2peer.first->get_l2lan(l2peer.second);
+
                 for (auto l3_endpoint : l2_lan->get_l3_endpoints()) {
                     const pair<Node *, Interface *> &l3peer =
                         l3_endpoint.second;
@@ -219,141 +339,87 @@ void NetNS::set_arp_cache(const Node &node) {
     close(ctrl_sock);
 }
 
-void NetNS::set_epoll_events() {
+void Docker::set_epoll_events() {
     // create an epoll instance for IO multiplexing
-    if ((epollfd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
+    if ((_epollfd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
         logger.error("epoll_create1", errno);
     }
+
     // register interesting interface fds in the epoll instance
     struct epoll_event event;
-    for (const auto &tap : tapfds) {
+
+    for (const auto &[intf, tapfd] : this->_tapfds) {
         event.events = EPOLLIN;
-        event.data.ptr = tap.first;
-        if (epoll_ctl(epollfd, EPOLL_CTL_ADD, tap.second, &event) < 0) {
+        event.data.ptr = intf;
+        if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, tapfd, &event) < 0) {
             logger.error("epoll_ctl", errno);
         }
     }
+
     // allocate space for receiving events
-    events = new struct epoll_event[tapfds.size()];
+    _events = new struct epoll_event[this->_tapfds.size()];
 }
 
-NetNS::NetNS() : old_net(-1), new_net(-1), epollfd(-1), events(nullptr) {}
-
-NetNS::~NetNS() {
-    if (old_net < 0 || new_net < 0) {
-        return;
-    }
-
-    // enter the isolated netns
-    if (setns(new_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-
-    // epoll
-    close(epollfd);
-    delete[] events;
-    // delete the created tap devices
-    for (const auto &[intf, tapfd] : tapfds) {
-        close(tapfd);
-    }
-    // delete the allocated ethernet addresses
-    for (const auto &[intf, mac] : tapmacs) {
-        delete[] mac;
-    }
-    // close pcap loggers
-    for (auto &[intf, pcapLogger] : pcapLoggers) {
-        pcapLogger->close();
-    }
-
-    // return to the original netns
-    if (setns(old_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-    // remove the new network namespace
-    close(new_net);
-}
-
-void NetNS::init(const Middlebox &node) {
-    const char *netns_path = "/proc/self/ns/net";
-
-    // save the original netns fd
-    if ((old_net = open(netns_path, O_RDONLY)) < 0) {
-        logger.error(netns_path, errno);
-    }
-    // create and enter a new netns
-    if (unshare(CLONE_NEWNET) < 0) {
-        logger.error("Failed to create a new netns", errno);
-    }
-    // save the new netns fd
-    if ((new_net = open(netns_path, O_RDONLY)) < 0) {
-        logger.error(netns_path, errno);
-    }
-    set_env_vars(node.get_name()); // set environment variables
-    set_interfaces(node);          // create tap interfaces and set IP addresses
-    set_rttable(node.get_rib());   // set routing table according to node->rib
-    set_arp_cache(node);           // set ARP entries
-    set_epoll_events();            // set epoll events for future packet reads
-    // return to the original netns
-    if (setns(old_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
+void Docker::init() {
+    teardown();
+    _pid = _dapi.run(*_node);
+    fetchns();
+    enterns();
+    set_interfaces();   // Set tap interfaces and IP addresses
+    set_rttable();      // Set routing table based on node.rib
+    set_arp_cache();    // Set ARP entries
+    set_epoll_events(); // Set epoll events for future packet reads
+    leavens();
 
 #ifdef ENABLE_DEBUG
-    if (node.packet_logging_enabled()) {
-        for (const auto &[_, intf] : node.get_intfs_l3()) {
-            string pcapFn = to_string(getpid()) + "." + node.get_name() + "-" +
-                            intf->get_name() + ".pcap";
-            pcapLoggers.emplace(intf, make_unique<pcpp::PcapFileWriterDevice>(
-                                          pcapFn, pcpp::LINKTYPE_ETHERNET));
-            auto &pcapLogger = pcapLoggers.at(intf);
-            bool appendMode = fs::exists(pcapFn);
-            if (!pcapLogger->open(appendMode)) {
-                logger.error("Failed to open " + pcapFn);
-            }
+    // Enable pcap logger for each interface
+    for (const auto &[_, intf] : _node->get_intfs_l3()) {
+        string pcapFn = to_string(getpid()) + "." + _node->get_name() + "-" +
+                        intf->get_name() + ".pcap";
+        this->_pcap_loggers.emplace(intf,
+                                    make_unique<pcpp::PcapFileWriterDevice>(
+                                        pcapFn, pcpp::LINKTYPE_ETHERNET));
+        auto &pcapLogger = this->_pcap_loggers.at(intf);
+        bool appendMode = fs::exists(pcapFn);
+        if (!pcapLogger->open(appendMode)) {
+            logger.error("Failed to open " + pcapFn);
         }
     }
 #endif
 }
 
-void NetNS::run(void (*app_action)(MB_App *), MB_App *app) {
-    // enter the isolated netns
-    if (setns(new_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-    set_env_vars();
-
-    app_action(app);
-
-    // return to the original netns
-    if (setns(old_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
+void Docker::reset() {
+    // TODO
+    // Restarting container changes the _pid
+    // Q: Does restarting the container retain the same namespaces?
+    // If not, then _tapfds, ns fds, _epollfd need to be reset too.
+    logger.debug("Restarting container " + _node->get_name());
+    this->_dapi.restart_cntr(_node->get_name());
+    _pid = this->_dapi.get_cntr_pid(_node->get_name());
+    logger.debug("container process pid " + to_string(_pid));
 }
 
-size_t NetNS::inject_packet(const Packet &pkt) {
-    // enter the isolated netns
-    if (setns(new_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
+size_t Docker::inject_packet(const Packet &pkt) {
+    enterns();
 
-    // serialize the packet
+    // Serialize the packet
     uint8_t *buf;
     uint32_t len;
     uint8_t src_mac[6] = ID_ETH_ADDR;
     uint8_t dst_mac[6] = {0};
-    memcpy(dst_mac, tapmacs.at(pkt.get_intf()), sizeof(uint8_t) * 6);
+    memcpy(dst_mac, this->_macs.at(pkt.get_intf()), sizeof(uint8_t) * 6);
     Net::get().serialize(&buf, &len, pkt, src_mac, dst_mac);
 
-    // write to the tap device fd
-    int fd = tapfds.at(pkt.get_intf());
+    // Write to the tap device fd
+    int fd = this->_tapfds.at(pkt.get_intf());
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
         logger.error("Packet injection failed", errno);
     }
 
 #ifdef ENABLE_DEBUG
-    if (pcapLoggers.count(pkt.get_intf()) > 0) {
-        auto &pcapLogger = pcapLoggers.at(pkt.get_intf());
+    if (this->_pcap_loggers.count(pkt.get_intf()) > 0) {
+        auto &pcapLogger = this->_pcap_loggers.at(pkt.get_intf());
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         pcpp::RawPacket rawpkt(buf, len, ts, false);
@@ -362,27 +428,20 @@ size_t NetNS::inject_packet(const Packet &pkt) {
     }
 #endif
 
-    // free resources
+    // Free resources
     Net::get().free(buf);
 
-    // return to the original netns
-    if (setns(old_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-
+    leavens();
     return nwrite;
 }
 
-list<Packet> NetNS::read_packets() const {
+list<Packet> Docker::read_packets() const {
     list<PktBuffer> pktbuffs;
 
-    // enter the isolated netns
-    if (setns(new_net, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
+    enterns();
 
     // wait until at least one of the fds becomes available
-    int nfds = epoll_wait(epollfd, events, tapfds.size(), -1);
+    int nfds = epoll_wait(_epollfd, _events, this->_tapfds.size(), -1);
     if (nfds < 0) {
         if (errno == EINTR) { // SIGUSR1 - stop thread
             return list<Packet>();
@@ -392,8 +451,8 @@ list<Packet> NetNS::read_packets() const {
 
     // read from available tap fds
     for (int i = 0; i < nfds; ++i) {
-        Interface *interface = static_cast<Interface *>(events[i].data.ptr);
-        int tapfd = tapfds.at(interface);
+        Interface *interface = static_cast<Interface *>(_events[i].data.ptr);
+        int tapfd = this->_tapfds.at(interface);
         PktBuffer pktbuff(interface);
         ssize_t nread;
         if ((nread = read(tapfd, pktbuff.get_buffer(), pktbuff.get_len())) <
@@ -404,10 +463,7 @@ list<Packet> NetNS::read_packets() const {
         pktbuffs.push_back(pktbuff);
     }
 
-    // return to the original netns
-    if (setns(old_net, CLONE_NEWNET) < 0) {
-        logger.error("Failed to setns", errno);
-    }
+    leavens();
 
     // deserialize the packets
     list<Packet> pkts;
@@ -418,8 +474,8 @@ list<Packet> NetNS::read_packets() const {
             pkts.push_back(pkt);
 
 #ifdef ENABLE_DEBUG
-            if (pcapLoggers.count(pb.get_intf()) > 0) {
-                auto &pcapLogger = pcapLoggers.at(pb.get_intf());
+            if (this->_pcap_loggers.count(pb.get_intf()) > 0) {
+                auto &pcapLogger = this->_pcap_loggers.at(pb.get_intf());
                 struct timespec ts;
                 clock_gettime(CLOCK_REALTIME, &ts);
                 pcpp::RawPacket rawpkt(pb.get_buffer(), pb.get_len(), ts,
