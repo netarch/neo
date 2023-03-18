@@ -167,7 +167,7 @@ main() {
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
 
-        depends=(cmake clang spin-git libnet libnl boost pcapplusplus
+        depends=(cmake clang spin-git libnet libnl boost pcapplusplus curl
                  python-toml bc yapf)
         non_local_depends=()
 
@@ -190,8 +190,9 @@ main() {
         script_depends=(build-essential curl git bison rsync)
         depends=(cmake pkg-config clang libpthread-stubs0-dev libnet1-dev
                  libnl-3-dev libnl-genl-3-dev libnet1 libnl-3-200
-                 libnl-genl-3-200 libboost-all-dev python3-toml bc clang-format
-                 yapf3 libpcap-dev libstdc++-12-dev)
+                 libnl-genl-3-200 libboost-all-dev libcurl4-openssl-dev
+                 python3-toml bc clang-format yapf3 libpcap-dev
+                 libstdc++-12-dev)
         aur_pkgs=(spin-git pcapplusplus)
 
         sudo apt update -y -qq

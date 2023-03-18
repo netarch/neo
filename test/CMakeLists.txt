@@ -10,9 +10,9 @@ target_link_libraries(neotests PRIVATE
     tomlplusplus::tomlplusplus
 )
 
-add_custom_target(neotests-setcap ALL
-    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neotests
-    DEPENDS neotests)
+#add_custom_target(neotests-setcap ALL
+#    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neotests
+#    DEPENDS neotests)
 
 add_test(NAME "neo_tests"
     COMMAND sudo "${CMAKE_CURRENT_BINARY_DIR}/neotests"

@@ -90,7 +90,7 @@ find_package(PcapPlusPlus REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
-find_package(spdlog REQUIRED)
+#find_package(spdlog REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
     filesystem
@@ -164,9 +164,9 @@ target_link_libraries(neo PRIVATE libneo)
 #
 # set main target capability
 #
-add_custom_target(setcap ALL
-    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
-    DEPENDS neo)
+#add_custom_target(setcap ALL
+#    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neo
+#    DEPENDS neo)
 
 #
 # tests targets
