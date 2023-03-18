@@ -44,124 +44,6 @@ Docker::~Docker() {
     this->teardown();
 }
 
-void Docker::fetchns() {
-    if (_pid <= 0) {
-        logger.error("Invalid pid " + to_string(_pid));
-    }
-
-    // Save the host's namespace fds
-    string nspath = "/proc/self/ns/net";
-    if ((_hnet_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
-        logger.error(nspath, errno);
-    }
-
-    nspath = "/proc/self/ns/mnt";
-    if ((_hmnt_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
-        logger.error(nspath, errno);
-    }
-
-    // Save the container's namespace fds
-    nspath = "/proc/" + to_string(_pid) + "/ns/net";
-    if ((_cnet_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
-        logger.error(nspath, errno);
-    }
-
-    nspath = "/proc/" + to_string(_pid) + "/ns/mnt";
-    if ((_cmnt_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
-        logger.error(nspath, errno);
-    }
-}
-
-void Docker::enterns() const {
-    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
-        return;
-    }
-
-    if (setns(_cnet_fd, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-
-    if (setns(_cmnt_fd, CLONE_NEWNS) < 0) {
-        logger.error("setns()", errno);
-    }
-}
-
-void Docker::leavens() const {
-    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
-        return;
-    }
-
-    if (setns(_hnet_fd, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-
-    if (setns(_hmnt_fd, CLONE_NEWNS) < 0) {
-        logger.error("setns()", errno);
-    }
-}
-
-void Docker::closens() {
-    if (_hnet_fd >= 0) {
-        close(_hnet_fd);
-        _hnet_fd = -1;
-    }
-
-    if (_cnet_fd >= 0) {
-        close(_cnet_fd);
-        _cnet_fd = -1;
-    }
-
-    if (_hmnt_fd >= 0) {
-        close(_hmnt_fd);
-        _hmnt_fd = -1;
-    }
-
-    if (_cmnt_fd >= 0) {
-        close(_cmnt_fd);
-        _cmnt_fd = -1;
-    }
-}
-
-void Docker::teardown() {
-    // Close pcap loggers
-    for (auto &[_, pcap_logger] : this->_pcap_loggers) {
-        pcap_logger->close();
-    }
-    this->_pcap_loggers.clear();
-
-    enterns();
-
-    // Epoll
-    if (_epollfd >= 0) {
-        close(_epollfd);
-        _epollfd = -1;
-    }
-
-    if (_events) {
-        delete[] _events;
-        _events = nullptr;
-    }
-
-    // Delete the created tap devices
-    for (const auto &[_, tapfd] : this->_tapfds) {
-        close(tapfd);
-    }
-    this->_tapfds.clear();
-
-    // Delete the allocated ethernet addresses
-    for (const auto &[_, mac] : this->_macs) {
-        delete[] mac;
-    }
-    this->_macs.clear();
-
-    leavens();
-    closens();
-
-    // Terminate and remove container
-    _dapi.remove_cntr(_node->get_name());
-    _pid = 0;
-}
-
 void Docker::set_interfaces() {
     struct ifreq ifr;
     int tapfd, ctrl_sock;
@@ -360,6 +242,135 @@ void Docker::set_epoll_events() {
     _events = new struct epoll_event[this->_tapfds.size()];
 }
 
+void Docker::fetchns() {
+    if (_pid <= 0) {
+        logger.error("Invalid pid " + to_string(_pid));
+    }
+
+    // Save the host's namespace fds
+    string nspath = "/proc/self/ns/net";
+    if ((_hnet_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
+
+    nspath = "/proc/self/ns/mnt";
+    if ((_hmnt_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
+
+    // Save the container's namespace fds
+    nspath = "/proc/" + to_string(_pid) + "/ns/net";
+    if ((_cnet_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
+
+    nspath = "/proc/" + to_string(_pid) + "/ns/mnt";
+    if ((_cmnt_fd = open(nspath.c_str(), O_RDONLY)) < 0) {
+        logger.error(nspath, errno);
+    }
+}
+
+void Docker::enterns() const {
+    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
+        return;
+    }
+
+    if (setns(_cnet_fd, CLONE_NEWNET) < 0) {
+        logger.error("setns()", errno);
+    }
+
+    if (setns(_cmnt_fd, CLONE_NEWNS) < 0) {
+        logger.error("setns()", errno);
+    }
+}
+
+void Docker::leavens() const {
+    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
+        return;
+    }
+
+    if (setns(_hnet_fd, CLONE_NEWNET) < 0) {
+        logger.error("setns()", errno);
+    }
+
+    if (setns(_hmnt_fd, CLONE_NEWNS) < 0) {
+        logger.error("setns()", errno);
+    }
+}
+
+void Docker::closens() {
+    if (_hnet_fd >= 0) {
+        close(_hnet_fd);
+        _hnet_fd = -1;
+    }
+
+    if (_cnet_fd >= 0) {
+        close(_cnet_fd);
+        _cnet_fd = -1;
+    }
+
+    if (_hmnt_fd >= 0) {
+        close(_hmnt_fd);
+        _hmnt_fd = -1;
+    }
+
+    if (_cmnt_fd >= 0) {
+        close(_cmnt_fd);
+        _cmnt_fd = -1;
+    }
+}
+
+void Docker::teardown() {
+    // Close pcap loggers
+    for (auto &[_, pcap_logger] : this->_pcap_loggers) {
+        pcap_logger->close();
+    }
+    this->_pcap_loggers.clear();
+
+    enterns();
+
+    // Epoll
+    if (this->_epollfd >= 0) {
+        close(this->_epollfd);
+        this->_epollfd = -1;
+    }
+
+    if (this->_events) {
+        delete[] this->_events;
+        this->_events = nullptr;
+    }
+
+    // Delete the created tap devices
+    for (const auto &[_, tapfd] : this->_tapfds) {
+        close(tapfd);
+    }
+    this->_tapfds.clear();
+
+    // Delete the allocated ethernet addresses
+    for (const auto &[_, mac] : this->_macs) {
+        delete[] mac;
+    }
+    this->_macs.clear();
+
+    leavens();
+    closens();
+
+    // Terminate and remove container, it will also kill exec processes
+    this->_dapi.remove_cntr(this->_node->get_name());
+    this->_pid = 0;
+    this->_execs.clear();
+}
+
+void Docker::exec(const vector<string> &cmd) {
+    if (this->_pid <= 0) {
+        logger.error("Container isn't running");
+    }
+
+    auto res = this->_dapi.exec(_node->get_name(), _node->env_vars(), cmd,
+                                _node->working_dir());
+    this->_execs.emplace(std::move(res));
+}
+
 void Docker::init() {
     teardown();
     _pid = _dapi.run(*_node);
@@ -389,14 +400,50 @@ void Docker::init() {
 }
 
 void Docker::reset() {
-    // TODO
-    // Restarting container changes the _pid
-    // Q: Does restarting the container retain the same namespaces?
-    // If not, then _tapfds, ns fds, _epollfd need to be reset too.
-    logger.debug("Restarting container " + _node->get_name());
-    this->_dapi.restart_cntr(_node->get_name());
-    _pid = this->_dapi.get_cntr_pid(_node->get_name());
-    logger.debug("container process pid " + to_string(_pid));
+    // Reset teardown
+    // Restarting a container changes the namespaces
+    // So _tapfds, ns fds, _epollfd, _events also need to be reset
+    {
+        enterns();
+
+        // Epoll
+        if (this->_epollfd >= 0) {
+            close(this->_epollfd);
+            this->_epollfd = -1;
+        }
+
+        if (this->_events) {
+            delete[] this->_events;
+            this->_events = nullptr;
+        }
+
+        // Delete the created tap devices
+        for (const auto &[_, tapfd] : this->_tapfds) {
+            close(tapfd);
+        }
+        this->_tapfds.clear();
+
+        // Delete the allocated ethernet addresses
+        for (const auto &[_, mac] : this->_macs) {
+            delete[] mac;
+        }
+        this->_macs.clear();
+
+        leavens();
+        closens();
+    }
+
+    // Restart the container, it will also kill exec processes
+    _dapi.restart_cntr(_node->get_name());
+    _pid = _dapi.get_cntr_pid(_node->get_name());
+    _execs.clear();
+    fetchns();
+    enterns();
+    set_interfaces();   // Set tap interfaces and IP addresses
+    set_rttable();      // Set routing table based on node.rib
+    set_arp_cache();    // Set ARP entries
+    set_epoll_events(); // Set epoll events for future packet reads
+    leavens();
 }
 
 size_t Docker::inject_packet(const Packet &pkt) {
@@ -417,7 +464,7 @@ size_t Docker::inject_packet(const Packet &pkt) {
         logger.error("Packet injection failed", errno);
     }
 
-#ifdef ENABLE_DEBUG
+    // Write to pcap loggers
     if (this->_pcap_loggers.count(pkt.get_intf()) > 0) {
         auto &pcapLogger = this->_pcap_loggers.at(pkt.get_intf());
         struct timespec ts;
@@ -426,7 +473,6 @@ size_t Docker::inject_packet(const Packet &pkt) {
         pcapLogger->writePacket(rawpkt);
         pcapLogger->flush();
     }
-#endif
 
     // Free resources
     Net::get().free(buf);
@@ -440,7 +486,7 @@ list<Packet> Docker::read_packets() const {
 
     enterns();
 
-    // wait until at least one of the fds becomes available
+    // Wait until at least one of the fds becomes available
     int nfds = epoll_wait(_epollfd, _events, this->_tapfds.size(), -1);
     if (nfds < 0) {
         if (errno == EINTR) { // SIGUSR1 - stop thread
@@ -449,7 +495,7 @@ list<Packet> Docker::read_packets() const {
         logger.error("epoll_wait", errno);
     }
 
-    // read from available tap fds
+    // Read from available tap fds
     for (int i = 0; i < nfds; ++i) {
         Interface *interface = static_cast<Interface *>(_events[i].data.ptr);
         int tapfd = this->_tapfds.at(interface);
@@ -465,7 +511,7 @@ list<Packet> Docker::read_packets() const {
 
     leavens();
 
-    // deserialize the packets
+    // Deserialize the packets
     list<Packet> pkts;
     for (const PktBuffer &pb : pktbuffs) {
         Packet pkt;
@@ -473,7 +519,7 @@ list<Packet> Docker::read_packets() const {
         if (!pkt.empty()) {
             pkts.push_back(pkt);
 
-#ifdef ENABLE_DEBUG
+            // Write to pcap loggers
             if (this->_pcap_loggers.count(pb.get_intf()) > 0) {
                 auto &pcapLogger = this->_pcap_loggers.at(pb.get_intf());
                 struct timespec ts;
@@ -483,7 +529,6 @@ list<Packet> Docker::read_packets() const {
                 pcapLogger->writePacket(rawpkt);
                 pcapLogger->flush();
             }
-#endif
         }
     }
 

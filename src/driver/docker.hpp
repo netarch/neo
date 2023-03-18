@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <map>
 #include <memory>
 #include <string>
 #include <sys/epoll.h>
@@ -24,6 +25,7 @@ private:
     DockerNode *_node; // emulated node
     DockerAPI _dapi;   // docker API object
     pid_t _pid;        // pid of the running process in the container
+    std::map<pid_t, std::string> _execs;              // pid -> exec_id
     std::unordered_map<Interface *, int> _tapfds;     // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> _macs; // intf --> mac addr
     std::unordered_map<Interface *, std::unique_ptr<pcpp::PcapFileWriterDevice>>
@@ -37,7 +39,6 @@ private:
     int _epollfd;
     struct epoll_event *_events;
 
-    void teardown();
     void set_interfaces();
     void set_rttable();
     void set_arp_cache();
@@ -47,10 +48,14 @@ public:
     Docker(DockerNode *);
     ~Docker() override;
 
+    decltype(_pid) pid() const { return _pid; }
+
     void fetchns();       // Save namespace fds
     void enterns() const; // Enter the container namespaces
     void leavens() const; // Return to the main process namespaces
     void closens();       // Close namespace fds
+    void teardown();
+    void exec(const std::vector<std::string> &cmd);
 
     // (Re)Initialize a docker container
     void init() override;

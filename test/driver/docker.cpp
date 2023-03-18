@@ -24,54 +24,31 @@ TEST_CASE("docker") {
 
     Docker docker(node);
 
-    // SECTION("Start Container") {
-    //     // std::cout << "Initialize" << std::endl;
-    //     CHECK_NOTHROW(docker.init());
+    SECTION("Start and terminate container") {
+        REQUIRE_NOTHROW(docker.init());
+        CHECK(docker.pid() > 0);
+        REQUIRE_NOTHROW(docker.teardown());
+    }
 
-    //     // std::cout << "The pid is " + std::to_string(docker.pid) <<
-    //     std::endl; CHECK_FALSE(docker.pid == 0);
-    // }
+    SECTION("Hard reset") {
+        REQUIRE_NOTHROW(docker.init());
+        CHECK(docker.pid() > 0);
+        REQUIRE_NOTHROW(docker.init());
+        CHECK(docker.pid() > 0);
+        REQUIRE_NOTHROW(docker.teardown());
+    }
 
-    // SECTION("Check Exists and Running") {
-    //     auto response =
-    //         DockerUtil::inspect_container_running(docker.container_name);
-
-    //     std::cout << "running: " << response.first << std::endl;
-    //     std::cout << "exists: " << response.second << std::endl;
-
-    //     CHECK(response.first);
-    //     CHECK(response.second);
-    // }
-
-    // SECTION("Soft Reset") {
-    //     std::cout << "Reset Docker" << std::endl;
-    //     CHECK_NOTHROW(docker.reset());
-    // }
-
-    // SECTION("Hard Reset") {
-    //     std::cout << "re-init Docker" << std::endl;
-    //     CHECK_NOTHROW(docker.init());
-
-    //     std::cout << "The pid is " + std::to_string(docker.pid) << std::endl;
-    //     CHECK_FALSE(docker.pid == 0);
-    // }
-
-    // SECTION("Check Exists and Running after hard reset") {
-    //     auto response =
-    //         DockerUtil::inspect_container_running(docker.container_name);
-
-    //     std::cout << "running: " << response.first << std::endl;
-    //     std::cout << "exists: " << response.second << std::endl;
-
-    //     CHECK(response.first);
-    //     CHECK(response.second);
-    // }
-
-    // SECTION("Destroy") {
-    //     std::cout << "destroy container" << std::endl;
-
-    //     auto response = DockerUtil::remove_container(docker.container_name);
-
-    //     CHECK(response["success"].GetBool());
-    // }
+    SECTION("Soft reset") {
+        REQUIRE_NOTHROW(docker.init());
+        REQUIRE(docker.pid() > 0);
+        REQUIRE_NOTHROW(docker.reset());
+        // Check if the inodes of /proc/<docker.pid()>/ns/{mnt,net} are the same
+        // as /proc/self/ns/{mnt,net} after docker.enterns()
+        // man 2 stat
+        // docker.enterns();
+        // cerr << docker.pid() << endl;
+        // system("/bin/sh");
+        // docker.leavens();
+        REQUIRE_NOTHROW(docker.teardown());
+    }
 }
