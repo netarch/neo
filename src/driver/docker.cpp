@@ -162,13 +162,11 @@ void Docker::set_rttable() {
 
 void Docker::set_arp_cache() {
     int ctrl_sock;
-    struct arpreq arp = {
-        {AF_INET, {0}},
-        {ARPHRD_ETHER, {0}},
-        ATF_COM | ATF_PERM,
-        {AF_UNSPEC, {0}},
-        {0}
-    };
+    struct arpreq arp = {.arp_dev = {0}};
+    arp.arp_pa = {AF_INET, {0}};
+    arp.arp_ha = {ARPHRD_ETHER, {0}};
+    arp.arp_flags = ATF_COM | ATF_PERM;
+    arp.arp_netmask = {AF_UNSPEC, {0}};
     uint8_t id_mac[6] = ID_ETH_ADDR;
     memcpy(arp.arp_ha.sa_data, id_mac, 6);
 
