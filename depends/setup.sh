@@ -190,9 +190,7 @@ main() {
         script_depends=(build-essential curl git bison rsync)
         depends=(cmake pkg-config clang libpthread-stubs0-dev libnet1-dev
                  libnl-3-dev libnl-genl-3-dev libnet1 libnl-3-200
-                 libnl-genl-3-200
-                 # TODO: Add boost (program options and filesystems)
-                 python3-toml bc clang-format
+                 libnl-genl-3-200 libboost-all-dev python3-toml bc clang-format
                  yapf3 libpcap-dev libstdc++-12-dev)
         aur_pkgs=(spin-git pcapplusplus)
 
