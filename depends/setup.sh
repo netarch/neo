@@ -54,6 +54,15 @@ get_distro() {
 }
 
 #
+# Set up docker engine quick and dirty
+#
+get_docker() {
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh ./get-docker.sh
+    rm -f ./get-docker.sh
+}
+
+#
 # Build and install the package with PKGBUILD
 #
 makepkg_arch() {
@@ -167,8 +176,12 @@ main() {
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
 
-        depends=(cmake clang spin-git libnet libnl boost pcapplusplus curl
-                 python-toml bc yapf)
+        script_deps=(base-devel curl git)
+        build_deps=(cmake clang)
+        style_deps=(clang yapf)
+        depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
+                 glibc libnet libnl boost curl pcapplusplus python-toml
+                 spin-git docker)
         non_local_depends=()
 
         for dep in "${depends[@]}"; do
@@ -187,20 +200,22 @@ main() {
         "makepkg_$DISTRO" neo-dev -srci --asdeps --noconfirm "$@"
 
     elif [ "$DISTRO" = "ubuntu" ]; then
-        script_depends=(build-essential curl git bison rsync)
-        depends=(cmake pkg-config clang libpthread-stubs0-dev libnet1-dev
-                 libnl-3-dev libnl-genl-3-dev libnet1 libnl-3-200
-                 libnl-genl-3-200 libboost-all-dev libcurl4-openssl-dev
-                 python3-toml bc clang-format yapf3 libpcap-dev
-                 libstdc++-12-dev)
+        script_deps=(build-essential flex bison curl git)
+        build_deps=(cmake pkg-config clang)
+        style_deps=(clang-format yapf3)
+        depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
+                 libpthread-stubs0-dev libstdc++-12-dev libnet1 libnet1-dev
+                 libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev
+                 libboost-all-dev libcurl4-openssl-dev libpcap-dev python3-toml)
         aur_pkgs=(spin-git pcapplusplus)
 
         sudo apt update -y -qq
-        sudo apt install -y -qq "${script_depends[@]}"
         sudo apt install -y -qq "${depends[@]}"
         for pkg in "${aur_pkgs[@]}"; do
             aur_install "$pkg"
         done
+
+        get_docker
 
     else
         die "Unsupported distribution: $DISTRO"
