@@ -28,8 +28,8 @@ jobs:
       - run: ./test/build.sh --debug --tests --coverage --${{ matrix.cc }}
       - run: ctest --progress --output-on-failure
         working-directory: ./build
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         with:
-          fail_ci_if_error: true
+          gcov: true
           gcov_args: '-l'
         if: matrix.cc == 'gcc'
