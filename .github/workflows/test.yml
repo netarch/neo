@@ -9,7 +9,7 @@ jobs:
       - run: sudo apt install clang-format yapf3
       - run: ./test/style.sh
 
-  build:
+  tests:
     needs: style-check
     runs-on: ubuntu-22.04
     strategy:
@@ -25,18 +25,11 @@ jobs:
         with:
           submodules: 'recursive'
       - run: ./depends/setup.sh
-      - run: >
-          cmake -B build -S .
-          -DCMAKE_BUILD_TYPE=Debug
-          -DENABLE_TESTS=ON
-          -DENABLE_COVERAGE=ON
-          -DCMAKE_C_COMPILER=${{ matrix.cc }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
-      - run: cmake --build build
-#      - run: ctest
-#        working-directory: ./build
-#      - uses: codecov/codecov-action@v1
-#        with:
-#          fail_ci_if_error: true
-#          gcov_args: '-l'
-#        if: matrix.cc == 'gcc'
+      - run: ./test/build.sh --debug --tests --coverage --${{ matrix.cc }}
+      - run: ctest --progress --output-on-failure
+        working-directory: ./build
+      - uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+          gcov_args: '-l'
+        if: matrix.cc == 'gcc'
