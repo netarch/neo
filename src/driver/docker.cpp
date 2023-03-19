@@ -161,22 +161,15 @@ void Docker::set_rttable() {
 }
 
 void Docker::set_arp_cache() {
+    // Open a ctrl_sock for setting up arp cache entries
     int ctrl_sock;
-    struct arpreq arp = {.arp_dev = {0}};
-    arp.arp_pa = {AF_INET, {0}};
-    arp.arp_ha = {ARPHRD_ETHER, {0}};
-    arp.arp_flags = ATF_COM | ATF_PERM;
-    arp.arp_netmask = {AF_UNSPEC, {0}};
-    uint8_t id_mac[6] = ID_ETH_ADDR;
-    memcpy(arp.arp_ha.sa_data, id_mac, 6);
 
-    // open a ctrl_sock for setting up arp cache entries
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
         logger.error("socket()", errno);
     }
 
-    // collect L3 peer IP addresses and egress interface
-    set<pair<IPv4Address, Interface *>> arp_inputs;
+    // Collect L3 peer IP addresses and egress interface
+    set<pair<IPv4Address, Interface *>> peers;
 
     for (auto intf : _node->get_intfs()) {
         // find L3 peer
@@ -185,7 +178,7 @@ void Docker::set_arp_cache() {
         if (l2peer.first) { // if the interface is truly connected
             if (!l2peer.second->is_l2()) {
                 // L2 peer == L3 peer
-                arp_inputs.emplace(l2peer.second->addr(), intf.second);
+                peers.emplace(l2peer.second->addr(), intf.second);
             } else {
                 // pure L2 peer, find all L3 peers in the L2 LAN
                 L2_LAN *l2_lan = l2peer.first->get_l2lan(l2peer.second);
@@ -194,24 +187,31 @@ void Docker::set_arp_cache() {
                     const pair<Node *, Interface *> &l3peer =
                         l3_endpoint.second;
                     if (l3peer.second != intf.second) {
-                        arp_inputs.emplace(l3peer.second->addr(), intf.second);
+                        peers.emplace(l3peer.second->addr(), intf.second);
                     }
                 }
             }
         }
     }
 
-    // set permanent arp cache entries
-    for (const auto &arp_input : arp_inputs) {
+    // Set permanent arp cache entries
+    struct arpreq arp;
+    arp.arp_pa = {AF_INET, {0}};
+    arp.arp_ha = {ARPHRD_ETHER, {0}};
+    arp.arp_flags = ATF_COM | ATF_PERM;
+    arp.arp_netmask = {AF_UNSPEC, {0}};
+    uint8_t id_mac[6] = ID_ETH_ADDR;
+    memcpy(arp.arp_ha.sa_data, id_mac, 6);
+
+    for (const auto &[addr, intf] : peers) {
         ((struct sockaddr_in *)&arp.arp_pa)->sin_addr.s_addr =
-            htonl(arp_input.first.get_value());
-        strncpy(arp.arp_dev, arp_input.second->get_name().c_str(), 15);
+            htonl(addr.get_value());
+        strncpy(arp.arp_dev, intf->get_name().c_str(), 15);
         arp.arp_dev[15] = '\0';
 
         if (ioctl(ctrl_sock, SIOCSARP, &arp) < 0) {
             close(ctrl_sock);
-            logger.error("Failed to set ARP cache for " +
-                             arp_input.first.to_string(),
+            logger.error("Failed to set ARP cache for " + addr.to_string(),
                          errno);
         }
     }
