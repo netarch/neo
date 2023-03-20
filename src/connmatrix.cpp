@@ -1,5 +1,7 @@
 #include "connmatrix.hpp"
 
+using namespace std;
+
 size_t ConnectionMatrix::num_conns() const {
     size_t num = 1;
     for (const auto &conn_set : product) {
@@ -21,13 +23,13 @@ void ConnectionMatrix::reset() {
     traversed_all = false;
 }
 
-void ConnectionMatrix::add(std::set<Connection> &&conns) {
+void ConnectionMatrix::add(set<Connection> &&conns) {
     product.push_back(std::move(conns));
     itrs.push_back(product.back().begin());
 }
 
-std::vector<Connection> ConnectionMatrix::get_next_conns() {
-    std::vector<Connection> conns;
+vector<Connection> ConnectionMatrix::get_next_conns() {
+    vector<Connection> conns;
 
     if (traversed_all) {
         return conns;

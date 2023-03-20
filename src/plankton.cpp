@@ -61,8 +61,8 @@ void Plankton::init(bool all_ecs,
 
     // DropMon::get().init(dropmon);
 
-    // Compute policy oblivious ECs
-    EqClassMgr::get().compute_policy_oblivious_ecs(_network, _openflow);
+    // Compute initial ECs (oblivious to the policies)
+    EqClassMgr::get().compute_initial_ecs(_network, _openflow);
 }
 
 // Reset to as if it was just constructed
@@ -198,7 +198,7 @@ void Plankton::verify_policy() {
     // Update latency estimate
     int num_tasks = min(this->_policy->num_conn_ecs(), _max_jobs);
     for (Middlebox *mb : this->_network.get_middleboxes()) {
-        mb->increase_latency_estimate_by_DOP(num_tasks);
+        mb->adjust_latency_estimate_by_ntasks(num_tasks);
     }
 
     logger.info("====================");
@@ -215,7 +215,7 @@ void Plankton::verify_policy() {
         if ((childpid = fork()) < 0) {
             logger.error("fork()", errno);
         } else if (childpid == 0) {
-            verify_conn(); // connection kid dies here
+            verify_conn();
             exit(0);
         }
 

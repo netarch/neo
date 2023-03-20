@@ -2,11 +2,15 @@
 
 #include <cassert>
 #include <iterator>
+#include <random>
+#include <string>
 
 #include "logger.hpp"
 #include "middlebox.hpp"
 #include "network.hpp"
 #include "process/openflow.hpp"
+
+using namespace std;
 
 EqClassMgr::~EqClassMgr() {
     for (EqClass *const &ec : all_ECs) {
@@ -61,7 +65,7 @@ void EqClassMgr::split_intersected_ec(EqClass *ec,
 void EqClassMgr::add_non_overlapped_ec(const ECRange &range, bool owned) {
     EqClass *new_ec = new EqClass();
     IPv4Address lb = range.get_lb();
-    std::set<ECRange>::const_iterator it;
+    set<ECRange>::const_iterator it;
 
     for (it = allranges.begin(); it != allranges.end() && *it != range; ++it)
         ;
@@ -92,7 +96,7 @@ void EqClassMgr::add_non_overlapped_ec(const ECRange &range, bool owned) {
 }
 
 void EqClassMgr::add_ec(const ECRange &new_range, bool owned) {
-    std::set<EqClass *> overlapped_ecs = get_overlapped_ecs(new_range);
+    set<EqClass *> overlapped_ecs = get_overlapped_ecs(new_range);
 
     // add overlapped ECs
     for (EqClass *ec : overlapped_ecs) {
@@ -116,11 +120,11 @@ void EqClassMgr::add_ec(const IPv4Address &addr, bool owned) {
     add_ec(ECRange(addr, addr), owned);
 }
 
-void EqClassMgr::compute_policy_oblivious_ecs(const Network &network,
-                                              const OpenflowProcess &openflow) {
+void EqClassMgr::compute_initial_ecs(const Network &network,
+                                     const OpenflowProcess &openflow) {
     for (const auto &node : network.get_nodes()) {
-        for (const auto &intf : node.second->get_intfs_l3()) {
-            this->add_ec(intf.first, /* owned */ true);
+        for (const auto &[addr, intf] : node.second->get_intfs_l3()) {
+            this->add_ec(addr, /* owned */ true);
         }
         for (const Route &route : node.second->get_rib()) {
             this->add_ec(route.get_network());
@@ -143,21 +147,33 @@ void EqClassMgr::compute_policy_oblivious_ecs(const Network &network,
         const auto &app_ports = mb->ec_ports();
         this->ports.insert(app_ports.begin(), app_ports.end());
     }
+
+    // Add another random port denoting the "other" port EC
+    uint16_t port;
+    default_random_engine generator;
+    uniform_int_distribution<uint16_t> distribution(10, 49151);
+    do {
+        port = distribution(generator);
+    } while (this->ports.count(port) > 0);
+    this->ports.insert(port);
+
+    logger.info("Initial ECs: " + to_string(all_ECs.size()));
+    logger.info("Initial ports: " + to_string(this->ports.size()));
 }
 
-std::set<EqClass *> EqClassMgr::get_overlapped_ecs(const ECRange &range,
-                                                   bool owned_only) const {
-    std::set<EqClass *> overlapped_ecs;
+set<EqClass *> EqClassMgr::get_overlapped_ecs(const ECRange &range,
+                                              bool owned_only) const {
+    set<EqClass *> overlapped_ecs;
     auto ecrange = allranges.find(range);
     if (ecrange != allranges.end()) {
-        for (std::set<ECRange>::const_reverse_iterator r =
-                 std::make_reverse_iterator(ecrange);
+        for (set<ECRange>::const_reverse_iterator r =
+                 make_reverse_iterator(ecrange);
              r != allranges.rend() && *r == range; ++r) {
             if (!owned_only || owned_ECs.count(r->get_ec()) > 0) {
                 overlapped_ecs.insert(r->get_ec());
             }
         }
-        for (std::set<ECRange>::const_iterator r = ecrange;
+        for (set<ECRange>::const_iterator r = ecrange;
              r != allranges.end() && *r == range; ++r) {
             if (!owned_only || owned_ECs.count(r->get_ec()) > 0) {
                 overlapped_ecs.insert(r->get_ec());
@@ -167,7 +183,7 @@ std::set<EqClass *> EqClassMgr::get_overlapped_ecs(const ECRange &range,
     return overlapped_ecs;
 }
 
-const std::set<uint16_t> &EqClassMgr::get_ports() const {
+const set<uint16_t> &EqClassMgr::get_ports() const {
     return ports;
 }
 

@@ -51,7 +51,7 @@ public:
     const decltype(_ec_ports) &ec_ports() const { return _ec_ports; }
 
     void update_timeout();
-    void increase_latency_estimate_by_DOP(int DOP);
+    void adjust_latency_estimate_by_ntasks(int ntasks);
 
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);

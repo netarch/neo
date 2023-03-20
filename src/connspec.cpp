@@ -1,7 +1,5 @@
 #include "connspec.hpp"
 
-#include <random>
-
 #include "eqclassmgr.hpp"
 #include "protocols.hpp"
 
@@ -23,14 +21,6 @@ std::set<Connection> ConnSpec::compute_connections() const {
     if (this->dst_ports.empty()) {
         if (protocol == proto::tcp || protocol == proto::udp) {
             dst_ports = EqClassMgr::get().get_ports();
-            //// add another random port denoting the "other" port EC
-            // uint16_t port;
-            // std::default_random_engine generator;
-            // std::uniform_int_distribution<uint16_t> distribution(10, 49151);
-            // do {
-            //     port = distribution(generator);
-            // } while (dst_ports.count(port) > 0);
-            // dst_ports.insert(port);
         } else { // ICMP
             dst_ports.insert(0);
         }

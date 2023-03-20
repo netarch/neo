@@ -16,6 +16,7 @@ private:
     EqClassMgr() = default;
     void split_intersected_ec(EqClass *ec, const ECRange &range, bool owned);
     void add_non_overlapped_ec(const ECRange &, bool owned);
+    void add_ec(const ECRange &, bool owned);
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -25,10 +26,9 @@ public:
 
     static EqClassMgr &get();
 
-    void add_ec(const ECRange &, bool owned);
     void add_ec(const IPNetwork<IPv4Address> &);
     void add_ec(const IPv4Address &, bool owned = false);
-    void compute_policy_oblivious_ecs(const Network &, const OpenflowProcess &);
+    void compute_initial_ecs(const Network &, const OpenflowProcess &);
 
     std::set<EqClass *> get_overlapped_ecs(const ECRange &,
                                            bool owned_only = false) const;

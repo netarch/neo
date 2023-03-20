@@ -19,11 +19,11 @@ void Middlebox::update_timeout() {
     _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
 }
 
-void Middlebox::increase_latency_estimate_by_DOP(int DOP) {
+void Middlebox::adjust_latency_estimate_by_ntasks(int ntasks) {
     static const int total_cores = thread::hardware_concurrency();
-    double load = (double)DOP / total_cores;
-    _mdev_scalar = max(4.0, ceil(sqrt(DOP) * 2 * load));
-    _lat_avg *= DOP;
+    double load = double(ntasks) / total_cores;
+    _mdev_scalar = max(4.0, ceil(sqrt(ntasks) * 2 * load));
+    _lat_avg *= ntasks;
     this->update_timeout();
 }
 
