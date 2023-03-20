@@ -43,7 +43,7 @@ parse_params() {
     REBUILD=0
     TESTS=0
     COVERAGE=0
-    COMPILER=clang
+    COMPILER=gcc
     MAX_CONNS=10
 
     while :; do
