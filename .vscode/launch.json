@@ -1,0 +1,44 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch 00",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/neo",
+      "args": [
+        "-f",
+        "-i",
+        "${workspaceFolder}/examples/00-reverse-path-filtering/network.toml",
+        "-o",
+        "${workspaceFolder}/examples/00-reverse-path-filtering/results"
+      ],
+      "stopAtEntry": true,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=0"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "${workspaceFolder}/test/gdb_root.sh",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to AT&T",
+          "text": "-gdb-set disassembly-flavor att",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
