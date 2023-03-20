@@ -16,7 +16,7 @@
         "-o",
         "${workspaceFolder}/examples/00-reverse-path-filtering/results"
       ],
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [
         {
@@ -30,13 +30,15 @@
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
+          "text": "-enable-pretty-printing"
         },
         {
           "description": "Set Disassembly Flavor to AT&T",
-          "text": "-gdb-set disassembly-flavor att",
-          "ignoreFailures": true
+          "text": "-gdb-set disassembly-flavor att"
+        },
+        {
+          "description": "Follow forked children",
+          "text": "-gdb-set follow-fork-mode child"
         }
       ]
     }
