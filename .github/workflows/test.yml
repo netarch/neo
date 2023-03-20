@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
 
   style-check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install clang-format yapf3
@@ -11,7 +11,7 @@ jobs:
 
   tests:
     needs: style-check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         cc: [gcc, clang]
@@ -28,8 +28,8 @@ jobs:
       - run: ./test/build.sh --debug --tests --coverage --${{ matrix.cc }}
       - run: ctest --progress --output-on-failure
         working-directory: ./build
-      - uses: codecov/codecov-action@v3
+      - if: matrix.cc == 'gcc'
+        uses: codecov/codecov-action@v3
         with:
           gcov: true
           gcov_args: '-l'
-        if: matrix.cc == 'gcc'
