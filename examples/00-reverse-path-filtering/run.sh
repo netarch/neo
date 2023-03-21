@@ -5,11 +5,9 @@ source "${SCRIPT_DIR}/../common.sh"
 
 procs=16
 
-# timeout
-name="output.parallel-$procs.fault"
-msg "Verifying $name"
-sudo "$NEO" -f -j $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-cp "$CONF" "$RESULTS_DIR/$name"
+name="output.$procs-procs"
+run_with_timeout "$name" "$procs" "$SCRIPT_DIR/network.toml"
+name="output.$procs-procs.fault"
+run_with_timeout "$name" "$procs" "$SCRIPT_DIR/network.fault.toml"
 
 msg "Done"

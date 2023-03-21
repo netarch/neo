@@ -7,18 +7,11 @@ for subnets in 4 8 10 12; do
     hosts=$subnets
     "${CONFGEN[@]}" --subnets $subnets --hosts $hosts > "$CONF"
     for procs in 1 4 8 16 20; do
-        # timeout
-        name="$subnets-subnets.$hosts-hosts.DOP-$procs"
-        msg "Verifying $name"
-        sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-        sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-        cp "$CONF" "$RESULTS_DIR/$name"
-        # dropmon
-        name="$subnets-subnets.$hosts-hosts.DOP-$procs.dropmon"
-        msg "Verifying $name"
-        sudo "$NEO" -fdj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-        sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-        cp "$CONF" "$RESULTS_DIR/$name"
+        name="$subnets-subnets.$hosts-hosts.$procs-procs"
+        run_with_timeout "$name" "$procs" "$CONF"
+
+        name="$subnets-subnets.$hosts-hosts.$procs-procs.dropmon"
+        run_with_dropmon "$name" "$procs" "$CONF"
     done
     rm "$CONF"
 done
@@ -28,18 +21,11 @@ for subnets in 4 8 10 12; do
     hosts=$subnets
     "${CONFGEN[@]}" --subnets $subnets --hosts $hosts --fault > "$CONF"
     for procs in 1 4 8 16 20; do
-        # timeout
-        name="$subnets-subnets.$hosts-hosts.DOP-$procs.fault"
-        msg "Verifying $name"
-        sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-        sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-        cp "$CONF" "$RESULTS_DIR/$name"
-        # dropmon
-        name="$subnets-subnets.$hosts-hosts.DOP-$procs.fault.dropmon"
-        msg "Verifying $name"
-        sudo "$NEO" -fdj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-        sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-        cp "$CONF" "$RESULTS_DIR/$name"
+        name="$subnets-subnets.$hosts-hosts.$procs-procs.fault"
+        run_with_timeout "$name" "$procs" "$CONF"
+
+        name="$subnets-subnets.$hosts-hosts.$procs-procs.fault.dropmon"
+        run_with_dropmon "$name" "$procs" "$CONF"
     done
     rm "$CONF"
 done
