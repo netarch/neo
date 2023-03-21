@@ -23,19 +23,11 @@ ForwardingProcess::~ForwardingProcess() {
 }
 
 void ForwardingProcess::init(const Network &network) {
-    if (!_enabled) {
-        return;
-    }
-
     PacketHistory pkt_hist(network);
     model.set_pkt_hist(std::move(pkt_hist));
 }
 
 void ForwardingProcess::exec_step() {
-    if (!_enabled) {
-        return;
-    }
-
     int mode = model.get_fwd_mode();
     switch (mode) {
     case fwd_mode::FIRST_COLLECT:

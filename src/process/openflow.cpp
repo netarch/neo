@@ -111,12 +111,7 @@ bool OpenflowProcess::has_updates(Node *node) const {
 }
 
 void OpenflowProcess::init() {
-    if (!_enabled) {
-        return;
-    }
-
-    if (this->updates.empty()) {
-        this->disable(); // disable the process if there's no update
+    if (this->updates.empty()) { // do nothing if there's no update
         return;
     }
 
@@ -124,7 +119,7 @@ void OpenflowProcess::init() {
 }
 
 void OpenflowProcess::exec_step() {
-    if (!_enabled) {
+    if (this->updates.empty()) { // do nothing if there's no update
         return;
     }
 

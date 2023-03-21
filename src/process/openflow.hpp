@@ -56,8 +56,6 @@ private:
     void add_update(Node *, Route &&);
 
 public:
-    OpenflowProcess() = default;
-
     std::string to_string() const;
     size_t num_updates() const; // number of total updates
     size_t num_nodes() const;   // number of nodes that have updates

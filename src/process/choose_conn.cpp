@@ -29,14 +29,12 @@ static inline std::vector<std::vector<int>> get_conn_map() {
 }
 
 void ChooseConnProcess::update_choice_count() const {
-    if (!_enabled) {
-        return;
-    }
-
     std::vector<std::vector<int>> conn_map = get_conn_map();
-    /* 2: executable, not entering a middlebox
+    /**
+     * 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
-     * 0: not executable (missing packet or terminated) */
+     * 0: not executable (missing packet or terminated)
+     */
 
     if (!conn_map[2].empty()) {
         model.set_choice_count(1);
@@ -52,15 +50,13 @@ void ChooseConnProcess::update_choice_count() const {
 }
 
 void ChooseConnProcess::exec_step() {
-    if (!_enabled) {
-        return;
-    }
-
     int choice = model.get_choice();
     std::vector<std::vector<int>> conn_map = get_conn_map();
-    /* 2: executable, not entering a middlebox
+    /**
+     * 2: executable, not entering a middlebox
      * 1: executable, about to enter a middlebox
-     * 0: not executable (missing packet or terminated) */
+     * 0: not executable (missing packet or terminated)
+     */
 
     if (!conn_map[2].empty()) {
         assert(choice == 0);

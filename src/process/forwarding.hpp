@@ -41,7 +41,6 @@ private:
     void update_model_from_pkts(Middlebox *, std::list<Packet> &) const;
 
 public:
-    ForwardingProcess() = default;
     ~ForwardingProcess();
 
     void init(const Network &);
