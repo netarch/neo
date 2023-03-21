@@ -33,12 +33,12 @@ int Middlebox::rewind(NodePacketHistory *nph) {
 }
 
 void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {
-    assert(_emulation->get_mb() == this);
+    assert(_emulation->mb() == this);
     EmulationMgr::get().update_node_pkt_hist(_emulation, nph);
 }
 
 std::list<Packet> Middlebox::send_pkt(const Packet &pkt) {
-    assert(_emulation->get_mb() == this);
+    assert(_emulation->mb() == this);
     std::list<Packet> recv_pkts = _emulation->send_pkt(pkt);
 
     // if (!recv_pkts.empty() && !dropmon) {

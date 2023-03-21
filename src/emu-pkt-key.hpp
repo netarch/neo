@@ -7,7 +7,7 @@
 #include "lib/ip.hpp"
 
 /*
- * An EmuPktKey object is intended as key for seq_offsets and port_offsets
+ * An EmuPktKey object is intended as key for _seq_offsets and _port_offsets
  * mappings (i.e., those that are not part of the state vector). Such object
  * uniquely identifies a concrete connection associated with the emulation from
  * the given packet, so that we don't need to update the model state to update

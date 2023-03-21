@@ -308,15 +308,19 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
 void ForwardingProcess::inject_packet(Middlebox *mb) {
     Stats::set_overall_lat_t1();
 
-    // check out current pkt_hist and rewind the middlebox state
+    // Check out current packet history at mb
     PacketHistory *pkt_hist = model.get_pkt_hist();
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
+
+    // Set up emulation instance
+
+    // Rewind the middlebox state if needed
     Stats::set_rewind_lat_t1();
     int rewind_injections = mb->rewind(current_nph);
     Stats::set_rewind_latency();
     Stats::set_rewind_injection_count(rewind_injections);
 
-    // construct new packet
+    // Construct new packet
     Packet *new_pkt = new Packet(model);
     auto res = all_pkts.insert(new_pkt);
     if (!res.second) {
@@ -324,7 +328,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
         new_pkt = *(res.first);
     }
 
-    // update node_pkt_hist with this new packet
+    // Update node_pkt_hist with this new packet
     NodePacketHistory *new_nph = new NodePacketHistory(new_pkt, current_nph);
     auto res2 = node_pkt_hist_hist.insert(new_nph);
     if (!res2.second) {

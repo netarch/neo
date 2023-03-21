@@ -512,13 +512,13 @@ void ConfigParser::estimate_pkt_lat() {
     // // inject packets
     // Packet packet(mb_eth0, "192.168.1.2", "192.168.2.2", 49152, 80, 0, 0,
     //               PS_TCP_INIT_1);
-    // assert(emulation.dropmon == false);
-    // emulation.dropmon = true; // temporarily disable timeout
+    // assert(emulation._dropmon == false);
+    // emulation._dropmon = true; // temporarily disable timeout
     // for (int i = 0; i < 10; ++i) {
     //     emulation.send_pkt(packet);
     //     packet.set_src_port(packet.get_src_port() + 1);
     // }
-    // emulation.dropmon = false;
+    // emulation._dropmon = false;
 
     // // calculate latency average and mean deviation
     // const vector<pair<uint64_t, uint64_t>> &pkt_latencies =

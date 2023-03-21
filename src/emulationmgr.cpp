@@ -35,11 +35,11 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
             mb_emulations_map[mb][nullptr].insert(emulation);
             return emulation;
         } else {
-            // get an existing emulation of other middleboxes
+            // get an existing emulation of another middlebox
             assert(!emulations.empty());
             Emulation *emulation = *emulations.begin(); // TODO: LRU?
-            Middlebox *old_mb = emulation->get_mb();
-            NodePacketHistory *old_nph = emulation->get_node_pkt_hist();
+            Middlebox *old_mb = emulation->mb();
+            NodePacketHistory *old_nph = emulation->node_pkt_hist();
 
             assert(mb_emulations_map[old_mb][old_nph].erase(emulation) == 1);
             if (mb_emulations_map[old_mb][old_nph].empty()) {
@@ -64,7 +64,7 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
             --nph_map_itr;
         }
         return *(nph_map_itr->second.begin());
-        /*
+        /**
          * Note that the current implementation will not use more emulations
          * than the number of middleboxes. TODO: think about duplication
          * strategy.
@@ -74,13 +74,13 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
 
 void EmulationMgr::update_node_pkt_hist(Emulation *emulation,
                                         NodePacketHistory *nph) {
-    Middlebox *mb = emulation->get_mb();
-    NodePacketHistory *old_nph = emulation->get_node_pkt_hist();
+    Middlebox *mb = emulation->mb();
+    NodePacketHistory *old_nph = emulation->node_pkt_hist();
 
     assert(mb_emulations_map[mb][old_nph].erase(emulation) == 1);
     if (mb_emulations_map[mb][old_nph].empty()) {
         mb_emulations_map[mb].erase(old_nph);
     }
     mb_emulations_map[mb][nph].insert(emulation);
-    emulation->node_pkt_hist = nph;
+    emulation->node_pkt_hist(nph);
 }
