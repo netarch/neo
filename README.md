@@ -9,12 +9,12 @@ Neo is a network testing tool based on the Plankton verification framework. It
 combines explicit-state model checking and emulation techniques to achieve
 high-coverage testing for softwarized networks with middlebox components.
 
-#### Table of Contents
+## Table of Contents
 
 - [Neo](#neo)
-      - [Table of Contents](#table-of-contents)
+  - [Table of Contents](#table-of-contents)
   - [Environment setup](#environment-setup)
-  - [Build Neo](#build-neo)
+  - [Build and install Neo](#build-and-install-neo)
   - [Usage](#usage)
 
 
@@ -46,17 +46,17 @@ installed.
 ## Build and install Neo
 
 ```sh
-$ cd neo
-$ git submodule update --init --recursive
-$ rm -rf build
-$ cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-$ cmake --build build -j $(nproc)
+cd neo
+git submodule update --init --recursive
+rm -rf build
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j $(nproc)
 ```
 
 Optionally you can install Neo to system paths if desired.
 
 ```sh
-$ sudo DESTDIR=/ cmake --install build --prefix /usr
+sudo DESTDIR=/ cmake --install build --prefix /usr
 ```
 
 ## Usage
@@ -76,7 +76,7 @@ Neo options:
 Examples:
 
 ```sh
-$ sudo neo -afj8 -i examples/00-reverse-path-filtering/network.toml -o output
+sudo neo -afj8 -i examples/00-reverse-path-filtering/network.toml -o output
 ```
 
 > **Note** <br/>
