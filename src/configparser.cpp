@@ -40,7 +40,6 @@ void ConfigParser::parse(const string &filename, Plankton &plankton) {
     this->parse_network(plankton._network);
     this->parse_openflow(plankton._openflow, plankton._network);
     this->parse_policies(plankton._policies, plankton._network);
-    logger.info("Finished parsing");
 }
 
 void ConfigParser::parse_network(Network &network) {

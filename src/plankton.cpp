@@ -159,7 +159,6 @@ void Plankton::inv_sig_handler(int sig,
         _violated = true;
 
         if (!_all_ecs) {
-            _tasks.erase(pid);
             kill_all_tasks(SIGTERM);
         }
 
@@ -184,6 +183,8 @@ void Plankton::kill_all_tasks(int sig) {
 
     while (wait(nullptr) != -1 || errno != ECHILD)
         ;
+
+    _tasks.clear();
 }
 
 void Plankton::verify_policy() {
