@@ -121,4 +121,4 @@ public:
     ReachCounts *set_reach_counts(ReachCounts &&) const;
 };
 
-extern const Model &model;
+extern Model &model;

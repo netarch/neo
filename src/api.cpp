@@ -6,17 +6,17 @@
 class API {
 public:
     static void initialize(State *state) {
-        Model::get().set_state(state);
+        model.set_state(state);
         Plankton::get().initialize();
     }
 
     static void exec_step(State *state) {
-        Model::get().set_state(state);
+        model.set_state(state);
         Plankton::get().exec_step();
     }
 
     static void report(State *state) {
-        Model::get().set_state(state);
+        model.set_state(state);
         Plankton::get().report();
     }
 

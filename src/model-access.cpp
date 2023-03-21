@@ -63,7 +63,7 @@ VariableHist::~VariableHist() {
 }
 
 static VariableHist storage;
-const Model &model = Model::get();
+Model &model = Model::get();
 
 Model::Model() : state(nullptr), network(nullptr), openflow(nullptr) {}
 

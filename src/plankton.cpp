@@ -333,7 +333,7 @@ void Plankton::ec_sig_handler(int sig) {
 /***** functions used by the Promela network model *****/
 
 void Plankton::initialize() {
-    Model::get().init(&_network, &_openflow);
+    model.init(&_network, &_openflow);
 
     // processes
     _forwarding.init(_network);
