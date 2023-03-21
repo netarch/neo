@@ -46,17 +46,17 @@ installed.
 ## Build and install Neo
 
 ```sh
-$ cd neo
-$ git submodule update --init --recursive
-$ rm -rf build
-$ cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-$ cmake --build build -j $(nproc)
+cd neo
+git submodule update --init --recursive
+rm -rf build
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j $(nproc)
 ```
 
 Optionally you can install Neo to system paths if desired.
 
 ```sh
-$ sudo DESTDIR=/ cmake --install build --prefix /usr
+sudo DESTDIR=/ cmake --install build --prefix /usr
 ```
 
 ## Usage
@@ -76,7 +76,7 @@ Neo options:
 Examples:
 
 ```sh
-$ sudo neo -afj8 -i examples/00-reverse-path-filtering/network.toml -o output
+sudo neo -afj8 -i examples/00-reverse-path-filtering/network.toml -o output
 ```
 
 > **Note** <br/>
