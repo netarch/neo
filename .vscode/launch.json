@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch 00",
+      "name": "00 (timeout)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/neo",
