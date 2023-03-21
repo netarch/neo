@@ -1,6 +1,5 @@
 #include "network.hpp"
 
-#include "fib.hpp"
 #include "logger.hpp"
 #include "middlebox.hpp"
 #include "model-access.hpp"

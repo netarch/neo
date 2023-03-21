@@ -42,7 +42,7 @@ Interface *const &FIB_IPNH::get_l2_intf() const {
 }
 
 bool operator<(const FIB_IPNH &a, const FIB_IPNH &b) {
-    /*
+    /**
      * NOTE:
      * It's important that l3_node is the most significant element, since the
      * candidates (vector of L3 nodes) are derived from the set of FIB_IPNHs. By
