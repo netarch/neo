@@ -29,6 +29,8 @@ Emulation::~Emulation() {
 }
 
 void Emulation::teardown() {
+    // TODO: consider using detach after joinable for destructor
+
     if (_recv_thread) {
         _stop_threads = true;
         pthread_kill(_recv_thread->native_handle(), SIGUSR1);
@@ -36,6 +38,7 @@ void Emulation::teardown() {
             _recv_thread->join();
         }
     }
+
     if (_drop_thread) {
         _stop_threads = true;
         pthread_kill(_drop_thread->native_handle(), SIGUSR1);
@@ -43,15 +46,24 @@ void Emulation::teardown() {
             _drop_thread->join();
         }
     }
+
     delete _recv_thread;
     delete _drop_thread;
     delete _driver;
     _driver = nullptr;
     _mb = nullptr;
     _nph = nullptr;
+    _seq_offsets.clear();
+    _port_offsets.clear();
+    _dropmon = false;
     _recv_thread = nullptr;
     _drop_thread = nullptr;
     _stop_threads = false;
+
+    lock_guard<mutex> lck(_mtx);
+    this->_recv_pkts.clear();
+    this->_pkts_hash.clear();
+    this->_drop_ts = 0;
 }
 
 void Emulation::listen_packets() {
@@ -180,48 +192,38 @@ void Emulation::update_offsets(list<Packet> &pkts) {
 }
 
 void Emulation::init(Middlebox *mb) {
-    if (_mb != mb) {
-        this->teardown();
+    // Reset everything as if it's just constructed.
+    this->teardown();
 
-        if (mb->driver() == "docker") {
-            _driver = new Docker(dynamic_cast<DockerNode *>(mb));
-        } else {
-            logger.error("Unknown driver: " + mb->driver());
-        }
-        _driver->init();
-        unique_lock<mutex> lck(_mtx);
-        _recv_pkts.clear();
-        _pkts_hash.clear();
-
-        // spawn the packet_listener thread (block all signals but SIGUSR1)
-        sigset_t mask, old_mask;
-        sigemptyset(&mask);
-        sigaddset(&mask, SIGCHLD);
-        sigaddset(&mask, SIGHUP);
-        sigaddset(&mask, SIGINT);
-        sigaddset(&mask, SIGQUIT);
-        sigaddset(&mask, SIGTERM);
-        pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-        _recv_thread = new thread(&Emulation::listen_packets, this);
-        pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-
-        // spawn the drop_listener thread (block all signals but SIGUSR1)
-        // if (mb->dropmon_enabled()) {
-        //     _dropmon = true;
-        //     pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-        //     drop_listener = new thread(&Emulation::listen_drops, this);
-        //     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-        // }
-
-        _mb = mb;
+    // TODO: use typeid instead. remove the mb->_driver variable
+    if (mb->driver() == "docker") {
+        this->_driver = new Docker(dynamic_cast<DockerNode *>(mb));
     } else {
-        _driver->init();
-        unique_lock<mutex> lck(_mtx);
-        _recv_pkts.clear();
-        _pkts_hash.clear();
+        logger.error("Unknown driver: " + mb->driver());
     }
 
-    this->reset_offsets();
+    this->_driver->init(); // Launch the emulation
+    this->_mb = mb;
+
+    // Spawn the recv thread (block all signals but SIGUSR1)
+    sigset_t mask, old_mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGHUP);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGQUIT);
+    sigaddset(&mask, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
+    this->_recv_thread = new thread(&Emulation::listen_packets, this);
+    pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
+
+    // Spawn the drop thread (block all signals but SIGUSR1)
+    // if (mb->dropmon_enabled()) {
+    //     _dropmon = true;
+    //     pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
+    //     drop_listener = new thread(&Emulation::listen_drops, this);
+    //     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
+    // }
 }
 
 int Emulation::rewind(NodePacketHistory *nph) {

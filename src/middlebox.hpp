@@ -13,6 +13,7 @@
 
 class Middlebox : public Node {
 protected:
+    // TODO: remove _driver, use typeinfo and class inheritance instead
     // Emulation driver type, currently only "docker" is supported
     std::string _driver;
 
