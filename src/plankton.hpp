@@ -3,8 +3,8 @@
 #include <csignal>
 #include <cstdint>
 #include <memory>
-#include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "network.hpp"
@@ -42,11 +42,11 @@ private:
     void verify_policy();
     void verify_conn();
 
-    static std::set<pid_t> _tasks; // Policy or EC tasks
+    static std::unordered_set<pid_t> _tasks; // Policy or EC tasks
     static const int sigs[];
     static void inv_sig_handler(int sig, siginfo_t *siginfo, void *ctx);
     static void ec_sig_handler(int sig);
-    static void kill_all_tasks(int sig);
+    static void kill_all_tasks(int sig, pid_t exclude_pid = 0);
 
     /***** functions used by the Promela network model *****/
     void check_to_switch_process() const;

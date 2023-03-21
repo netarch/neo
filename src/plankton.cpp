@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 
 bool Plankton::_all_ecs = false;
 bool Plankton::_violated = false;
-set<pid_t> Plankton::_tasks;
+unordered_set<pid_t> Plankton::_tasks;
 const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
                               SIGINT,  SIGQUIT, SIGTERM};
 
@@ -162,7 +162,7 @@ void Plankton::inv_sig_handler(int sig,
         _violated = true;
 
         if (!_all_ecs) {
-            kill_all_tasks(SIGTERM);
+            kill_all_tasks(SIGTERM, /* exclude */ pid);
         }
 
         logger.warn("Policy violated in process " + to_string(pid));
@@ -179,7 +179,11 @@ void Plankton::inv_sig_handler(int sig,
     }
 }
 
-void Plankton::kill_all_tasks(int sig) {
+void Plankton::kill_all_tasks(int sig, pid_t exclude_pid) {
+    if (exclude_pid) {
+        _tasks.erase(exclude_pid);
+    }
+
     for (pid_t pid : _tasks) {
         kill(pid, sig);
     }
@@ -244,7 +248,6 @@ void Plankton::verify_conn() {
     // Change to the invariant output directory
     const auto inv_dir = fs::path(_out_dir) / to_string(_policy->get_id());
     const auto log_path = inv_dir / (to_string(getpid()) + ".log");
-    const auto trail_path = inv_dir / (to_string(getpid()) + ".trail");
     fs::create_directory(inv_dir);
     fs::current_path(inv_dir);
 
@@ -282,14 +285,14 @@ void Plankton::verify_conn() {
     Stats::set_ec_t1();
 
     // run SPIN verifier
-    const string trail_op = "-t " + trail_path.string();
+    const string trail_suffix = "-t" + to_string(getpid()) + ".trail";
     const char *spin_args[] = {
         // See http://spinroot.com/spin/Man/Pan.html
         "neo",
         "-b", // consider it error to exceed the depth limit
         "-E", // suppress invalid end state errors
         "-n", // suppress report for unreached states
-        trail_op.c_str(),
+        trail_suffix.c_str(),
     };
     spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
     logger.error("verify_exit isn't called by Spin");
