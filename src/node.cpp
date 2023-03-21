@@ -1,5 +1,6 @@
 #include "node.hpp"
 
+#include <typeinfo>
 #include <utility>
 
 #include "logger.hpp"
@@ -50,6 +51,10 @@ bool Node::has_ip(const IPv4Address &addr) const {
 
 bool Node::is_l3_only() const {
     return intfs_l2.empty();
+}
+
+bool Node::is_emulated() const {
+    return typeid(*this) != typeid(Node);
 }
 
 Interface *Node::get_interface(const std::string &intf_name) const {

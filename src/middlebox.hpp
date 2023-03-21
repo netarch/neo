@@ -50,6 +50,7 @@ public:
     const decltype(_ec_ip_addrs) &ec_ip_addrs() const { return _ec_ip_addrs; }
     const decltype(_ec_ports) &ec_ports() const { return _ec_ports; }
 
+    bool is_emulated() const override { return true; }
     void update_timeout();
     void adjust_latency_estimate_by_ntasks(int ntasks);
 

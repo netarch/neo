@@ -45,6 +45,7 @@ public:
     virtual std::string get_name() const;
     virtual bool has_ip(const IPv4Address &addr) const;
     virtual bool is_l3_only() const;
+    virtual bool is_emulated() const;
 
     virtual Interface *get_interface(const std::string &) const;
     virtual Interface *get_interface(const char *) const;
@@ -63,7 +64,7 @@ public:
     virtual void set_l2lan(Interface *, L2_LAN *);
     virtual L2_LAN *get_l2lan(Interface *) const;
 
-    /*
+    /**
      * Compute the IP next hops from this node for a given destination address
      * by recursively looking up in the given RIB.
      */
@@ -72,7 +73,7 @@ public:
               const RoutingTable *rib = nullptr,
               std::unordered_set<IPv4Address> *looked_up_ips = nullptr);
 
-    /*
+    /**
      * Compute the IP next hop from this node for a given egress interface and a
      * destination address.
      * NOTE: If the next hop does not exist, the returned l3_node and l2_node

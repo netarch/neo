@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <optional>
-#include <typeinfo>
 #include <utility>
 
 #include "candidates.hpp"
@@ -91,8 +90,8 @@ void ForwardingProcess::first_forward() {
 
 void ForwardingProcess::collect_next_hops() {
     Node *current_node = model.get_pkt_location();
-    if (typeid(*current_node) == typeid(Middlebox)) {
-        // current_node is a Middlebox; inject packet to update next hops
+    if (current_node->is_emulated()) {
+        // current_node is emulated; inject packet to update next hops
         inject_packet(static_cast<Middlebox *>(current_node));
         return;
     } // else: current_node is a Node; look up next hops from FIB
@@ -167,7 +166,7 @@ void ForwardingProcess::forward_packet() {
         model.set_fwd_mode(fwd_mode::ACCEPTED);
         model.set_choice_count(1);
     } else {
-        if (typeid(*next_hop) == typeid(Middlebox)) {
+        if (next_hop->is_emulated()) {
             // packet delivered at middlebox, set rx node
             if (PS_IS_FIRST(model.get_proto_state())) {
                 // store the original receiving endpoint of the connection
@@ -209,7 +208,7 @@ void ForwardingProcess::accepted() {
         phase_transition(PS_TCP_L7_REP_A, true);
         break;
     case PS_TCP_L7_REP_A:
-        if (typeid(pkt_loc) == typeid(Middlebox)) {
+        if (pkt_loc.is_emulated()) {
             phase_transition(PS_TCP_TERM_1, false);
         } else {
             phase_transition(PS_TCP_TERM_1, true);
@@ -248,7 +247,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
     // executable" (missing packet)
     Node *new_src_node =
         change_direction ? model.get_pkt_location() : model.get_src_node();
-    if (typeid(*new_src_node) == typeid(Middlebox)) {
+    if (new_src_node->is_emulated()) {
         logger.debug("Freeze conn " + std::to_string(model.get_conn()));
         model.set_executable(0);
         return;

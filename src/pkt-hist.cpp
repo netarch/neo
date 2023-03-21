@@ -1,7 +1,5 @@
 #include "pkt-hist.hpp"
 
-#include <typeinfo>
-
 #include "middlebox.hpp"
 
 NodePacketHistory::NodePacketHistory(Packet *p, NodePacketHistory *h)
@@ -41,7 +39,7 @@ bool operator==(const NodePacketHistory &a, const NodePacketHistory &b) {
 
 PacketHistory::PacketHistory(const Network &network) {
     for (const auto &[_, node] : network.get_nodes()) {
-        if (typeid(*node) == typeid(Middlebox)) {
+        if (node->is_emulated()) {
             tbl.emplace(node, nullptr);
         }
     }

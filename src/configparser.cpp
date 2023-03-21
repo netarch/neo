@@ -677,7 +677,7 @@ void ConfigParser::parse_openflow_update(Node *&node,
 
     node = node_itr->second;
 
-    if (typeid(*node) != typeid(Node)) {
+    if (node->is_emulated()) {
         logger.error("Unsupported node type");
     }
 
