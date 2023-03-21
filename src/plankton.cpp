@@ -62,7 +62,10 @@ void Plankton::init(bool all_ecs,
     // DropMon::get().init(dropmon);
 
     // Compute initial ECs (oblivious to the policies)
-    EqClassMgr::get().compute_initial_ecs(_network, _openflow);
+    auto &ec_mgr = EqClassMgr::get();
+    ec_mgr.compute_initial_ecs(_network, _openflow);
+    logger.info("Initial ECs: " + to_string(ec_mgr.all_ecs().size()));
+    logger.info("Initial ports: " + to_string(ec_mgr.ports().size()));
 }
 
 // Reset to as if it was just constructed

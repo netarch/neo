@@ -20,7 +20,7 @@ std::set<Connection> ConnSpec::compute_connections() const {
     std::set<uint16_t> dst_ports;
     if (this->dst_ports.empty()) {
         if (protocol == proto::tcp || protocol == proto::udp) {
-            dst_ports = EqClassMgr::get().get_ports();
+            dst_ports = EqClassMgr::get().ports();
         } else { // ICMP
             dst_ports.insert(0);
         }

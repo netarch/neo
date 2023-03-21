@@ -13,7 +13,7 @@
 using namespace std;
 
 EqClassMgr::~EqClassMgr() {
-    for (EqClass *const &ec : all_ECs) {
+    for (EqClass *const &ec : _all_ecs) {
         delete ec;
     }
 }
@@ -32,33 +32,33 @@ void EqClassMgr::split_intersected_ec(EqClass *ec,
     for (ECRange ecrange : orig_ec) {
         if (ecrange == range) {
             // overlapped range, split at the intersections (if any)
-            allranges.erase(ecrange);
+            _allranges.erase(ecrange);
             ec->rm_range(ecrange);
             if (ecrange.get_lb() < range.get_lb()) {
                 ECRange lower_new_range(ecrange);
                 lower_new_range.set_ub(IPv4Address(range.get_lb() - 1));
                 ec->add_range(lower_new_range);
-                allranges.insert(lower_new_range);
+                _allranges.insert(lower_new_range);
                 ecrange.set_lb(range.get_lb());
             }
             if (range.get_ub() < ecrange.get_ub()) {
                 ECRange upper_new_range(ecrange);
                 upper_new_range.set_lb(IPv4Address(range.get_ub() + 1));
                 ec->add_range(upper_new_range);
-                allranges.insert(upper_new_range);
+                _allranges.insert(upper_new_range);
                 ecrange.set_ub(range.get_ub());
             }
             // move the contained range to the new EC
             ecrange.set_ec(new_ec);
             new_ec->add_range(ecrange);
-            allranges.insert(ecrange);
+            _allranges.insert(ecrange);
         } // else: non-overlapped range, do nothing (stay in the original EC)
     }
 
     assert(!new_ec->empty());
-    all_ECs.insert(new_ec);
-    if (owned || owned_ECs.count(ec) > 0) {
-        owned_ECs.insert(new_ec);
+    _all_ecs.insert(new_ec);
+    if (owned || _owned_ecs.count(ec) > 0) {
+        _owned_ecs.insert(new_ec);
     }
 }
 
@@ -67,14 +67,14 @@ void EqClassMgr::add_non_overlapped_ec(const ECRange &range, bool owned) {
     IPv4Address lb = range.get_lb();
     set<ECRange>::const_iterator it;
 
-    for (it = allranges.begin(); it != allranges.end() && *it != range; ++it)
+    for (it = _allranges.begin(); it != _allranges.end() && *it != range; ++it)
         ;
-    for (; it != allranges.end() && *it == range; ++it) {
+    for (; it != _allranges.end() && *it == range; ++it) {
         if (lb < it->get_lb()) {
             ECRange new_range(lb, IPv4Address(it->get_lb() - 1));
             new_range.set_ec(new_ec);
             new_ec->add_range(new_range);
-            allranges.insert(new_range);
+            _allranges.insert(new_range);
         }
         lb = it->get_ub() + 1;
     }
@@ -82,15 +82,15 @@ void EqClassMgr::add_non_overlapped_ec(const ECRange &range, bool owned) {
         ECRange new_range(lb, range.get_ub());
         new_range.set_ec(new_ec);
         new_ec->add_range(new_range);
-        allranges.insert(new_range);
+        _allranges.insert(new_range);
     }
 
     if (new_ec->empty()) {
         delete new_ec;
     } else {
-        all_ECs.insert(new_ec);
+        _all_ecs.insert(new_ec);
         if (owned) {
-            owned_ECs.insert(new_ec);
+            _owned_ecs.insert(new_ec);
         }
     }
 }
@@ -104,7 +104,7 @@ void EqClassMgr::add_ec(const ECRange &new_range, bool owned) {
             // ec is partially inside the new range
             split_intersected_ec(ec, new_range, owned);
         } else if (owned) {
-            owned_ECs.insert(ec);
+            _owned_ecs.insert(ec);
         }
     }
 
@@ -145,7 +145,7 @@ void EqClassMgr::compute_initial_ecs(const Network &network,
             this->add_ec(addr);
         }
         const auto &app_ports = mb->ec_ports();
-        this->ports.insert(app_ports.begin(), app_ports.end());
+        this->_ports.insert(app_ports.begin(), app_ports.end());
     }
 
     // Add another random port denoting the "other" port EC
@@ -154,28 +154,25 @@ void EqClassMgr::compute_initial_ecs(const Network &network,
     uniform_int_distribution<uint16_t> distribution(10, 49151);
     do {
         port = distribution(generator);
-    } while (this->ports.count(port) > 0);
-    this->ports.insert(port);
-
-    logger.info("Initial ECs: " + to_string(all_ECs.size()));
-    logger.info("Initial ports: " + to_string(this->ports.size()));
+    } while (this->_ports.count(port) > 0);
+    this->_ports.insert(port);
 }
 
 set<EqClass *> EqClassMgr::get_overlapped_ecs(const ECRange &range,
                                               bool owned_only) const {
     set<EqClass *> overlapped_ecs;
-    auto ecrange = allranges.find(range);
-    if (ecrange != allranges.end()) {
+    auto ecrange = _allranges.find(range);
+    if (ecrange != _allranges.end()) {
         for (set<ECRange>::const_reverse_iterator r =
                  make_reverse_iterator(ecrange);
-             r != allranges.rend() && *r == range; ++r) {
-            if (!owned_only || owned_ECs.count(r->get_ec()) > 0) {
+             r != _allranges.rend() && *r == range; ++r) {
+            if (!owned_only || _owned_ecs.count(r->get_ec()) > 0) {
                 overlapped_ecs.insert(r->get_ec());
             }
         }
         for (set<ECRange>::const_iterator r = ecrange;
-             r != allranges.end() && *r == range; ++r) {
-            if (!owned_only || owned_ECs.count(r->get_ec()) > 0) {
+             r != _allranges.end() && *r == range; ++r) {
+            if (!owned_only || _owned_ecs.count(r->get_ec()) > 0) {
                 overlapped_ecs.insert(r->get_ec());
             }
         }
@@ -183,13 +180,9 @@ set<EqClass *> EqClassMgr::get_overlapped_ecs(const ECRange &range,
     return overlapped_ecs;
 }
 
-const set<uint16_t> &EqClassMgr::get_ports() const {
-    return ports;
-}
-
 EqClass *EqClassMgr::find_ec(const IPv4Address &ip) const {
-    auto it = allranges.find(ECRange(ip, ip));
-    if (it == allranges.end()) {
+    auto it = _allranges.find(ECRange(ip, ip));
+    if (it == _allranges.end()) {
         logger.error("Cannot find the EC of " + ip.to_string());
         return nullptr;
     }
