@@ -29,8 +29,6 @@ Emulation::~Emulation() {
 }
 
 void Emulation::teardown() {
-    // TODO: consider using detach after joinable for destructor
-
     if (_recv_thread) {
         _stop_threads = true;
         pthread_kill(_recv_thread->native_handle(), SIGUSR1);
