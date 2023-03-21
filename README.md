@@ -9,12 +9,12 @@ Neo is a network testing tool based on the Plankton verification framework. It
 combines explicit-state model checking and emulation techniques to achieve
 high-coverage testing for softwarized networks with middlebox components.
 
-#### Table of Contents
+## Table of Contents
 
 - [Neo](#neo)
-      - [Table of Contents](#table-of-contents)
+  - [Table of Contents](#table-of-contents)
   - [Environment setup](#environment-setup)
-  - [Build Neo](#build-neo)
+  - [Build and install Neo](#build-and-install-neo)
   - [Usage](#usage)
 
 
