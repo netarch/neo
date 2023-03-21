@@ -116,10 +116,10 @@ COMMIT
     # The max value from conf/{all,interface}/rp_filter is used when doing
     # source validation on the {interface}.
     key = "net.ipv4.conf.all.rp_filter"
-    value = "2"
+    value = "1"     # misconfiguration, should be 0 or 2
     [[nodes.container.sysctls]]
     key = "net.ipv4.conf.default.rp_filter"
-    value = "2"
+    value = "1"     # misconfiguration, should be 0 or 2
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.2/24"

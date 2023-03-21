@@ -44,6 +44,7 @@
     driver = "local"            # optional ("local"), default: "local"
     readOnly = false            # optional, default: false
     [[nodes.container.sysctls]] # optional
+    # https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/Documentation/networking/ip-sysctl.rst?h=linux-6.2.y
     key = ""
     value = ""
 

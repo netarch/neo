@@ -29,12 +29,46 @@ NEO="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../build/neo)"
 CONF="${SCRIPT_DIR}/network.toml"
 CONFGEN=("python3" "${SCRIPT_DIR}/confgen.py")
 RESULTS_DIR="$(realpath "${SCRIPT_DIR}/results")"
-export NEO
 export CONF
 export CONFGEN
-export RESULTS_DIR
 
 mkdir -p "${RESULTS_DIR}"
+
+run_with_timeout() {
+    name="$1"
+    procs="$2"
+    infile="$3"
+    outdir="$RESULTS_DIR/$name"
+
+    msg "Verifying $name"
+    sudo "$NEO" -f -j "$procs" -i "$infile" -o "$outdir"
+    sudo chown -R "$(id -u):$(id -g)" "$outdir"
+    cp "$infile" "$outdir/network.toml"
+}
+
+run_with_dropmon() {
+    name="$1"
+    procs="$2"
+    infile="$3"
+    outdir="$RESULTS_DIR/$name"
+
+    msg "Verifying $name"
+    sudo "$NEO" -f -j "$procs" -i "$infile" -o "$outdir" --dropmon
+    sudo chown -R "$(id -u):$(id -g)" "$outdir"
+    cp "$infile" "$outdir/network.toml"
+}
+
+run_with_ebpf_dt() {
+    name="$1"
+    procs="$2"
+    infile="$3"
+    outdir="$RESULTS_DIR/$name"
+
+    msg "Verifying $name"
+    sudo "$NEO" -f -j "$procs" -i "$infile" -o "$outdir" --ebpf
+    sudo chown -R "$(id -u):$(id -g)" "$outdir"
+    cp "$infile" "$outdir/network.toml"
+}
 
 # extract_per_session_stats() {
 #     dir="$1"

@@ -28,7 +28,10 @@ COMMIT
     value = "1"
     [[nodes.container.sysctls]]
     key = "net.ipv4.conf.all.rp_filter"
-    value = "1"     # misconfiguration, should be 0
+    value = "1"
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.default.rp_filter"
+    value = "1"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.2/24"
