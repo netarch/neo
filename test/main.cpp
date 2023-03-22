@@ -4,6 +4,8 @@
 #include <boost/filesystem.hpp>
 #include <catch2/catch_session.hpp>
 
+#include "logger.hpp"
+
 using namespace std;
 namespace fs = boost::filesystem;
 
@@ -43,5 +45,6 @@ int main(int argc, char **argv) {
     }
 
     test_data_dir = fs::canonical(test_data_dir).string();
+    logger.enable_console_logging();
     return session.run();
 }
