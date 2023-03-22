@@ -1,14 +1,14 @@
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
 #include "plankton.hpp"
 
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 namespace po = boost::program_options;
 
 int main(int argc, char **argv) {

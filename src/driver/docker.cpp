@@ -5,6 +5,7 @@
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
+#include <filesystem>
 #include <linux/if_tun.h>
 #include <list>
 #include <net/if.h>
@@ -18,7 +19,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <boost/filesystem.hpp>
 #include <curl/curl.h>
 #include <pcapplusplus/PcapFileDevice.h>
 
@@ -34,7 +34,7 @@
 #include "routingtable.hpp"
 
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 Docker::Docker(DockerNode *node, bool log_pkts)
     : _node(node), _dapi(node->daemon()), _pid(0), _log_pkts(log_pkts),

@@ -2,12 +2,11 @@
 
 #include <cstdlib>
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
-
-#include <boost/filesystem.hpp>
 
 #include "configparser.hpp"
 #include "emulationmgr.hpp"
@@ -17,7 +16,7 @@
 #include "stats.hpp"
 
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 bool Plankton::_all_ecs = false;
 bool Plankton::_violated = false;
@@ -44,10 +43,10 @@ void Plankton::init(bool all_ecs,
     this->_max_jobs = min(max_jobs, size_t(thread::hardware_concurrency()));
     this->_max_emu = max_emu;
     fs::create_directories(output_dir);
-    this->_in_file = fs::canonical(input_file).string();
-    this->_out_dir = fs::canonical(output_dir).string();
+    this->_in_file = fs::canonical(input_file);
+    this->_out_dir = fs::canonical(output_dir);
     logger.enable_console_logging();
-    logger.enable_file_logging((fs::path(_out_dir) / "main.log").string());
+    logger.enable_file_logging(fs::path(_out_dir) / "main.log");
 
     // Set the initial system state based on input configuration
     ConfigParser().parse(_in_file, *this);
@@ -247,14 +246,14 @@ void Plankton::verify_policy() {
 void Plankton::verify_conn() {
     // Change to the invariant output directory
     const auto inv_dir = fs::path(_out_dir) / to_string(_policy->get_id());
-    const auto log_path = inv_dir / (to_string(getpid()) + ".log");
     fs::create_directory(inv_dir);
     fs::current_path(inv_dir);
 
     // Reset logger
+    const auto log_path = inv_dir / (to_string(getpid()) + ".log");
     logger.disable_console_logging();
     logger.disable_file_logging();
-    logger.enable_file_logging(log_path.string());
+    logger.enable_file_logging(log_path);
     logger.info("Policy: " + _policy->to_string());
 
     // Duplicate file descriptors for SPIN stdout/stderr

@@ -4,7 +4,6 @@
 #include <regex>
 #include <sstream>
 
-#include <boost/filesystem.hpp>
 #include <toml++/toml.h>
 
 #include "connspec.hpp"
@@ -32,7 +31,6 @@
 #include "stats.hpp"
 
 using namespace std;
-namespace fs = boost::filesystem;
 
 void ConfigParser::parse(const string &filename, Plankton &plankton) {
     logger.info("Parsing configuration file " + filename);

@@ -1,15 +1,15 @@
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <boost/filesystem.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
 #include "logger.hpp"
 
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 TEST_CASE("logger") {
     SECTION("no log file") {
@@ -27,6 +27,6 @@ TEST_CASE("logger") {
         CHECK_THROWS_WITH(logger.error(""), "");
         CHECK_THROWS_WITH(logger.error("", 0), ": Success");
         logger.disable_file_logging();
-        REQUIRE_NOTHROW(fs::remove("normal.log"));
+        REQUIRE(fs::remove("normal.log"));
     }
 }

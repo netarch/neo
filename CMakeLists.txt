@@ -88,7 +88,6 @@ find_package(Spin REQUIRED)
 find_package(Threads REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
-    filesystem
     program_options
 )
 
@@ -136,7 +135,6 @@ add_library(libneo OBJECT ${SRC_FILES})
 target_include_directories(libneo PUBLIC ${SRC_DIR})
 target_link_libraries(libneo PUBLIC coverage_config)
 target_link_libraries(libneo PRIVATE
-    Boost::filesystem
     Boost::program_options
     CURL::libcurl
     Libnet::Libnet
