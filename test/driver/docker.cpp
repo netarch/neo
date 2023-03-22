@@ -88,8 +88,8 @@ TEST_CASE("docker") {
         });
 
         // Ping request packet from node1 to node2
-        Packet pkt(eth0, "192.168.1.2", "192.168.2.2",
-                   0, 0, 0, 0, PS_ICMP_ECHO_REQ);
+        Packet pkt(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
+                   PS_ICMP_ECHO_REQ);
 
         // Send the packet
         size_t nwrite = docker.inject_packet(pkt);
