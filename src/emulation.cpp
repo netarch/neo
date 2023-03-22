@@ -22,9 +22,6 @@ Emulation::Emulation()
       _drop_ts(0) {}
 
 Emulation::~Emulation() {
-    // delete _recv_thread;
-    // delete _drop_thread;
-    // delete _driver;
     teardown();
 }
 

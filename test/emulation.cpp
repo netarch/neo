@@ -38,10 +38,9 @@ TEST_CASE("emulation") {
         CHECK(emu2.node_pkt_hist() == nullptr);
     }
 
-    SECTION("Start and shutdown the emulation") {
+    SECTION("Re-initialization") {
         Emulation emu;
         REQUIRE_NOTHROW(emu.init(mb));
-        REQUIRE_NOTHROW(emu.teardown());
         REQUIRE_NOTHROW(emu.init(mb));
         REQUIRE_NOTHROW(emu.init(mb));
     }
