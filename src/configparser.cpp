@@ -371,7 +371,7 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 
     // Search for config file locations and parse for IP and ports
     if (cfg_files) {
-        Docker docker(&dn);
+        Docker docker(&dn, false);
         docker.init();
         docker.enterns();
 

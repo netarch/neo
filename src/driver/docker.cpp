@@ -36,9 +36,10 @@
 using namespace std;
 namespace fs = boost::filesystem;
 
-Docker::Docker(DockerNode *node)
-    : _node(node), _dapi(node->daemon()), _pid(0), _hnet_fd(-1), _cnet_fd(-1),
-      _hmnt_fd(-1), _cmnt_fd(-1), _epollfd(-1), _events(nullptr) {}
+Docker::Docker(DockerNode *node, bool log_pkts)
+    : _node(node), _dapi(node->daemon()), _pid(0), _log_pkts(log_pkts),
+      _hnet_fd(-1), _cnet_fd(-1), _hmnt_fd(-1), _cmnt_fd(-1), _epollfd(-1),
+      _events(nullptr) {}
 
 Docker::~Docker() {
     this->teardown();
@@ -381,17 +382,19 @@ void Docker::init() {
     leavens();
 
 #ifdef ENABLE_DEBUG
-    // Enable pcap logger for each interface
-    for (const auto &[_, intf] : _node->get_intfs_l3()) {
-        string pcapFn = to_string(getpid()) + "." + _node->get_name() + "-" +
-                        intf->get_name() + ".pcap";
-        this->_pcap_loggers.emplace(intf,
-                                    make_unique<pcpp::PcapFileWriterDevice>(
-                                        pcapFn, pcpp::LINKTYPE_ETHERNET));
-        auto &pcapLogger = this->_pcap_loggers.at(intf);
-        bool appendMode = fs::exists(pcapFn);
-        if (!pcapLogger->open(appendMode)) {
-            logger.error("Failed to open " + pcapFn);
+    if (_log_pkts) {
+        // Enable pcap logger for each interface
+        for (const auto &[_, intf] : _node->get_intfs_l3()) {
+            string pcapFn = to_string(getpid()) + "." + _node->get_name() +
+                            "-" + intf->get_name() + ".pcap";
+            this->_pcap_loggers.emplace(intf,
+                                        make_unique<pcpp::PcapFileWriterDevice>(
+                                            pcapFn, pcpp::LINKTYPE_ETHERNET));
+            auto &pcapLogger = this->_pcap_loggers.at(intf);
+            bool appendMode = fs::exists(pcapFn);
+            if (!pcapLogger->open(appendMode)) {
+                logger.error("Failed to open " + pcapFn);
+            }
         }
     }
 #endif

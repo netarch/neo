@@ -25,6 +25,7 @@ private:
     DockerNode *_node; // emulated node
     DockerAPI _dapi;   // docker API object
     pid_t _pid;        // pid of the running process in the container
+    bool _log_pkts;    // whether to log packets in debug mode
     std::map<pid_t, std::string> _execs;              // pid -> exec_id
     std::unordered_map<Interface *, int> _tapfds;     // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> _macs; // intf --> mac addr
@@ -45,7 +46,7 @@ private:
     void set_epoll_events();
 
 public:
-    Docker(DockerNode *);
+    Docker(DockerNode *, bool log_pkts = true);
     ~Docker() override;
 
     decltype(_pid) pid() const { return _pid; }

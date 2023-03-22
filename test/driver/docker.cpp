@@ -22,7 +22,7 @@ TEST_CASE("docker") {
         node = static_cast<DockerNode *>(network.get_nodes().at("fw")));
     REQUIRE(node);
 
-    Docker docker(node);
+    Docker docker(node, false);
 
     SECTION("Start and terminate container") {
         REQUIRE_NOTHROW(docker.init());
