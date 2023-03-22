@@ -2,7 +2,7 @@ Neo
 ===
 
 [![GitHub workflow](https://github.com/netarch/neo/workflows/test/badge.svg)](https://github.com/netarch/neo/actions)
-[![Codecov](https://img.shields.io/codecov/c/github/netarch/neo.svg)](https://codecov.io/gh/netarch/neo)
+[![Codecov](https://img.shields.io/codecov/c/github/netarch/neo.svg)](https://app.codecov.io/gh/netarch/neo)
 [![GitHub repo size](https://img.shields.io/github/repo-size/netarch/neo.svg)](https://github.com/netarch/neo)
 
 Neo is a network testing tool based on the Plankton verification framework. It
