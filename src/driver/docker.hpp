@@ -1,7 +1,6 @@
 #pragma once
 
 #include <list>
-#include <map>
 #include <memory>
 #include <string>
 #include <sys/epoll.h>
@@ -26,7 +25,7 @@ private:
     DockerAPI _dapi;   // docker API object
     pid_t _pid;        // pid of the running process in the container
     bool _log_pkts;    // whether to log packets in debug mode
-    std::map<pid_t, std::string> _execs;              // pid -> exec_id
+    std::unordered_map<pid_t, std::string> _execs;    // pid -> exec_id
     std::unordered_map<Interface *, int> _tapfds;     // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> _macs; // intf --> mac addr
     std::unordered_map<Interface *, std::unique_ptr<pcpp::PcapFileWriterDevice>>
