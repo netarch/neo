@@ -269,34 +269,6 @@ void Docker::fetchns() {
     }
 }
 
-void Docker::enterns() const {
-    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
-        return;
-    }
-
-    if (setns(_cnet_fd, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-
-    if (setns(_cmnt_fd, CLONE_NEWNS) < 0) {
-        logger.error("setns()", errno);
-    }
-}
-
-void Docker::leavens() const {
-    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
-        return;
-    }
-
-    if (setns(_hnet_fd, CLONE_NEWNET) < 0) {
-        logger.error("setns()", errno);
-    }
-
-    if (setns(_hmnt_fd, CLONE_NEWNS) < 0) {
-        logger.error("setns()", errno);
-    }
-}
-
 void Docker::closens() {
     if (_hnet_fd >= 0) {
         close(_hnet_fd);
@@ -317,6 +289,48 @@ void Docker::closens() {
         close(_cmnt_fd);
         _cmnt_fd = -1;
     }
+}
+
+void Docker::enterns(bool mnt) const {
+    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
+        return;
+    }
+
+    if (setns(_cnet_fd, CLONE_NEWNET) < 0) {
+        logger.error("setns()", errno);
+    }
+
+    if (mnt) {
+        if (setns(_cmnt_fd, CLONE_NEWNS) < 0) {
+            logger.error("setns()", errno);
+        }
+    }
+}
+
+void Docker::leavens(bool mnt) const {
+    if (_hnet_fd < 0 || _cnet_fd < 0 || _hmnt_fd < 0 || _cmnt_fd < 0) {
+        return;
+    }
+
+    if (setns(_hnet_fd, CLONE_NEWNET) < 0) {
+        logger.error("setns()", errno);
+    }
+
+    if (mnt) {
+        if (setns(_hmnt_fd, CLONE_NEWNS) < 0) {
+            logger.error("setns()", errno);
+        }
+    }
+}
+
+void Docker::exec(const vector<string> &cmd) {
+    if (this->_pid <= 0) {
+        logger.error("Container isn't running");
+    }
+
+    auto res = this->_dapi.exec(_node->get_name(), _node->env_vars(), cmd,
+                                _node->working_dir());
+    this->_execs.emplace(std::move(res));
 }
 
 void Docker::teardown() {
@@ -358,16 +372,6 @@ void Docker::teardown() {
     this->_dapi.remove_cntr(this->_node->get_name());
     this->_pid = 0;
     this->_execs.clear();
-}
-
-void Docker::exec(const vector<string> &cmd) {
-    if (this->_pid <= 0) {
-        logger.error("Container isn't running");
-    }
-
-    auto res = this->_dapi.exec(_node->get_name(), _node->env_vars(), cmd,
-                                _node->working_dir());
-    this->_execs.emplace(std::move(res));
 }
 
 void Docker::init() {
@@ -448,6 +452,7 @@ void Docker::reset() {
 }
 
 size_t Docker::inject_packet(const Packet &pkt) {
+    // Caution: libnet_init would fail within the container's mntns
     enterns();
 
     // Serialize the packet

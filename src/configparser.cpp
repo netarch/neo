@@ -371,9 +371,9 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 
     // Search for config file locations and parse for IP and ports
     if (cfg_files) {
-        Docker docker(&dn, false);
+        Docker docker(&dn, /* log_pkts */ false);
         docker.init();
-        docker.enterns();
+        docker.enterns(/* mnt */ true);
 
         // Inside the container namespaces
         for (const auto &cfg_file : *cfg_files) {
@@ -394,7 +394,7 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
             this->parse_config_string(dn, config);
         }
 
-        docker.leavens();
+        docker.leavens(/* mnt */ true);
     }
 
     // Parse command, exposed ports, and envs for interesting IP/ports

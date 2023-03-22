@@ -43,6 +43,8 @@ private:
     void set_rttable();
     void set_arp_cache();
     void set_epoll_events();
+    void fetchns(); // Save namespace fds
+    void closens(); // Close namespace fds
 
 public:
     Docker(DockerNode *, bool log_pkts = true);
@@ -50,12 +52,15 @@ public:
 
     decltype(_pid) pid() const { return _pid; }
 
-    void fetchns();       // Save namespace fds
-    void enterns() const; // Enter the container namespaces
-    void leavens() const; // Return to the main process namespaces
-    void closens();       // Close namespace fds
-    void teardown();
+    // A process can't join a new mount namespace if it is sharing
+    // filesystem-related attributes (the attributes whose sharing is controlled
+    // by the clone(2) CLONE_FS flag) with another process.
+    // (https://man7.org/linux/man-pages/man2/setns.2.html)
+    // ! Do not call with mnt = true when there are other threads !
+    void enterns(bool mnt = false) const; // Enter the container namespaces
+    void leavens(bool mnt = false) const; // Return to the original namespaces
     void exec(const std::vector<std::string> &cmd);
+    void teardown(); // Reset the object
 
     // (Re)Initialize a docker container
     void init() override;

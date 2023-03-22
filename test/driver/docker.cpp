@@ -22,7 +22,7 @@ TEST_CASE("docker") {
         node = static_cast<DockerNode *>(network.get_nodes().at("fw")));
     REQUIRE(node);
 
-    Docker docker(node, false);
+    Docker docker(node, /* log_pkts */ false);
 
     SECTION("Start and terminate container") {
         REQUIRE_NOTHROW(docker.init());
@@ -42,13 +42,8 @@ TEST_CASE("docker") {
         REQUIRE_NOTHROW(docker.init());
         REQUIRE(docker.pid() > 0);
         REQUIRE_NOTHROW(docker.reset());
-        // Check if the inodes of /proc/<docker.pid()>/ns/{mnt,net} are the same
-        // as /proc/self/ns/{mnt,net} after docker.enterns()
-        // man 2 stat
-        // docker.enterns();
-        // cerr << docker.pid() << endl;
-        // system("/bin/sh");
-        // docker.leavens();
+        REQUIRE_NOTHROW(docker.enterns(/* mnt */ true));
+        REQUIRE_NOTHROW(docker.leavens(/* mnt */ true));
         REQUIRE_NOTHROW(docker.teardown());
     }
 }
