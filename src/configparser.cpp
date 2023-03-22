@@ -62,9 +62,7 @@ void ConfigParser::parse_network(Network &network) {
                     logger.error("Unknown driver: " + **driver);
                 }
 
-                auto mb = static_cast<Middlebox *>(node);
-                mb->_driver = **driver;
-                network.add_middlebox(mb);
+                network.add_middlebox(static_cast<Middlebox *>(node));
             } else {
                 logger.error("Unknown node type: " + **type);
             }

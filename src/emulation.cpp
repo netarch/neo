@@ -3,6 +3,7 @@
 #include <cassert>
 #include <csignal>
 #include <libnet.h>
+#include <typeinfo>
 
 #include "dockernode.hpp"
 #include "driver/docker.hpp"
@@ -190,11 +191,10 @@ void Emulation::init(Middlebox *mb) {
     // Reset everything as if it's just constructed.
     this->teardown();
 
-    // TODO: use typeid instead. remove the mb->_driver variable
-    if (mb->driver() == "docker") {
+    if (typeid(*mb) == typeid(DockerNode)) {
         this->_driver = new Docker(dynamic_cast<DockerNode *>(mb));
     } else {
-        logger.error("Unknown driver: " + mb->driver());
+        logger.error("Unsupported middlebox type");
     }
 
     this->_driver->init(); // Launch the emulation

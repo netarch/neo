@@ -13,10 +13,6 @@
 
 class Middlebox : public Node {
 protected:
-    // TODO: remove _driver, use typeinfo and class inheritance instead
-    // Emulation driver type, currently only "docker" is supported
-    std::string _driver;
-
     // Packet injection latency and drop timeout estimate
     std::chrono::microseconds _lat_avg, _lat_mdev, _timeout;
     int _mdev_scalar;
@@ -39,7 +35,6 @@ public:
     Middlebox &operator=(const Middlebox &) = delete;
     Middlebox &operator=(Middlebox &&) = delete;
 
-    const decltype(_driver) &driver() const { return _driver; }
     decltype(_lat_avg) lat_avg() const { return _lat_avg; }
     decltype(_lat_mdev) lat_mdev() const { return _lat_mdev; }
     decltype(_timeout) timeout() const { return _timeout; }
