@@ -27,6 +27,7 @@ TEST_CASE("docker") {
         node = static_cast<DockerNode *>(network.get_nodes().at("fw")));
     REQUIRE(node);
 
+    chrono::seconds timeout(1);
     Docker docker(node, /* log_pkts */ false);
 
     SECTION("Start and terminate container") {
@@ -99,7 +100,7 @@ TEST_CASE("docker") {
         // Receive packets
         do {
             num_pkts = recv_pkts.size();
-            cv.wait_for(lck, chrono::microseconds(5000));
+            cv.wait_for(lck, timeout);
         } while (recv_pkts.size() > num_pkts);
 
         // Process the received packets
@@ -119,7 +120,7 @@ TEST_CASE("docker") {
         // Receive packets
         do {
             num_pkts = recv_pkts.size();
-            cv.wait_for(lck, chrono::microseconds(5000));
+            cv.wait_for(lck, timeout);
         } while (recv_pkts.size() > num_pkts);
 
         // Process the received packets
@@ -142,7 +143,7 @@ TEST_CASE("docker") {
         // Receive packets
         do {
             num_pkts = recv_pkts.size();
-            cv.wait_for(lck, chrono::microseconds(5000));
+            cv.wait_for(lck, timeout);
         } while (recv_pkts.size() > num_pkts);
 
         // Process the received packets
