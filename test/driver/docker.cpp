@@ -90,8 +90,9 @@ TEST_CASE("docker") {
         // Ping request packet from node1 to node2
         Packet pkt(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                    PS_ICMP_ECHO_REQ);
+        Packet compare_pkt;
 
-        // Send the packet
+        // Send the ping packet
         size_t nwrite = docker.inject_packet(pkt);
         CHECK(nwrite == 42);
 
@@ -103,9 +104,55 @@ TEST_CASE("docker") {
 
         // Process the received packets
         REQUIRE(recv_pkts.size() == 1);
-        CHECK(recv_pkts.front().get_intf() == eth1);
-        REQUIRE_NOTHROW(recv_pkts.front().set_intf(eth0));
-        CHECK(recv_pkts.front() == pkt);
+        REQUIRE_NOTHROW(compare_pkt = pkt);
+        REQUIRE_NOTHROW(compare_pkt.set_intf(eth1));
+        CHECK(recv_pkts.front() == compare_pkt);
+        recv_pkts.clear();
+
+        // Send a TCP SYN packet
+        pkt.set_src_port(DYNAMIC_PORT);
+        pkt.set_dst_port(80);
+        pkt.set_proto_state(PS_TCP_INIT_1);
+        nwrite = docker.inject_packet(pkt);
+        CHECK(nwrite == 54);
+
+        // Receive packets
+        do {
+            num_pkts = recv_pkts.size();
+            cv.wait_for(lck, chrono::microseconds(5000));
+        } while (recv_pkts.size() > num_pkts);
+
+        // Process the received packets
+        REQUIRE(recv_pkts.size() == 1);
+        REQUIRE_NOTHROW(compare_pkt = pkt);
+        REQUIRE_NOTHROW(compare_pkt.set_intf(eth1));
+        REQUIRE_NOTHROW(
+            compare_pkt.set_proto_state(recv_pkts.front().get_proto_state()));
+        CHECK(recv_pkts.front() == compare_pkt);
+        recv_pkts.clear();
+
+        // Send a ping packet to fw
+        pkt.set_dst_ip("192.168.1.1");
+        pkt.set_src_port(0);
+        pkt.set_dst_port(0);
+        pkt.set_proto_state(PS_ICMP_ECHO_REQ);
+        nwrite = docker.inject_packet(pkt);
+        CHECK(nwrite == 42);
+
+        // Receive packets
+        do {
+            num_pkts = recv_pkts.size();
+            cv.wait_for(lck, chrono::microseconds(5000));
+        } while (recv_pkts.size() > num_pkts);
+
+        // Process the received packets
+        REQUIRE(recv_pkts.size() == 1);
+        REQUIRE_NOTHROW(compare_pkt = pkt);
+        REQUIRE_NOTHROW(compare_pkt.set_src_ip(pkt.get_dst_ip()));
+        REQUIRE_NOTHROW(compare_pkt.set_dst_ip(pkt.get_src_ip()));
+        REQUIRE_NOTHROW(compare_pkt.set_proto_state(PS_ICMP_ECHO_REP));
+        CHECK(recv_pkts.front() == compare_pkt);
+        recv_pkts.clear();
 
         // Stop the recv thread
         stop_recv = true;
