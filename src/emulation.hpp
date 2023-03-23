@@ -63,7 +63,7 @@ public:
     void node_pkt_hist(decltype(_nph) nph) { _nph = nph; }
 
     void teardown();
-    void init(Middlebox *); // re-initialize and start the emulation
+    void init(Middlebox *, bool log_pkts = true); // re-initialize the emulation
     int rewind(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 };

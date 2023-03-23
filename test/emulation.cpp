@@ -41,7 +41,7 @@ TEST_CASE("emulation") {
 
     SECTION("Constructor/Destructor") {
         Emulation emu1, emu2;
-        REQUIRE_NOTHROW(emu1.init(mb));
+        REQUIRE_NOTHROW(emu1.init(mb, false));
         CHECK(emu1.mb() == mb);
         CHECK(emu1.node_pkt_hist() == nullptr);
         CHECK(emu2.node_pkt_hist() == nullptr);
@@ -49,14 +49,14 @@ TEST_CASE("emulation") {
 
     SECTION("Re-initialization") {
         Emulation emu;
-        REQUIRE_NOTHROW(emu.init(mb));
-        REQUIRE_NOTHROW(emu.init(mb));
-        REQUIRE_NOTHROW(emu.init(mb));
+        REQUIRE_NOTHROW(emu.init(mb, false));
+        REQUIRE_NOTHROW(emu.init(mb, false));
+        REQUIRE_NOTHROW(emu.init(mb, false));
     }
 
     SECTION("Send packets") {
         Emulation emu;
-        REQUIRE_NOTHROW(emu.init(mb));
+        REQUIRE_NOTHROW(emu.init(mb, false));
         Packet send_pkt, compare_pkt;
         list<Packet> recv_pkts;
 
@@ -100,7 +100,7 @@ TEST_CASE("emulation") {
          */
 
         Emulation emu;
-        REQUIRE_NOTHROW(emu.init(mb));
+        REQUIRE_NOTHROW(emu.init(mb, false));
         unique_ptr<NodePacketHistory> nph0(nullptr);
 
         // Send a ping req packet from node1 to node2

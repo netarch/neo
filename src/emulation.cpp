@@ -224,13 +224,14 @@ void Emulation::update_offsets(list<Packet> &pkts) {
  * emulation.
  *
  * @param mb the middlebox object
+ * @param log_pkts whether to log packets
  */
-void Emulation::init(Middlebox *mb) {
+void Emulation::init(Middlebox *mb, bool log_pkts) {
     // Reset everything as if it's just constructed.
     this->teardown();
 
     if (typeid(*mb) == typeid(DockerNode)) {
-        _driver = make_unique<Docker>(dynamic_cast<DockerNode *>(mb));
+        _driver = make_unique<Docker>(dynamic_cast<DockerNode *>(mb), log_pkts);
     } else {
         logger.error("Unsupported middlebox type");
     }
@@ -324,7 +325,7 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
 
         // use timeout (new injection)
         _cv.wait_for(lck, _mb->timeout());
-        Stats::set_pkt_latency(_mb->timeout());
+        Stats::set_pkt_latency(_mb->timeout()); // FIXME?
 
         // ? How to incorporate dropmon with timeouts ?
         // if (_dropmon) { // use drop monitor
