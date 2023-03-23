@@ -8,7 +8,7 @@
 #include "node.hpp"
 #include "packet.hpp"
 
-/*
+/**
  * NodePacketHistory contains the packet traversal history of one node, which is
  * represented as the "state" of that node.
  *
@@ -34,9 +34,9 @@ public:
 
 bool operator==(const NodePacketHistory &, const NodePacketHistory &);
 
-/*
+/**
  * PacketHistory contains the packet traversal history (of each node) for the
- * whole network and the current EC.
+ * whole network of the current EC.
  */
 class PacketHistory {
 private:

@@ -1,3 +1,4 @@
+#include <memory>
 #include <signal.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -91,9 +92,62 @@ TEST_CASE("emulation") {
         CHECK(recv_pkts.front() == compare_pkt);
     }
 
-    // SECTION("Rewind") {
-    //     ;
-    // }
+    SECTION("Rewind") {
+        /**
+         * nph0 (null) ---- nph1 ---- nph2 ---- nph3
+         *    \
+         *     + ---- nph4 ---- nph5
+         */
+
+        Emulation emu;
+        REQUIRE_NOTHROW(emu.init(mb));
+        unique_ptr<NodePacketHistory> nph0(nullptr);
+
+        // Send a ping req packet from node1 to node2
+        auto ping12 = make_unique<Packet>(eth0, "192.168.1.2", "192.168.2.2", 0,
+                                          0, 0, 0, PS_ICMP_ECHO_REQ);
+        auto nph1 = make_unique<NodePacketHistory>(ping12.get(), nph0.get());
+        REQUIRE_NOTHROW(emu.send_pkt(*ping12));
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph1.get()));
+
+        // Send a TCP SYN packet from node1 to node2
+        auto syn12 = make_unique<Packet>(eth0, "192.168.1.2", "192.168.2.2",
+                                         DYNAMIC_PORT, 80, 0, 0, PS_TCP_INIT_1);
+        auto nph2 = make_unique<NodePacketHistory>(syn12.get(), nph1.get());
+        REQUIRE_NOTHROW(emu.send_pkt(*syn12));
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph2.get()));
+
+        // Send a ping req packet from node1 to fw
+        auto pingfw = make_unique<Packet>(eth0, "192.168.1.2", "192.168.1.1", 0,
+                                          0, 0, 0, PS_ICMP_ECHO_REQ);
+        auto nph3 = make_unique<NodePacketHistory>(pingfw.get(), nph2.get());
+        REQUIRE_NOTHROW(emu.send_pkt(*pingfw));
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph3.get()));
+
+        // Rewind to nph0
+        CHECK(emu.rewind(nph0.get()) == 0);  // Reset but no injections
+        CHECK(emu.rewind(nph0.get()) == -1); // No resets at all
+
+        // Send a TCP SYN packet from node1 to node2
+        auto nph4 = make_unique<NodePacketHistory>(syn12.get(), nph0.get());
+        REQUIRE_NOTHROW(emu.send_pkt(*syn12));
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph4.get()));
+
+        // Send a ping req packet from node1 to node2
+        auto nph5 = make_unique<NodePacketHistory>(ping12.get(), nph4.get());
+        REQUIRE_NOTHROW(emu.send_pkt(*ping12));
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph5.get()));
+
+        // Test a bunch of rewinds
+        CHECK(emu.rewind(nph4.get()) == 1);  // Rewind to nph4
+        CHECK(emu.rewind(nph5.get()) == 1);  // Rewind to nph5
+        CHECK(emu.rewind(nph3.get()) == 3);  // Rewind to nph3
+        CHECK(emu.rewind(nph3.get()) == -1); // Rewind to nph3
+        CHECK(emu.rewind(nph2.get()) == 2);  // Rewind to nph2
+        CHECK(emu.rewind(nph1.get()) == 1);  // Rewind to nph1
+        CHECK(emu.rewind(nph3.get()) == 2);  // Rewind to nph3
+        CHECK(emu.rewind(nph5.get()) == 2);  // Rewind to nph5
+    }
 
     // Reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);

@@ -219,6 +219,12 @@ void Emulation::update_offsets(list<Packet> &pkts) {
     }
 }
 
+/**
+ * It initializes the emulation by creating a driver object and launching the
+ * emulation.
+ *
+ * @param mb the middlebox object
+ */
 void Emulation::init(Middlebox *mb) {
     // Reset everything as if it's just constructed.
     this->teardown();
@@ -239,26 +245,37 @@ void Emulation::init(Middlebox *mb) {
     // }
 }
 
+/**
+ * It resets the emulation state and re-injects all packets that have been sent
+ * since the last checkpoint. It will also update the emulation's node packet
+ * history (_nph) to the target state.
+ *
+ * @param nph the node packet history to rewind to
+ *
+ * @return The number of rewind injections. -1 means the emulation is already up
+ * to date and no resetting occurred.
+ */
 int Emulation::rewind(NodePacketHistory *nph) {
     if (_nph == nph) {
         logger.info(_mb->get_name() + " up to date, no need to rewind");
         return -1;
     }
 
-    int rewind_injections = 0;
     logger.info("Rewinding " + _mb->get_name() + "...");
 
-    // reset middlebox state
+    // Reset the emulation state
     if (!nph || !nph->contains(_nph)) {
         unique_lock<mutex> lck(_mtx);
+        reset_offsets();
+        _driver->reset();
         _recv_pkts.clear();
         _pkts_hash.clear();
-        _driver->reset();
-        this->reset_offsets();
         logger.info("Reset " + _mb->get_name());
     }
 
-    // replay history
+    // Replay history
+    int rewind_injections = 0;
+
     if (nph) {
         list<Packet *> pkts = nph->get_packets_since(_nph);
         rewind_injections = pkts.size();
@@ -267,18 +284,27 @@ int Emulation::rewind(NodePacketHistory *nph) {
         }
     }
 
+    _nph = nph; // Update the emulation's nph
     logger.info(to_string(rewind_injections) + " rewind injections");
     return rewind_injections;
 }
 
-list<Packet> Emulation::send_pkt(const Packet &non_offset_pkt) {
+/**
+ * It sends a packet, waits for a timeout, and returns the received packets.
+ * Notice that this function does NOT update the node packet history (nph).
+ *
+ * @param send_pkt The packet to send.
+ *
+ * @return A list of received packets.
+ */
+list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
     // Clear packet receive buffer
     unique_lock<mutex> lck(_mtx);
     _recv_pkts.clear();
     _pkts_hash.clear();
 
     // Prepare send packet, apply offsets
-    Packet pkt(non_offset_pkt);
+    Packet pkt(send_pkt);
     this->apply_offsets(pkt);
 
     // Set up the recv thread
