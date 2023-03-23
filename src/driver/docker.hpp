@@ -62,11 +62,10 @@ public:
     void exec(const std::vector<std::string> &cmd);
     void teardown(); // Reset the object
 
-    // (Re)Initialize a docker container
-    void init() override;
-    // (Soft-)Reset the running container for state backtracking.
-    void reset() override;
-
+    void init() override; // (Re)Initialize a docker container
+    void reset() override; // (Soft-)Reset the container for backtracking
+    void pause() override;
+    void unpause() override;
     size_t inject_packet(const Packet &) override;
     std::list<Packet> read_packets() const override;
 };

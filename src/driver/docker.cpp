@@ -451,6 +451,14 @@ void Docker::reset() {
     leavens();
 }
 
+void Docker::pause() {
+    _dapi.pause_cntr(_node->get_name());
+}
+
+void Docker::unpause() {
+    _dapi.unpause_cntr(_node->get_name());
+}
+
 size_t Docker::inject_packet(const Packet &pkt) {
     // Caution: libnet_init would fail within the container's mntns
     enterns();

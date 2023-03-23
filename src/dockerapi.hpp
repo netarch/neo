@@ -149,8 +149,6 @@ public:
     int run(const DockerNode &node);
     int get_cntr_pid(const std::string &name);
     bool is_cntr_running(const std::string &name);
-
-    /// @return pid, exec ID
     std::pair<int, std::string>
     exec(const std::string &cntr_name,
          const std::unordered_map<std::string, std::string> &envs,

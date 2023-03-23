@@ -63,6 +63,7 @@ TEST_CASE("docker") {
         sigaction(SIGUSR1, &action, oldaction);
 
         REQUIRE_NOTHROW(docker.init());
+        REQUIRE_NOTHROW(docker.pause());
 
         atomic<bool> stop_recv = false;
         list<Packet> recv_pkts;
@@ -94,6 +95,7 @@ TEST_CASE("docker") {
         Packet compare_pkt;
 
         // Send the ping packet
+        REQUIRE_NOTHROW(docker.unpause());
         size_t nwrite = docker.inject_packet(pkt);
         CHECK(nwrite == 42);
 
@@ -102,6 +104,7 @@ TEST_CASE("docker") {
             num_pkts = recv_pkts.size();
             cv.wait_for(lck, timeout);
         } while (recv_pkts.size() > num_pkts);
+        REQUIRE_NOTHROW(docker.pause());
 
         // Process the received packets
         REQUIRE(recv_pkts.size() == 1);
@@ -111,6 +114,7 @@ TEST_CASE("docker") {
         recv_pkts.clear();
 
         // Send a TCP SYN packet
+        REQUIRE_NOTHROW(docker.unpause());
         pkt.set_src_port(DYNAMIC_PORT);
         pkt.set_dst_port(80);
         pkt.set_proto_state(PS_TCP_INIT_1);
@@ -122,6 +126,7 @@ TEST_CASE("docker") {
             num_pkts = recv_pkts.size();
             cv.wait_for(lck, timeout);
         } while (recv_pkts.size() > num_pkts);
+        REQUIRE_NOTHROW(docker.pause());
 
         // Process the received packets
         REQUIRE(recv_pkts.size() == 1);
@@ -133,6 +138,7 @@ TEST_CASE("docker") {
         recv_pkts.clear();
 
         // Send a ping packet to fw
+        REQUIRE_NOTHROW(docker.unpause());
         pkt.set_dst_ip("192.168.1.1");
         pkt.set_src_port(0);
         pkt.set_dst_port(0);
@@ -145,6 +151,7 @@ TEST_CASE("docker") {
             num_pkts = recv_pkts.size();
             cv.wait_for(lck, timeout);
         } while (recv_pkts.size() > num_pkts);
+        REQUIRE_NOTHROW(docker.pause());
 
         // Process the received packets
         REQUIRE(recv_pkts.size() == 1);
