@@ -376,6 +376,7 @@ void Docker::teardown() {
 
 void Docker::init() {
     teardown();
+    _dapi.pull(_node->image());
     _pid = _dapi.run(*_node);
     fetchns();
     enterns();
