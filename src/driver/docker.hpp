@@ -62,7 +62,7 @@ public:
     void exec(const std::vector<std::string> &cmd);
     void teardown(); // Reset the object
 
-    void init() override; // (Re)Initialize a docker container
+    void init() override;  // (Re)Initialize a docker container
     void reset() override; // (Soft-)Reset the container for backtracking
     void pause() override;
     void unpause() override;

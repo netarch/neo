@@ -10,6 +10,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -21,15 +22,15 @@ class Middlebox;
 
 class Emulation {
 private:
-    Driver *_driver; // emulation driver
-    Middlebox *_mb;  // currently emulated middlebox node
-    NodePacketHistory *_nph;
+    Middlebox *_mb;                  // currently emulated middlebox node
+    NodePacketHistory *_nph;         // current nph of the mb
+    std::unique_ptr<Driver> _driver; // emulation driver
     std::unordered_map<EmuPktKey, uint32_t> _seq_offsets;
     std::unordered_map<EmuPktKey, uint16_t> _port_offsets;
     bool _dropmon;
 
-    std::thread *_recv_thread;
-    std::thread *_drop_thread;
+    std::unique_ptr<std::thread> _recv_thread;
+    std::unique_ptr<std::thread> _drop_thread;
     std::atomic<bool> _stop_threads;       // loop control flag for threads
     std::list<Packet> _recv_pkts;          // received packets (race)
     std::unordered_set<size_t> _pkts_hash; // hashes of _recv_pkts (race)

@@ -33,6 +33,7 @@ void Emulation::teardown() {
         if (_recv_thread->joinable()) {
             _recv_thread->join();
         }
+        _recv_thread.reset();
     }
 
     if (_drop_thread) {
@@ -41,19 +42,15 @@ void Emulation::teardown() {
         if (_drop_thread->joinable()) {
             _drop_thread->join();
         }
+        _drop_thread.reset();
     }
 
-    delete _recv_thread;
-    delete _drop_thread;
-    delete _driver;
-    _driver = nullptr;
     _mb = nullptr;
     _nph = nullptr;
+    _driver.reset();
     _seq_offsets.clear();
     _port_offsets.clear();
     _dropmon = false;
-    _recv_thread = nullptr;
-    _drop_thread = nullptr;
     _stop_threads = false;
 
     lock_guard<mutex> lck(_mtx);
@@ -192,15 +189,16 @@ void Emulation::init(Middlebox *mb) {
     this->teardown();
 
     if (typeid(*mb) == typeid(DockerNode)) {
-        this->_driver = new Docker(dynamic_cast<DockerNode *>(mb));
+        _driver = make_unique<Docker>(dynamic_cast<DockerNode *>(mb));
     } else {
         logger.error("Unsupported middlebox type");
     }
 
-    this->_driver->init(); // Launch the emulation
-    this->_mb = mb;
+    _mb = mb;
+    _driver->init(); // Launch the emulation
+    _driver->pause();
 
-    // Spawn the recv thread (block all signals but SIGUSR1)
+    // Set up the recv thread (block all signals but SIGUSR1)
     sigset_t mask, old_mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
@@ -209,14 +207,14 @@ void Emulation::init(Middlebox *mb) {
     sigaddset(&mask, SIGQUIT);
     sigaddset(&mask, SIGTERM);
     pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-    this->_recv_thread = new thread(&Emulation::listen_packets, this);
+    _recv_thread = make_unique<thread>(&Emulation::listen_packets, this);
     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
 
-    // Spawn the drop thread (block all signals but SIGUSR1)
+    // Set up the drop thread (block all signals but SIGUSR1)
     // if (mb->dropmon_enabled()) {
     //     _dropmon = true;
     //     pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-    //     drop_listener = new thread(&Emulation::listen_drops, this);
+    //     drop_listener = make_unique<thread>(&Emulation::listen_drops, this);
     //     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
     // }
 }
