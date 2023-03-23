@@ -18,32 +18,16 @@
 using namespace std;
 
 Emulation::Emulation()
-    : _driver(nullptr), _mb(nullptr), _nph(nullptr), _dropmon(false),
-      _recv_thread(nullptr), _drop_thread(nullptr), _stop_threads(false),
-      _drop_ts(0) {}
+    : _mb(nullptr), _nph(nullptr), _dropmon(false), _stop_recv(false),
+      _stop_drop(false), _drop_ts(0) {}
 
 Emulation::~Emulation() {
     teardown();
 }
 
 void Emulation::teardown() {
-    if (_recv_thread) {
-        _stop_threads = true;
-        pthread_kill(_recv_thread->native_handle(), SIGUSR1);
-        if (_recv_thread->joinable()) {
-            _recv_thread->join();
-        }
-        _recv_thread.reset();
-    }
-
-    if (_drop_thread) {
-        _stop_threads = true;
-        pthread_kill(_drop_thread->native_handle(), SIGUSR1);
-        if (_drop_thread->joinable()) {
-            _drop_thread->join();
-        }
-        _drop_thread.reset();
-    }
+    stop_recv_thread();
+    stop_drop_thread();
 
     _mb = nullptr;
     _nph = nullptr;
@@ -51,7 +35,6 @@ void Emulation::teardown() {
     _seq_offsets.clear();
     _port_offsets.clear();
     _dropmon = false;
-    _stop_threads = false;
 
     lock_guard<mutex> lck(_mtx);
     this->_recv_pkts.clear();
@@ -63,7 +46,7 @@ void Emulation::listen_packets() {
     list<Packet> pkts;
     PacketHash hasher;
 
-    while (!_stop_threads) {
+    while (!_stop_recv) {
         // read the output packets (it will block if there is no packet)
         pkts = _driver->read_packets();
 
@@ -91,7 +74,7 @@ void Emulation::listen_packets() {
 void Emulation::listen_drops() {
     uint64_t ts = 0;
 
-    while (!_stop_threads) {
+    while (!_stop_drop) {
         // ts = DropMon::get().is_dropped();
 
         if (ts) {
@@ -101,6 +84,58 @@ void Emulation::listen_drops() {
             _drop_ts = ts;
             _cv.notify_all();
         }
+    }
+}
+
+void Emulation::start_recv_thread() {
+    // Set up the recv thread (block all signals but SIGUSR1)
+    sigset_t mask, old_mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGHUP);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGQUIT);
+    sigaddset(&mask, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
+    _recv_thread = make_unique<thread>(&Emulation::listen_packets, this);
+    pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
+}
+
+void Emulation::stop_recv_thread() {
+    if (_recv_thread) {
+        _stop_recv = true;
+        pthread_kill(_recv_thread->native_handle(), SIGUSR1);
+        if (_recv_thread->joinable()) {
+            _recv_thread->join();
+        }
+        _recv_thread.reset();
+        _stop_recv = false;
+    }
+}
+
+void Emulation::start_drop_thread() {
+    // Set up the drop thread (block all signals but SIGUSR1)
+    sigset_t mask, old_mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGHUP);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGQUIT);
+    sigaddset(&mask, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
+    _drop_thread = make_unique<thread>(&Emulation::listen_drops, this);
+    pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
+}
+
+void Emulation::stop_drop_thread() {
+    if (_drop_thread) {
+        _stop_drop = true;
+        pthread_kill(_drop_thread->native_handle(), SIGUSR1);
+        if (_drop_thread->joinable()) {
+            _drop_thread->join();
+        }
+        _drop_thread.reset();
+        _stop_drop = false;
     }
 }
 
@@ -198,24 +233,9 @@ void Emulation::init(Middlebox *mb) {
     _driver->init(); // Launch the emulation
     _driver->pause();
 
-    // Set up the recv thread (block all signals but SIGUSR1)
-    sigset_t mask, old_mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGCHLD);
-    sigaddset(&mask, SIGHUP);
-    sigaddset(&mask, SIGINT);
-    sigaddset(&mask, SIGQUIT);
-    sigaddset(&mask, SIGTERM);
-    pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-    _recv_thread = make_unique<thread>(&Emulation::listen_packets, this);
-    pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
-
-    // Set up the drop thread (block all signals but SIGUSR1)
+    // drop monitor
     // if (mb->dropmon_enabled()) {
     //     _dropmon = true;
-    //     pthread_sigmask(SIG_BLOCK, &mask, &old_mask);
-    //     drop_listener = make_unique<thread>(&Emulation::listen_drops, this);
-    //     pthread_sigmask(SIG_SETMASK, &old_mask, nullptr);
     // }
 }
 
@@ -251,47 +271,61 @@ int Emulation::rewind(NodePacketHistory *nph) {
     return rewind_injections;
 }
 
-list<Packet> Emulation::send_pkt(const Packet &pkt) {
-    // Apply offsets
-    Packet new_pkt(pkt);
-    this->apply_offsets(new_pkt);
-
+list<Packet> Emulation::send_pkt(const Packet &non_offset_pkt) {
+    // Clear packet receive buffer
     unique_lock<mutex> lck(_mtx);
-    size_t num_pkts = _recv_pkts.size();
-    // DropMon::get().start_listening_for(new_pkt);
+    _recv_pkts.clear();
+    _pkts_hash.clear();
 
+    // Prepare send packet, apply offsets
+    Packet pkt(non_offset_pkt);
+    this->apply_offsets(pkt);
+
+    // Set up the recv thread
+    start_recv_thread();
+    // DropMon::get().start_listening_for(pkt);
+
+    // Send the concrete packet
+    _driver->unpause();
     Stats::set_pkt_lat_t1();
-    _driver->inject_packet(new_pkt);
+    _driver->inject_packet(pkt);
 
-    // Read packets iteratively until no new packets are read within one
-    // complete timeout period.
+    // Collect received packets iteratively until no new packets are read within
+    // one complete timeout period.
+    size_t num_pkts = 0;
     do {
         num_pkts = _recv_pkts.size();
 
-        if (_dropmon) { // use drop monitor
-            // // TODO: Think about how to incorporate dropmon with timeouts
-            // _drop_ts = 0;
-            // chrono::microseconds timeout(5000);
-            // cv_status status = _cv.wait_for(lck, timeout);
-            // Stats::set_pkt_latency(timeout, _drop_ts);
+        // use timeout (new injection)
+        _cv.wait_for(lck, _mb->timeout());
+        Stats::set_pkt_latency(_mb->timeout());
 
-            // if (status == cv_status::timeout && _recv_pkts.empty() &&
-            //     _drop_ts == 0) {
-            //     logger.error("Drop monitor timed out!");
-            // }
-        } else { // use timeout (new injection)
-            _cv.wait_for(lck, _mb->timeout());
-            Stats::set_pkt_latency(_mb->timeout());
-        }
+        // ? How to incorporate dropmon with timeouts ?
+        // if (_dropmon) { // use drop monitor
+        //     _drop_ts = 0;
+        //     chrono::microseconds timeout(5000);
+        //     cv_status status = _cv.wait_for(lck, timeout);
+        //     Stats::set_pkt_latency(timeout, _drop_ts);
+        //     if (status == cv_status::timeout && _recv_pkts.empty() &&
+        //         _drop_ts == 0) {
+        //         logger.error("Drop monitor timed out!");
+        //     }
+        // }
     } while (_recv_pkts.size() > num_pkts);
+    _driver->pause();
 
+    // Stop the recv thread
+    lck.unlock();
+    stop_recv_thread();
     // DropMon::get().stop_listening();
+    lck.lock();
 
     // Move and reset the received packets
     list<Packet> pkts(std::move(_recv_pkts));
     _recv_pkts.clear();
-    lck.unlock();
+    _pkts_hash.clear();
 
+    // Process the received packets
     Net::get().reassemble_segments(pkts);
     this->update_offsets(pkts);
     return pkts;

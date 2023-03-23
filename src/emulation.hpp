@@ -31,7 +31,8 @@ private:
 
     std::unique_ptr<std::thread> _recv_thread;
     std::unique_ptr<std::thread> _drop_thread;
-    std::atomic<bool> _stop_threads;       // loop control flag for threads
+    std::atomic<bool> _stop_recv;          // loop control flag
+    std::atomic<bool> _stop_drop;          // loop control flag
     std::list<Packet> _recv_pkts;          // received packets (race)
     std::unordered_set<size_t> _pkts_hash; // hashes of _recv_pkts (race)
     std::atomic<uint64_t> _drop_ts;        // kernel drop timestamp (race)
@@ -40,6 +41,11 @@ private:
 
     void listen_packets();
     void listen_drops();
+    void start_recv_thread();
+    void stop_recv_thread();
+    void start_drop_thread();
+    void stop_drop_thread();
+
     void reset_offsets();
     void apply_offsets(Packet &) const;
     void update_offsets(std::list<Packet> &);

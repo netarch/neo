@@ -10,6 +10,7 @@
 #include "network.hpp"
 #include "packet.hpp"
 #include "plankton.hpp"
+#include "protocols.hpp"
 
 using namespace std;
 using namespace rapidjson;
