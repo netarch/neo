@@ -378,10 +378,11 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             } else if (icmp_type == ICMP_ECHOREPLY) {
                 pkt.set_proto_state(PS_ICMP_ECHO_REP);
             } else {
-                logger.warn("ICMP type: " + std::to_string(icmp_type));
+                logger.warn("Unsupported ICMP type: " + to_string(icmp_type));
                 goto bad_packet;
             }
-            // TODO
+            // The rest of ICMP header and its payload are ignored for now.
+            // https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol
         } else { // unsupported L4 (or L3.5) protocols
             goto bad_packet;
         }
