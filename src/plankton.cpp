@@ -190,8 +190,12 @@ void Plankton::kill_all_tasks(int sig, pid_t exclude_pid) {
 }
 
 void Plankton::verify_policy() {
+    // Change to the invariant output directory
+    const auto inv_dir = fs::path(_out_dir) / to_string(_policy->get_id());
+    fs::create_directory(inv_dir);
+    fs::current_path(inv_dir);
+
     // Initialize per-policy system states
-    assert(this->_policy);
     this->_violated = false;
     this->_tasks.clear();
 
