@@ -51,7 +51,7 @@
         "-i",
         "${workspaceFolder}/examples/00-reverse-path-filtering/network.toml",
         "-o",
-        "${workspaceFolder}/examples/00-reverse-path-filtering/results"
+        "${workspaceFolder}/examples/00-reverse-path-filtering/results/debug"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
