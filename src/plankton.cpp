@@ -204,8 +204,8 @@ void Plankton::verify_policy() {
     this->_policy->compute_conn_matrix();
 
     // Update latency estimate
-    int num_tasks = min(this->_policy->num_conn_ecs(), _max_jobs);
-    DropTimeout::get().adjust_latency_estimate_by_ntasks(num_tasks);
+    int nprocs = min(this->_policy->num_conn_ecs(), _max_jobs);
+    DropTimeout::get().adjust_latency_estimate_by_nprocs(nprocs);
 
     logger.info("====================");
     logger.info(to_string(_policy->get_id()) + ". Verifying policy " +

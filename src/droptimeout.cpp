@@ -8,7 +8,7 @@
 using namespace std;
 
 DropTimeout::DropTimeout()
-    : _has_initial_estimate(false), _ntasks(0), _mdev_scalar(0) {}
+    : _has_initial_estimate(false), _nprocs(0), _mdev_scalar(0) {}
 
 DropTimeout &DropTimeout::get() {
     static DropTimeout instance;
@@ -42,15 +42,28 @@ void DropTimeout::set_initial_latency_estimate() {
     Stats::clear_latencies();
 }
 
-void DropTimeout::adjust_latency_estimate_by_ntasks(int ntasks) {
-    _ntasks = ntasks;
+/**
+ * The function adjusts the timeout value based on the number of parallel
+ * processes.
+ *
+ * @param nprocs the number of parallel processes for the current invariant
+ */
+void DropTimeout::adjust_latency_estimate_by_nprocs(int nprocs) {
+    _nprocs = nprocs;
     static const int total_cores = thread::hardware_concurrency();
-    double load = double(_ntasks) / total_cores;
-    _mdev_scalar = max(4.0, ceil(sqrt(_ntasks) * 2 * load));
-    // _lat_avg *= _ntasks;
-    _timeout = _lat_avg * _ntasks + _lat_mdev * _mdev_scalar;
+    double load = double(_nprocs) / total_cores;
+    _mdev_scalar = max(4.0, ceil(sqrt(_nprocs) * 2 * load));
+    // TODO
+    // _lat_avg *= _nprocs;
+    _timeout = _lat_avg * _nprocs + _lat_mdev * _mdev_scalar;
 }
 
+/**
+ * If we received packets, update the timeout to be the average latency plus the
+ * mean deviation of the latency times a constant.
+ *
+ * @param num_recv_pkts The number of packets received in the last round.
+ */
 void DropTimeout::update_timeout(size_t num_recv_pkts) {
     if (num_recv_pkts == 0) {
         return;
@@ -62,4 +75,5 @@ void DropTimeout::update_timeout(size_t num_recv_pkts) {
     _lat_avg += chrono::microseconds(err >> 2);
     _lat_mdev += chrono::microseconds((abs(err) - _lat_mdev.count()) >> 2);
     _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
+    // ? _timeout = _lat_avg * _nprocs + _lat_mdev * _mdev_scalar;
 }

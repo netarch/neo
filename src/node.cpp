@@ -126,6 +126,17 @@ L2_LAN *Node::get_l2lan(Interface *intf) const {
     return l2_lans.at(intf);
 }
 
+/**
+ * It looks up the next hop for a given destination address, and returns a set
+ * of next hops
+ *
+ * @param dst the destination IP address
+ * @param rib the RoutingTable to use for recursive lookups. If nullptr, use
+ * this node's RoutingTable.
+ * @param looked_up_ips a set of IP addresses that have already been looked up.
+ *
+ * @return A set of FIB_IPNHs
+ */
 std::set<FIB_IPNH>
 Node::get_ipnhs(const IPv4Address &dst,
                 const RoutingTable *rib,
