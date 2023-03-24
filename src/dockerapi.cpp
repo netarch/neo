@@ -360,14 +360,18 @@ Document DockerAPI::info() {
 }
 
 Document DockerAPI::pull(const string &img_name) {
-    auto res = this->create_img(img_name);
+    auto res = this->inspect_img(img_name);
+    if (res["success"].GetBool()) {
+        // Image already exists
+        return res;
+    }
 
+    res = this->create_img(img_name);
     if (!res["success"].GetBool()) {
         logger.error("create_img failed: " + json_str(res));
     }
 
     res = this->inspect_img(img_name);
-
     if (!res["success"].GetBool()) {
         logger.error("Failed to pull " + img_name + ": " + json_str(res));
     }
