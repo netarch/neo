@@ -24,14 +24,13 @@
  */
 class EmulationMgr {
 private:
-    size_t max_emulations;
-    size_t num_middleboxes;
-    std::unordered_set<Emulation *> emulations; // all emulation instances
+    size_t _max_emu;                       // max number of emulations
+    std::unordered_set<Emulation *> _emus; // all emulation instances
     std::unordered_map<Middlebox *,
                        std::map<NodePacketHistory *,
                                 std::unordered_set<Emulation *>,
                                 NodePacketHistoryComp>>
-        mb_emulations_map;
+        _mb_emu_map;
 
     EmulationMgr();
 
@@ -43,8 +42,8 @@ public:
 
     static EmulationMgr &get();
 
-    void set_max_emulations(size_t);
-    void set_num_middleboxes(size_t);
+    void max_emulations(decltype(_max_emu) n) { _max_emu = n; }
+
     Emulation *get_emulation(Middlebox *, NodePacketHistory *);
     void update_node_pkt_hist(Emulation *, NodePacketHistory *);
 };

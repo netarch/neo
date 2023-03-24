@@ -2,10 +2,12 @@
 
 #include <cassert>
 
-EmulationMgr::EmulationMgr() : max_emulations(0) {}
+using namespace std;
+
+EmulationMgr::EmulationMgr() : _max_emu(0) {}
 
 EmulationMgr::~EmulationMgr() {
-    for (Emulation *emulation : emulations) {
+    for (Emulation *emulation : _emus) {
         delete emulation;
     }
 }
@@ -15,42 +17,34 @@ EmulationMgr &EmulationMgr::get() {
     return instance;
 }
 
-void EmulationMgr::set_max_emulations(size_t val) {
-    max_emulations = val;
-}
-
-void EmulationMgr::set_num_middleboxes(size_t val) {
-    num_middleboxes = val;
-}
-
 Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
-    auto mb_map = mb_emulations_map.find(mb);
+    auto mb_map = _mb_emu_map.find(mb);
 
-    if (mb_map == mb_emulations_map.end()) { // no emulation
-        if (emulations.size() < max_emulations) {
+    if (mb_map == _mb_emu_map.end()) { // no emulation
+        if (_emus.size() < _max_emu) {
             // create a new emulation
-            Emulation *emulation = new Emulation();
-            emulation->init(mb);
-            emulations.insert(emulation);
-            mb_emulations_map[mb][nullptr].insert(emulation);
-            return emulation;
+            Emulation *emu = new Emulation();
+            emu->init(mb);
+            _emus.insert(emu);
+            _mb_emu_map[mb][nullptr].insert(emu);
+            return emu;
         } else {
             // get an existing emulation of another middlebox
-            assert(!emulations.empty());
-            Emulation *emulation = *emulations.begin(); // TODO: LRU?
-            Middlebox *old_mb = emulation->mb();
-            NodePacketHistory *old_nph = emulation->node_pkt_hist();
+            assert(!_emus.empty());
+            Emulation *emu = *_emus.begin(); // TODO: LRU?
+            Middlebox *old_mb = emu->mb();
+            NodePacketHistory *old_nph = emu->node_pkt_hist();
 
-            assert(mb_emulations_map[old_mb][old_nph].erase(emulation) == 1);
-            if (mb_emulations_map[old_mb][old_nph].empty()) {
-                mb_emulations_map[old_mb].erase(old_nph);
-                if (mb_emulations_map[old_mb].empty()) {
-                    mb_emulations_map.erase(old_mb);
+            assert(_mb_emu_map[old_mb][old_nph].erase(emu) == 1);
+            if (_mb_emu_map[old_mb][old_nph].empty()) {
+                _mb_emu_map[old_mb].erase(old_nph);
+                if (_mb_emu_map[old_mb].empty()) {
+                    _mb_emu_map.erase(old_mb);
                 }
             }
-            emulation->init(mb);
-            mb_emulations_map[mb][nullptr].insert(emulation);
-            return emulation;
+            emu->init(mb);
+            _mb_emu_map[mb][nullptr].insert(emu);
+            return emu;
         }
     } else {
         // get an existing emulation of this middlebox
@@ -72,15 +66,15 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
     }
 }
 
-void EmulationMgr::update_node_pkt_hist(Emulation *emulation,
+void EmulationMgr::update_node_pkt_hist(Emulation *emu,
                                         NodePacketHistory *nph) {
-    Middlebox *mb = emulation->mb();
-    NodePacketHistory *old_nph = emulation->node_pkt_hist();
+    Middlebox *mb = emu->mb();
+    NodePacketHistory *old_nph = emu->node_pkt_hist();
 
-    assert(mb_emulations_map[mb][old_nph].erase(emulation) == 1);
-    if (mb_emulations_map[mb][old_nph].empty()) {
-        mb_emulations_map[mb].erase(old_nph);
+    assert(_mb_emu_map[mb][old_nph].erase(emu) == 1);
+    if (_mb_emu_map[mb][old_nph].empty()) {
+        _mb_emu_map[mb].erase(old_nph);
     }
-    mb_emulations_map[mb][nph].insert(emulation);
-    emulation->node_pkt_hist(nph);
+    _mb_emu_map[mb][nph].insert(emu);
+    emu->node_pkt_hist(nph);
 }
