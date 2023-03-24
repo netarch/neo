@@ -16,21 +16,25 @@
  */
 class EmuPktKey {
 private:
-    IPv4Address ip; // IP address of the opposite endpoint
-    uint16_t port;  // port of the opposite endpoint
+    IPv4Address _ip; // IP address of the opposite endpoint
+    uint16_t _port;  // port of the opposite endpoint
 
     friend class EmuPktKeyHash;
 
 public:
-    EmuPktKey(const IPv4Address &, uint16_t);
+    EmuPktKey(const IPv4Address &addr, uint16_t port)
+        : _ip(addr), _port(port) {}
     EmuPktKey(const EmuPktKey &) = default;
     EmuPktKey(EmuPktKey &&) = default;
 
     bool operator==(const EmuPktKey &) const = default;
 
-    std::string to_string() const;
-    IPv4Address get_dst_ip() const;
-    uint16_t get_dst_port() const;
+    IPv4Address dst_ip() const { return _ip; }
+    uint16_t dst_port() const { return _port; }
+
+    std::string to_string() const {
+        return _ip.to_string() + ":" + std::to_string(_port);
+    }
 };
 
 namespace std {
@@ -39,8 +43,8 @@ template <>
 struct hash<EmuPktKey> {
     size_t operator()(const EmuPktKey &key) const {
         size_t value = 0;
-        ::hash::hash_combine(value, std::hash<IPv4Address>()(key.get_dst_ip()));
-        ::hash::hash_combine(value, std::hash<uint16_t>()(key.get_dst_port()));
+        ::hash::hash_combine(value, std::hash<IPv4Address>()(key.dst_ip()));
+        ::hash::hash_combine(value, std::hash<uint16_t>()(key.dst_port()));
         return value;
     }
 };
