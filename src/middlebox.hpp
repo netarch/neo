@@ -13,10 +13,6 @@
 
 class Middlebox : public Node {
 protected:
-    // Packet injection latency and drop timeout estimate
-    std::chrono::microseconds _lat_avg, _lat_mdev, _timeout;
-    int _mdev_scalar;
-
     // The actual emulation instance
     Emulation *_emulation;
 
@@ -35,10 +31,6 @@ public:
     Middlebox &operator=(const Middlebox &) = delete;
     Middlebox &operator=(Middlebox &&) = delete;
 
-    decltype(_lat_avg) lat_avg() const { return _lat_avg; }
-    decltype(_lat_mdev) lat_mdev() const { return _lat_mdev; }
-    decltype(_timeout) timeout() const { return _timeout; }
-    decltype(_mdev_scalar) mdev_scalar() const { return _mdev_scalar; }
     decltype(_emulation) emulation() const { return _emulation; }
     const decltype(_ec_ip_prefixes) &ec_ip_prefixes() const {
         return _ec_ip_prefixes;
@@ -46,19 +38,11 @@ public:
     const decltype(_ec_ip_addrs) &ec_ip_addrs() const { return _ec_ip_addrs; }
     const decltype(_ec_ports) &ec_ports() const { return _ec_ports; }
 
-    bool is_emulated() const override { return true; }
-    void update_timeout();
-    void adjust_latency_estimate_by_ntasks(int ntasks);
-
     int rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 
-    /**
-     * Return an empty set. We use emulations to get next hops for middleboxes,
-     * instead of looking up from routing tables. The forwarding process will
-     * inject a concrete packet to the emulation instance.
-     */
+    bool is_emulated() const override { return true; }
     std::set<FIB_IPNH>
     get_ipnhs(const IPv4Address &,
               const RoutingTable *rib,

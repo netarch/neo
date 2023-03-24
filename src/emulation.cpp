@@ -8,6 +8,7 @@
 #include "dockernode.hpp"
 #include "driver/docker.hpp"
 #include "driver/driver.hpp"
+#include "droptimeout.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
 #include "middlebox.hpp"
@@ -324,8 +325,8 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
         num_pkts = _recv_pkts.size();
 
         // use timeout (new injection)
-        _cv.wait_for(lck, _mb->timeout());
-        Stats::set_pkt_latency(_mb->timeout()); // FIXME?
+        _cv.wait_for(lck, DropTimeout::get().timeout());
+        Stats::set_pkt_latency(DropTimeout::get().timeout()); // FIXME
 
         // ? How to incorporate dropmon with timeouts ?
         // if (_dropmon) { // use drop monitor

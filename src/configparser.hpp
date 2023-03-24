@@ -31,10 +31,6 @@ private:
     // Config file table
     std::unique_ptr<toml::table> _config;
 
-    // Packet latency estimate
-    std::chrono::microseconds _lat_avg, _lat_mdev;
-    bool _has_lat_estimate = false;
-
     // Network model
     void parse_network(Network &);
     void parse_node(Node &, const toml::table &);

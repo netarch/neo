@@ -12,6 +12,7 @@
 #include "dockerapi.hpp"
 #include "dockernode.hpp"
 #include "driver/docker.hpp"
+#include "droptimeout.hpp"
 #include "interface.hpp"
 #include "link.hpp"
 #include "logger.hpp"
@@ -56,6 +57,13 @@ void ConfigParser::parse_network(Network &network) {
                 node = new Node();
                 this->parse_node(*node, tbl);
             } else if (**type == "emulation") {
+                // TODO:
+                // After eBPF drop tracing (and dropmon) is implemented, we
+                // don't need to estimate the latency when they're enabled
+                if (!DropTimeout::get().has_initial_estimate()) {
+                    this->estimate_pkt_lat();
+                }
+
                 if (!driver || **driver == "docker") {
                     node = new DockerNode();
                     this->parse_dockernode(*static_cast<DockerNode *>(node),
@@ -412,16 +420,6 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 void ConfigParser::parse_middlebox(Middlebox &middlebox,
                                    const toml::table &config) {
     this->parse_node(middlebox, config);
-
-    // TODO:
-    // After eBPF drop tracing is implemented, we don't need to estimate the
-    // latency when it's enabled
-    if (!this->_has_lat_estimate) {
-        this->estimate_pkt_lat();
-    }
-
-    middlebox._lat_avg = this->_lat_avg;
-    middlebox._lat_mdev = this->_lat_mdev;
 }
 
 void ConfigParser::estimate_pkt_lat() {
@@ -470,6 +468,7 @@ void ConfigParser::estimate_pkt_lat() {
     action.sa_flags = SA_NOCLDSTOP;
     sigaction(SIGUSR1, &action, oldaction);
 
+    // Start an emulation
     Emulation emu;
     emu.init(fw.get(), /* log_pkts */ false);
     fw->_emulation = &emu;
@@ -481,28 +480,15 @@ void ConfigParser::estimate_pkt_lat() {
     for (int i = 0; i < N; ++i) {
         emu.send_pkt(*pkt);
     }
-    emu.teardown();
 
-    // Calculate the latency average and mean deviation
-    const auto &latencies = Stats::get_pkt_latencies();
-    uint64_t avg = 0;
-    for (const auto &[t1, lat] : latencies) {
-        avg += lat;
-    }
-    avg /= latencies.size();
-    _lat_avg = chrono::microseconds(avg / 1000); // nsec -> usec
-    uint64_t mdev = 0;
-    for (const auto &[t1, lat] : latencies) {
-        mdev += abs(int64_t(lat) - int64_t(avg));
-    }
-    mdev /= latencies.size();
-    _lat_mdev = chrono::microseconds(mdev / 1000); // nsec -> usec
+    // Terminate the emulation
+    emu.teardown();
 
     // Reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);
 
-    Stats::clear_latencies();
-    _has_lat_estimate = true;
+    // Retrieve the initial latency estimate
+    DropTimeout::get().set_initial_latency_estimate();
 }
 
 #define IPV4_PREF_REGEX "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d+\\b"

@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "configparser.hpp"
+#include "droptimeout.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
 #include "logger.hpp"
@@ -204,9 +205,7 @@ void Plankton::verify_policy() {
 
     // Update latency estimate
     int num_tasks = min(this->_policy->num_conn_ecs(), _max_jobs);
-    for (Middlebox *mb : this->_network.get_middleboxes()) {
-        mb->adjust_latency_estimate_by_ntasks(num_tasks);
-    }
+    DropTimeout::get().adjust_latency_estimate_by_ntasks(num_tasks);
 
     logger.info("====================");
     logger.info(to_string(_policy->get_id()) + ". Verifying policy " +
