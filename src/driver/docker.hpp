@@ -21,10 +21,11 @@ class RoutingTable;
 
 class Docker : public Driver {
 private:
-    DockerNode *_node; // emulated node
-    DockerAPI _dapi;   // docker API object
-    pid_t _pid;        // pid of the running process in the container
-    bool _log_pkts;    // whether to log packets in debug mode
+    DockerNode *_node;      // emulated node
+    std::string _cntr_name; // name of the docker container
+    DockerAPI _dapi;        // docker API object
+    pid_t _pid;             // pid of the running process in the container
+    bool _log_pkts;         // whether to log packets in debug mode
     std::unordered_map<pid_t, std::string> _execs;    // pid -> exec_id
     std::unordered_map<Interface *, int> _tapfds;     // intf --> tapfd
     std::unordered_map<Interface *, uint8_t *> _macs; // intf --> mac addr

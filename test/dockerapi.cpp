@@ -1,3 +1,6 @@
+#include <string>
+#include <unistd.h>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -25,19 +28,19 @@ TEST_CASE("dockerapi") {
         node = static_cast<DockerNode *>(network.get_nodes().at("fw")));
     REQUIRE(node);
 
-    const string &name = node->get_name();
+    const string &cntr_name = to_string(getpid()) + "." + node->get_name();
     DockerAPI dapi;
 
     SECTION("Container API") {
         REQUIRE_NOTHROW(dapi.pull(node->image()));
-        REQUIRE_NOTHROW(dapi.run(*node));
-        REQUIRE(dapi.stop_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.start_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.restart_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.pause_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.unpause_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.kill_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.remove_cntr(name)["success"].GetBool());
+        REQUIRE_NOTHROW(dapi.run(cntr_name, *node));
+        REQUIRE(dapi.stop_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.start_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.restart_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.pause_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.unpause_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.kill_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.remove_cntr(cntr_name)["success"].GetBool());
     }
 
     SECTION("Image API") {
@@ -48,14 +51,15 @@ TEST_CASE("dockerapi") {
 
     SECTION("Exec API") {
         REQUIRE_NOTHROW(dapi.pull(node->image()));
-        REQUIRE_NOTHROW(dapi.run(*node));
-        REQUIRE(dapi.stop_cntr(name)["success"].GetBool());
-        CHECK_THROWS_WITH(dapi.exec(name, node->env_vars(), {"/bin/sh"}, "/"),
-                          ContainsSubstring("is not running"));
-        REQUIRE(dapi.start_cntr(name)["success"].GetBool());
-        CHECK_NOTHROW(dapi.exec(name, node->env_vars(), {"/bin/ls"}, "/"));
-        REQUIRE(dapi.kill_cntr(name)["success"].GetBool());
-        REQUIRE(dapi.remove_cntr(name)["success"].GetBool());
+        REQUIRE_NOTHROW(dapi.run(cntr_name, *node));
+        REQUIRE(dapi.stop_cntr(cntr_name)["success"].GetBool());
+        CHECK_THROWS_WITH(
+            dapi.exec(cntr_name, node->env_vars(), {"/bin/sh"}, "/"),
+            ContainsSubstring("is not running"));
+        REQUIRE(dapi.start_cntr(cntr_name)["success"].GetBool());
+        CHECK_NOTHROW(dapi.exec(cntr_name, node->env_vars(), {"/bin/ls"}, "/"));
+        REQUIRE(dapi.kill_cntr(cntr_name)["success"].GetBool());
+        REQUIRE(dapi.remove_cntr(cntr_name)["success"].GetBool());
     }
 
     SECTION("System API") {

@@ -122,7 +122,7 @@ DockerAPI::~DockerAPI() {
     _curl = nullptr;
 }
 
-Document DockerAPI::create_cntr(const DockerNode &node) {
+Document DockerAPI::create_cntr(const string &name, const DockerNode &node) {
     /**
      * {
      *  "Hostname": "<node name>",
@@ -159,7 +159,7 @@ Document DockerAPI::create_cntr(const DockerNode &node) {
     Document body = {};
     body.SetObject();
     auto &allocator = body.GetAllocator();
-    body.AddMember("Hostname", Value(node.get_name().c_str(), allocator).Move(),
+    body.AddMember("Hostname", Value(name.c_str(), allocator).Move(),
                    allocator);
     body.AddMember("AttachStdin", false, allocator);
     body.AddMember("AttachStdout", false, allocator);
@@ -216,7 +216,7 @@ Document DockerAPI::create_cntr(const DockerNode &node) {
     host_config.AddMember("Sysctls", sysctls, allocator);
     body.AddMember("HostConfig", host_config, allocator);
 
-    string path = "/containers/create?name=" + node.get_name();
+    string path = "/containers/create?name=" + name;
     return this->send_curl_request(method::POST, path, body);
 }
 
@@ -260,18 +260,18 @@ Document DockerAPI::remove_cntr(const string &name) {
     return this->send_curl_request(method::DELETE, path);
 }
 
-Document DockerAPI::create_img(const string &image) {
-    string path = "/images/create?fromImage=" + image;
+Document DockerAPI::create_img(const string &img_name) {
+    string path = "/images/create?fromImage=" + img_name;
     return this->send_curl_request(method::POST, path);
 }
 
-Document DockerAPI::inspect_img(const string &name) {
-    string path = "/images/" + name + "/json";
+Document DockerAPI::inspect_img(const string &img_name) {
+    string path = "/images/" + img_name + "/json";
     return this->send_curl_request(method::GET, path);
 }
 
-Document DockerAPI::rm_img(const string &name) {
-    string path = "/images/" + name;
+Document DockerAPI::rm_img(const string &img_name) {
+    string path = "/images/" + img_name;
     return this->send_curl_request(method::DELETE, path);
 }
 
@@ -375,22 +375,22 @@ Document DockerAPI::pull(const string &img_name) {
     return res;
 }
 
-int DockerAPI::run(const DockerNode &node) {
-    auto res = this->create_cntr(node);
+int DockerAPI::run(const string &cntr_name, const DockerNode &node) {
+    auto res = this->create_cntr(cntr_name, node);
     if (!res["success"].GetBool()) {
         logger.error("create_cntr: " + json_str(res));
     }
 
-    res = this->start_cntr(node.get_name());
+    res = this->start_cntr(cntr_name);
     if (!res["success"].GetBool()) {
         logger.error("start_cntr: " + json_str(res));
     }
 
-    return this->get_cntr_pid(node.get_name());
+    return this->get_cntr_pid(cntr_name);
 }
 
-int DockerAPI::get_cntr_pid(const string &name) {
-    auto res = this->inspect_cntr(name);
+int DockerAPI::get_cntr_pid(const string &cntr_name) {
+    auto res = this->inspect_cntr(cntr_name);
     if (!res["success"].GetBool()) {
         logger.error("inspect_cntr: " + json_str(res));
     }
@@ -409,8 +409,8 @@ int DockerAPI::get_cntr_pid(const string &name) {
     return res["data"]["State"]["Pid"].GetInt();
 }
 
-bool DockerAPI::is_cntr_running(const string &name) {
-    auto res = this->inspect_cntr(name);
+bool DockerAPI::is_cntr_running(const string &cntr_name) {
+    auto res = this->inspect_cntr(cntr_name);
     if (!res["success"].GetBool()) {
         logger.error("inspect_cntr: " + json_str(res));
     }

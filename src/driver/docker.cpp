@@ -37,9 +37,10 @@ using namespace std;
 namespace fs = std::filesystem;
 
 Docker::Docker(DockerNode *node, bool log_pkts)
-    : _node(node), _dapi(node->daemon()), _pid(0), _log_pkts(log_pkts),
-      _hnet_fd(-1), _cnet_fd(-1), _hmnt_fd(-1), _cmnt_fd(-1), _epollfd(-1),
-      _events(nullptr) {}
+    : _node(node), _cntr_name(to_string(getpid()) + "." + node->get_name()),
+      _dapi(node->daemon()), _pid(0), _log_pkts(log_pkts), _hnet_fd(-1),
+      _cnet_fd(-1), _hmnt_fd(-1), _cmnt_fd(-1), _epollfd(-1), _events(nullptr) {
+}
 
 Docker::~Docker() {
     this->teardown();
@@ -328,7 +329,7 @@ void Docker::exec(const vector<string> &cmd) {
         logger.error("Container isn't running");
     }
 
-    auto res = this->_dapi.exec(_node->get_name(), _node->env_vars(), cmd,
+    auto res = this->_dapi.exec(_cntr_name, _node->env_vars(), cmd,
                                 _node->working_dir());
     this->_execs.emplace(std::move(res));
 }
@@ -369,7 +370,7 @@ void Docker::teardown() {
     closens();
 
     // Terminate and remove container, it will also kill exec processes
-    this->_dapi.remove_cntr(this->_node->get_name());
+    this->_dapi.remove_cntr(_cntr_name);
     this->_pid = 0;
     this->_execs.clear();
 }
@@ -377,7 +378,7 @@ void Docker::teardown() {
 void Docker::init() {
     teardown();
     _dapi.pull(_node->image());
-    _pid = _dapi.run(*_node);
+    _pid = _dapi.run(_cntr_name, *_node);
     fetchns();
     enterns();
     set_interfaces();   // Set tap interfaces and IP addresses
@@ -390,8 +391,7 @@ void Docker::init() {
     if (_log_pkts) {
         // Enable pcap logger for each interface
         for (const auto &[_, intf] : _node->get_intfs_l3()) {
-            string pcapFn = to_string(getpid()) + "." + _node->get_name() +
-                            "-" + intf->get_name() + ".pcap";
+            string pcapFn = _cntr_name + "-" + intf->get_name() + ".pcap";
             this->_pcap_loggers.emplace(intf,
                                         make_unique<pcpp::PcapFileWriterDevice>(
                                             pcapFn, pcpp::LINKTYPE_ETHERNET));
@@ -440,8 +440,8 @@ void Docker::reset() {
     }
 
     // Restart the container, it will also kill exec processes
-    _dapi.restart_cntr(_node->get_name());
-    _pid = _dapi.get_cntr_pid(_node->get_name());
+    _dapi.restart_cntr(_cntr_name);
+    _pid = _dapi.get_cntr_pid(_cntr_name);
     _execs.clear();
     fetchns();
     enterns();
@@ -453,11 +453,11 @@ void Docker::reset() {
 }
 
 void Docker::pause() {
-    _dapi.pause_cntr(_node->get_name());
+    _dapi.pause_cntr(_cntr_name);
 }
 
 void Docker::unpause() {
-    _dapi.unpause_cntr(_node->get_name());
+    _dapi.unpause_cntr(_cntr_name);
 }
 
 size_t Docker::inject_packet(const Packet &pkt) {

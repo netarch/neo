@@ -114,7 +114,8 @@ public:
 
     // Container API
     // https://docs.docker.com/engine/api/v1.42/#tag/Container
-    rapidjson::Document create_cntr(const DockerNode &node);
+    rapidjson::Document create_cntr(const std::string &name,
+                                    const DockerNode &node);
     rapidjson::Document inspect_cntr(const std::string &name);
     rapidjson::Document start_cntr(const std::string &name);
     rapidjson::Document stop_cntr(const std::string &name);
@@ -126,9 +127,9 @@ public:
 
     // Image API
     // https://docs.docker.com/engine/api/v1.42/#tag/Image
-    rapidjson::Document create_img(const std::string &image);
-    rapidjson::Document inspect_img(const std::string &name);
-    rapidjson::Document rm_img(const std::string &name);
+    rapidjson::Document create_img(const std::string &img_name);
+    rapidjson::Document inspect_img(const std::string &img_name);
+    rapidjson::Document rm_img(const std::string &img_name);
 
     // Exec API
     // https://docs.docker.com/engine/api/v1.42/#tag/Exec
@@ -146,9 +147,9 @@ public:
 
     // Helper functions
     rapidjson::Document pull(const std::string &img_name);
-    int run(const DockerNode &node);
-    int get_cntr_pid(const std::string &name);
-    bool is_cntr_running(const std::string &name);
+    int run(const std::string &cntr_name, const DockerNode &node);
+    int get_cntr_pid(const std::string &cntr_name);
+    bool is_cntr_running(const std::string &cntr_name);
     std::pair<int, std::string>
     exec(const std::string &cntr_name,
          const std::unordered_map<std::string, std::string> &envs,
