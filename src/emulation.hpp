@@ -20,6 +20,16 @@
 #include "pkt-hist.hpp"
 class Middlebox;
 
+/**
+ * @brief An emulation object represents a concrete emulated instance, which may
+ * be used to emulate one or multiple middleboxes.
+ *
+ * This class handles all the low-level chores like interacting with drivers
+ * (e.g., docker), spawning threads to listen for packets, and masking packet
+ * seq offsets etc. Note that we intentionally separate the `node_pkt_hist`
+ * methods from others because this class is unaware of and doesn't deal with
+ * nph hashing and calculations.
+ */
 class Emulation {
 private:
     Middlebox *_mb;                  // currently emulated middlebox node

@@ -248,8 +248,9 @@ void Emulation::init(Middlebox *mb, bool log_pkts) {
 
 /**
  * It resets the emulation state and re-injects all packets that have been sent
- * since the last checkpoint. It will also update the emulation's node packet
- * history (_nph) to the target state.
+ * since the last checkpoint.
+ *
+ * Notice that this function does NOT update the node packet history (nph).
  *
  * @param nph the node packet history to rewind to
  *
@@ -285,7 +286,6 @@ int Emulation::rewind(NodePacketHistory *nph) {
         }
     }
 
-    _nph = nph; // Update the emulation's nph
     logger.info(to_string(rewind_injections) + " rewind injections");
     return rewind_injections;
 }

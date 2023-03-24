@@ -126,7 +126,9 @@ TEST_CASE("emulation") {
 
         // Rewind to nph0
         CHECK(emu.rewind(nph0.get()) == 0);  // Reset but no injections
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph0.get()));
         CHECK(emu.rewind(nph0.get()) == -1); // No resets at all
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph0.get()));
 
         // Send a TCP SYN packet from node1 to node2
         auto nph4 = make_unique<NodePacketHistory>(syn12.get(), nph0.get());
@@ -140,13 +142,21 @@ TEST_CASE("emulation") {
 
         // Test a bunch of rewinds
         CHECK(emu.rewind(nph4.get()) == 1);  // Rewind to nph4
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph4.get()));
         CHECK(emu.rewind(nph5.get()) == 1);  // Rewind to nph5
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph5.get()));
         CHECK(emu.rewind(nph3.get()) == 3);  // Rewind to nph3
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph3.get()));
         CHECK(emu.rewind(nph3.get()) == -1); // Rewind to nph3
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph3.get()));
         CHECK(emu.rewind(nph2.get()) == 2);  // Rewind to nph2
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph2.get()));
         CHECK(emu.rewind(nph1.get()) == 1);  // Rewind to nph1
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph1.get()));
         CHECK(emu.rewind(nph3.get()) == 2);  // Rewind to nph3
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph3.get()));
         CHECK(emu.rewind(nph5.get()) == 2);  // Rewind to nph5
+        REQUIRE_NOTHROW(emu.node_pkt_hist(nph5.get()));
     }
 
     // Reset signal handler
