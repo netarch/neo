@@ -50,10 +50,10 @@ private:
 
     static inline const std::string method_to_str(method m) {
         static const std::unordered_map<method, std::string> methods = {
-            {   method::GET,    "GET"},
-            {  method::POST,   "POST"},
+            {method::GET,    "GET"   },
+            {method::POST,   "POST"  },
             {method::DELETE, "DELETE"},
-            {   method::PUT,    "PUT"},
+            {method::PUT,    "PUT"   },
         };
 
         return methods.at(m);
