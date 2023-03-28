@@ -97,26 +97,26 @@ COMMIT
                 Link(server.name, 'eth0', tenant_sw.name,
                      'eth%d' % (server_id + 1)))
 
-    ## add policies
+    ## add invariants
     # private servers can initiate connections to the outside world and the
     # replies from the outside world can reach the private subnets
-    config.add_policy(
-        ReplyReachabilityPolicy(target_node='internet',
-                                reachable=True,
-                                protocol='tcp',
-                                src_node='server.*\..*',
-                                dst_ip='8.1.0.2',
-                                dst_port=80,
-                                owned_dst_only=True))
+    config.add_invariant(
+        ReplyReachability(target_node='internet',
+                          reachable=True,
+                          protocol='tcp',
+                          src_node='server.*\..*',
+                          dst_ip='8.1.0.2',
+                          dst_port=80,
+                          owned_dst_only=True))
     # private servers can't accept connections from the outside world
-    config.add_policy(
-        ReachabilityPolicy(target_node='(server.*\..*)|r.*\.2',
-                           reachable=False,
-                           protocol='tcp',
-                           src_node='internet',
-                           dst_ip='10.0.0.0/8',
-                           dst_port=80,
-                           owned_dst_only=True))
+    config.add_invariant(
+        Reachability(target_node='(server.*\..*)|r.*\.2',
+                     reachable=False,
+                     protocol='tcp',
+                     src_node='internet',
+                     dst_ip='10.0.0.0/8',
+                     dst_port=80,
+                     owned_dst_only=True))
 
     ## add route updates
     for update in range(updates):

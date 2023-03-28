@@ -2,22 +2,23 @@
 
 #include <unordered_set>
 
-#include "policy/policy.hpp"
+#include "invariant/invariant.hpp"
+
 class Node;
 
-/*
+/**
  * For the specified connections, the dispersion index (VMR) of the balanced
  * requests across the target_nodes is less than or equal to the maximum at all
  * times.
  */
-class LoadBalancePolicy : public Policy {
+class LoadBalance : public Invariant {
 private:
     std::unordered_set<Node *> target_nodes;
     double max_dispersion_index; // variance-to-mean ratio (VMR)
 
 private:
     friend class ConfigParser;
-    LoadBalancePolicy(bool correlated = false) : Policy(correlated) {}
+    LoadBalance(bool correlated = false) : Invariant(correlated) {}
 
 public:
     std::string to_string() const override;

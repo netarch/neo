@@ -111,12 +111,12 @@ public:
     OpenflowUpdateState *get_openflow_update_state() const;
     OpenflowUpdateState *
     set_openflow_update_state(OpenflowUpdateState &&) const;
-    // policy
+    // invariant
     bool get_violated() const;
     bool set_violated(bool) const;
-    int get_correlated_policy_idx() const;
-    int set_correlated_policy_idx(int) const;
-    // loadbalance policy
+    int get_correlated_inv_idx() const;
+    int set_correlated_inv_idx(int) const;
+    // loadbalance invariant
     ReachCounts *get_reach_counts() const;
     ReachCounts *set_reach_counts(ReachCounts &&) const;
 };

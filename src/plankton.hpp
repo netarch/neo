@@ -7,8 +7,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "invariant/invariant.hpp"
 #include "network.hpp"
-#include "policy/policy.hpp"
 #include "process/choose_conn.hpp"
 #include "process/forwarding.hpp"
 #include "process/openflow.hpp"
@@ -27,22 +27,21 @@ private:
 
     // System states
     Network _network; // Network information (inc. data plane)
-    std::vector<std::shared_ptr<Policy>> _policies; // Network invariants
-    // TODO: policies -> invariants
+    std::vector<std::shared_ptr<Invariant>> _invs; // Network invariants
 
     // Network processes/actors
     ChooseConnProcess _choose_conn;
     ForwardingProcess _forwarding;
     OpenflowProcess _openflow;
 
-    // Per-policy system states
-    std::shared_ptr<Policy> _policy; // Currently verified policy
+    // Per-invariant system states
+    std::shared_ptr<Invariant> _inv; // Currently verified invariant
     static bool _violated;           // A violation has occurred
 
-    void verify_policy();
+    void verify_invariant();
     void verify_conn();
 
-    static std::unordered_set<pid_t> _tasks; // Policy or EC tasks
+    static std::unordered_set<pid_t> _tasks; // Invariant or EC tasks
     static const int sigs[];
     static void inv_sig_handler(int sig, siginfo_t *siginfo, void *ctx);
     static void ec_sig_handler(int sig);
@@ -62,7 +61,7 @@ public:
 
     static Plankton &get();
     const decltype(_network) &network() const { return _network; }
-    const decltype(_policies) &policies() const { return _policies; }
+    const decltype(_invs) &invariants() const { return _invs; }
 
     void init(bool all_ecs,
               bool dropmon,
@@ -75,7 +74,7 @@ public:
 
     /***** functions used by the Promela network model *****/
     void initialize();
-    void reinit(); // used by policies with correlated sub-policies
+    void reinit(); // used by invariants with correlated sub-invariants
     void exec_step();
     void report();
     void verify_exit(int);

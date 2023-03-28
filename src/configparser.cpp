@@ -14,20 +14,20 @@
 #include "driver/docker.hpp"
 #include "droptimeout.hpp"
 #include "interface.hpp"
+#include "invariant/conditional.hpp"
+#include "invariant/consistency.hpp"
+#include "invariant/invariant.hpp"
+#include "invariant/loadbalance.hpp"
+#include "invariant/one-request.hpp"
+#include "invariant/reachability.hpp"
+#include "invariant/reply-reachability.hpp"
+#include "invariant/waypoint.hpp"
 #include "link.hpp"
 #include "logger.hpp"
 #include "middlebox.hpp"
 #include "network.hpp"
 #include "node.hpp"
 #include "plankton.hpp"
-#include "policy/conditional.hpp"
-#include "policy/consistency.hpp"
-#include "policy/loadbalance.hpp"
-#include "policy/one-request.hpp"
-#include "policy/policy.hpp"
-#include "policy/reachability.hpp"
-#include "policy/reply-reachability.hpp"
-#include "policy/waypoint.hpp"
 #include "process/openflow.hpp"
 #include "protocols.hpp"
 #include "route.hpp"
@@ -40,7 +40,7 @@ void ConfigParser::parse(const string &filename, Plankton &plankton) {
     this->_config = make_unique<toml::table>(toml::parse_file(filename));
     this->parse_network(plankton._network);
     this->parse_openflow(plankton._openflow, plankton._network);
-    this->parse_policies(plankton._policies, plankton._network);
+    this->parse_invariants(plankton._invs, plankton._network);
 }
 
 void ConfigParser::parse_network(Network &network) {
@@ -676,77 +676,75 @@ void ConfigParser::parse_openflow_update(Node *&node,
     route.egress_intf = string(**outport);
 }
 
-void ConfigParser::parse_policies(vector<shared_ptr<Policy>> &policies,
-                                  const Network &network) {
-    auto pol_arr = this->_config->get_as<toml::array>("policies");
+void ConfigParser::parse_invariants(vector<shared_ptr<Invariant>> &invariants,
+                                    const Network &network) {
+    auto inv_arr = this->_config->get_as<toml::array>("invariants");
 
-    if (pol_arr) {
-        this->parse_policy_array(policies, false, *pol_arr, network);
+    if (inv_arr) {
+        this->parse_inv_array(invariants, false, *inv_arr, network);
     }
 
-    if (policies.size() == 1) {
-        logger.info("Loaded 1 policy");
+    if (invariants.size() == 1) {
+        logger.info("Loaded 1 invariant");
     } else {
-        logger.info("Loaded " + to_string(policies.size()) + " policies");
+        logger.info("Loaded " + to_string(invariants.size()) + " invariants");
     }
 }
 
-void ConfigParser::parse_policy_array(vector<shared_ptr<Policy>> &policies,
-                                      bool correlated,
-                                      const toml::array &pol_arr,
-                                      const Network &network) {
-    for (const auto &cfg : pol_arr) {
+void ConfigParser::parse_inv_array(vector<shared_ptr<Invariant>> &invariants,
+                                   bool correlated,
+                                   const toml::array &inv_arr,
+                                   const Network &network) {
+    for (const auto &cfg : inv_arr) {
         const auto &tbl = *cfg.as_table();
-        shared_ptr<Policy> policy;
+        shared_ptr<Invariant> invariant;
 
         auto type = tbl.get_as<string>("type");
         if (!type) {
-            logger.error("Missing policy type");
+            logger.error("Missing invariant type");
         }
 
         // Since make_shared<> requires public constructor, we need to call new
         // explicitly and then construct the shared_ptr from it.
         if (**type == "reachability") {
-            auto pol = shared_ptr<ReachabilityPolicy>(
-                new ReachabilityPolicy(correlated));
-            this->parse_reachability(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<Reachability>(new Reachability(correlated));
+            this->parse_reachability(inv, tbl, network);
+            invariant = inv;
         } else if (*type == "reply-reachability") {
-            auto pol = shared_ptr<ReplyReachabilityPolicy>(
-                new ReplyReachabilityPolicy(correlated));
-            this->parse_replyreachability(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<ReplyReachability>(
+                new ReplyReachability(correlated));
+            this->parse_replyreachability(inv, tbl, network);
+            invariant = inv;
         } else if (*type == "waypoint") {
-            auto pol =
-                shared_ptr<WaypointPolicy>(new WaypointPolicy(correlated));
-            this->parse_waypoint(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<Waypoint>(new Waypoint(correlated));
+            this->parse_waypoint(inv, tbl, network);
+            invariant = inv;
         } else if (!correlated && *type == "one-request") {
-            auto pol = shared_ptr<OneRequestPolicy>(new OneRequestPolicy());
-            this->parse_onerequest(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<OneRequest>(new OneRequest());
+            this->parse_onerequest(inv, tbl, network);
+            invariant = inv;
         } else if (!correlated && *type == "loadbalance") {
-            auto pol = shared_ptr<LoadBalancePolicy>(new LoadBalancePolicy());
-            this->parse_loadbalance(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<LoadBalance>(new LoadBalance());
+            this->parse_loadbalance(inv, tbl, network);
+            invariant = inv;
         } else if (!correlated && *type == "conditional") {
-            auto pol = shared_ptr<ConditionalPolicy>(new ConditionalPolicy());
-            this->parse_conditional(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<Conditional>(new Conditional());
+            this->parse_conditional(inv, tbl, network);
+            invariant = inv;
         } else if (!correlated && *type == "consistency") {
-            auto pol = shared_ptr<ConsistencyPolicy>(new ConsistencyPolicy());
-            this->parse_consistency(pol, tbl, network);
-            policy = pol;
+            auto inv = shared_ptr<Consistency>(new Consistency());
+            this->parse_consistency(inv, tbl, network);
+            invariant = inv;
         } else {
-            logger.error("Unknown policy type: " + **type);
+            logger.error("Unknown invariant type: " + **type);
         }
 
-        assert(policy->conn_specs.size() <= MAX_CONNS);
-        policies.push_back(std::move(policy));
+        assert(invariant->_conn_specs.size() <= MAX_CONNS);
+        invariants.push_back(std::move(invariant));
     }
 }
 
-void ConfigParser::parse_reachability(shared_ptr<ReachabilityPolicy> &policy,
+void ConfigParser::parse_reachability(shared_ptr<Reachability> &inv,
                                       const toml::table &config,
                                       const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
@@ -761,18 +759,17 @@ void ConfigParser::parse_reachability(shared_ptr<ReachabilityPolicy> &policy,
 
     for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
-            policy->target_nodes.insert(node.second);
+            inv->target_nodes.insert(node.second);
         }
     }
-    policy->reachable = **reachable;
-    this->parse_connections(policy, config, network);
-    assert(policy->conn_specs.size() == 1);
+    inv->reachable = **reachable;
+    this->parse_connections(inv, config, network);
+    assert(inv->_conn_specs.size() == 1);
 }
 
-void ConfigParser::parse_replyreachability(
-    shared_ptr<ReplyReachabilityPolicy> &policy,
-    const toml::table &config,
-    const Network &network) {
+void ConfigParser::parse_replyreachability(shared_ptr<ReplyReachability> &inv,
+                                           const toml::table &config,
+                                           const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
     auto reachable = config.get_as<bool>("reachable");
 
@@ -785,15 +782,15 @@ void ConfigParser::parse_replyreachability(
 
     for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
-            policy->target_nodes.insert(node.second);
+            inv->target_nodes.insert(node.second);
         }
     }
-    policy->reachable = **reachable;
-    this->parse_connections(policy, config, network);
-    assert(policy->conn_specs.size() == 1);
+    inv->reachable = **reachable;
+    this->parse_connections(inv, config, network);
+    assert(inv->_conn_specs.size() == 1);
 }
 
-void ConfigParser::parse_waypoint(shared_ptr<WaypointPolicy> &policy,
+void ConfigParser::parse_waypoint(shared_ptr<Waypoint> &inv,
                                   const toml::table &config,
                                   const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
@@ -808,15 +805,15 @@ void ConfigParser::parse_waypoint(shared_ptr<WaypointPolicy> &policy,
 
     for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
-            policy->target_nodes.insert(node.second);
+            inv->target_nodes.insert(node.second);
         }
     }
-    policy->pass_through = **pass_through;
-    this->parse_connections(policy, config, network);
-    assert(policy->conn_specs.size() == 1);
+    inv->pass_through = **pass_through;
+    this->parse_connections(inv, config, network);
+    assert(inv->_conn_specs.size() == 1);
 }
 
-void ConfigParser::parse_onerequest(shared_ptr<OneRequestPolicy> &policy,
+void ConfigParser::parse_onerequest(shared_ptr<OneRequest> &inv,
                                     const toml::table &config,
                                     const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
@@ -827,14 +824,14 @@ void ConfigParser::parse_onerequest(shared_ptr<OneRequestPolicy> &policy,
 
     for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
-            policy->target_nodes.insert(node.second);
+            inv->target_nodes.insert(node.second);
         }
     }
-    this->parse_connections(policy, config, network);
-    assert(policy->conn_specs.size() >= 1);
+    this->parse_connections(inv, config, network);
+    assert(inv->_conn_specs.size() >= 1);
 }
 
-void ConfigParser::parse_loadbalance(shared_ptr<LoadBalancePolicy> &policy,
+void ConfigParser::parse_loadbalance(shared_ptr<LoadBalance> &inv,
                                      const toml::table &config,
                                      const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
@@ -846,40 +843,39 @@ void ConfigParser::parse_loadbalance(shared_ptr<LoadBalancePolicy> &policy,
 
     for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
-            policy->target_nodes.insert(node.second);
+            inv->target_nodes.insert(node.second);
         }
     }
-    policy->max_dispersion_index = max_vmr ? **max_vmr : 1;
-    this->parse_connections(policy, config, network);
-    assert(policy->conn_specs.size() >= 1);
+    inv->max_dispersion_index = max_vmr ? **max_vmr : 1;
+    this->parse_connections(inv, config, network);
+    assert(inv->_conn_specs.size() >= 1);
 }
 
-void ConfigParser::parse_conditional(shared_ptr<ConditionalPolicy> &policy,
+void ConfigParser::parse_conditional(shared_ptr<Conditional> &inv,
                                      const toml::table &config,
                                      const Network &network) {
-    parse_correlated_policies(policy, config, network);
+    parse_correlated_invs(inv, config, network);
 }
 
-void ConfigParser::parse_consistency(shared_ptr<ConsistencyPolicy> &policy,
+void ConfigParser::parse_consistency(shared_ptr<Consistency> &inv,
                                      const toml::table &config,
                                      const Network &network) {
-    parse_correlated_policies(policy, config, network);
+    parse_correlated_invs(inv, config, network);
 }
 
-void ConfigParser::parse_correlated_policies(std::shared_ptr<Policy> policy,
-                                             const toml::table &config,
-                                             const Network &network) {
-    auto policies_config = config.get_as<toml::array>("correlated_policies");
+void ConfigParser::parse_correlated_invs(std::shared_ptr<Invariant> inv,
+                                         const toml::table &config,
+                                         const Network &network) {
+    auto invs_config = config.get_as<toml::array>("correlated_invariants");
 
-    if (!policies_config) {
-        logger.error("Missing correlated policies");
+    if (!invs_config) {
+        logger.error("Missing correlated invariants");
     }
 
-    this->parse_policy_array(policy->correlated_policies, true,
-                             *policies_config, network);
+    this->parse_inv_array(inv->_correlated_invs, true, *invs_config, network);
 }
 
-void ConfigParser::parse_connections(shared_ptr<Policy> policy,
+void ConfigParser::parse_connections(shared_ptr<Invariant> inv,
                                      const toml::table &config,
                                      const Network &network) {
     auto conns_cfg = config.get_as<toml::array>("connections");
@@ -891,7 +887,7 @@ void ConfigParser::parse_connections(shared_ptr<Policy> policy,
     for (const auto &conn_cfg : *conns_cfg) {
         ConnSpec conn;
         this->parse_conn_spec(conn, *conn_cfg.as_table(), network);
-        policy->conn_specs.emplace_back(std::move(conn));
+        inv->_conn_specs.emplace_back(std::move(conn));
     }
 }
 

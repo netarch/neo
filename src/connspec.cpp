@@ -5,7 +5,7 @@
 
 ConnSpec::ConnSpec() : protocol(0), src_port(0), owned_dst_only(false) {}
 
-void ConnSpec::update_policy_ecs() const {
+void ConnSpec::update_inv_ecs() const {
     EqClassMgr::get().add_ec(dst_ip);
 }
 

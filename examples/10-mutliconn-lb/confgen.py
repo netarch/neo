@@ -55,20 +55,20 @@ def confgen(lbs, servers, algorithm):
             config.add_link(Link(sw.name, 'eth%d' % srv, server.name, 'eth0'))
         load_balancer.add_config('config', lb_config)
 
-    ## add policies
+    ## add invariants
     for lb in range(1, lbs + 1):
-        policy = LoadBalancePolicy(target_node='server%d\.[0-9]+' % lb)
-        policy.add_connection(
+        inv = LoadBalance(target_node='server%d\.[0-9]+' % lb)
+        inv.add_connection(
             Connection(protocol='tcp',
                        pkt_dst='8.0.%d.2' % lb,
                        dst_port=80,
                        start_node=internet_node.name))
-        policy.add_connection(
+        inv.add_connection(
             Connection(protocol='tcp',
                        pkt_dst='8.0.%d.2' % lb,
                        dst_port=443,
                        start_node=internet_node.name))
-        config.add_policy(policy)
+        config.add_invariant(inv)
 
     ## output as TOML
     config.output_toml()

@@ -7,24 +7,24 @@
 
 #include <toml++/toml.h>
 
-class ConditionalPolicy;
+class Conditional;
 class ConnSpec;
-class ConsistencyPolicy;
+class Consistency;
 class DockerNode;
 class Interface;
 class Link;
-class LoadBalancePolicy;
+class LoadBalance;
 class Middlebox;
 class Network;
 class Node;
-class OneRequestPolicy;
+class OneRequest;
 class OpenflowProcess;
 class Plankton;
-class Policy;
-class ReachabilityPolicy;
-class ReplyReachabilityPolicy;
+class Invariant;
+class Reachability;
+class ReplyReachability;
 class Route;
-class WaypointPolicy;
+class Waypoint;
 
 class ConfigParser {
 private:
@@ -59,42 +59,42 @@ private:
                                const toml::table &,
                                const Network &);
 
-    // Policies
-    void parse_policies(std::vector<std::shared_ptr<Policy>> &policies,
-                        const Network &network);
-    void parse_policy_array(std::vector<std::shared_ptr<Policy>> &policies,
-                            bool correlated,
-                            const toml::array &pol_arr,
-                            const Network &network);
-    // Single-connection policies
-    void parse_reachability(std::shared_ptr<ReachabilityPolicy> &,
+    // Invariants
+    void parse_invariants(std::vector<std::shared_ptr<Invariant>> &invariants,
+                          const Network &network);
+    void parse_inv_array(std::vector<std::shared_ptr<Invariant>> &invariants,
+                         bool correlated,
+                         const toml::array &inv_arr,
+                         const Network &network);
+    // Single-connection invariants
+    void parse_reachability(std::shared_ptr<Reachability> &,
                             const toml::table &,
                             const Network &);
-    void parse_replyreachability(std::shared_ptr<ReplyReachabilityPolicy> &,
+    void parse_replyreachability(std::shared_ptr<ReplyReachability> &,
                                  const toml::table &,
                                  const Network &);
-    void parse_waypoint(std::shared_ptr<WaypointPolicy> &,
+    void parse_waypoint(std::shared_ptr<Waypoint> &,
                         const toml::table &,
                         const Network &);
-    // Multi-connection policies
-    void parse_onerequest(std::shared_ptr<OneRequestPolicy> &,
+    // Multi-connection invariants
+    void parse_onerequest(std::shared_ptr<OneRequest> &,
                           const toml::table &,
                           const Network &);
-    void parse_loadbalance(std::shared_ptr<LoadBalancePolicy> &,
+    void parse_loadbalance(std::shared_ptr<LoadBalance> &,
                            const toml::table &,
                            const Network &);
-    // Policies with multiple correlated sub-policies
-    void parse_conditional(std::shared_ptr<ConditionalPolicy> &,
+    // Invariants with multiple correlated sub-invariants
+    void parse_conditional(std::shared_ptr<Conditional> &,
                            const toml::table &,
                            const Network &);
-    void parse_consistency(std::shared_ptr<ConsistencyPolicy> &,
+    void parse_consistency(std::shared_ptr<Consistency> &,
                            const toml::table &,
                            const Network &);
-    void parse_correlated_policies(std::shared_ptr<Policy>,
-                                   const toml::table &,
-                                   const Network &);
+    void parse_correlated_invs(std::shared_ptr<Invariant>,
+                               const toml::table &,
+                               const Network &);
     // Connections
-    void parse_connections(std::shared_ptr<Policy>,
+    void parse_connections(std::shared_ptr<Invariant>,
                            const toml::table &,
                            const Network &);
     void parse_conn_spec(ConnSpec &, const toml::table &, const Network &);

@@ -218,7 +218,7 @@ def confgen(apps, hosts, fault):
                          'eth%d' % acc_intf_num))
             config.add_node(node)
 
-    ## add policies
+    ## add invariants
     for app in range(apps):
         second = (app // 256) % 256  # second octet
         third = app % 256  # third octet
@@ -246,40 +246,38 @@ def confgen(apps, hosts, fault):
                                                   for i in other_apps]))))
         # In the same application, hosts under access1 can reach hosts under
         # access2
-        config.add_policy(
-            ConsistencyPolicy([
-                ReachabilityPolicy(target_node=hosts_acc2 +
-                                   '|access2-app%d' % app,
-                                   reachable=True,
-                                   protocol='udp',
-                                   src_node=hosts_acc1,
-                                   dst_ip='11.%d.%d.0/24' % (second, third),
-                                   dst_port=[80],
-                                   owned_dst_only=True)
+        config.add_invariant(
+            Consistency([
+                Reachability(target_node=hosts_acc2 + '|access2-app%d' % app,
+                             reachable=True,
+                             protocol='udp',
+                             src_node=hosts_acc1,
+                             dst_ip='11.%d.%d.0/24' % (second, third),
+                             dst_port=[80],
+                             owned_dst_only=True)
             ]))
         # In the same application, hosts under access2 can reach hosts under
         # access1
-        config.add_policy(
-            ConsistencyPolicy([
-                ReachabilityPolicy(target_node=hosts_acc1 +
-                                   '|access1-app%d' % app,
-                                   reachable=True,
-                                   protocol='udp',
-                                   src_node=hosts_acc2,
-                                   dst_ip='10.%d.%d.0/24' % (second, third),
-                                   dst_port=[80],
-                                   owned_dst_only=True)
+        config.add_invariant(
+            Consistency([
+                Reachability(target_node=hosts_acc1 + '|access1-app%d' % app,
+                             reachable=True,
+                             protocol='udp',
+                             src_node=hosts_acc2,
+                             dst_ip='10.%d.%d.0/24' % (second, third),
+                             dst_port=[80],
+                             owned_dst_only=True)
             ]))
         # Hosts of an application cannot reach hosts of other applications
-        config.add_policy(
-            ConsistencyPolicy([
-                ReachabilityPolicy(target_node=hosts_other_apps,
-                                   reachable=False,
-                                   protocol='udp',
-                                   src_node='app%d-host[0-9]+' % app,
-                                   dst_ip='10.0.0.0/7',
-                                   dst_port=[80],
-                                   owned_dst_only=True)
+        config.add_invariant(
+            Consistency([
+                Reachability(target_node=hosts_other_apps,
+                             reachable=False,
+                             protocol='udp',
+                             src_node='app%d-host[0-9]+' % app,
+                             dst_ip='10.0.0.0/7',
+                             dst_port=[80],
+                             owned_dst_only=True)
             ]))
         break
 

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "process/process.hpp"
-class Policy;
+class Invariant;
 class Node;
 class Route;
 class FIB_IPNH;

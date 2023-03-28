@@ -1,12 +1,14 @@
-#include "policy/waypoint.hpp"
+#include "invariant/waypoint.hpp"
 
 #include "model-access.hpp"
 #include "node.hpp"
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
 
-std::string WaypointPolicy::to_string() const {
-    std::string ret = "Waypoint (";
+using namespace std;
+
+string Waypoint::to_string() const {
+    string ret = "Waypoint (";
     ret += pass_through ? "O" : "X";
     ret += "): [";
     for (Node *node : target_nodes) {
@@ -16,12 +18,12 @@ std::string WaypointPolicy::to_string() const {
     return ret;
 }
 
-void WaypointPolicy::init() {
-    Policy::init();
+void Waypoint::init() {
+    Invariant::init();
     model.set_violated(false);
 }
 
-int WaypointPolicy::check_violation() {
+int Waypoint::check_violation() {
     int mode = model.get_fwd_mode();
 
     if (mode == fwd_mode::COLLECT_NHOPS) {

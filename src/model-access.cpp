@@ -10,12 +10,12 @@
 #include "eqclass.hpp"
 #include "fib.hpp"
 #include "interface.hpp"
+#include "invariant/loadbalance.hpp"
 #include "logger.hpp"
 #include "network.hpp"
 #include "node.hpp"
 #include "payload.hpp"
 #include "pkt-hist.hpp"
-#include "policy/loadbalance.hpp"
 #include "process/openflow.hpp"
 #include "protocols.hpp"
 #include "reachcounts.hpp"
@@ -440,12 +440,12 @@ bool Model::set_violated(bool violated) const {
     return (state->violated = violated);
 }
 
-int Model::get_correlated_policy_idx() const {
-    return state->correlated_policy_idx;
+int Model::get_correlated_inv_idx() const {
+    return state->correlated_inv_idx;
 }
 
-int Model::set_correlated_policy_idx(int correlated_policy_idx) const {
-    return state->correlated_policy_idx = correlated_policy_idx;
+int Model::set_correlated_inv_idx(int idx) const {
+    return state->correlated_inv_idx = idx;
 }
 
 ReachCounts *Model::get_reach_counts() const {

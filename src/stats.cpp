@@ -143,7 +143,7 @@ void Stats::log_results(Op op) const {
         logger.info("Peak memory: " + to_string(max_rss) + " KiB");
         logger.info("Current memory: " + to_string(cur_rss) + " KiB");
     } else if (op == Op::CHECK_INVARIANT) {
-        const string filename = "policy.stats.csv";
+        const string filename = "invariant.stats.csv";
         ofstream ofs(filename);
         if (!ofs) {
             logger.error("Failed to open " + filename);

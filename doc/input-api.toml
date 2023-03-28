@@ -68,67 +68,67 @@
 
 
 ##
-## Policies
+## Invariants
 ##
 
 #
-# Single-connection policies (must have 1 connection spec):
+# Single-connection invariants (must have 1 connection spec):
 #   - reachability (flow will reach the target(s))
 #   - reply-reachability (<reachability> and reply flow will come back)
 #   - waypoint (flow will pass through the target(s) (don't have to be accepted))
 #
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "<node name regex>"
     reachable = true
-    [[policies.connections]]        # < connection spec >
+    [[invariants.connections]]        # < connection spec >
     protocol = "<string>"           # "tcp", "udp", or "icmp-echo"
     src_node = "<node name regex>"
     dst_ip = "<ip prefix or addr>"
     src_port = 12345                # optional
     dst_port = [80, 443]            # optional, default: all interesting ports
     owned_dst_only = false          # optional, default: false
-[[policies]]
+[[invariants]]
     type = "reply-reachability"
     target_node = "<node name regex>"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     # < connection spec >
-[[policies]]
+[[invariants]]
     type = "waypoint"
     target_node = "<node name regex>"
     pass_through = true
-    [[policies.connections]]
+    [[invariants.connections]]
     # < connection spec >
 
 #
-# Multi-connection policies (can have multiple, concurrent connection specs):
+# Multi-connection invariants (can have multiple, concurrent connection specs):
 #   - one-request (only one request will reach the target(s))
 #   - loadbalance (the dispersion index wrt the targets will always <= the maximum)
 #
-[[policies]]
+[[invariants]]
     type = "one-request"
     target_node = "<node name regex>"
-    [[policies.connections]]
+    [[invariants.connections]]
     # < connection spec >
-[[policies]]
+[[invariants]]
     type = "loadbalance"
     target_node = "node name regex"
     max_dispersion_index = 1        # optional, default: 1
-    [[policies.connections]]
+    [[invariants.connections]]
     # < connection spec >
 
 #
-# Policies with multiple correlated sub-policies
-# (each sub-policy is executed sequentially):
+# invariants with multiple correlated sub-invariants
+# (each sub-invariant is executed sequentially):
 #   - conditional (chain of implication: A -> B -> C -> ...)
-#   - consistency (true if all sub-policies have the same result)
+#   - consistency (true if all sub-invariants have the same result)
 #
-[[policies]]
+[[invariants]]
     type = "conditional"
-    [[policies.correlated_policies]]
-    # < any single-connection policy >
-[[policies]]
+    [[invariants.correlated_invariants]]
+    # < any single-connection invariant >
+[[invariants]]
     type = "consistency"
-    [[policies.correlated_policies]]
-    # < any single-connection policy >
+    [[invariants.correlated_invariants]]
+    # < any single-connection invariant >

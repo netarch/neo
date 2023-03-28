@@ -1,12 +1,14 @@
-#include "policy/reply-reachability.hpp"
+#include "invariant/reply-reachability.hpp"
 
 #include "model-access.hpp"
 #include "node.hpp"
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
 
-std::string ReplyReachabilityPolicy::to_string() const {
-    std::string ret = "ReplyReachability (";
+using namespace std;
+
+string ReplyReachability::to_string() const {
+    string ret = "ReplyReachability (";
     ret += reachable ? "O" : "X";
     ret += "): [";
     for (Node *node : target_nodes) {
@@ -16,12 +18,12 @@ std::string ReplyReachabilityPolicy::to_string() const {
     return ret;
 }
 
-void ReplyReachabilityPolicy::init() {
-    Policy::init();
+void ReplyReachability::init() {
+    Invariant::init();
     model.set_violated(false);
 }
 
-int ReplyReachabilityPolicy::check_violation() {
+int ReplyReachability::check_violation() {
     int mode = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 

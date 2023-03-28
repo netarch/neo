@@ -179,7 +179,7 @@ class Connection:
         return data
 
 
-class Policy:
+class Invariant:
 
     def __init__(self, type):
         self.type: str = type
@@ -196,11 +196,11 @@ class Policy:
 
 
 ##
-## single-connection policies
+## single-connection invariants
 ##
 
 
-class ReachabilityPolicy(Policy):
+class Reachability(Invariant):
 
     def __init__(self,
                  target_node,
@@ -211,7 +211,7 @@ class ReachabilityPolicy(Policy):
                  src_port=None,
                  dst_port=None,
                  owned_dst_only=None):
-        Policy.__init__(self, 'reachability')
+        Invariant.__init__(self, 'reachability')
         self.target_node: str = target_node
         self.reachable: bool = reachable
         self.add_connection(
@@ -219,7 +219,7 @@ class ReachabilityPolicy(Policy):
                        owned_dst_only))
 
 
-class ReplyReachabilityPolicy(Policy):
+class ReplyReachability(Invariant):
 
     def __init__(self,
                  target_node,
@@ -230,7 +230,7 @@ class ReplyReachabilityPolicy(Policy):
                  src_port=None,
                  dst_port=None,
                  owned_dst_only=None):
-        Policy.__init__(self, 'reply-reachability')
+        Invariant.__init__(self, 'reply-reachability')
         self.target_node: str = target_node
         self.reachable: bool = reachable
         self.add_connection(
@@ -238,7 +238,7 @@ class ReplyReachabilityPolicy(Policy):
                        owned_dst_only))
 
 
-class WaypointPolicy(Policy):
+class Waypoint(Invariant):
 
     def __init__(self,
                  target_node,
@@ -249,7 +249,7 @@ class WaypointPolicy(Policy):
                  src_port=None,
                  dst_port=None,
                  owned_dst_only=None):
-        Policy.__init__(self, 'waypoint')
+        Invariant.__init__(self, 'waypoint')
         self.target_node: str = target_node
         self.pass_through: bool = pass_through
         self.add_connection(
@@ -258,80 +258,80 @@ class WaypointPolicy(Policy):
 
 
 ##
-## multi-connection policies
+## multi-connection invariants
 ##
 
 
-class OneRequestPolicy(Policy):
+class OneRequest(Invariant):
 
     def __init__(self, target_node):
-        Policy.__init__(self, 'one-request')
+        Invariant.__init__(self, 'one-request')
         self.target_node: str = target_node
 
 
-class LoadBalancePolicy(Policy):
+class LoadBalance(Invariant):
 
     def __init__(self, target_node, max_dispersion_index=None):
-        Policy.__init__(self, 'loadbalance')
+        Invariant.__init__(self, 'loadbalance')
         self.target_node: str = target_node
         self.max_dispersion_index: int = max_dispersion_index
 
     def to_dict(self):
-        data = Policy.to_dict(self)
+        data = Invariant.to_dict(self)
         if self.max_dispersion_index is None:
             data.pop('max_dispersion_index')
         return data
 
 
 ##
-## policies with multiple single-connection correlated policies
+## invariants with multiple single-connection correlated invariants
 ##
 
 
-class ConditionalPolicy(Policy):
+class Conditional(Invariant):
 
-    def __init__(self, correlated_policies):
-        Policy.__init__(self, 'conditional')
-        self.correlated_policies: List[Policy] = correlated_policies
+    def __init__(self, correlated_invs):
+        Invariant.__init__(self, 'conditional')
+        self.correlated_invs: List[Invariant] = correlated_invs
 
     def to_dict(self):
-        data = Policy.to_dict(self)
-        if self.correlated_policies:
-            data['correlated_policies'] = [
-                policy.to_dict() for policy in self.correlated_policies
+        data = Invariant.to_dict(self)
+        if self.correlated_invs:
+            data['correlated_invariants'] = [
+                inv.to_dict() for inv in self.correlated_invs
             ]
         return data
 
 
-class ConsistencyPolicy(Policy):
+class Consistency(Invariant):
 
-    def __init__(self, correlated_policies):
-        Policy.__init__(self, 'consistency')
-        self.correlated_policies: List[Policy] = correlated_policies
+    def __init__(self, correlated_invs):
+        Invariant.__init__(self, 'consistency')
+        self.correlated_invs: List[Invariant] = correlated_invs
 
     def to_dict(self):
-        data = Policy.to_dict(self)
-        if self.correlated_policies:
-            data['correlated_policies'] = [
-                policy.to_dict() for policy in self.correlated_policies
+        data = Invariant.to_dict(self)
+        if self.correlated_invs:
+            data['correlated_invariants'] = [
+                inv.to_dict() for inv in self.correlated_invs
             ]
         return data
 
 
-class Policies:
+class Invariants:
 
     def __init__(self):
-        self.policies: List[Policy] = list()
+        self.invs: List[Invariant] = list()
 
     def is_empty(self):
-        return len(self.policies) == 0
+        return len(self.invs) == 0
 
-    def add_policy(self, policy):
-        self.policies.append(policy)
+    def add_invariant(self, inv):
+        self.invs.append(inv)
 
     def to_dict(self):
-        if self.policies:
-            return {'policies': [policy.to_dict() for policy in self.policies]}
+        if self.invs:
+            return {'invariants': [inv.to_dict() for inv in self.invs]}
         else:
             return {}
 
@@ -341,7 +341,7 @@ class Config:
     def __init__(self):
         self.network = Network()
         self.openflow = Openflow()
-        self.policies = Policies()
+        self.invs = Invariants()
 
     def add_node(self, node):
         self.network.add_node(node)
@@ -352,8 +352,8 @@ class Config:
     def add_update(self, update):
         self.openflow.add_update(update)
 
-    def add_policy(self, policy):
-        self.policies.add_policy(policy)
+    def add_invariant(self, inv):
+        self.invs.add_invariant(inv)
 
     def output_toml(self):
         config = {}
@@ -361,6 +361,6 @@ class Config:
             config.update(self.network.to_dict())
         if not self.openflow.is_empty():
             config.update(self.openflow.to_dict())
-        if not self.policies.is_empty():
-            config.update(self.policies.to_dict())
+        if not self.invs.is_empty():
+            config.update(self.invs.to_dict())
         print(toml.dumps(config))

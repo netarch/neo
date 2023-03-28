@@ -59,10 +59,10 @@ int num_conns;              /* total number of (concurrent) connections */
 int pkt_hist[SIZEOF_VOID_P / SIZEOF_INT];       /* (PacketHistory *), emulation state */
 int openflow_update_state[SIZEOF_VOID_P / SIZEOF_INT];  /* (OpenflowUpdateState *) */
 
-/* policy */
-bool violated;              /* whether the policy has been violated */
-int correlated_policy_idx;  /* index of the current correlated policy */
-/* loadbalance & one-request policy */
+/* invariant */
+bool violated;              /* whether the invariant has been violated */
+int correlated_inv_idx;     /* index of the current correlated invariant */
+/* loadbalance & one-request invariant */
 int reach_counts[SIZEOF_VOID_P / SIZEOF_INT];   /* (ReachCounts *) */
 
 

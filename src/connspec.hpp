@@ -27,6 +27,6 @@ private:
 
 public:
     ConnSpec(ConnSpec &&) = default;
-    void update_policy_ecs() const;
+    void update_inv_ecs() const;
     std::set<Connection> compute_connections() const;
 };

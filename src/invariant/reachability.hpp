@@ -2,7 +2,8 @@
 
 #include <unordered_set>
 
-#include "policy/policy.hpp"
+#include "invariant/invariant.hpp"
+
 class Node;
 
 /**
@@ -11,14 +12,14 @@ class Node;
  * the packets should either be dropped, or be accepted by none of the
  * target_nodes.
  */
-class ReachabilityPolicy : public Policy {
+class Reachability : public Invariant {
 private:
     std::unordered_set<Node *> target_nodes;
     bool reachable;
 
 private:
     friend class ConfigParser;
-    ReachabilityPolicy(bool correlated = false) : Policy(correlated) {}
+    Reachability(bool correlated = false) : Invariant(correlated) {}
 
 public:
     std::string to_string() const override;

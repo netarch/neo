@@ -13,7 +13,7 @@
 #define _STATS_RESET() Stats::get().reset()
 #define _STATS_LOGRESULTS(op) Stats::get().log_results(op)
 
-class Policy;
+class Invariant;
 
 class Stats {
 public:

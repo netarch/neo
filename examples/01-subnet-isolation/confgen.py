@@ -132,62 +132,62 @@ COMMIT
             config.add_node(host)
             config.add_link(Link(host.name, 'eth0', sw.name, 'eth%d' % i))
 
-    ## add policies
+    ## add invariants
     # public subnets can initiate connections to the outside world
-    config.add_policy(
-        ReachabilityPolicy(target_node='internet',
-                           reachable=True,
-                           protocol='tcp',
-                           src_node='public.*-host.*',
-                           dst_ip='8.0.0.1',
-                           dst_port=[80],
-                           owned_dst_only=True))
+    config.add_invariant(
+        Reachability(target_node='internet',
+                     reachable=True,
+                     protocol='tcp',
+                     src_node='public.*-host.*',
+                     dst_ip='8.0.0.1',
+                     dst_port=[80],
+                     owned_dst_only=True))
     # public subnets can accept connections from the outside world
-    config.add_policy(
-        ReachabilityPolicy(target_node='(public.*-host.*)|gw',
-                           reachable=True,
-                           protocol='tcp',
-                           src_node='internet',
-                           dst_ip='12.0.0.0/8',
-                           dst_port=[80],
-                           owned_dst_only=True))
+    config.add_invariant(
+        Reachability(target_node='(public.*-host.*)|gw',
+                     reachable=True,
+                     protocol='tcp',
+                     src_node='internet',
+                     dst_ip='12.0.0.0/8',
+                     dst_port=[80],
+                     owned_dst_only=True))
     # private subnets can initiate connections to the outside world and replies
     # from the outside world can reach the private subnets
-    config.add_policy(
-        ReplyReachabilityPolicy(target_node='internet',
-                                reachable=True,
-                                protocol='tcp',
-                                src_node='private.*-host.*',
-                                dst_ip='8.0.0.1',
-                                dst_port=[80],
-                                owned_dst_only=True))
+    config.add_invariant(
+        ReplyReachability(target_node='internet',
+                          reachable=True,
+                          protocol='tcp',
+                          src_node='private.*-host.*',
+                          dst_ip='8.0.0.1',
+                          dst_port=[80],
+                          owned_dst_only=True))
     # private subnets can't accept connections from the outside world
-    config.add_policy(
-        ReachabilityPolicy(target_node='(private.*-host.*)|gw',
-                           reachable=False,
-                           protocol='tcp',
-                           src_node='internet',
-                           dst_ip='11.0.0.0/8',
-                           dst_port=[80],
-                           owned_dst_only=True))
+    config.add_invariant(
+        Reachability(target_node='(private.*-host.*)|gw',
+                     reachable=False,
+                     protocol='tcp',
+                     src_node='internet',
+                     dst_ip='11.0.0.0/8',
+                     dst_port=[80],
+                     owned_dst_only=True))
     # quarantined subnets can't initiate connections to the outside world
-    config.add_policy(
-        ReachabilityPolicy(target_node='internet',
-                           reachable=False,
-                           protocol='tcp',
-                           src_node='quarantined.*-host.*',
-                           dst_ip='8.0.0.1',
-                           dst_port=[80],
-                           owned_dst_only=True))
+    config.add_invariant(
+        Reachability(target_node='internet',
+                     reachable=False,
+                     protocol='tcp',
+                     src_node='quarantined.*-host.*',
+                     dst_ip='8.0.0.1',
+                     dst_port=[80],
+                     owned_dst_only=True))
     # quarantined subnets can't accept connections from the outside world
-    config.add_policy(
-        ReachabilityPolicy(target_node='(quarantined.*-host.*)|gw',
-                           reachable=False,
-                           protocol='tcp',
-                           src_node='internet',
-                           dst_ip='10.0.0.0/8',
-                           dst_port=[80],
-                           owned_dst_only=True))
+    config.add_invariant(
+        Reachability(target_node='(quarantined.*-host.*)|gw',
+                     reachable=False,
+                     protocol='tcp',
+                     src_node='internet',
+                     dst_ip='10.0.0.0/8',
+                     dst_port=[80],
+                     owned_dst_only=True))
 
     ## output as TOML
     config.output_toml()

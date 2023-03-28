@@ -3,11 +3,11 @@
 #include <cassert>
 
 #include "fib.hpp"
+#include "invariant/invariant.hpp"
 #include "lib/hash.hpp"
 #include "logger.hpp"
 #include "model-access.hpp"
 #include "node.hpp"
-#include "policy/policy.hpp"
 
 size_t OpenflowUpdateState::num_of_installed_updates(int node_order) const {
     return this->update_vector.at(node_order);

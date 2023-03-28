@@ -57,7 +57,7 @@ void Plankton::init(bool all_ecs,
     EmulationMgr::get().max_emulations(_max_emu);
     // DropMon::get().init(dropmon);
 
-    // Compute initial ECs (oblivious to the policies)
+    // Compute initial ECs (oblivious to the invariants)
     auto &ec_mgr = EqClassMgr::get();
     ec_mgr.compute_initial_ecs(_network, _openflow);
     logger.info("Initial ECs: " + to_string(ec_mgr.all_ecs().size()));
@@ -73,11 +73,11 @@ void Plankton::reset() {
     this->_in_file.clear();
     this->_out_dir.clear();
     this->_network.reset();
-    this->_policies.clear();
+    this->_invs.clear();
     this->_choose_conn.reset();
     this->_forwarding.reset();
     this->_openflow.reset();
-    this->_policy.reset();
+    this->_inv.reset();
     this->_violated = false;
     this->kill_all_tasks(SIGKILL);
     this->_tasks.clear();
@@ -99,15 +99,15 @@ int Plankton::run() {
     // DropMon::get().start();
     _STATS_START(Stats::Op::MAIN_PROC);
 
-    // Fork for each policy to get their memory usage measurements
-    for (const auto &policy : _policies) {
+    // Fork for each invariant to get their memory usage measurements
+    for (const auto &inv : _invs) {
         pid_t childpid;
 
         if ((childpid = fork()) < 0) {
             logger.error("fork()", errno);
         } else if (childpid == 0) {
-            this->_policy = policy;
-            verify_policy();
+            this->_inv = inv;
+            verify_invariant();
             exit(0);
         }
 
@@ -126,7 +126,7 @@ int Plankton::run() {
 }
 
 /**
- * This signal handler is used by both the main process and the invariant/policy
+ * This signal handler is used by both the main process and the invariant
  * processes.
  */
 void Plankton::inv_sig_handler(int sig,
@@ -152,7 +152,7 @@ void Plankton::inv_sig_handler(int sig,
         break;
     }
     case SIGUSR1: {
-        // Policy violated. Stop all remaining tasks
+        // Invariant violated. Stop all remaining tasks
         pid = siginfo->si_pid;
         _violated = true;
 
@@ -160,7 +160,7 @@ void Plankton::inv_sig_handler(int sig,
             kill_all_tasks(SIGTERM, /* exclude */ pid);
         }
 
-        logger.warn("Policy violated in process " + to_string(pid));
+        logger.warn("Invariant violated in process " + to_string(pid));
         break;
     }
     case SIGHUP:
@@ -189,32 +189,32 @@ void Plankton::kill_all_tasks(int sig, pid_t exclude_pid) {
     _tasks.clear();
 }
 
-void Plankton::verify_policy() {
+void Plankton::verify_invariant() {
     // Change to the invariant output directory
-    const auto inv_dir = fs::path(_out_dir) / to_string(_policy->get_id());
+    const auto inv_dir = fs::path(_out_dir) / to_string(_inv->id());
     fs::create_directory(inv_dir);
     fs::current_path(inv_dir);
 
-    // Initialize per-policy system states
+    // Initialize per-invariant system states
     this->_violated = false;
     this->_tasks.clear();
 
     // Compute connection matrix (Cartesian product)
-    this->_policy->compute_conn_matrix();
+    this->_inv->compute_conn_matrix();
 
     // Update latency estimate
-    int nprocs = min(this->_policy->num_conn_ecs(), _max_jobs);
+    int nprocs = min(this->_inv->num_conn_ecs(), _max_jobs);
     DropTimeout::get().adjust_latency_estimate_by_nprocs(nprocs);
 
     logger.info("====================");
-    logger.info(to_string(_policy->get_id()) + ". Verifying policy " +
-                _policy->to_string());
-    logger.info("Connection ECs: " + to_string(_policy->num_conn_ecs()));
+    logger.info(to_string(_inv->id()) + ". Verifying invariant " +
+                _inv->to_string());
+    logger.info("Connection ECs: " + to_string(_inv->num_conn_ecs()));
 
     _STATS_START(Stats::Op::CHECK_INVARIANT);
 
     // Fork for each combination of concurrent connections
-    while ((!_violated || _all_ecs) && _policy->set_conns()) {
+    while ((!_violated || _all_ecs) && _inv->set_conns()) {
         pid_t childpid;
 
         if ((childpid = fork()) < 0) {
@@ -241,7 +241,7 @@ void Plankton::verify_policy() {
 
 void Plankton::verify_conn() {
     // Change to the invariant output directory
-    const auto inv_dir = fs::path(_out_dir) / to_string(_policy->get_id());
+    const auto inv_dir = fs::path(_out_dir) / to_string(_inv->id());
     fs::create_directory(inv_dir);
     fs::current_path(inv_dir);
 
@@ -250,7 +250,7 @@ void Plankton::verify_conn() {
     logger.disable_console_logging();
     logger.disable_file_logging();
     logger.enable_file_logging(log_path);
-    logger.info("Policy: " + _policy->to_string());
+    logger.info("Invariant: " + _inv->to_string());
 
     // Duplicate file descriptors for SPIN stdout/stderr
     int fd = open(log_path.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
@@ -333,8 +333,8 @@ void Plankton::initialize() {
     _forwarding.init(_network);
     _openflow.init(); // openflow has to be initialized before fib
 
-    // policy (also initializes all connection states)
-    _policy->init();
+    // invariant (also initializes all connection states)
+    _inv->init();
 
     // control state
     model.set_process_id(pid::forwarding);
@@ -347,8 +347,8 @@ void Plankton::reinit() {
     _forwarding.init(_network);
     _openflow.init(); // openflow has to be initialized before fib
 
-    // policy (also initializes all connection states)
-    _policy->reinit();
+    // invariant (also initializes all connection states)
+    _inv->reinit();
 
     // control state
     model.set_process_id(pid::forwarding);
@@ -375,8 +375,8 @@ void Plankton::exec_step() {
 
     this->check_to_switch_process();
 
-    int policy_result = _policy->check_violation();
-    if (policy_result & POL_REINIT_DP) {
+    int inv_res = _inv->check_violation();
+    if (inv_res & POL_REINIT_DP) {
         reinit();
     }
 }
@@ -420,7 +420,7 @@ void Plankton::check_to_switch_process() const {
 }
 
 void Plankton::report() {
-    _policy->report();
+    _inv->report();
 }
 
 void Plankton::verify_exit(int status) {

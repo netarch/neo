@@ -1,4 +1,4 @@
-#include "policy/loadbalance.hpp"
+#include "invariant/loadbalance.hpp"
 
 #include "model-access.hpp"
 #include "node.hpp"
@@ -6,9 +6,11 @@
 #include "protocols.hpp"
 #include "reachcounts.hpp"
 
-std::string LoadBalancePolicy::to_string() const {
-    std::string ret = "Loadbalance (max_dispersion_index: " +
-                      std::to_string(max_dispersion_index) + "): [";
+using namespace std;
+
+string LoadBalance::to_string() const {
+    string ret = "Loadbalance (max_dispersion_index: " +
+                 std::to_string(max_dispersion_index) + "): [";
     for (Node *node : target_nodes) {
         ret += " " + node->to_string();
     }
@@ -16,36 +18,35 @@ std::string LoadBalancePolicy::to_string() const {
     return ret;
 }
 
-void LoadBalancePolicy::init() {
-    Policy::init();
+void LoadBalance::init() {
+    Invariant::init();
     model.set_violated(false);
     model.set_reach_counts(ReachCounts());
 }
 
 static inline double
-compute_dispersion_index(const std::unordered_set<Node *> &target_nodes,
+compute_dispersion_index(const unordered_set<Node *> &target_nodes,
                          const ReachCounts &reach_counts) {
     double mean = 0;
     for (Node *node : target_nodes) {
         mean += reach_counts[node];
     }
     mean /= target_nodes.size();
-    logger.debug("(compute_dispersion_index) mean: " + std::to_string(mean));
+    logger.debug("(compute_dispersion_index) mean: " + to_string(mean));
 
     double variance = 0;
     for (Node *node : target_nodes) {
         variance += (reach_counts[node] - mean) * (reach_counts[node] - mean);
     }
     variance /= target_nodes.size();
-    logger.debug("(compute_dispersion_index) variance: " +
-                 std::to_string(variance));
+    logger.debug("(compute_dispersion_index) variance: " + to_string(variance));
 
     double index = variance / mean;
-    logger.debug("(compute_dispersion_index) index: " + std::to_string(index));
+    logger.debug("(compute_dispersion_index) index: " + to_string(index));
     return index;
 }
 
-int LoadBalancePolicy::check_violation() {
+int LoadBalance::check_violation() {
     int mode = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 
