@@ -122,7 +122,7 @@ void EqClassMgr::add_ec(const IPv4Address &addr, bool owned) {
 
 void EqClassMgr::compute_initial_ecs(const Network &network,
                                      const OpenflowProcess &openflow) {
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         for (const auto &[addr, intf] : node.second->get_intfs_l3()) {
             this->add_ec(addr, /* owned */ true);
         }
@@ -137,7 +137,7 @@ void EqClassMgr::compute_initial_ecs(const Network &network,
         }
     }
 
-    for (const Middlebox *mb : network.get_middleboxes()) {
+    for (const Middlebox *mb : network.middleboxes()) {
         for (const auto &prefix : mb->ec_ip_prefixes()) {
             this->add_ec(prefix);
         }

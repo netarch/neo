@@ -1,8 +1,8 @@
 #pragma once
 
-#include <map>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "l2-lan.hpp"
@@ -23,9 +23,9 @@ class Route;
 class Network {
 private:
     Plankton *_plankton;
-    std::map<std::string, Node *> nodes; // TODO: map -> unordered_map
-    std::set<Link *, LinkCompare> links;
-    std::unordered_set<Middlebox *> middleboxes;
+    std::unordered_map<std::string, Node *> _nodes;
+    std::set<Link *, LinkCompare> _links;
+    std::unordered_set<Middlebox *> _mbs;
 
     std::unordered_set<L2_LAN *> l2_lans; // history L2 LANs
 
@@ -46,7 +46,7 @@ public:
     Network &operator=(Network &&) = delete;
 
     void reset();
-    const std::map<std::string, Node *> &get_nodes() const;
-    const std::set<Link *, LinkCompare> &get_links() const;
-    const std::unordered_set<Middlebox *> &get_middleboxes() const;
+    const decltype(_nodes) &nodes() const { return _nodes; }
+    const decltype(_links) &links() const { return _links; }
+    const decltype(_mbs) &middleboxes() const { return _mbs; }
 };

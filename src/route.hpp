@@ -19,7 +19,7 @@ private:
     std::string egress_intf;
     int adm_dist;
 
-    // TODO int metric;
+    // int metric;
     // There's no metric for static routes. The metric can be implemented later
     // if dynamic routing protocols (OSPF, BGP, etc.) are going to be supported.
     // For now, all the installed routes will be regarded as having the same

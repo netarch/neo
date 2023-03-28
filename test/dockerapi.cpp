@@ -24,8 +24,7 @@ TEST_CASE("dockerapi") {
     REQUIRE_NOTHROW(ConfigParser().parse(inputfn, plankton));
     const auto &network = plankton.network();
     DockerNode *node;
-    REQUIRE_NOTHROW(
-        node = static_cast<DockerNode *>(network.get_nodes().at("fw")));
+    REQUIRE_NOTHROW(node = static_cast<DockerNode *>(network.nodes().at("fw")));
     REQUIRE(node);
 
     const string &cntr_name = to_string(getpid()) + "." + node->get_name();

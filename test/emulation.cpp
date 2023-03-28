@@ -21,7 +21,7 @@ TEST_CASE("emulation") {
     const string inputfn = test_data_dir + "/docker.toml";
     REQUIRE_NOTHROW(ConfigParser().parse(inputfn, plankton));
     const auto &network = plankton.network();
-    Middlebox *mb = static_cast<Middlebox *>(network.get_nodes().at("fw"));
+    Middlebox *mb = static_cast<Middlebox *>(network.nodes().at("fw"));
     REQUIRE(mb);
 
     Interface *eth0;

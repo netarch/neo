@@ -21,7 +21,7 @@ TEST_CASE("route") {
     const auto &network = plankton.network();
 
     Node *node;
-    REQUIRE_NOTHROW(node = network.get_nodes().at("r0"));
+    REQUIRE_NOTHROW(node = network.nodes().at("r0"));
     REQUIRE(node);
     const RoutingTable &rib = node->get_rib();
 

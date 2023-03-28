@@ -19,8 +19,8 @@ TEST_CASE("node") {
     const auto &network = plankton.network();
 
     Node *r0, *r1;
-    REQUIRE_NOTHROW(r0 = network.get_nodes().at("r0"));
-    REQUIRE_NOTHROW(r1 = network.get_nodes().at("r1"));
+    REQUIRE_NOTHROW(r0 = network.nodes().at("r0"));
+    REQUIRE_NOTHROW(r1 = network.nodes().at("r1"));
     REQUIRE(r0);
     REQUIRE(r1);
 

@@ -81,22 +81,22 @@ void ConfigParser::parse_network(Network &network) {
         }
     }
 
-    logger.info("Loaded " + to_string(network.get_nodes().size()) + " nodes");
+    logger.info("Loaded " + to_string(network.nodes().size()) + " nodes");
     auto links_config = this->_config->get_as<toml::array>("links");
 
     if (links_config) {
         for (const auto &cfg : *links_config) {
             const toml::table &tbl = *cfg.as_table();
             Link *link = new Link();
-            this->parse_link(*link, tbl, network.get_nodes());
+            this->parse_link(*link, tbl, network.nodes());
             network.add_link(link);
         }
     }
 
-    logger.info("Loaded " + to_string(network.get_links().size()) + " links");
+    logger.info("Loaded " + to_string(network.links().size()) + " links");
 
     // Populate L2 LANs (assuming there is no VLAN for now)
-    for (const auto &[_, node] : network.get_nodes()) {
+    for (const auto &[_, node] : network.nodes()) {
         for (Interface *intf : node->get_intfs_l2()) {
             if (!node->mapped_to_l2lan(intf)) {
                 network.grow_and_set_l2_lan(node, intf);
@@ -573,7 +573,7 @@ void ConfigParser::parse_config_string(Middlebox &mb, const string &config) {
 
 void ConfigParser::parse_link(Link &link,
                               const toml::table &config,
-                              const map<string, Node *> &nodes) {
+                              const unordered_map<string, Node *> &nodes) {
     auto node1_name = config.get_as<string>("node1");
     auto intf1_name = config.get_as<string>("intf1");
     auto node2_name = config.get_as<string>("node2");
@@ -661,8 +661,8 @@ void ConfigParser::parse_openflow_update(Node *&node,
         logger.error("Missing outport");
     }
 
-    auto node_itr = network.get_nodes().find(**node_name);
-    if (node_itr == network.get_nodes().end()) {
+    auto node_itr = network.nodes().find(**node_name);
+    if (node_itr == network.nodes().end()) {
         logger.error("Unknown node: " + **node_name);
     }
 
@@ -759,7 +759,7 @@ void ConfigParser::parse_reachability(shared_ptr<ReachabilityPolicy> &policy,
         logger.error("Missing reachable");
     }
 
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
@@ -783,7 +783,7 @@ void ConfigParser::parse_replyreachability(
         logger.error("Missing reachable");
     }
 
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
@@ -806,7 +806,7 @@ void ConfigParser::parse_waypoint(shared_ptr<WaypointPolicy> &policy,
         logger.error("Missing pass_through");
     }
 
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
@@ -825,7 +825,7 @@ void ConfigParser::parse_onerequest(shared_ptr<OneRequestPolicy> &policy,
         logger.error("Missing target_node");
     }
 
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
@@ -844,7 +844,7 @@ void ConfigParser::parse_loadbalance(shared_ptr<LoadBalancePolicy> &policy,
         logger.error("Missing target_node");
     }
 
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**target_node_regex))) {
             policy->target_nodes.insert(node.second);
         }
@@ -928,7 +928,7 @@ void ConfigParser::parse_conn_spec(ConnSpec &conn_spec,
         logger.error("Unknown protocol: " + **proto_str);
     }
 
-    for (const auto &node : network.get_nodes()) {
+    for (const auto &node : network.nodes()) {
         if (regex_match(node.first, regex(**src_node_regex))) {
             conn_spec.src_nodes.insert(node.second);
         }

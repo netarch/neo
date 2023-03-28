@@ -38,7 +38,7 @@ bool operator==(const NodePacketHistory &a, const NodePacketHistory &b) {
 /******************************************************************************/
 
 PacketHistory::PacketHistory(const Network &network) {
-    for (const auto &[_, node] : network.get_nodes()) {
+    for (const auto &[_, node] : network.nodes()) {
         if (node->is_emulated()) {
             tbl.emplace(node, nullptr);
         }

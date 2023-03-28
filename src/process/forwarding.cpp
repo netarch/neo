@@ -312,8 +312,6 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     PacketHistory *pkt_hist = model.get_pkt_hist();
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
 
-    // TODO Set up emulation instance
-
     // Rewind the middlebox state if needed
     mb->rewind(current_nph);
 

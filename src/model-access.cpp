@@ -323,7 +323,7 @@ void Model::update_fib() const {
     IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops from routing tables
-    for (const auto &[_, node] : this->network->get_nodes()) {
+    for (const auto &[_, node] : this->network->nodes()) {
         fib.set_ipnhs(node, node->get_ipnhs(addr));
     }
 

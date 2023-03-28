@@ -52,7 +52,7 @@ void Plankton::init(bool all_ecs,
     // Set the initial system state based on input configuration
     ConfigParser().parse(_in_file, *this);
     if (this->_max_emu == 0) {
-        this->_max_emu = _network.get_middleboxes().size();
+        this->_max_emu = _network.middleboxes().size();
     }
     EmulationMgr::get().max_emulations(_max_emu);
     // DropMon::get().init(dropmon);

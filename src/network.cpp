@@ -5,15 +5,15 @@
 #include "model-access.hpp"
 
 void Network::add_node(Node *node) {
-    auto res = nodes.insert(std::make_pair(node->get_name(), node));
+    auto res = _nodes.insert(std::make_pair(node->get_name(), node));
     if (res.second == false) {
         logger.error("Duplicate node: " + res.first->first);
     }
 }
 
 void Network::add_link(Link *link) {
-    // Add the new link to links
-    auto res = links.insert(link);
+    // Add the new link to _links
+    auto res = _links.insert(link);
     if (res.second == false) {
         logger.error("Duplicate link: " + (*res.first)->to_string());
     }
@@ -28,7 +28,7 @@ void Network::add_link(Link *link) {
 }
 
 void Network::add_middlebox(Middlebox *mb) {
-    auto res = middleboxes.insert(mb);
+    auto res = _mbs.insert(mb);
     if (res.second == false) {
         logger.error("Duplicate middlebox: " + (*res.first)->to_string());
     }
@@ -41,11 +41,11 @@ void Network::grow_and_set_l2_lan(Node *node, Interface *interface) {
         delete l2_lan;
         l2_lan = *(res.first);
     }
-    for (const auto &endpoint : l2_lan->get_l2_endpoints()) {
-        endpoint.first->set_l2lan(endpoint.second, l2_lan);
+    for (const auto &[node, intf] : l2_lan->get_l2_endpoints()) {
+        node->set_l2lan(intf, l2_lan);
     }
-    for (const auto &endpoint : l2_lan->get_l3_endpoints()) {
-        endpoint.second.first->set_l2lan(endpoint.second.second, l2_lan);
+    for (const auto &[addr, ep] : l2_lan->get_l3_endpoints()) {
+        ep.first->set_l2lan(ep.second, l2_lan);
     }
 }
 
@@ -54,33 +54,21 @@ Network::~Network() {
 }
 
 void Network::reset() {
-    for (const auto &[name, node] : this->nodes) {
+    for (const auto &[name, node] : this->_nodes) {
         delete node;
     }
 
-    this->nodes.clear();
+    this->_nodes.clear();
 
-    for (const auto &link : this->links) {
+    for (const auto &link : this->_links) {
         delete link;
     }
 
-    this->links.clear();
+    this->_links.clear();
 
     for (L2_LAN *const &l2_lan : this->l2_lans) {
         delete l2_lan;
     }
 
     this->l2_lans.clear();
-}
-
-const std::map<std::string, Node *> &Network::get_nodes() const {
-    return nodes;
-}
-
-const std::set<Link *, LinkCompare> &Network::get_links() const {
-    return links;
-}
-
-const std::unordered_set<Middlebox *> &Network::get_middleboxes() const {
-    return middleboxes;
 }

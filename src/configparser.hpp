@@ -1,9 +1,9 @@
 #pragma once
 
 #include <chrono>
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include <toml++/toml.h>
 
@@ -50,7 +50,7 @@ private:
     // Network link
     void parse_link(Link &,
                     const toml::table &,
-                    const std::map<std::string, Node *> &);
+                    const std::unordered_map<std::string, Node *> &);
 
     // Openflow
     void parse_openflow(OpenflowProcess &, const Network &);
