@@ -9,13 +9,13 @@
 class Route {
 private:
     IPNetwork<IPv4Address> network;
-    /*
+    IPv4Address next_hop;
+    /**
      * If egress_intf is not empty, it means this route is a connected route (or
      * an Openflow update), and the packet should be routed toward the
      * interface, in which case, the next_hop variable does not affect the
      * routing decision.
      */
-    IPv4Address next_hop;
     std::string egress_intf;
     int adm_dist;
 

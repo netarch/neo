@@ -432,7 +432,7 @@ void ConfigParser::estimate_pkt_lat() {
      */
 
     // Construct the docker node
-    auto fw = unique_ptr<DockerNode>(new DockerNode());
+    auto fw = new DockerNode();
     fw->name = "fw";
     Interface *fw_eth0 = new Interface();
     fw_eth0->name = "eth0";
@@ -460,6 +460,46 @@ void ConfigParser::estimate_pkt_lat() {
         this->parse_config_string(*fw, value);
     }
 
+    // Construct node1
+    auto node1 = new Node();
+    node1->name = "node1";
+    Interface *node1_eth0 = new Interface();
+    node1_eth0->name = "eth0";
+    node1_eth0->ipv4 = "192.168.1.2/24";
+    node1_eth0->is_switchport = false;
+    node1->add_interface(node1_eth0);
+    node1->rib.insert(Route("0.0.0.0/0", "192.168.1.1"));
+
+    // Construct node2
+    auto node2 = new Node();
+    node2->name = "node2";
+    Interface *node2_eth0 = new Interface();
+    node2_eth0->name = "eth0";
+    node2_eth0->ipv4 = "192.168.2.2/24";
+    node2_eth0->is_switchport = false;
+    node2->add_interface(node2_eth0);
+    node2->rib.insert(Route("0.0.0.0/0", "192.168.2.1"));
+
+    // Construct links
+    Link *link1 = new Link();
+    link1->node1 = fw;
+    link1->node2 = node1;
+    link1->intf1 = fw_eth0;
+    link1->intf2 = node1_eth0;
+    Link *link2 = new Link();
+    link2->node1 = fw;
+    link2->node2 = node2;
+    link2->intf1 = fw_eth1;
+    link2->intf2 = node2_eth0;
+
+    // Construct the network
+    Network network;
+    network.add_node(fw);
+    network.add_node(node1);
+    network.add_node(node2);
+    network.add_link(link1);
+    network.add_link(link2);
+
     // Register signal handler to nullify SIGUSR1
     struct sigaction action, *oldaction = nullptr;
     action.sa_handler = [](int) {};
@@ -470,8 +510,11 @@ void ConfigParser::estimate_pkt_lat() {
 
     // Start an emulation
     Emulation emu;
-    emu.init(fw.get(), /* log_pkts */ false);
+    emu.init(fw, /* log_pkts */ false);
     fw->_emulation = &emu;
+
+    // Set a temporary initial timeout
+    DropTimeout::get()._timeout = chrono::microseconds{5000};
 
     // Send N ping packets from node1 to node2
     constexpr int N = 20;
@@ -488,6 +531,7 @@ void ConfigParser::estimate_pkt_lat() {
     sigaction(SIGUSR1, oldaction, nullptr);
 
     // Retrieve the initial latency estimate
+    DropTimeout::get()._timeout = chrono::microseconds{};
     DropTimeout::get().set_initial_latency_estimate();
 }
 

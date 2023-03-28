@@ -12,6 +12,7 @@ private:
     int _nprocs, _mdev_scalar;
 
 private:
+    friend class ConfigParser;
     DropTimeout();
 
 public:

@@ -52,7 +52,7 @@ void DropTimeout::adjust_latency_estimate_by_nprocs(int nprocs) {
     _nprocs = nprocs;
     static const int total_cores = thread::hardware_concurrency();
     double load = double(_nprocs) / total_cores;
-    _mdev_scalar = max(4.0, ceil(sqrt(_nprocs) * 2 * load));
+    _mdev_scalar = max(5.0, ceil(sqrt(_nprocs) * 2 * load));
     _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
 }
 
