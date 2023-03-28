@@ -97,7 +97,7 @@ int Plankton::run() {
     }
 
     // DropMon::get().start();
-    Stats::set_total_t1();
+    _STATS_START(Stats::Op::MAIN_PROC);
 
     // Fork for each policy to get their memory usage measurements
     for (const auto &policy : _policies) {
@@ -118,9 +118,8 @@ int Plankton::run() {
         }
     }
 
-    Stats::set_total_time();
-    Stats::set_total_maxrss();
-    Stats::output_main_stats();
+    _STATS_STOP(Stats::Op::MAIN_PROC);
+    _STATS_LOGRESULTS(Stats::Op::MAIN_PROC);
     // DropMon::get().stop();
 
     return 0;
@@ -212,7 +211,7 @@ void Plankton::verify_policy() {
                 _policy->to_string());
     logger.info("Connection ECs: " + to_string(_policy->num_conn_ecs()));
 
-    Stats::set_policy_t1();
+    _STATS_START(Stats::Op::CHECK_INVARIANT);
 
     // Fork for each combination of concurrent connections
     while ((!_violated || _all_ecs) && _policy->set_conns()) {
@@ -236,10 +235,8 @@ void Plankton::verify_policy() {
         pause();
     }
 
-    Stats::set_policy_time();
-    Stats::set_policy_maxrss();
-    Stats::output_policy_stats(_network.get_nodes().size(),
-                               _network.get_links().size(), _policy);
+    _STATS_STOP(Stats::Op::CHECK_INVARIANT);
+    _STATS_LOGRESULTS(Stats::Op::CHECK_INVARIANT);
 }
 
 void Plankton::verify_conn() {
@@ -279,8 +276,7 @@ void Plankton::verify_conn() {
     // Spawn a dropmon thread (will be joined and disconnected on exit)
     // DropMon::get().connect();
 
-    // Record time usage for this EC
-    Stats::set_ec_t1();
+    _STATS_START(Stats::Op::CHECK_EC);
 
     // run SPIN verifier
     const string trail_suffix = "-t" + to_string(getpid()) + ".trail";
@@ -428,10 +424,8 @@ void Plankton::report() {
 }
 
 void Plankton::verify_exit(int status) {
-    // output per EC proecess stats
-    Stats::set_ec_time();
-    Stats::set_ec_maxrss();
-    Stats::output_ec_stats();
-
+    // output per EC process stats
+    _STATS_STOP(Stats::Op::CHECK_EC);
+    _STATS_LOGRESULTS(Stats::Op::CHECK_EC);
     exit(status);
 }

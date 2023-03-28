@@ -300,14 +300,15 @@ int Emulation::rewind(NodePacketHistory *nph) {
  * @return A list of received packets.
  */
 list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
-    // Clear packet receive buffer
-    unique_lock<mutex> lck(_mtx);
-    _recv_pkts.clear();
-    _pkts_hash.clear();
-
     // Prepare send packet, apply offsets
     Packet pkt(send_pkt);
     this->apply_offsets(pkt);
+
+    // Clear packet receive buffer
+    unique_lock<mutex> lck(_mtx);
+    size_t num_pkts = 0;
+    _recv_pkts.clear();
+    _pkts_hash.clear();
 
     // Set up the recv thread
     start_recv_thread();
@@ -315,18 +316,21 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
 
     // Send the concrete packet
     _driver->unpause();
-    Stats::set_pkt_lat_t1();
+    _STATS_START(Stats::Op::PKT_LAT);
+    _STATS_START(Stats::Op::DROP_LAT);
     _driver->inject_packet(pkt);
 
     // Collect received packets iteratively until no new packets are read within
     // one complete timeout period.
-    size_t num_pkts = 0;
     do {
         num_pkts = _recv_pkts.size();
 
-        // use timeout (new injection)
+        // Timeout method
         _cv.wait_for(lck, DropTimeout::get().timeout());
-        Stats::set_pkt_latency(DropTimeout::get().timeout()); // FIXME
+        if (_recv_pkts.size() > num_pkts) {
+            // PKT_LAT records the time for the first response packet
+            _STATS_STOP(Stats::Op::PKT_LAT);
+        }
 
         // ? How to incorporate dropmon with timeouts ?
         // if (_dropmon) { // use drop monitor
@@ -340,6 +344,11 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
         //     }
         // }
     } while (_recv_pkts.size() > num_pkts);
+
+    if (num_pkts == 0) { // packet drop (or accepted silently)
+        _STATS_STOP(Stats::Op::DROP_LAT);
+    }
+
     _driver->pause();
 
     // Stop the recv thread
@@ -356,5 +365,11 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
     // Process the received packets
     Net::get().reassemble_segments(pkts);
     this->update_offsets(pkts);
+
+    // Update drop timeout estimates
+    if (!pkts.empty()) {
+        DropTimeout::get().update_timeout();
+    }
+
     return pkts;
 }

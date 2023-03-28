@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cmath>
 
-#include "droptimeout.hpp"
 #include "emulationmgr.hpp"
 #include "stats.hpp"
 
@@ -11,9 +10,12 @@ using namespace std;
 
 Middlebox::Middlebox() : _emulation(nullptr) {}
 
-int Middlebox::rewind(NodePacketHistory *nph) {
+void Middlebox::rewind(NodePacketHistory *nph) {
     _emulation = EmulationMgr::get().get_emulation(this, nph);
-    return _emulation->rewind(nph);
+    _STATS_START(Stats::Op::REWIND);
+    int rewind_injections = _emulation->rewind(nph);
+    _STATS_STOP(Stats::Op::REWIND);
+    _STATS_REWIND_INJECTION(rewind_injections);
 }
 
 /**
@@ -36,9 +38,7 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {
  */
 std::list<Packet> Middlebox::send_pkt(const Packet &pkt) {
     assert(_emulation->mb() == this);
-    std::list<Packet> recv_pkts = _emulation->send_pkt(pkt);
-    DropTimeout::get().update_timeout(recv_pkts.size());
-    return recv_pkts;
+    return _emulation->send_pkt(pkt);
 }
 
 /**

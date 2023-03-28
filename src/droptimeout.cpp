@@ -20,26 +20,26 @@ DropTimeout &DropTimeout::get() {
  * stores them in the `_lat_avg` and `_lat_mdev` fields
  */
 void DropTimeout::set_initial_latency_estimate() {
-    const auto &latencies = Stats::get_pkt_latencies();
+    const auto &latencies = Stats::get().get_pkt_latencies();
 
     // Calculate the latency average
-    uint64_t avg = 0;
-    for (const auto &[t1, lat] : latencies) {
+    chrono::microseconds avg{0};
+    for (const auto &lat : latencies) {
         avg += lat;
     }
     avg /= latencies.size();
-    this->_lat_avg = chrono::microseconds(avg / 1000); // nsec -> usec
+    this->_lat_avg = avg;
 
     // Calculate the latency mean deviation
-    uint64_t mdev = 0;
-    for (const auto &[t1, lat] : latencies) {
-        mdev += abs(int64_t(lat) - int64_t(avg));
+    chrono::microseconds mdev{0};
+    for (const auto &lat : latencies) {
+        mdev += chrono::abs(lat - avg);
     }
     mdev /= latencies.size();
-    this->_lat_mdev = chrono::microseconds(mdev / 1000); // nsec -> usec
+    this->_lat_mdev = mdev;
 
     this->_has_initial_estimate = true;
-    Stats::clear_latencies();
+    _STATS_RESET();
 }
 
 /**
@@ -53,27 +53,38 @@ void DropTimeout::adjust_latency_estimate_by_nprocs(int nprocs) {
     static const int total_cores = thread::hardware_concurrency();
     double load = double(_nprocs) / total_cores;
     _mdev_scalar = max(4.0, ceil(sqrt(_nprocs) * 2 * load));
-    // TODO
-    // _lat_avg *= _nprocs;
-    _timeout = _lat_avg * _nprocs + _lat_mdev * _mdev_scalar;
+    _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
 }
 
 /**
- * If we received packets, update the timeout to be the average latency plus the
- * mean deviation of the latency times a constant.
+ * @brief Update the average and mean deviation of latencies based on the latest
+ * packet injection, and then update the timeout accordingly.
  *
- * @param num_recv_pkts The number of packets received in the last round.
+ * We estimate the latency average and mean deviation (as a measure for
+ * variance) similar to the TCP retransmit timeout estimation.
+ * avg := avg + \alpha * err.
+ * mdev := mdev + \beta * (|err| - mdev).
+ * timeout := avg + C * mdev.
+ * where \alpha and \beta are the "gain", denoting the weight of the new
+ * latency. A larger gain makes the estimate react faster to latency changes but
+ * also makes it more sensitive to noise. C is the mdev scalar, which the TCP
+ * paper set to 1/gain, but here we make it to be proportional to the load and
+ * the number of parallel processes.
+ *
+ * Configuration:
+ * \alpha: 1/5
+ * \beta: 1/5
+ *
+ * References:
+ * Congestion avoidance and control (https://dl.acm.org/doi/10.1145/52324.52356)
+ * RFC 793 (https://www.rfc-editor.org/rfc/rfc793)
+ * RFC 1122 (https://datatracker.ietf.org/doc/html/rfc1122)
+ * RFC 6298 (https://datatracker.ietf.org/doc/html/rfc6298)
+ * RFC 9293 (https://datatracker.ietf.org/doc/html/rfc9293)
  */
-void DropTimeout::update_timeout(size_t num_recv_pkts) {
-    if (num_recv_pkts == 0) {
-        return;
-    }
-
-    // TODO: Something seems wrong here
-    long long err =
-        Stats::get_pkt_latencies().back().second / 1000 + 1 - _lat_avg.count();
-    _lat_avg += chrono::microseconds(err >> 2);
-    _lat_mdev += chrono::microseconds((abs(err) - _lat_mdev.count()) >> 2);
+void DropTimeout::update_timeout() {
+    auto err = Stats::get().get_pkt_latencies().back() - _lat_avg;
+    _lat_avg += err / 5;
+    _lat_mdev += (chrono::abs(err) - _lat_mdev) / 5;
     _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
-    // ? _timeout = _lat_avg * _nprocs + _lat_mdev * _mdev_scalar;
 }

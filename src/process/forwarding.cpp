@@ -306,19 +306,16 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
 }
 
 void ForwardingProcess::inject_packet(Middlebox *mb) {
-    Stats::set_overall_lat_t1();
+    _STATS_START(Stats::Op::FWD_INJECT_PKT);
 
     // Check out current packet history at mb
     PacketHistory *pkt_hist = model.get_pkt_hist();
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
 
-    // Set up emulation instance
+    // TODO Set up emulation instance
 
     // Rewind the middlebox state if needed
-    Stats::set_rewind_lat_t1();
-    int rewind_injections = mb->rewind(current_nph);
-    Stats::set_rewind_latency();
-    Stats::set_rewind_injection_count(rewind_injections);
+    mb->rewind(current_nph);
 
     // Construct new packet
     Packet *new_pkt = new Packet(model);
@@ -337,17 +334,17 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     }
     mb->set_node_pkt_hist(new_nph);
 
-    // update pkt_hist with this new node_pkt_hist
+    // Update pkt_hist with this new node_pkt_hist
     PacketHistory new_pkt_hist(*pkt_hist);
     new_pkt_hist.set_node_pkt_hist(mb, new_nph);
     model.set_pkt_hist(std::move(new_pkt_hist));
 
-    // inject packet
+    // Inject packet
     logger.info("Injecting packet: " + new_pkt->to_string());
     std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
     update_model_from_pkts(mb, recv_pkts);
 
-    Stats::set_overall_latency();
+    _STATS_STOP(Stats::Op::FWD_INJECT_PKT);
 }
 
 /**

@@ -38,7 +38,7 @@ public:
     const decltype(_ec_ip_addrs) &ec_ip_addrs() const { return _ec_ip_addrs; }
     const decltype(_ec_ports) &ec_ports() const { return _ec_ports; }
 
-    int rewind(NodePacketHistory *);
+    void rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
     std::list<Packet> send_pkt(const Packet &);
 

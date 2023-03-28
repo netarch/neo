@@ -1,223 +1,187 @@
 #include "stats.hpp"
 
+#include <cassert>
 #include <fstream>
 #include <string>
 #include <sys/resource.h>
-#include <sys/time.h>
+#include <tuple>
 #include <unistd.h>
 
+#include "droptimeout.hpp"
 #include "logger.hpp"
-#include "policy/policy.hpp"
 
 using namespace std;
 using namespace std::chrono;
 
-/********************* private definitions *********************/
-
-std::chrono::high_resolution_clock::time_point Stats::total_t1;
-std::chrono::microseconds Stats::total_time;
-long Stats::total_maxrss;
-std::chrono::high_resolution_clock::time_point Stats::policy_t1;
-std::chrono::microseconds Stats::policy_time;
-long Stats::policy_maxrss;
-std::chrono::high_resolution_clock::time_point Stats::ec_t1;
-std::chrono::microseconds Stats::ec_time;
-long Stats::ec_maxrss;
-uint64_t Stats::overall_lat_t1;
-uint64_t Stats::rewind_lat_t1;
-uint64_t Stats::pkt_lat_t1;
-std::vector<std::pair<uint64_t, uint64_t>> Stats::overall_latencies;
-std::vector<std::pair<uint64_t, uint64_t>> Stats::rewind_latencies;
-std::vector<int> Stats::rewind_injection_count;
-std::vector<std::pair<uint64_t, uint64_t>> Stats::pkt_latencies;
-std::vector<uint64_t> Stats::timeouts;
-std::map<uint64_t, uint64_t> Stats::kernel_drop_latencies;
-
-high_resolution_clock::duration
-Stats::get_duration(const high_resolution_clock::time_point &t1) {
-    if (t1.time_since_epoch().count() == 0) {
-        logger.error("t1 not set");
-    }
-    return high_resolution_clock::now() - t1;
-}
-
-uint64_t Stats::get_duration(uint64_t t1) {
-    if (t1 == 0) {
-        logger.error("t1 not set");
-    }
-    return duration_cast<nanoseconds>(
-               high_resolution_clock::now().time_since_epoch())
-               .count() -
-           t1;
-}
-
-/********************* control functions *********************/
-
-void Stats::output_main_stats() {
-    logger.info("====================");
-    logger.info("Time: " + std::to_string(total_time.count()) +
-                " microseconds");
-    logger.info("Memory: " + std::to_string(total_maxrss) + " kilobytes");
-}
-
-void Stats::output_policy_stats(int nodes,
-                                int links,
-                                const shared_ptr<Policy> &policy) {
-    const std::string filename = "policy.stats.csv";
-    std::ofstream outfile(filename, std::ios_base::app);
-    if (outfile.fail()) {
-        logger.error("Failed to open " + filename);
-    }
-
-    outfile << "# of nodes, # of links, Policy, # of connection ECs, "
-               "Time (microseconds), Memory (kilobytes)"
-            << std::endl
-            << nodes << ", " << links << ", " << policy->get_id() << ", "
-            << policy->num_conn_ecs() << ", " << policy_time.count() << ", "
-            << policy_maxrss << std::endl;
-}
-
-void Stats::output_ec_stats() {
-    const std::string filename = std::to_string(getpid()) + ".stats.csv";
-    std::ofstream outfile(filename, std::ios_base::app);
-    if (outfile.fail()) {
-        logger.error("Failed to open " + filename);
-    }
-
-    outfile << "Time (microseconds), Memory (kilobytes)" << std::endl
-            << ec_time.count() << ", " << ec_maxrss << std::endl;
-
-    outfile << "Overall latency t1 (nsec), Overall latency (nsec), "
-            << "Rewind latency t1 (nsec), Rewind latency (nsec), "
-            << "Rewind injection count, "
-            << "Packet latency t1 (nsec), Packet latency (nsec), "
-            << "Timeout (nsec), Kernel drop latency (nsec)" << std::endl;
-    for (size_t i = 0; i < overall_latencies.size(); ++i) {
-        outfile << overall_latencies[i].first << ", "
-                << overall_latencies[i].second << ", "
-                << rewind_latencies[i].first << ", "
-                << rewind_latencies[i].second << ", "
-                << rewind_injection_count[i] << ", " << pkt_latencies[i].first
-                << ", " << pkt_latencies[i].second << ", " << timeouts[i]
-                << ", ";
-        if (kernel_drop_latencies.count(pkt_latencies[i].first)) {
-            outfile << kernel_drop_latencies.at(pkt_latencies[i].first);
-        } else {
-            outfile << "N/A";
-        }
-        outfile << std::endl;
-    }
-}
-
-void Stats::clear_latencies() {
-    overall_latencies.clear();
-    rewind_latencies.clear();
-    rewind_injection_count.clear();
-    pkt_latencies.clear();
-    timeouts.clear();
-    kernel_drop_latencies.clear();
-}
-
-/********************* main process measurements *********************/
-
-void Stats::set_total_t1() {
-    total_t1 = high_resolution_clock::now();
-}
-
-void Stats::set_total_time() {
-    total_time = duration_cast<microseconds>(get_duration(total_t1));
-}
-
-void Stats::set_total_maxrss() {
+long Stats::get_peak_rss() const {
     struct rusage ru;
-    if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        logger.error("getrusage()", errno);
-    }
-    total_maxrss = ru.ru_maxrss;
-}
 
-/******************** policy process measurements ********************/
-
-void Stats::set_policy_t1() {
-    policy_t1 = high_resolution_clock::now();
-}
-
-void Stats::set_policy_time() {
-    policy_time = duration_cast<microseconds>(get_duration(policy_t1));
-}
-
-void Stats::set_policy_maxrss() {
-    struct rusage ru;
-    if (getrusage(RUSAGE_CHILDREN, &ru) < 0) {
-        logger.error("getrusage()", errno);
-    }
-    policy_maxrss = ru.ru_maxrss;
-}
-
-/********************** EC process measurements **********************/
-
-void Stats::set_ec_t1() {
-    ec_t1 = high_resolution_clock::now();
-}
-
-void Stats::set_ec_time() {
-    ec_time = duration_cast<microseconds>(get_duration(ec_t1));
-}
-
-void Stats::set_ec_maxrss() {
-    struct rusage ru;
     if (getrusage(RUSAGE_SELF, &ru) < 0) {
-        logger.error("getrusage()", errno);
+        logger.error("getrusage() failed");
     }
-    ec_maxrss = ru.ru_maxrss;
+
+    return ru.ru_maxrss; // KiB
 }
 
-/********************** latency measurements **********************/
+long Stats::get_current_rss() const {
+    static const string fn = "/proc/self/statm";
+    static const long page_size = getpagesize() / 1024; // KiB per page
+    ifstream ifs(fn);
 
-void Stats::set_overall_lat_t1() {
-    overall_lat_t1 = duration_cast<nanoseconds>(
-                         high_resolution_clock::now().time_since_epoch())
-                         .count();
+    if (!ifs) {
+        logger.error("Failed to open " + fn);
+    }
+
+    long dummy, current_page_count;
+    ifs >> dummy >> current_page_count;
+    return current_page_count * page_size; // KiB
 }
 
-void Stats::set_overall_latency() {
-    uint64_t overall_latency = get_duration(overall_lat_t1);
-    overall_latencies.emplace_back(overall_lat_t1, overall_latency);
+pair<long, long> Stats::get_rss() const {
+    static const string fn = "/proc/self/status";
+    ifstream ifs(fn);
+
+    if (!ifs) {
+        logger.error("Failed to open " + fn);
+    }
+
+    string line;
+    long maxrss = 0, currrss = 0;
+
+    while (getline(ifs, line)) {
+        if (line.starts_with("VmPeak:")) {
+            maxrss = stol(line.substr(7));
+        } else if (line.starts_with("VmRSS:")) {
+            currrss = stol(line.substr(6));
+            break;
+        }
+    }
+
+    return {maxrss, currrss}; // KiB, KiB
 }
 
-void Stats::set_rewind_lat_t1() {
-    rewind_lat_t1 = duration_cast<nanoseconds>(
-                        high_resolution_clock::now().time_since_epoch())
-                        .count();
+Stats &Stats::get() {
+    static Stats instance;
+    return instance;
 }
 
-void Stats::set_rewind_latency() {
-    uint64_t rewind_latency = get_duration(rewind_lat_t1);
-    rewind_latencies.emplace_back(rewind_lat_t1, rewind_latency);
+const vector<chrono::microseconds> &Stats::get_pkt_latencies() const {
+    return _latencies.at(Op::PKT_LAT);
 }
 
-void Stats::set_rewind_injection_count(int count) {
-    rewind_injection_count.push_back(count);
+void Stats::start(Op op) {
+    if (_start_ts.count(op) > 0) {
+        logger.error("Multiple starting time point for op: " + _op_str.at(op));
+    }
+
+    _start_ts[op] = clock::now();
 }
 
-void Stats::set_pkt_lat_t1() {
-    pkt_lat_t1 = duration_cast<nanoseconds>(
-                     high_resolution_clock::now().time_since_epoch())
-                     .count();
-}
+void Stats::stop(Op op) {
+    auto it = _start_ts.find(op);
 
-void Stats::set_pkt_latency(const high_resolution_clock::duration &timeout,
-                            uint64_t drop_ts) {
-    uint64_t pkt_latency = get_duration(pkt_lat_t1);
-    pkt_latencies.emplace_back(pkt_lat_t1, pkt_latency);
-    timeouts.push_back(duration_cast<nanoseconds>(timeout).count());
-    if (drop_ts) {
-        kernel_drop_latencies.emplace(pkt_lat_t1, drop_ts - pkt_lat_t1);
+    if (it == _start_ts.end()) {
+        logger.error("No starting time point found for op: " + _op_str.at(op));
+    }
+
+    auto duration = duration_cast<microseconds>(clock::now() - it->second);
+    _start_ts.erase(it);
+
+    if (op < Op::__OP_TYPE_DIVIDER__) {
+        long maxrss, currrss;
+        tie(maxrss, currrss) = this->get_rss();
+        _time.at(op) = std::move(duration);
+        _max_rss.at(op) = maxrss;
+        _curr_rss.at(op) = currrss;
+    } else if (op > Op::__OP_TYPE_DIVIDER__ && op < Op::TIMEOUT) {
+        _latencies.at(op).emplace_back(std::move(duration));
+
+        if (op == Op::PKT_LAT) {
+            _start_ts.erase(Op::DROP_LAT);
+            _latencies.at(Op::DROP_LAT).emplace_back(microseconds(0));
+            _latencies.at(Op::TIMEOUT)
+                .emplace_back(DropTimeout::get().timeout());
+        } else if (op == Op::DROP_LAT) {
+            _start_ts.erase(Op::PKT_LAT);
+            _latencies.at(Op::PKT_LAT).emplace_back(microseconds(0));
+            _latencies.at(Op::TIMEOUT)
+                .emplace_back(DropTimeout::get().timeout());
+        }
+    } else {
+        logger.error("Invalid op: " + to_string(static_cast<int>(op)));
     }
 }
 
-/************************* getter functions *************************/
+void Stats::set_rewind_injection_count(int n) {
+    _rewind_injection_count.push_back(n);
+}
 
-const std::vector<std::pair<uint64_t, uint64_t>> &Stats::get_pkt_latencies() {
-    return Stats::pkt_latencies;
+void Stats::reset() {
+    _start_ts.clear();
+
+    for (const Op &op : _all_ops) {
+        if (op < Op::__OP_TYPE_DIVIDER__) {
+            _time.at(op) = microseconds{};
+            _max_rss.at(op) = 0;
+            _curr_rss.at(op) = 0;
+        } else if (op > Op::__OP_TYPE_DIVIDER__) {
+            _latencies.at(op).clear();
+        }
+    }
+
+    _rewind_injection_count.clear();
+}
+
+void Stats::log_results(Op op) const {
+    const auto &time = _time.at(op).count();
+    const auto &max_rss = _max_rss.at(op);
+    const auto &cur_rss = _curr_rss.at(op);
+
+    if (op == Op::MAIN_PROC) {
+        logger.info("====================");
+        logger.info("Time: " + to_string(time) + " usec");
+        logger.info("Peak memory: " + to_string(max_rss) + " KiB");
+        logger.info("Current memory: " + to_string(cur_rss) + " KiB");
+    } else if (op == Op::CHECK_INVARIANT) {
+        const string filename = "policy.stats.csv";
+        ofstream ofs(filename);
+        if (!ofs) {
+            logger.error("Failed to open " + filename);
+        }
+
+        ofs << "Time (usec), Peak memory (KiB), Current memory (KiB)" << endl
+            << time << ", " << max_rss << ", " << cur_rss << endl;
+    } else if (op == Op::CHECK_EC) {
+        auto num_injections = _latencies.at(Op::FWD_INJECT_PKT).size();
+        for (const auto &[op, vec] : _latencies) {
+            assert(vec.size() == num_injections);
+        }
+        assert(_rewind_injection_count.size() == num_injections);
+
+        const string filename = to_string(getpid()) + ".stats.csv";
+        ofstream ofs(filename);
+        if (!ofs) {
+            logger.error("Failed to open " + filename);
+        }
+
+        ofs << "Time (usec), Peak memory (KiB), Current memory (KiB)" << endl
+            << time << ", " << max_rss << ", " << cur_rss << endl;
+
+        ofs << "Overall latency (usec), "
+            << "Rewind latency (usec), "
+            << "Rewind injection count, "
+            << "Packet latency (usec), "
+            << "Drop latency (usec), "
+            << "Timeout value (usec)" << endl;
+        for (size_t i = 0; i < num_injections; ++i) {
+            ofs << _latencies.at(Op::FWD_INJECT_PKT)[i].count() << ", "
+                << _latencies.at(Op::REWIND)[i].count() << ", "
+                << _rewind_injection_count[i] << ", "
+                << _latencies.at(Op::PKT_LAT)[i].count() << ", "
+                << _latencies.at(Op::DROP_LAT)[i].count() << ", "
+                << _latencies.at(Op::TIMEOUT)[i].count() << endl;
+        }
+    } else {
+        logger.error("Invalid op: " + to_string(static_cast<int>(op)));
+    }
 }

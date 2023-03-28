@@ -32,5 +32,5 @@ public:
 
     void set_initial_latency_estimate();
     void adjust_latency_estimate_by_nprocs(int nprocs);
-    void update_timeout(size_t num_recv_pkts);
+    void update_timeout();
 };
