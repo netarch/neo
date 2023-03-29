@@ -179,7 +179,9 @@ main() {
         script_deps=(base-devel curl git)
         build_deps=(cmake clang)
         style_deps=(clang yapf)
+        bpf_deps=(libelf zlib binutils libcap clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
+                 "${bpf_deps[@]}"
                  glibc libnet libnl boost curl pcapplusplus python-toml
                  spin-git docker)
         non_local_depends=()
@@ -203,7 +205,9 @@ main() {
         script_deps=(build-essential flex bison curl git)
         build_deps=(cmake pkg-config clang)
         style_deps=(clang-format yapf3)
+        bpf_deps=(libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
+                 "${bpf_deps[@]}"
                  libpthread-stubs0-dev libstdc++-12-dev libnet1 libnet1-dev
                  libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev
                  libboost-all-dev libcurl4-openssl-dev libpcap-dev python3-toml)

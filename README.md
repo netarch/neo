@@ -22,10 +22,14 @@ high-coverage testing for softwarized networks with middlebox components.
 
 The following dependencies are needed for Neo.
 
-- modern C and C++ compilers
+- Modern C and C++ compilers
+- Clang
+- LLVM
 - cmake (>= 3.13)
 - libnet
 - libnl
+- libelf
+- zlib
 - boost
 - curl
 - pcapplusplus
