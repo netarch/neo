@@ -71,7 +71,9 @@ endif()
 # third party libraries
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+add_subdirectory(third_party/bpftool EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/catch2 EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/libbpf EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/rapidjson EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/spdlog EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/tomlplusplus EXCLUDE_FROM_ALL)
@@ -79,6 +81,7 @@ set(XXHASH_BUILD_ENABLE_INLINE_API ON)
 set(XXHASH_BUILD_XXHSUM OFF)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(third_party/xxhash/cmake_unofficial EXCLUDE_FROM_ALL)
+find_package(BpfObject REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Libnet REQUIRED)
 find_package(Libnl REQUIRED)
@@ -98,6 +101,7 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 FILE(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ${SRC_DIR}/*.cpp)
 list(REMOVE_ITEM SRC_FILES ${SRC_DIR}/main.cpp)
 set(MODEL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/network.pml)
+FILE(GLOB_RECURSE BPF_SRC_FILES CONFIGURE_DEPENDS ${SRC_DIR}/*.bpf.c)
 
 #
 # spin model target
@@ -149,6 +153,15 @@ target_link_libraries(libneo PRIVATE
 )
 
 #
+# link libneo with bpf applications
+#
+foreach(BPF_SRC_FILE ${BPF_SRC_FILES})
+    get_filename_component(BPF_STEM ${BPF_SRC_FILE} NAME_WE)
+    bpf_object(${BPF_STEM} ${BPF_STEM}.bpf.c)
+    target_link_libraries(libneo PRIVATE ${BPF_STEM}_skel)
+endforeach()
+
+#
 # main target
 #
 add_executable(neo $<TARGET_OBJECTS:libneo> ${SRC_DIR}/main.cpp)
@@ -169,7 +182,6 @@ if (ENABLE_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
-
 
 #
 # install

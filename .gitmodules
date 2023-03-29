@@ -14,3 +14,11 @@
 [submodule "catch2"]
 	path = third_party/catch2/catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "bpftool"]
+	path = third_party/bpftool/bpftool
+	url = https://github.com/libbpf/bpftool.git
+	ignore = dirty
+[submodule "libbpf"]
+	path = third_party/libbpf/libbpf
+	url = https://github.com/libbpf/libbpf.git
+	ignore = dirty

@@ -1,0 +1,20 @@
+ExternalProject_Add(libbpf
+    PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/libbpf
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND make
+        BUILD_STATIC_ONLY=1
+        OBJDIR=${CMAKE_CURRENT_BINARY_DIR}
+        DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/install
+        INCLUDEDIR=
+        UAPIDIR=
+        LIBDIR=
+        install install_uapi_headers
+    BUILD_IN_SOURCE TRUE
+    INSTALL_COMMAND ""
+    STEP_TARGETS build
+)
+
+set(libbpf_VERSION "1.1.0" PARENT_SCOPE)
+set(libbpf_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/install PARENT_SCOPE)
+set(libbpf_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/install/libbpf.a PARENT_SCOPE)
