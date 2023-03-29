@@ -41,9 +41,6 @@ private:
     void parse_dockernode(DockerNode &, const toml::table &);
     void parse_middlebox(Middlebox &, const toml::table &);
 
-    // Initial estimate of the packet injection latency
-    void estimate_pkt_lat();
-
     // Parse middlebox configs for calculating PECs
     void parse_config_string(Middlebox &, const std::string &);
 
@@ -107,4 +104,5 @@ public:
     ConfigParser &operator=(ConfigParser &&) = delete;
 
     void parse(const std::string &filename, Plankton &plankton);
+    void estimate_pkt_lat(int num_injections);
 };

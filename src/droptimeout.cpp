@@ -3,6 +3,7 @@
 #include <cmath>
 #include <thread>
 
+#include "configparser.hpp"
 #include "stats.hpp"
 
 using namespace std;
@@ -19,7 +20,13 @@ DropTimeout &DropTimeout::get() {
  * It calculates the average and mean deviation of the packet latencies, and
  * stores them in the `_lat_avg` and `_lat_mdev` fields
  */
-void DropTimeout::set_initial_latency_estimate() {
+void DropTimeout::init() {
+    if (_has_initial_estimate) {
+        return;
+    }
+
+    _STATS_RESET();
+    ConfigParser().estimate_pkt_lat(20);
     const auto &latencies = Stats::get().get_pkt_latencies();
 
     // Calculate the latency average

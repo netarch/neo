@@ -57,13 +57,6 @@ void ConfigParser::parse_network(Network &network) {
                 node = new Node();
                 this->parse_node(*node, tbl);
             } else if (**type == "emulation") {
-                // TODO:
-                // After eBPF drop tracing (and dropmon) is implemented, we
-                // don't need to estimate the latency when they're enabled
-                if (!DropTimeout::get().has_initial_estimate()) {
-                    this->estimate_pkt_lat();
-                }
-
                 if (!driver || **driver == "docker") {
                     node = new DockerNode();
                     this->parse_dockernode(*static_cast<DockerNode *>(node),
@@ -420,119 +413,6 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 void ConfigParser::parse_middlebox(Middlebox &middlebox,
                                    const toml::table &config) {
     this->parse_node(middlebox, config);
-}
-
-void ConfigParser::estimate_pkt_lat() {
-    /**
-     * test/networks/docker.toml:
-     *
-     * [192.168.1.2/24]      eth0    eth1      [192.168.2.2/24]
-     * (node1)-------------------(fw)-------------------(node2)
-     *    eth0    [192.168.1.1/24]  [192.168.2.1/24]    eth0
-     */
-
-    // Construct the docker node
-    auto fw = new DockerNode();
-    fw->name = "fw";
-    Interface *fw_eth0 = new Interface();
-    fw_eth0->name = "eth0";
-    fw_eth0->ipv4 = "192.168.1.1/24";
-    fw_eth0->is_switchport = false;
-    Interface *fw_eth1 = new Interface();
-    fw_eth1->name = "eth1";
-    fw_eth1->ipv4 = "192.168.2.1/24";
-    fw_eth1->is_switchport = false;
-    fw->add_interface(fw_eth0);
-    fw->add_interface(fw_eth1);
-    fw->_daemon = "/var/run/docker.sock";
-    fw->_image = "kyechou/iptables:latest";
-    fw->_working_dir = "/";
-    fw->_cmd = {"/start.sh"};
-    fw->_env_vars.emplace("RULES", "*filter\n"
-                                   ":INPUT ACCEPT [0:0]\n"
-                                   ":FORWARD ACCEPT [0:0]\n"
-                                   ":OUTPUT ACCEPT [0:0]\n"
-                                   "COMMIT\n");
-    fw->_sysctls.emplace("net.ipv4.conf.all.forwarding", "1");
-    fw->_sysctls.emplace("net.ipv4.conf.all.rp_filter", "1");
-    fw->_sysctls.emplace("net.ipv4.conf.default.rp_filter", "1");
-    for (const auto &[_, value] : fw->env_vars()) {
-        this->parse_config_string(*fw, value);
-    }
-
-    // Construct node1
-    auto node1 = new Node();
-    node1->name = "node1";
-    Interface *node1_eth0 = new Interface();
-    node1_eth0->name = "eth0";
-    node1_eth0->ipv4 = "192.168.1.2/24";
-    node1_eth0->is_switchport = false;
-    node1->add_interface(node1_eth0);
-    node1->rib.insert(Route("0.0.0.0/0", "192.168.1.1"));
-
-    // Construct node2
-    auto node2 = new Node();
-    node2->name = "node2";
-    Interface *node2_eth0 = new Interface();
-    node2_eth0->name = "eth0";
-    node2_eth0->ipv4 = "192.168.2.2/24";
-    node2_eth0->is_switchport = false;
-    node2->add_interface(node2_eth0);
-    node2->rib.insert(Route("0.0.0.0/0", "192.168.2.1"));
-
-    // Construct links
-    Link *link1 = new Link();
-    link1->node1 = fw;
-    link1->node2 = node1;
-    link1->intf1 = fw_eth0;
-    link1->intf2 = node1_eth0;
-    Link *link2 = new Link();
-    link2->node1 = fw;
-    link2->node2 = node2;
-    link2->intf1 = fw_eth1;
-    link2->intf2 = node2_eth0;
-
-    // Construct the network
-    Network network;
-    network.add_node(fw);
-    network.add_node(node1);
-    network.add_node(node2);
-    network.add_link(link1);
-    network.add_link(link2);
-
-    // Register signal handler to nullify SIGUSR1
-    struct sigaction action, *oldaction = nullptr;
-    action.sa_handler = [](int) {};
-    sigemptyset(&action.sa_mask);
-    sigaddset(&action.sa_mask, SIGUSR1);
-    action.sa_flags = SA_NOCLDSTOP;
-    sigaction(SIGUSR1, &action, oldaction);
-
-    // Start an emulation
-    Emulation emu;
-    emu.init(fw, /* log_pkts */ false);
-    fw->_emulation = &emu;
-
-    // Set a temporary initial timeout
-    DropTimeout::get()._timeout = chrono::microseconds{5000};
-
-    // Send N ping packets from node1 to node2
-    constexpr int N = 20;
-    auto pkt = make_unique<Packet>(fw_eth0, "192.168.1.2", "192.168.2.2", 0, 0,
-                                   0, 0, PS_ICMP_ECHO_REQ);
-    for (int i = 0; i < N; ++i) {
-        emu.send_pkt(*pkt);
-    }
-
-    // Terminate the emulation
-    emu.teardown();
-
-    // Reset signal handler
-    sigaction(SIGUSR1, oldaction, nullptr);
-
-    // Retrieve the initial latency estimate
-    DropTimeout::get()._timeout = chrono::microseconds{};
-    DropTimeout::get().set_initial_latency_estimate();
 }
 
 #define IPV4_PREF_REGEX "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d+\\b"
@@ -946,4 +826,115 @@ void ConfigParser::parse_conn_spec(ConnSpec &conn_spec,
     }
 
     conn_spec.owned_dst_only = owned_dst_only ? **owned_dst_only : false;
+}
+
+void ConfigParser::estimate_pkt_lat(int num_injections) {
+    /**
+     * test/networks/docker.toml:
+     *
+     * [192.168.1.2/24]      eth0    eth1      [192.168.2.2/24]
+     * (node1)-------------------(fw)-------------------(node2)
+     *    eth0    [192.168.1.1/24]  [192.168.2.1/24]    eth0
+     */
+
+    // Construct the docker node
+    auto fw = new DockerNode();
+    fw->name = "fw";
+    Interface *fw_eth0 = new Interface();
+    fw_eth0->name = "eth0";
+    fw_eth0->ipv4 = "192.168.1.1/24";
+    fw_eth0->is_switchport = false;
+    Interface *fw_eth1 = new Interface();
+    fw_eth1->name = "eth1";
+    fw_eth1->ipv4 = "192.168.2.1/24";
+    fw_eth1->is_switchport = false;
+    fw->add_interface(fw_eth0);
+    fw->add_interface(fw_eth1);
+    fw->_daemon = "/var/run/docker.sock";
+    fw->_image = "kyechou/iptables:latest";
+    fw->_working_dir = "/";
+    fw->_cmd = {"/start.sh"};
+    fw->_env_vars.emplace("RULES", "*filter\n"
+                                   ":INPUT ACCEPT [0:0]\n"
+                                   ":FORWARD ACCEPT [0:0]\n"
+                                   ":OUTPUT ACCEPT [0:0]\n"
+                                   "COMMIT\n");
+    fw->_sysctls.emplace("net.ipv4.conf.all.forwarding", "1");
+    fw->_sysctls.emplace("net.ipv4.conf.all.rp_filter", "1");
+    fw->_sysctls.emplace("net.ipv4.conf.default.rp_filter", "1");
+    for (const auto &[_, value] : fw->env_vars()) {
+        this->parse_config_string(*fw, value);
+    }
+
+    // Construct node1
+    auto node1 = new Node();
+    node1->name = "node1";
+    Interface *node1_eth0 = new Interface();
+    node1_eth0->name = "eth0";
+    node1_eth0->ipv4 = "192.168.1.2/24";
+    node1_eth0->is_switchport = false;
+    node1->add_interface(node1_eth0);
+    node1->rib.insert(Route("0.0.0.0/0", "192.168.1.1"));
+
+    // Construct node2
+    auto node2 = new Node();
+    node2->name = "node2";
+    Interface *node2_eth0 = new Interface();
+    node2_eth0->name = "eth0";
+    node2_eth0->ipv4 = "192.168.2.2/24";
+    node2_eth0->is_switchport = false;
+    node2->add_interface(node2_eth0);
+    node2->rib.insert(Route("0.0.0.0/0", "192.168.2.1"));
+
+    // Construct links
+    Link *link1 = new Link();
+    link1->node1 = fw;
+    link1->node2 = node1;
+    link1->intf1 = fw_eth0;
+    link1->intf2 = node1_eth0;
+    Link *link2 = new Link();
+    link2->node1 = fw;
+    link2->node2 = node2;
+    link2->intf1 = fw_eth1;
+    link2->intf2 = node2_eth0;
+
+    // Construct the network
+    Network network;
+    network.add_node(fw);
+    network.add_node(node1);
+    network.add_node(node2);
+    network.add_link(link1);
+    network.add_link(link2);
+
+    // Register signal handler to nullify SIGUSR1
+    struct sigaction action, *oldaction = nullptr;
+    action.sa_handler = [](int) {};
+    sigemptyset(&action.sa_mask);
+    sigaddset(&action.sa_mask, SIGUSR1);
+    action.sa_flags = SA_NOCLDSTOP;
+    sigaction(SIGUSR1, &action, oldaction);
+
+    // Start an emulation
+    Emulation emu;
+    emu.init(fw, /* log_pkts */ false);
+    fw->_emulation = &emu;
+
+    // Set a temporary initial timeout
+    DropTimeout::get()._timeout = chrono::microseconds{5000};
+
+    // Send N ping packets from node1 to node2
+    auto pkt = make_unique<Packet>(fw_eth0, "192.168.1.2", "192.168.2.2", 0, 0,
+                                   0, 0, PS_ICMP_ECHO_REQ);
+    for (int i = 0; i < num_injections; ++i) {
+        emu.send_pkt(*pkt);
+    }
+
+    // Reset the initial timeout
+    DropTimeout::get()._timeout = chrono::microseconds{};
+
+    // Terminate the emulation
+    emu.teardown();
+
+    // Reset signal handler
+    sigaction(SIGUSR1, oldaction, nullptr);
 }

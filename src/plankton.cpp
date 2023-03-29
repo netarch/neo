@@ -49,13 +49,18 @@ void Plankton::init(bool all_ecs,
     logger.enable_console_logging();
     logger.enable_file_logging(fs::path(_out_dir) / "main.log");
 
-    // Set the initial system state based on input configuration
+    // Parse and load the input configurations
     ConfigParser().parse(_in_file, *this);
+
+    // Initialize system-wide configurations
     if (this->_max_emu == 0) {
         this->_max_emu = _network.middleboxes().size();
     }
     EmulationMgr::get().max_emulations(_max_emu);
+    DropTimeout::get().init();
     // DropMon::get().init(dropmon);
+    // TODO: After eBPF drop tracing (and dropmon) is implemented, we don't need
+    // to estimate the latency when they're enabled
 
     // Compute initial ECs (oblivious to the invariants)
     auto &ec_mgr = EqClassMgr::get();
