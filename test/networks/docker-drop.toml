@@ -1,0 +1,63 @@
+#
+# [192.168.1.2/24]      eth0    eth1      [192.168.2.2/24]
+# (node1)-------------------(fw)-------------------(node2)
+#    eth0    [192.168.1.1/24]  [192.168.2.1/24]    eth0
+#
+
+[[nodes]]
+    name = "node1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.1.1"
+[[nodes]]
+    name = "node2"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.2.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.2.1"
+[[nodes]]
+    name = "fw"
+    type = "emulation"
+    driver = "docker"
+    docker-daemon = "/var/run/docker.sock"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.1.1/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.2.1/24"
+    [nodes.container]
+    image = "kyechou/iptables:latest"
+    workingDir = "/"
+    command = ["/start.sh"]
+    config_files = ["/start.sh"]
+    [[nodes.container.env]]
+    name = "RULES"
+    value = """
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+COMMIT
+"""
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.forwarding"
+    value = "1"
+
+[[links]]
+    node1 = "node1"
+    intf1 = "eth0"
+    node2 = "fw"
+    intf2 = "eth0"
+[[links]]
+    node1 = "node2"
+    intf1 = "eth0"
+    node2 = "fw"
+    intf2 = "eth1"

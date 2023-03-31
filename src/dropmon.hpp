@@ -1,64 +1,96 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
-#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <thread>
 
 #include "packet.hpp"
+
 struct nl_sock;
 struct nl_msg;
 
 class DropMon {
 private:
-    int family;
-    bool enabled;
-    struct nl_sock *dm_sock;
-    std::thread *listener;           // drop listener thread
-    std::atomic<bool> stop_listener; // loop control flag
+    int _family;
+    bool _enabled;
+    struct nl_sock *_dm_sock;
 
-    Packet sent_pkt;                    // packet just sent (race)
-    std::atomic<bool> sent_pkt_changed; // true if sent_pkt is modified
-    std::mutex pkt_mtx;                 // lock for accessing sent_pkt
+    std::unique_ptr<std::thread> _dm_thread; // dropmon listener thread
+    std::atomic<bool> _stop_dm_thread;       // loop control flag
+    Packet _target_pkt;          // target packet to listen for (race)
+    uint64_t _drop_ts;           // kernel drop timestamp (race)
+    std::mutex _mtx;             // lock for _target_pkt and _drop_ts
+    std::condition_variable _cv; // for reading _drop_ts
 
-    uint64_t drop_ts;                // kernel drop timestamp (race)
-    std::mutex drop_mtx;             // lock for accessing drop_ts
-    std::condition_variable drop_cv; // for reading drop_ts
-
+    DropMon();
     void listen_msgs();
+    void get_stats(struct nl_sock *) const;
     struct nl_msg *new_msg(uint8_t cmd, int flags, size_t hdrlen) const;
     void del_msg(struct nl_msg *) const;
     void send_msg(struct nl_sock *, struct nl_msg *) const;
     void send_msg_async(struct nl_sock *, struct nl_msg *) const;
     Packet recv_msg(struct nl_sock *, uint64_t &) const;
-    void set_alert_mode(struct nl_sock *) const;
-    void set_queue_length(struct nl_sock *, int) const;
-    void get_stats(struct nl_sock *) const;
-    DropMon();
-
-private:
-    friend class ConfigParser;
 
 public:
-    // Disable the copy constructor and the copy assignment operator
+    // Disable the copy/move constructors and the assignment operators
     DropMon(const DropMon &) = delete;
+    DropMon(DropMon &&) = delete;
     DropMon &operator=(const DropMon &) = delete;
+    DropMon &operator=(DropMon &&) = delete;
     ~DropMon();
 
     static DropMon &get();
 
-    /* called by the plankton main process */
-    void init(bool);    // set family and enabled
-    void start() const; // start kernel drop_monitor
-    void stop() const;  // stop kernel drop_monitor
-    /* called by each per-connection-EC process */
-    void connect();    // spawn a dropmon thread and connect the socket
-    void disconnect(); // join thread and disconnect
-    /* called by each emulation in the main thread */
-    void start_listening_for(const Packet &);
+    /**
+     * @brief Initialize the module, must be called before other functions have
+     * effects.
+     */
+    void init();
+
+    /**
+     * @brief Reset everything as if it was just default-constructed.
+     */
+    void teardown();
+
+    /**
+     * @brief Start kernel drop_monitor
+     */
+    void start();
+
+    /**
+     * @brief Stop kernel drop_monitor
+     */
+    void stop() const;
+
+    /**
+     * @brief Start a dropmon thread receiving packet drop messages
+     *
+     * It sets up a socket to listen for dropmon messages, and starts a thread
+     * to listen for those messages
+     *
+     * @param sent_pkt the packet that was sent
+     */
+    void start_listening_for(const Packet &sent_pkt);
+
+    /**
+     * @brief Return a non-zero timestamp if the target packet is dropped. The
+     * function blocks for a timeout if no such packet drop is observed. If the
+     * timeout is 0 (default), then it will block indefinitely if no packet drop
+     * is observed.
+     *
+     * @param timeout value for the packet drop message.
+     * @return timestamp (nsec) of the packet drop in kernel
+     */
+    uint64_t get_drop_ts(
+        std::chrono::microseconds timeout = std::chrono::microseconds::zero());
+
+    /**
+     * @brief Stop the drop listener thread, reset the dropmon variables, and
+     * reset the dropmon socket
+     */
     void stop_listening();
-    /* called by each emulation in the drop_listener thread */
-    uint64_t is_dropped(); // return true if sent_pkt is dropped (blocking)
 };
