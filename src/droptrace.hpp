@@ -3,7 +3,9 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
-#include "droptrace.skel.h"
+#include "packet.hpp"
+
+struct droptrace_bpf;
 
 class DropTrace {
 private:

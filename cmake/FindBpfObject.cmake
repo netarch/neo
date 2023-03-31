@@ -87,12 +87,11 @@ endif()
 #
 # Generate vmlinux.h
 #
-set(VMLINUX_H_BASEDIR ${CMAKE_CURRENT_BINARY_DIR})
-set(VMLINUX_H ${VMLINUX_H_BASEDIR}/vmlinux.h)
+set(VMLINUX_H ${CMAKE_CURRENT_BINARY_DIR}/vmlinux.h)
 add_custom_command(OUTPUT ${VMLINUX_H}
-    COMMAND ${bpftool_EXECUTABLE} btf dump file /sys/kernel/btf/vmlinux format c
-        > ${VMLINUX_H}
-    DEPENDS bpftool)
+    COMMAND ${bpftool_EXECUTABLE} btf dump file /sys/kernel/btf/vmlinux format c > ${VMLINUX_H}
+    DEPENDS bpftool
+    COMMENT "Generating vmlinux.h")
 
 #
 # Get target arch
@@ -143,24 +142,23 @@ macro(bpf_object name input)
     add_custom_command(OUTPUT ${BPF_O_FILE}
         COMMAND ${CLANG_EXE} ${COMPILE_FLAGS} -g -target bpf
             -D__TARGET_ARCH_${ARCH} ${CLANG_SYSTEM_INCLUDES}
-            -I${VMLINUX_H_BASEDIR} -isystem ${libbpf_INCLUDE_DIRS}
+            -I${CMAKE_CURRENT_BINARY_DIR} -isystem ${libbpf_INCLUDE_DIRS}
             -c ${BPF_C_FILE} -o ${BPF_O_FILE}
-        COMMAND_EXPAND_LISTS
-        VERBATIM
+        MAIN_DEPENDENCY ${BPF_C_FILE}
         DEPENDS ${CLANG_EXE} ${BPF_C_FILE} ${VMLINUX_H}
-        COMMENT "[clang] Building BPF object: ${name}")
+        COMMENT "Building BPF object: ${name}")
 
     # Build BPF skeleton header
     add_custom_command(OUTPUT ${BPF_SKEL_FILE}
         COMMAND ${bpftool_EXECUTABLE} gen skeleton ${BPF_O_FILE} > ${BPF_SKEL_FILE}
-        VERBATIM
+        MAIN_DEPENDENCY ${BPF_O_FILE}
         DEPENDS bpftool ${BPF_O_FILE}
-        COMMENT "[skel]  Building BPF skeleton: ${name}")
+        COMMENT "Building BPF skeleton: ${name}")
 
     add_library(${OUTPUT_TARGET} INTERFACE)
     add_dependencies(${OUTPUT_TARGET} libbpf)
     target_sources(${OUTPUT_TARGET} INTERFACE ${BPF_SKEL_FILE})
-    target_include_directories(${OUTPUT_TARGET} INTERFACE ${CMAKE_CURRENT_BINARY_DIR} ${VMLINUX_H_BASEDIR})
+    target_include_directories(${OUTPUT_TARGET} INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
     target_include_directories(${OUTPUT_TARGET} SYSTEM INTERFACE ${libbpf_INCLUDE_DIRS})
     target_link_libraries(${OUTPUT_TARGET} INTERFACE ${libbpf_LIBRARIES} -lelf -lz)
 endmacro()
