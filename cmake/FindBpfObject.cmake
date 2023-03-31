@@ -141,7 +141,7 @@ macro(bpf_object name input)
     # Build BPF object file
     add_custom_command(OUTPUT ${BPF_O_FILE}
         COMMAND ${CLANG_EXE} ${COMPILE_FLAGS} -g -target bpf
-            -D__TARGET_ARCH_${ARCH} ${CLANG_SYSTEM_INCLUDES}
+            -D__TARGET_ARCH_${ARCH} ${CLANG_SYSTEM_INCLUDES} -I${SRC_DIR}
             -I${CMAKE_CURRENT_BINARY_DIR} -isystem ${libbpf_INCLUDE_DIRS}
             -c ${BPF_C_FILE} -o ${BPF_O_FILE}
         MAIN_DEPENDENCY ${BPF_C_FILE}

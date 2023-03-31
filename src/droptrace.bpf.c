@@ -1,16 +1,29 @@
-#include "vmlinux.h"
+#include "../build/vmlinux.h"
 
-#include "droptrace.h"
+#include <linux/string.h>
 
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
+
+#include "droptrace.h"
+
+// packet.hpp
+#define ID_ETH_ADDR                                                            \
+    { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }
 
 char LICENSE[] SEC("license") = "Dual MIT/GPL";
 
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 256 * 1024 /* 256 KB */);
+    __uint(max_entries, 10 * 1024);
 } events SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, struct drop_data);
+} target_packet SEC(".maps");
 
 static inline bool skb_mac_header_was_set(const struct sk_buff *skb) {
     u16 mac_header;
@@ -77,11 +90,13 @@ static inline struct icmphdr *icmp_hdr(const struct sk_buff *skb) {
 
 SEC("tracepoint/skb/kfree_skb")
 int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
-    struct drop_data *data = NULL;
-    struct sk_buff *skb = NULL;
+    struct drop_data *data = (struct drop_data *)NULL;
+    struct sk_buff *skb = (struct sk_buff *)NULL;
     unsigned short protocol = 0;
     unsigned int len = 0;
     int skb_iif = 0;
+
+    // TODO: If there is no target packet, do nothing.
 
     BPF_CORE_READ_INTO(&skb, args, skbaddr);
     BPF_CORE_READ_INTO(&protocol, args, protocol);
@@ -92,7 +107,10 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
         return 0;
     }
 
-    data = bpf_ringbuf_reserve(&events, sizeof(struct drop_data), 0);
+    // TODO: filter events based on netns ID and iif?
+
+    data = (struct drop_data *)bpf_ringbuf_reserve(&events,
+                                                   sizeof(struct drop_data), 0);
     if (!data) {
         return 0;
     }
@@ -107,9 +125,17 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
 
     // L2
     if (skb_mac_header_was_set(skb)) {
+        uint8_t id_mac[6] = ID_ETH_ADDR;
         struct ethhdr *eth = eth_hdr(skb);
         BPF_CORE_READ_INTO(&data->eth_dst_addr, eth, h_dest);
         BPF_CORE_READ_INTO(&data->eth_src_addr, eth, h_source);
+
+        if (memcmp(data->eth_dst_addr, id_mac, 6) != 0 &&
+            memcmp(data->eth_src_addr, id_mac, 6) != 0) {
+            goto discard;
+        }
+    } else {
+        goto discard;
     }
 
     data->eth_proto = protocol;
@@ -121,6 +147,10 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
         BPF_CORE_READ_INTO(&data->ip_proto, nh, protocol);
         BPF_CORE_READ_INTO(&data->saddr, nh, saddr);
         BPF_CORE_READ_INTO(&data->daddr, nh, daddr);
+
+        // TODO
+    } else {
+        goto discard;
     }
 
     // L4

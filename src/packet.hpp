@@ -2,12 +2,14 @@
 
 #include <string>
 
+#include "droptrace.h"
 #include "lib/ip.hpp"
+
 class Interface;
 class Model;
 class Payload;
 
-/*
+/**
  * ID ethernet address.
  * It is used for all modelled interfaces and for identification of relevant
  * packets.
@@ -15,7 +17,7 @@ class Payload;
 #define ID_ETH_ADDR                                                            \
     { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }
 
-/*
+/**
  * A located abstract representative packet.
  */
 class Packet {
@@ -32,7 +34,7 @@ private:
     // L7 payload
     Payload *payload;
 
-    /*
+    /**
      * Auxiliary variables, should not involved in PacketHash or PacketEq
      */
     int _conn;          // connection index
@@ -61,6 +63,7 @@ public:
     Packet &operator=(Packet &&) = default;
 
     std::string to_string() const;
+    struct drop_data to_drop_data() const;
     Interface *get_intf() const;
     IPv4Address get_src_ip() const;
     IPv4Address get_dst_ip() const;

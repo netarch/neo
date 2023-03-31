@@ -1,10 +1,7 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // <linux/if_ether.h>
+#ifndef ETH_P_IP
 #define ETH_ALEN 6          /* Octets in one ethernet addr	 */
 #define ETH_TLEN 2          /* Octets in ethernet type field */
 #define ETH_HLEN 14         /* Total octets in header.	 */
@@ -21,8 +18,10 @@ extern "C" {
 #define ETH_P_RARP 0x8035  /* Reverse Addr Res packet	*/
 #define ETH_P_8021Q 0x8100 /* 802.1Q VLAN Extended Header  */
 #define ETH_P_IPV6 0x86DD  /* IPv6 over bluebook		*/
+#endif
 
 // <linux/icmp.h>
+#ifndef ICMP_ECHOREPLY
 #define ICMP_ECHOREPLY 0       /* Echo Reply			*/
 #define ICMP_DEST_UNREACH 3    /* Destination Unreachable	*/
 #define ICMP_SOURCE_QUENCH 4   /* Source Quench		*/
@@ -37,6 +36,7 @@ extern "C" {
 #define ICMP_ADDRESS 17        /* Address Mask Request		*/
 #define ICMP_ADDRESSREPLY 18   /* Address Mask Reply		*/
 #define NR_ICMP_TYPES 18
+#endif
 
 #ifndef __VMLINUX_H__
 #define DEFINE_DROP_REASON(FN, FNe)                                            \
@@ -386,7 +386,3 @@ struct drop_data {
         } icmp;
     };
 };
-
-#ifdef __cplusplus
-}
-#endif

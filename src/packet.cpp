@@ -1,6 +1,8 @@
 #include "packet.hpp"
 
 #include <cassert>
+#include <cstring>
+#include <netinet/in.h>
 
 #include "eqclassmgr.hpp"
 #include "interface.hpp"
@@ -76,6 +78,39 @@ std::string Packet::to_string() const {
     }
     ret += " }";
     return ret;
+}
+
+struct drop_data Packet::to_drop_data() const {
+    struct drop_data data;
+
+    memset(&data, 0, sizeof(data));
+    data.saddr = htonl(this->src_ip.get_value());
+    data.daddr = htonl(this->dst_ip.get_value());
+    auto ip_proto = PS_TO_PROTO(this->proto_state);
+
+    if (ip_proto == proto::tcp) {
+        data.ip_proto = IPPROTO_TCP;
+        data.transport.sport = this->src_port;
+        data.transport.dport = this->dst_port;
+        data.transport.seq = this->seq;
+        data.transport.ack = this->ack;
+    } else if (ip_proto == proto::udp) {
+        data.ip_proto = IPPROTO_UDP;
+        data.transport.sport = this->src_port;
+        data.transport.dport = this->dst_port;
+        data.transport.seq = 0;
+        data.transport.ack = 0;
+    } else if (ip_proto == proto::icmp_echo) {
+        data.ip_proto = IPPROTO_ICMP;
+        data.icmp.icmp_type =
+            this->proto_state == PS_ICMP_ECHO_REQ ? ICMP_ECHO : ICMP_ECHOREPLY;
+        data.icmp.icmp_echo_id = 42;
+        data.icmp.icmp_echo_seq = 0;
+    } else {
+        logger.error("Invalid protocol");
+    }
+
+    return data;
 }
 
 Interface *Packet::get_intf() const {
