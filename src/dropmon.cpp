@@ -108,7 +108,7 @@ void DropMon::stop() const {
     nl_socket_free(sock);
 }
 
-void DropMon::start_listening_for(const Packet &sent_pkt) {
+void DropMon::start_listening_for(const Packet &pkt) {
     if (!_enabled) {
         return;
     }
@@ -124,7 +124,7 @@ void DropMon::start_listening_for(const Packet &sent_pkt) {
 
     // Reset dropmon variables
     unique_lock<mutex> lck(_mtx);
-    _target_pkt = sent_pkt;
+    _target_pkt = pkt;
     _drop_ts = 0;
     lck.unlock();
 

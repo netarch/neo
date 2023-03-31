@@ -72,9 +72,9 @@ public:
      * It sets up a socket to listen for dropmon messages, and starts a thread
      * to listen for those messages
      *
-     * @param sent_pkt the packet that was sent
+     * @param pkt the target packet to listen for
      */
-    void start_listening_for(const Packet &sent_pkt);
+    void start_listening_for(const Packet &pkt);
 
     /**
      * @brief Return a non-zero timestamp if the target packet is dropped. The
