@@ -73,8 +73,8 @@ int DropTrace::ringbuf_handler(void *ctx,
     constexpr int buffer_sz = 2048;
     static char buffer[buffer_sz];
     snprintf(buffer, buffer_sz,
-             "ts: %llu, dev: %d, iif: %d, ip len: %d, ip proto: %d, reason: %s",
-             d->tstamp, d->ifindex, d->ingress_ifindex, d->tot_len, d->ip_proto,
+             "ts: %llu, dev: %d, iif: %d, ip proto: %d, reason: %s", d->tstamp,
+             d->ifindex, d->ingress_ifindex, d->ip_proto,
              drop_reasons[d->reason]);
     logger.debug(buffer);
     return 0;
@@ -91,7 +91,6 @@ void DropTrace::init() {
 }
 
 void DropTrace::teardown() {
-    stop_listening();
     stop();
     _enabled = false;
 }
@@ -99,6 +98,10 @@ void DropTrace::teardown() {
 void DropTrace::start() {
     if (!_enabled) {
         return;
+    }
+
+    if (_bpf) {
+        logger.error("Another BPF progam is already loaded");
     }
 
     _bpf = droptrace_bpf__open();
@@ -117,15 +120,31 @@ void DropTrace::stop() {
         return;
     }
 
+    if (_ringbuf) {
+        ring_buffer__free(_ringbuf);
+        _ringbuf = nullptr;
+    }
+
     if (_bpf) {
         _bpf->destroy(_bpf); // destroy will also detach
         _bpf = nullptr;
     }
+
+    memset(&_target_pkt, 0, sizeof(_target_pkt));
+    _drop_ts = 0;
 }
 
 void DropTrace::start_listening_for(const Packet &pkt) {
     if (!_enabled || !_bpf) {
         return;
+    }
+
+    if (pkt.empty()) {
+        logger.error("Empty target packet");
+    }
+
+    if (_ringbuf) {
+        logger.error("Ring buffer already opened");
     }
 
     _target_pkt = pkt.to_drop_data();

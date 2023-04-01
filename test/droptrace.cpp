@@ -1,6 +1,10 @@
+#include <chrono>
+#include <memory>
+#include <string>
 #include <thread>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include "configparser.hpp"
 #include "dockernode.hpp"
@@ -51,6 +55,25 @@ TEST_CASE("droptrace") {
         REQUIRE_NOTHROW(dt.start_listening_for(Packet()));
         CHECK(dt.get_drop_ts() == 0);
         REQUIRE_NOTHROW(dt.stop_listening());
+        REQUIRE_NOTHROW(dt.teardown());
+    }
+
+    SECTION("Exceptions") {
+        // Ping request packet from node1 to node2
+        Packet pkt(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
+                   PS_ICMP_ECHO_REQ);
+
+        REQUIRE_NOTHROW(dt.init());
+        REQUIRE_NOTHROW(dt.start());
+        CHECK_THROWS_WITH(dt.start(), "Another BPF progam is already loaded");
+        CHECK_THROWS_WITH(dt.start_listening_for(Packet()),
+                          "Empty target packet");
+        REQUIRE_NOTHROW(dt.start_listening_for(pkt));
+        CHECK_THROWS_WITH(dt.start_listening_for(pkt),
+                          "Ring buffer already opened");
+        REQUIRE_NOTHROW(dt.stop_listening());
+        REQUIRE_NOTHROW(dt.stop());
+        REQUIRE_NOTHROW(dt.teardown());
     }
 
     SECTION("Packet drops (sequential)") {
@@ -79,8 +102,45 @@ TEST_CASE("droptrace") {
         // Detach the BPF program
         REQUIRE_NOTHROW(dt.stop_listening());
 
+        // Ping request packet from node2 to node1
+        pkt = Packet(eth1, "192.168.2.2", "192.168.1.2", 0, 0, 0, 0,
+                     PS_ICMP_ECHO_REQ);
+        // Attach the BPF program
+        REQUIRE_NOTHROW(dt.start_listening_for(pkt));
+        // Send the ping packet
+        REQUIRE_NOTHROW(docker.unpause());
+        REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
+        CHECK(nwrite == 42);
+        // Get the kernel drop timestamp (blocking)
+        REQUIRE_NOTHROW(drop_ts = dt.get_drop_ts(timeout));
+        CHECK(drop_ts > 0);
+        REQUIRE_NOTHROW(docker.pause());
+        // Detach the BPF program
+        REQUIRE_NOTHROW(dt.stop_listening());
+
+        // Ping request packet from node1 to fw
+        pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
+                     PS_ICMP_ECHO_REQ);
+        // Attach the BPF program
+        REQUIRE_NOTHROW(dt.start_listening_for(pkt));
+        // Send the ping packet
+        REQUIRE_NOTHROW(docker.unpause());
+        REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
+        CHECK(nwrite == 42);
+        // Get the kernel drop timestamp (blocking)
+        REQUIRE_NOTHROW(drop_ts = dt.get_drop_ts(timeout));
+        CHECK(drop_ts > 0);
+        REQUIRE_NOTHROW(docker.pause());
+        // Detach the BPF program
+        REQUIRE_NOTHROW(dt.stop_listening());
+
         REQUIRE_NOTHROW(dt.stop()); // Remove the BPF program
         REQUIRE_NOTHROW(dt.teardown());
         REQUIRE_NOTHROW(docker.teardown());
+    }
+
+    SECTION("Packet drops (asynchronous)") {
+        // TODO
+        ;
     }
 }
