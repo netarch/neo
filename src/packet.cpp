@@ -90,22 +90,22 @@ struct drop_data Packet::to_drop_data() const {
 
     if (ip_proto == proto::tcp) {
         data.ip_proto = IPPROTO_TCP;
-        data.transport.sport = this->src_port;
-        data.transport.dport = this->dst_port;
-        data.transport.seq = this->seq;
-        data.transport.ack = this->ack;
+        data.transport.sport = htons(this->src_port);
+        data.transport.dport = htons(this->dst_port);
+        data.transport.seq = htonl(this->seq);
+        data.transport.ack = htonl(this->ack);
     } else if (ip_proto == proto::udp) {
         data.ip_proto = IPPROTO_UDP;
-        data.transport.sport = this->src_port;
-        data.transport.dport = this->dst_port;
-        data.transport.seq = 0;
-        data.transport.ack = 0;
+        data.transport.sport = htons(this->src_port);
+        data.transport.dport = htons(this->dst_port);
+        data.transport.seq = htons(0);
+        data.transport.ack = htons(0);
     } else if (ip_proto == proto::icmp_echo) {
         data.ip_proto = IPPROTO_ICMP;
         data.icmp.icmp_type =
             this->proto_state == PS_ICMP_ECHO_REQ ? ICMP_ECHO : ICMP_ECHOREPLY;
-        data.icmp.icmp_echo_id = 42;
-        data.icmp.icmp_echo_seq = 0;
+        data.icmp.icmp_echo_id = htons(42);
+        data.icmp.icmp_echo_seq = htons(0);
     } else {
         logger.error("Invalid protocol");
     }

@@ -90,13 +90,21 @@ static inline struct icmphdr *icmp_hdr(const struct sk_buff *skb) {
 
 SEC("tracepoint/skb/kfree_skb")
 int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
-    struct drop_data *data = (struct drop_data *)NULL;
-    struct sk_buff *skb = (struct sk_buff *)NULL;
+    struct drop_data *target_pkt = NULL;
+    u32 target_pkt_key = 0;
+    struct drop_data *data = NULL;
+    struct sk_buff *skb = NULL;
     unsigned short protocol = 0;
     unsigned int len = 0;
     int skb_iif = 0;
 
-    // TODO: If there is no target packet, do nothing.
+    target_pkt = (struct drop_data *)bpf_map_lookup_elem(&target_packet,
+                                                         &target_pkt_key);
+
+    // If there is no target packet, skip event.
+    if (!target_pkt) {
+        return 0;
+    }
 
     BPF_CORE_READ_INTO(&skb, args, skbaddr);
     BPF_CORE_READ_INTO(&protocol, args, protocol);
@@ -148,7 +156,11 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
         BPF_CORE_READ_INTO(&data->saddr, nh, saddr);
         BPF_CORE_READ_INTO(&data->daddr, nh, daddr);
 
-        // TODO
+        if (data->ip_proto != target_pkt->ip_proto ||
+            data->saddr != target_pkt->saddr ||
+            data->daddr != target_pkt->daddr) {
+            goto discard;
+        }
     } else {
         goto discard;
     }
@@ -176,11 +188,25 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
                 BPF_CORE_READ_INTO(&data->icmp.icmp_echo_seq, ih,
                                    un.echo.sequence);
             } else {
-                data->icmp.icmp_echo_id = 0;
-                data->icmp.icmp_echo_seq = 0;
+                goto discard;
             }
         } else {
             goto discard;
+        }
+
+        if (data->ip_proto == IPPROTO_TCP || data->ip_proto == IPPROTO_UDP) {
+            if (data->transport.sport != target_pkt->transport.sport ||
+                data->transport.dport != target_pkt->transport.dport ||
+                data->transport.seq != target_pkt->transport.seq ||
+                data->transport.ack != target_pkt->transport.ack) {
+                goto discard;
+            }
+        } else { // data->ip_proto == IPPROTO_ICMP
+            if (data->icmp.icmp_type != target_pkt->icmp.icmp_type ||
+                data->icmp.icmp_echo_id != target_pkt->icmp.icmp_echo_id ||
+                data->icmp.icmp_echo_seq != target_pkt->icmp.icmp_echo_seq) {
+                goto discard;
+            }
         }
     }
 

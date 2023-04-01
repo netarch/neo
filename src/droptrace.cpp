@@ -81,8 +81,8 @@ int DropTrace::ringbuf_handler(void *ctx,
             auto dst_ip = IPv4Address(ntohl(d->daddr)).to_string();
             u16 sport = ntohs(d->transport.sport);
             u16 dport = ntohs(d->transport.dport);
-            u32 seq = d->transport.seq;
-            u32 ack = d->transport.ack;
+            u32 seq = ntohl(d->transport.seq);
+            u32 ack = ntohl(d->transport.ack);
             snprintf(
                 buffer, buffer_sz,
                 "ts: %llu, dev: %d, iif: %d, ip_proto: %d, src_ip: %s, dst_ip: "
@@ -211,14 +211,8 @@ uint64_t DropTrace::get_drop_ts(chrono::microseconds timeout) {
                          : duration_cast<chrono::milliseconds>(timeout).count();
     int res = ring_buffer__poll(_ringbuf, timeout_ms);
 
-    if (res < 0) {
-        if (res == -EINTR) {
-            logger.debug("ring_buffer__poll is interrupted by signal (EINTR)");
-        } else {
-            logger.error("ring_buffer__poll", errno);
-        }
-    } else {
-        logger.debug("Consumed " + to_string(res) + " ringbuf records");
+    if (res < 0 && res != -EINTR) {
+        logger.error("ring_buffer__poll", errno);
     }
 
     return _drop_ts;
