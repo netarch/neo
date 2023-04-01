@@ -79,14 +79,15 @@ public:
     /**
      * @brief Return a non-zero timestamp if the target packet is dropped. The
      * function blocks for a timeout if no such packet drop is observed. If the
-     * timeout is 0 (default), then it will block indefinitely if no packet drop
-     * is observed.
+     * timeout is negative (default), then it will block indefinitely if no
+     * packet drop is observed. If the timeout is zero, the function will not
+     * block.
      *
-     * @param timeout value for the packet drop message.
+     * @param timeout timeout for the packet drop message.
      * @return timestamp (nsec) of the packet drop in kernel
      */
     uint64_t get_drop_ts(
-        std::chrono::microseconds timeout = std::chrono::microseconds::zero());
+        std::chrono::microseconds timeout = std::chrono::microseconds{-1});
 
     /**
      * @brief Stop the drop listener thread, reset the dropmon variables, and

@@ -153,7 +153,7 @@ uint64_t DropMon::get_drop_ts(chrono::microseconds timeout) {
         return _drop_ts;
     }
 
-    if (timeout == chrono::microseconds::zero()) {
+    if (timeout.count() < 0) {
         _cv.wait(lck);
     } else {
         _cv.wait_for(lck, timeout);
