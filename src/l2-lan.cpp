@@ -5,8 +5,7 @@
 #include "logger.hpp"
 #include "node.hpp"
 
-void L2_LAN::collect_intfs(Node *node,
-                           Interface *interface __attribute__((unused))) {
+void L2_LAN::collect_intfs(Node *node, [[maybe_unused]] Interface *interface) {
     for (Interface *intf : node->get_intfs_l2()) {
         auto l2_endpoint = std::make_pair(node, intf);
         if (l2_endpoints.count(l2_endpoint) == 0) {
