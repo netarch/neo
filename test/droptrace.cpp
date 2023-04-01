@@ -13,6 +13,7 @@
 #include "network.hpp"
 #include "packet.hpp"
 #include "plankton.hpp"
+#include "protocols.hpp"
 
 using namespace std;
 
@@ -127,6 +128,22 @@ TEST_CASE("droptrace") {
         REQUIRE_NOTHROW(docker.unpause());
         REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
         CHECK(nwrite == 42);
+        // Get the kernel drop timestamp (blocking)
+        REQUIRE_NOTHROW(drop_ts = dt.get_drop_ts(timeout));
+        CHECK(drop_ts > 0);
+        REQUIRE_NOTHROW(docker.pause());
+        // Detach the BPF program
+        REQUIRE_NOTHROW(dt.stop_listening());
+
+        // TCP SYN packet from node1 to node2
+        pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", DYNAMIC_PORT, 80, 0, 0,
+                     PS_TCP_INIT_1);
+        // Attach the BPF program
+        REQUIRE_NOTHROW(dt.start_listening_for(pkt));
+        // Send the ping packet
+        REQUIRE_NOTHROW(docker.unpause());
+        REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
+        CHECK(nwrite == 54);
         // Get the kernel drop timestamp (blocking)
         REQUIRE_NOTHROW(drop_ts = dt.get_drop_ts(timeout));
         CHECK(drop_ts > 0);

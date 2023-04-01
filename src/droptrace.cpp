@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <netinet/in.h>
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
@@ -67,16 +68,48 @@ int DropTrace::ringbuf_handler(void *ctx,
                                [[maybe_unused]] size_t size) {
     struct drop_data *d = static_cast<struct drop_data *>(data);
     DropTrace *this_dt = static_cast<DropTrace *>(ctx);
-
     this_dt->_drop_ts = d->tstamp;
 
-    constexpr int buffer_sz = 2048;
-    static char buffer[buffer_sz];
-    snprintf(buffer, buffer_sz,
-             "ts: %llu, dev: %d, iif: %d, ip proto: %d, reason: %s", d->tstamp,
-             d->ifindex, d->ingress_ifindex, d->ip_proto,
-             drop_reasons[d->reason]);
-    logger.debug(buffer);
+#ifdef ENABLE_DEBUG
+    // Print out debugging messages
+    {
+        constexpr int buffer_sz = 2048;
+        static char buffer[buffer_sz];
+
+        if (d->ip_proto == IPPROTO_TCP || d->ip_proto == IPPROTO_UDP) {
+            auto src_ip = IPv4Address(ntohl(d->saddr)).to_string();
+            auto dst_ip = IPv4Address(ntohl(d->daddr)).to_string();
+            u16 sport = ntohs(d->transport.sport);
+            u16 dport = ntohs(d->transport.dport);
+            u32 seq = d->transport.seq;
+            u32 ack = d->transport.ack;
+            snprintf(
+                buffer, buffer_sz,
+                "ts: %llu, dev: %d, iif: %d, ip_proto: %d, src_ip: %s, dst_ip: "
+                "%s, sport: %u, dport: %u, seq: %u, ack: %u, reason: %s",
+                d->tstamp, d->ifindex, d->ingress_ifindex, d->ip_proto,
+                src_ip.c_str(), dst_ip.c_str(), sport, dport, seq, ack,
+                drop_reasons[d->reason]);
+        } else if (d->ip_proto == IPPROTO_ICMP) {
+            auto src_ip = IPv4Address(ntohl(d->saddr)).to_string();
+            auto dst_ip = IPv4Address(ntohl(d->daddr)).to_string();
+            u16 echo_id = ntohs(d->icmp.icmp_echo_id);
+            u16 echo_seq = ntohs(d->icmp.icmp_echo_seq);
+            snprintf(buffer, buffer_sz,
+                     "ts: %llu, dev: %d, iif: %d, ip_proto: %d, src_ip: %s, "
+                     "dst_ip: %s, icmp_type: %u, "
+                     "echo_id: %u, echo_seq: %u, reason: %s",
+                     d->tstamp, d->ifindex, d->ingress_ifindex, d->ip_proto,
+                     src_ip.c_str(), dst_ip.c_str(), d->icmp.icmp_type, echo_id,
+                     echo_seq, drop_reasons[d->reason]);
+        } else {
+            logger.error("");
+        }
+
+        logger.debug(buffer);
+    }
+#endif
+
     return 0;
 }
 
