@@ -57,14 +57,15 @@ TEST_CASE("droptrace") {
         REQUIRE_NOTHROW(docker.init());
         REQUIRE_NOTHROW(docker.pause());
         REQUIRE_NOTHROW(dt.init());
-        REQUIRE_NOTHROW(dt.start());
+        REQUIRE_NOTHROW(dt.start()); // Open and load the BPF program
 
+        Packet pkt;
         size_t nwrite;
         uint64_t drop_ts;
 
         // Ping request packet from node1 to node2
-        Packet pkt(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
-                   PS_ICMP_ECHO_REQ);
+        pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
+                     PS_ICMP_ECHO_REQ);
         // Attach the BPF program
         REQUIRE_NOTHROW(dt.start_listening_for(pkt));
         // Send the ping packet
@@ -73,17 +74,13 @@ TEST_CASE("droptrace") {
         CHECK(nwrite == 42);
         // Get the kernel drop timestamp (blocking)
         REQUIRE_NOTHROW(drop_ts = dt.get_drop_ts(timeout));
-        logger.debug("drop_ts: " + to_string(drop_ts));
-        CHECK(drop_ts == 0);
+        CHECK(drop_ts > 0);
         REQUIRE_NOTHROW(docker.pause());
         // Detach the BPF program
         REQUIRE_NOTHROW(dt.stop_listening());
 
-        // Stop the kernel drop_monitor
-        REQUIRE_NOTHROW(dt.stop());
-        // Reset and disable the dropmon module
+        REQUIRE_NOTHROW(dt.stop()); // Remove the BPF program
         REQUIRE_NOTHROW(dt.teardown());
-        // Reset docker driver object
         REQUIRE_NOTHROW(docker.teardown());
     }
 }

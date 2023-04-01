@@ -15,8 +15,9 @@
 using namespace std;
 
 DropTrace::DropTrace()
-    : _enabled(false), _bpf(nullptr), _ringbuf(nullptr), _target_pkt_index(0) {
-    memset(&_target_pkt_data, 0, sizeof(_target_pkt_data));
+    : _enabled(false), _bpf(nullptr), _ringbuf(nullptr), _target_pkt_key(0),
+      _drop_ts(0) {
+    memset(&_target_pkt, 0, sizeof(_target_pkt));
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
     libbpf_set_print(DropTrace::libbpf_print_fn);
 }
@@ -64,17 +65,17 @@ static const char *const drop_reasons[] = {DEFINE_DROP_REASON(FN, FN)};
 int DropTrace::ringbuf_handler(void *ctx,
                                void *data,
                                [[maybe_unused]] size_t size) {
-    logger.debug("ringbuf_handler --");
     struct drop_data *d = static_cast<struct drop_data *>(data);
-    [[maybe_unused]] DropTrace *this_dt = static_cast<DropTrace *>(ctx);
+    DropTrace *this_dt = static_cast<DropTrace *>(ctx);
+
+    this_dt->_drop_ts = d->tstamp;
 
     constexpr int buffer_sz = 2048;
     static char buffer[buffer_sz];
-
     snprintf(buffer, buffer_sz,
-             "[%.9f] dev: %d, iif: %d, ip len: %d, ip proto: %d, reason: %s",
-             (double)d->tstamp / 1e9, d->ifindex, d->ingress_ifindex,
-             d->tot_len, d->ip_proto, drop_reasons[d->reason]);
+             "ts: %llu, dev: %d, iif: %d, ip len: %d, ip proto: %d, reason: %s",
+             d->tstamp, d->ifindex, d->ingress_ifindex, d->tot_len, d->ip_proto,
+             drop_reasons[d->reason]);
     logger.debug(buffer);
     return 0;
 }
@@ -127,11 +128,12 @@ void DropTrace::start_listening_for(const Packet &pkt) {
         return;
     }
 
-    _target_pkt_data = pkt.to_drop_data();
+    _target_pkt = pkt.to_drop_data();
+    _drop_ts = 0;
 
-    if (bpf_map__update_elem(_bpf->maps.target_packet, &_target_pkt_index,
-                             sizeof(_target_pkt_index), &_target_pkt_data,
-                             sizeof(_target_pkt_data), BPF_NOEXIST) < 0) {
+    if (bpf_map__update_elem(_bpf->maps.target_packet, &_target_pkt_key,
+                             sizeof(_target_pkt_key), &_target_pkt,
+                             sizeof(_target_pkt), BPF_NOEXIST) < 0) {
         logger.error("Failed to update target packet", errno);
     }
 
@@ -167,9 +169,7 @@ uint64_t DropTrace::get_drop_ts(chrono::microseconds timeout) {
         logger.debug("Consumed " + to_string(res) + " ringbuf records");
     }
 
-    // TODO: Fetch the drop ts from the callback
-
-    return 0;
+    return _drop_ts;
 }
 
 void DropTrace::stop_listening() {
@@ -185,11 +185,12 @@ void DropTrace::stop_listening() {
     if (_bpf) {
         _bpf->detach(_bpf);
 
-        if (bpf_map__delete_elem(_bpf->maps.target_packet, &_target_pkt_index,
-                                 sizeof(_target_pkt_index), 0) < 0) {
+        if (bpf_map__delete_elem(_bpf->maps.target_packet, &_target_pkt_key,
+                                 sizeof(_target_pkt_key), 0) < 0) {
             logger.error("Failed to delete target packet", errno);
         }
     }
 
-    memset(&_target_pkt_data, 0, sizeof(_target_pkt_data));
+    memset(&_target_pkt, 0, sizeof(_target_pkt));
+    _drop_ts = 0;
 }

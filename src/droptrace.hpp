@@ -14,10 +14,11 @@ struct droptrace_bpf;
 class DropTrace {
 private:
     bool _enabled;
-    struct droptrace_bpf *_bpf;
-    struct ring_buffer *_ringbuf;
-    uint32_t _target_pkt_index;
-    struct drop_data _target_pkt_data;
+    struct droptrace_bpf *_bpf;   // main BPF handle (skel)
+    struct ring_buffer *_ringbuf; // ring buffer to receive events
+    uint32_t _target_pkt_key;     // key for the target_packet BPF hash map
+    struct drop_data _target_pkt; // value for the target_packet BPF hash map
+    uint64_t _drop_ts;            // kernel drop timestamp
 
 private:
     DropTrace();
@@ -72,7 +73,10 @@ public:
      * packet drop is observed. If the timeout is zero, the function will not
      * block.
      *
-     * @param timeout timeout for the packet drop message.
+     * @param timeout timeout for the packet drop message. Note that the timeout
+     * is at the milliseconds granularity because ring_buffer__poll uses the old
+     * epoll_wait API. This shouldn't be an issue since we're using this
+     * function asynchronously anyway.
      * @return timestamp (nsec) of the packet drop in kernel
      */
     uint64_t get_drop_ts(
