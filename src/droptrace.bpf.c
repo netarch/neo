@@ -64,7 +64,7 @@ static inline unsigned char *skb_transport_header(const struct sk_buff *skb) {
     u16 th;
     unsigned char *head;
     BPF_CORE_READ_INTO(&head, skb, head);
-    BPF_CORE_READ_INTO(&th, skb, network_header);
+    BPF_CORE_READ_INTO(&th, skb, transport_header);
     return head + th;
 }
 
