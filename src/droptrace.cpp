@@ -60,9 +60,6 @@ int DropTrace::libbpf_print_fn(enum libbpf_print_level level,
     return res;
 }
 
-#define FN(reason) [SKB_DROP_REASON_##reason] = #reason,
-static const char *const drop_reasons[] = {DEFINE_DROP_REASON(FN, FN)};
-
 int DropTrace::ringbuf_handler(void *ctx,
                                void *data,
                                [[maybe_unused]] size_t size) {
@@ -75,35 +72,31 @@ int DropTrace::ringbuf_handler(void *ctx,
     {
         constexpr int buffer_sz = 2048;
         static char buffer[buffer_sz];
+        auto src_ip = IPv4Address(ntohl(d->saddr)).to_string();
+        auto dst_ip = IPv4Address(ntohl(d->daddr)).to_string();
+        int nwrites =
+            snprintf(buffer, buffer_sz,
+                     "ts: %llu, dev: %d, iif: %d, netns_ino: %u, ip_proto: %d, "
+                     "src_ip: %s, dst_ip: %s",
+                     d->tstamp, d->ifindex, d->ingress_ifindex, d->netns_ino,
+                     d->ip_proto, src_ip.c_str(), dst_ip.c_str());
 
         if (d->ip_proto == IPPROTO_TCP || d->ip_proto == IPPROTO_UDP) {
-            auto src_ip = IPv4Address(ntohl(d->saddr)).to_string();
-            auto dst_ip = IPv4Address(ntohl(d->daddr)).to_string();
             u16 sport = ntohs(d->transport.sport);
             u16 dport = ntohs(d->transport.dport);
             u32 seq = ntohl(d->transport.seq);
             u32 ack = ntohl(d->transport.ack);
-            snprintf(
-                buffer, buffer_sz,
-                "ts: %llu, dev: %d, iif: %d, ip_proto: %d, src_ip: %s, dst_ip: "
-                "%s, sport: %u, dport: %u, seq: %u, ack: %u, reason: %s",
-                d->tstamp, d->ifindex, d->ingress_ifindex, d->ip_proto,
-                src_ip.c_str(), dst_ip.c_str(), sport, dport, seq, ack,
-                drop_reasons[d->reason]);
+            snprintf(buffer + nwrites, buffer_sz - nwrites,
+                     ", sport: %u, dport: %u, seq: %u, ack: %u", sport, dport,
+                     seq, ack);
         } else if (d->ip_proto == IPPROTO_ICMP) {
-            auto src_ip = IPv4Address(ntohl(d->saddr)).to_string();
-            auto dst_ip = IPv4Address(ntohl(d->daddr)).to_string();
             u16 echo_id = ntohs(d->icmp.icmp_echo_id);
             u16 echo_seq = ntohs(d->icmp.icmp_echo_seq);
-            snprintf(buffer, buffer_sz,
-                     "ts: %llu, dev: %d, iif: %d, ip_proto: %d, src_ip: %s, "
-                     "dst_ip: %s, icmp_type: %u, "
-                     "echo_id: %u, echo_seq: %u, reason: %s",
-                     d->tstamp, d->ifindex, d->ingress_ifindex, d->ip_proto,
-                     src_ip.c_str(), dst_ip.c_str(), d->icmp.icmp_type, echo_id,
-                     echo_seq, drop_reasons[d->reason]);
+            snprintf(buffer + nwrites, buffer_sz - nwrites,
+                     ", icmp_type: %u, echo_id: %u, echo_seq: %u",
+                     d->icmp.icmp_type, echo_id, echo_seq);
         } else {
-            logger.error("");
+            logger.error("Invalid ip_proto");
         }
 
         logger.debug(buffer);
