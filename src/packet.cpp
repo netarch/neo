@@ -2,8 +2,12 @@
 
 #include <cassert>
 #include <cstring>
+#include <net/if.h>
 #include <netinet/in.h>
+#include <typeinfo>
 
+#include "driver/docker.hpp"
+#include "driver/driver.hpp"
 #include "eqclassmgr.hpp"
 #include "interface.hpp"
 #include "lib/hash.hpp"
@@ -80,14 +84,29 @@ std::string Packet::to_string() const {
     return ret;
 }
 
-struct drop_data Packet::to_drop_data() const {
+struct drop_data Packet::to_drop_data(Driver *driver) const {
     struct drop_data data;
-
     memset(&data, 0, sizeof(data));
+
+    // L1
+    if (driver && typeid(*driver) == typeid(Docker)) {
+        auto docker = static_cast<Docker *>(driver);
+        auto intf_name = this->interface->get_name();
+        docker->enterns();
+        data.ingress_ifindex = if_nametoindex(intf_name.c_str());
+        docker->leavens();
+        data.netns_ino = docker->netns_ino();
+    }
+
+    // L2
+    data.eth_proto = htons(ETH_P_IP);
+
+    // L3
     data.saddr = htonl(this->src_ip.get_value());
     data.daddr = htonl(this->dst_ip.get_value());
     auto ip_proto = PS_TO_PROTO(this->proto_state);
 
+    // L4
     if (ip_proto == proto::tcp) {
         data.ip_proto = IPPROTO_TCP;
         data.transport.sport = htons(this->src_port);

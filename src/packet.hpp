@@ -5,6 +5,7 @@
 #include "droptrace.h"
 #include "lib/ip.hpp"
 
+class Driver;
 class Interface;
 class Model;
 class Payload;
@@ -63,7 +64,7 @@ public:
     Packet &operator=(Packet &&) = default;
 
     std::string to_string() const;
-    struct drop_data to_drop_data() const;
+    struct drop_data to_drop_data(Driver *driver = nullptr) const;
     Interface *get_intf() const;
     IPv4Address get_src_ip() const;
     IPv4Address get_dst_ip() const;
