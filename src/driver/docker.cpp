@@ -324,6 +324,27 @@ void Docker::leavens(bool mnt) const {
     }
 }
 
+ino_t Docker::netns_ino() const {
+    struct stat statbuf;
+
+    if (_cnet_fd >= 0) {
+        // The container's netns file has been opened. Use fstat
+        if (fstat(_cnet_fd, &statbuf) < 0) {
+            logger.error("fstat()", errno);
+        }
+    } else if (_pid > 0) {
+        // The container's running but netns file isn't opened. Use stat
+        string nspath = "/proc/" + to_string(_pid) + "/ns/net";
+        if (stat(nspath.c_str(), &statbuf) < 0) {
+            logger.error("stat()", errno);
+        }
+    } else {
+        logger.error("Container isn't running");
+    }
+
+    return statbuf.st_ino;
+}
+
 void Docker::exec(const vector<string> &cmd) {
     if (this->_pid <= 0) {
         logger.error("Container isn't running");

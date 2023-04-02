@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <sys/epoll.h>
+#include <sys/stat.h>
 #include <unordered_map>
 #include <vector>
 
@@ -60,6 +61,7 @@ public:
     // ! Do not call with mnt = true when there are other threads !
     void enterns(bool mnt = false) const; // Enter the container namespaces
     void leavens(bool mnt = false) const; // Return to the original namespaces
+    ino_t netns_ino() const;
     void exec(const std::vector<std::string> &cmd);
     void teardown(); // Reset the object
 
