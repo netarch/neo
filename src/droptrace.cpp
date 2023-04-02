@@ -167,7 +167,7 @@ void DropTrace::stop() {
     _drop_ts = 0;
 }
 
-void DropTrace::start_listening_for(const Packet &pkt) {
+void DropTrace::start_listening_for(const Packet &pkt, Driver *driver) {
     if (!_enabled || !_bpf) {
         return;
     }
@@ -180,7 +180,7 @@ void DropTrace::start_listening_for(const Packet &pkt) {
         logger.error("Ring buffer already opened");
     }
 
-    _target_pkt = pkt.to_drop_data();
+    _target_pkt = pkt.to_drop_data(driver);
     _drop_ts = 0;
 
     if (bpf_map__update_elem(_bpf->maps.target_packet, &_target_pkt_key,

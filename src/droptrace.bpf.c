@@ -88,48 +88,116 @@ static inline struct icmphdr *icmp_hdr(const struct sk_buff *skb) {
     return (struct icmphdr *)skb_transport_header(skb);
 }
 
+static inline struct net *dev_net(const struct net_device *dev) {
+    struct net *net = NULL;
+    BPF_CORE_READ_INTO(&net, dev, nd_net.net);
+    return net;
+}
+
+static inline struct net *sock_net(const struct sock *sk) {
+    struct net *net = NULL;
+    BPF_CORE_READ_INTO(&net, sk, __sk_common.skc_net.net);
+    return net;
+}
+
+static inline struct dst_entry *skb_dst(const struct sk_buff *skb) {
+    unsigned long refdst;
+    BPF_CORE_READ_INTO(&refdst, skb, _skb_refdst);
+    struct dst_entry *dst = (struct dst_entry *)(refdst & SKB_DST_PTRMASK);
+
+    if (dst) {
+        unsigned short flags;
+        BPF_CORE_READ_INTO(&flags, dst, flags);
+        if (flags & DST_METADATA) {
+            return NULL;
+        }
+    }
+
+    return dst;
+}
+
+static inline struct net *skb_net(const struct sk_buff *skb) {
+    struct net_device *dev = NULL;
+    BPF_CORE_READ_INTO(&dev, skb, dev);
+    if (dev) {
+        return dev_net(dev);
+    }
+
+    struct sock *sk = NULL;
+    BPF_CORE_READ_INTO(&sk, skb, sk);
+    if (sk) {
+        return sock_net(sk);
+    }
+
+    struct dst_entry *dst = skb_dst(skb);
+    if (dst) {
+        struct net_device *dst_dev = NULL;
+        BPF_CORE_READ_INTO(&dst_dev, dst, dev);
+        if (dst_dev) {
+            return dev_net(dst_dev);
+        }
+    }
+
+    return NULL;
+}
+
+static inline unsigned int skb_netns_ino(const struct sk_buff *skb) {
+    unsigned int ino = 0;
+    struct net *net = skb_net(skb);
+
+    if (net) {
+        BPF_CORE_READ_INTO(&ino, net, ns.inum);
+    }
+
+    return ino;
+}
+
 SEC("tracepoint/skb/kfree_skb")
 int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
     struct drop_data *target_pkt = NULL;
     u32 target_pkt_key = 0;
-    struct drop_data *data = NULL;
-    struct sk_buff *skb = NULL;
-    unsigned short protocol = 0;
-    unsigned int len = 0;
-    int skb_iif = 0;
-
     target_pkt = (struct drop_data *)bpf_map_lookup_elem(&target_packet,
                                                          &target_pkt_key);
 
-    // If there is no target packet, skip event.
+    // If there is no target packet, skip event
     if (!target_pkt) {
         return 0;
     }
 
+    // Get sk_buff and skip event if the sk_buff is empty
+    struct sk_buff *skb = NULL;
+    unsigned int skb_len = 0;
     BPF_CORE_READ_INTO(&skb, args, skbaddr);
-    BPF_CORE_READ_INTO(&protocol, args, protocol);
-    BPF_CORE_READ_INTO(&len, skb, len);
-    BPF_CORE_READ_INTO(&skb_iif, skb, skb_iif);
+    BPF_CORE_READ_INTO(&skb_len, skb, len);
 
-    if (len == 0 || !skb_iif || protocol != ETH_P_IP) {
+    if (skb_len == 0) {
         return 0;
     }
 
-    // TODO: filter events based on netns ID and iif?
-
+    // Reserve drop data for this event
+    struct drop_data *data = NULL;
     data = (struct drop_data *)bpf_ringbuf_reserve(&events,
                                                    sizeof(struct drop_data), 0);
     if (!data) {
         return 0;
     }
 
+    // Auxiliary
+    data->tstamp = bpf_ktime_get_tai_ns();
+
     // L1
     BPF_CORE_READ_INTO(&data->ifindex, skb, dev, ifindex);
-    data->ingress_ifindex = skb_iif;
-    // auxiliary
-    BPF_CORE_READ_INTO(&data->location, args, location);
-    data->tstamp = bpf_ktime_get_tai_ns();
-    BPF_CORE_READ_INTO(&data->reason, args, reason);
+    BPF_CORE_READ_INTO(&data->ingress_ifindex, skb, skb_iif);
+    data->netns_ino = skb_netns_ino(skb);
+
+    if (!data->ingress_ifindex || !data->netns_ino) {
+        goto discard;
+    } else if (target_pkt->ingress_ifindex && target_pkt->netns_ino) {
+        if (data->ingress_ifindex != target_pkt->ingress_ifindex ||
+            data->netns_ino != target_pkt->netns_ino) {
+            goto discard;
+        }
+    }
 
     // L2
     if (skb_mac_header_was_set(skb)) {
@@ -137,19 +205,19 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
         struct ethhdr *eth = eth_hdr(skb);
         BPF_CORE_READ_INTO(&data->eth_dst_addr, eth, h_dest);
         BPF_CORE_READ_INTO(&data->eth_src_addr, eth, h_source);
+        BPF_CORE_READ_INTO(&data->eth_proto, eth, h_proto);
 
-        if (memcmp(data->eth_dst_addr, id_mac, 6) != 0 &&
-            memcmp(data->eth_src_addr, id_mac, 6) != 0) {
+        if (data->eth_proto != target_pkt->eth_proto ||
+            (memcmp(data->eth_dst_addr, id_mac, 6) != 0 &&
+             memcmp(data->eth_src_addr, id_mac, 6) != 0)) {
             goto discard;
         }
     } else {
         goto discard;
     }
 
-    data->eth_proto = protocol;
-
     // L3
-    if (data->eth_proto == ETH_P_IP && skb_network_header_len(skb) > 0) {
+    if (skb_network_header_len(skb) > 0) {
         struct iphdr *nh = ip_hdr(skb);
         BPF_CORE_READ_INTO(&data->tot_len, nh, tot_len);
         BPF_CORE_READ_INTO(&data->ip_proto, nh, protocol);

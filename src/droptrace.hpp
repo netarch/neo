@@ -6,6 +6,7 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
+#include "driver/driver.hpp"
 #include "droptrace.h"
 #include "packet.hpp"
 
@@ -63,8 +64,10 @@ public:
      * and create a ring buffer to receive events from the kernel.
      *
      * @param pkt the target packet to listen for
+     * @param driver if provided, the target packet will contain the
+     * ingress_ifindex and netns_ino for filtering events
      */
-    void start_listening_for(const Packet &pkt);
+    void start_listening_for(const Packet &pkt, Driver *driver);
 
     /**
      * @brief Return a non-zero timestamp if the target packet is dropped. The

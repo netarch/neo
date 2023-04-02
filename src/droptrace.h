@@ -38,6 +38,23 @@
 #define NR_ICMP_TYPES 18
 #endif
 
+// <linux/skbuff.h>
+#ifndef SKB_DST_NOREF
+#define SKB_DST_NOREF 1UL
+#define SKB_DST_PTRMASK ~(SKB_DST_NOREF)
+#endif
+
+// <net/dst.h> (dst_entry flags)
+#ifndef DST_NOXFRM
+#define DST_NOXFRM 0x0002
+#define DST_NOPOLICY 0x0004
+#define DST_NOCOUNT 0x0008
+#define DST_FAKE_RTABLE 0x0010
+#define DST_XFRM_TUNNEL 0x0020
+#define DST_XFRM_QUEUE 0x0040
+#define DST_METADATA 0x0080
+#endif
+
 #ifndef __VMLINUX_H__
 #define DEFINE_DROP_REASON(FN, FNe)                                            \
     FN(NOT_SPECIFIED)                                                          \
