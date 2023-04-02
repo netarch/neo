@@ -73,10 +73,15 @@ public:
      * packet drop is observed. If the timeout is zero, the function will not
      * block.
      *
-     * @param timeout timeout for the packet drop message. Note that the timeout
-     * is at the milliseconds granularity because ring_buffer__poll uses the old
-     * epoll_wait API. This shouldn't be an issue since we're using this
-     * function asynchronously anyway.
+     * Note that the timeout is at the milliseconds granularity because
+     * ring_buffer__poll uses the old epoll_wait API (instead of epoll_pwait2
+     * which accepts struct timespec for the timeout). This shouldn't be an
+     * issue since we're using this function asynchronously anyway. But if later
+     * we need a more precise timeout, we can have a separate thread calling
+     * ring_buffer__poll and use cv.wait_for instead, similar to how DropMon is
+     * doing.
+     *
+     * @param timeout timeout for the packet drop message.
      * @return timestamp (nsec) of the packet drop in kernel
      */
     uint64_t get_drop_ts(
