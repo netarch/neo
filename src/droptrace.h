@@ -356,12 +356,12 @@ typedef __kernel_size_t size_t;
 #endif // __VMLINUX_H__
 
 struct drop_data {
-    // L1, auxiliary
+    // Auxiliary
+    u64 tstamp;
+    // L1
     int ifindex;
     int ingress_ifindex;
-    void *location;
-    u64 tstamp;
-    enum skb_drop_reason reason;
+    unsigned int netns_ino;
     // L2
     unsigned char eth_dst_addr[ETH_ALEN];
     unsigned char eth_src_addr[ETH_ALEN];
