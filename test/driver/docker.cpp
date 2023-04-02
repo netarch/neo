@@ -3,6 +3,7 @@
 #include <thread>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 
 #include "configparser.hpp"
 #include "dockernode.hpp"
@@ -51,6 +52,13 @@ TEST_CASE("docker") {
         REQUIRE_NOTHROW(docker.enterns(/* mnt */ true));
         REQUIRE_NOTHROW(docker.leavens(/* mnt */ true));
         REQUIRE_NOTHROW(docker.teardown());
+    }
+
+    SECTION("Get netns inode number") {
+        REQUIRE_NOTHROW(docker.init());
+        CHECK(docker.netns_ino() > 0);
+        REQUIRE_NOTHROW(docker.teardown());
+        CHECK_THROWS_WITH(docker.netns_ino(), "Container isn't running");
     }
 
     SECTION("Send and read packets") {
