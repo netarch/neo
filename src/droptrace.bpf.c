@@ -13,6 +13,9 @@
 
 char LICENSE[] SEC("license") = "Dual MIT/GPL";
 
+// https://nakryiko.com/posts/bpf-core-reference-guide/#linux-kernel-version
+extern int LINUX_KERNEL_VERSION __kconfig;
+
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 10 * 1024);
@@ -198,7 +201,11 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
     }
 
     // Auxiliary
-    data->tstamp = bpf_ktime_get_tai_ns();
+    if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(6, 1, 0)) {
+        data->tstamp = bpf_ktime_get_tai_ns();
+    } else {
+        data->tstamp = bpf_ktime_get_ns();
+    }
 
     // L1
     BPF_CORE_READ_INTO(&data->ifindex, skb, dev, ifindex);
