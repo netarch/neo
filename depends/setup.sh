@@ -205,7 +205,8 @@ main() {
         script_deps=(build-essential flex bison curl git)
         build_deps=(cmake pkg-config clang)
         style_deps=(clang-format yapf3)
-        bpf_deps=(libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm)
+        bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
+                  libcap-dev clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
                  "${bpf_deps[@]}"
                  libpthread-stubs0-dev libstdc++-12-dev libnet1 libnet1-dev
