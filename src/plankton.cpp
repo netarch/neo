@@ -73,7 +73,9 @@ void Plankton::init(bool all_ecs,
     }
 
     DropTimeout::get().init();
-    drop->init();
+    if (drop) {
+        drop->init();
+    }
 
     // Compute initial ECs (oblivious to the invariants)
     auto &ec_mgr = EqClassMgr::get();
