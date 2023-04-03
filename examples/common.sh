@@ -34,38 +34,20 @@ export CONFGEN
 
 mkdir -p "${RESULTS_DIR}"
 
-run_with_timeout() {
-    name="$1"
-    procs="$2"
-    infile="$3"
-    outdir="$RESULTS_DIR/$name"
-
-    msg "Verifying $name"
-    sudo "$NEO" -f -j "$procs" -i "$infile" -o "$outdir"
-    sudo chown -R "$(id -u):$(id -g)" "$outdir"
-    cp "$infile" "$outdir/network.toml"
+docker_clean() {
+    dockerfiles_dir="$(realpath "${BASH_SOURCE[0]}"/../Dockerfiles)"
+    make -C "$dockerfiles_dir" clean
 }
 
-run_with_dropmon() {
+run() {
     name="$1"
     procs="$2"
-    infile="$3"
+    drop="$3"
+    infile="$4"
     outdir="$RESULTS_DIR/$name"
 
     msg "Verifying $name"
-    sudo "$NEO" -f -j "$procs" -i "$infile" -o "$outdir" --dropmon
-    sudo chown -R "$(id -u):$(id -g)" "$outdir"
-    cp "$infile" "$outdir/network.toml"
-}
-
-run_with_ebpf_dt() {
-    name="$1"
-    procs="$2"
-    infile="$3"
-    outdir="$RESULTS_DIR/$name"
-
-    msg "Verifying $name"
-    sudo "$NEO" -f -j "$procs" -i "$infile" -o "$outdir" --ebpf
+    sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir"
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
 }

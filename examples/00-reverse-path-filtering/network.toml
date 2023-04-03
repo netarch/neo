@@ -188,35 +188,35 @@ COMMIT
     node2 = "h3"
     intf2 = "eth0"
 
-# Policy:
+# Invariants:
 #   1. Outgoing packets are always allowed.
 #   2. Incoming packets are always denied, except for 3.
 #   3. Incoming replies to past requests are allowed.
 
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "server"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "tcp"
     src_node = "h[123]"
     dst_ip = "10.0.0.1"
     dst_port = [80]
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "h[123]|s1|r[123]|fw"
     reachable = false
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "tcp"
     src_node = "server"
     dst_ip = "192.168.0.0/22"
     dst_port = [80]
     owned_dst_only = true
-[[policies]]
+[[invariants]]
     type = "reply-reachability"
     target_node = "server"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "tcp"
     src_node = "h[123]"
     dst_ip = "10.0.0.1"
