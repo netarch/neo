@@ -305,6 +305,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
  * @param send_pkt The packet to send.
  *
  * @return A list of received packets.
+ * @return True if send_pkt was dropped.
  */
 std::pair<std::list<Packet>, bool> Emulation::send_pkt(const Packet &send_pkt) {
     // Prepare send packet, apply offsets
