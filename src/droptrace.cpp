@@ -15,49 +15,20 @@
 
 using namespace std;
 
+static int libbpf_print_fn(enum libbpf_print_level level,
+                           const char *format,
+                           va_list args);
+
 DropTrace::DropTrace()
     : DropDetection(), _bpf(nullptr), _ringbuf(nullptr), _target_pkt_key(0),
       _drop_ts(0) {
     memset(&_target_pkt, 0, sizeof(_target_pkt));
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
-    libbpf_set_print(DropTrace::libbpf_print_fn);
+    libbpf_set_print(libbpf_print_fn);
 }
 
 DropTrace::~DropTrace() {
     teardown();
-}
-
-int DropTrace::libbpf_print_fn(enum libbpf_print_level level,
-                               const char *format,
-                               va_list args) {
-    if (level >= LIBBPF_DEBUG) {
-        return 0;
-    }
-
-    constexpr int buffer_sz = 2048;
-    static char buffer[buffer_sz];
-    int res = vsnprintf(buffer, buffer_sz, format, args);
-
-    if (res < 0) {
-        logger.error("vsnprintf() failed: " + to_string(res));
-    } else if (static_cast<unsigned int>(res) >= buffer_sz) {
-        // output was truncated
-        res = buffer_sz - 1;
-    }
-
-    for (int i = res - 1; i >= 0 && isspace(buffer[i]); --i) {
-        buffer[i] = '\0';
-    }
-
-    if (level == LIBBPF_WARN) {
-        logger.warn(buffer);
-    } else if (level == LIBBPF_INFO) {
-        logger.info(buffer);
-    } else if (level == LIBBPF_DEBUG) {
-        logger.debug(buffer);
-    }
-
-    return res;
 }
 
 int DropTrace::ringbuf_handler(void *ctx,
@@ -232,4 +203,37 @@ void DropTrace::stop_listening() {
 
     memset(&_target_pkt, 0, sizeof(_target_pkt));
     _drop_ts = 0;
+}
+
+static int libbpf_print_fn(enum libbpf_print_level level,
+                           const char *format,
+                           va_list args) {
+    if (level >= LIBBPF_DEBUG) {
+        return 0;
+    }
+
+    constexpr int buffer_sz = 2048;
+    static char buffer[buffer_sz];
+    int res = vsnprintf(buffer, buffer_sz, format, args);
+
+    if (res < 0) {
+        logger.error("vsnprintf() failed: " + to_string(res));
+    } else if (static_cast<unsigned int>(res) >= buffer_sz) {
+        // output was truncated
+        res = buffer_sz - 1;
+    }
+
+    for (int i = res - 1; i >= 0 && isspace(buffer[i]); --i) {
+        buffer[i] = '\0';
+    }
+
+    if (level == LIBBPF_WARN) {
+        logger.warn(buffer);
+    } else if (level == LIBBPF_INFO) {
+        logger.info(buffer);
+    } else if (level == LIBBPF_DEBUG) {
+        logger.debug(buffer);
+    }
+
+    return res;
 }

@@ -3,15 +3,13 @@
 #include <chrono>
 #include <cstdint>
 
-#include <bpf/bpf.h>
-#include <bpf/libbpf.h>
-
 #include "driver/driver.hpp"
 #include "dropdetection.hpp"
 #include "droptrace.h"
 #include "packet.hpp"
 
 struct droptrace_bpf;
+struct ring_buffer;
 
 class DropTrace : public DropDetection {
 private:
@@ -23,9 +21,6 @@ private:
 
 private:
     DropTrace();
-    static int libbpf_print_fn(enum libbpf_print_level level,
-                               const char *format,
-                               va_list args);
     static int ringbuf_handler(void *ctx, void *data, size_t size);
 
 public:

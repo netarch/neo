@@ -152,6 +152,21 @@ static inline unsigned int skb_netns_ino(const struct sk_buff *skb) {
     return ino;
 }
 
+static inline int my_memcmp(const void *s1, const void *s2, size_t n) {
+    const unsigned char *ucs1 = (const unsigned char *)s1;
+    const unsigned char *ucs2 = (const unsigned char *)s2;
+
+    for (size_t i = 0; i < n; ++i) {
+        if (ucs1[i] < ucs2[i]) {
+            return -1;
+        } else if (ucs1[i] > ucs2[i]) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 SEC("tracepoint/skb/kfree_skb")
 int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
     struct drop_data *target_pkt = NULL;
@@ -208,8 +223,8 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
         BPF_CORE_READ_INTO(&data->eth_proto, eth, h_proto);
 
         if (data->eth_proto != target_pkt->eth_proto ||
-            (memcmp(data->eth_dst_addr, id_mac, 6) != 0 &&
-             memcmp(data->eth_src_addr, id_mac, 6) != 0)) {
+            (my_memcmp(data->eth_dst_addr, id_mac, 6) != 0 &&
+             my_memcmp(data->eth_src_addr, id_mac, 6) != 0)) {
             goto discard;
         }
     } else {
