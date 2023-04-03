@@ -357,11 +357,14 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
     // (1) if drop != null, then the packet was silently accepted, or
     // (2) if drop == null, then we don't know for sure, the packet may be
     // dropped or accepted silently.
-
-    // FIXME
-    if (_drop_ts != 0 || _recv_pkts.empty()) {
-        // Packet dropped (or accepted silently)
-        _STATS_STOP(Stats::Op::DROP_LAT);
+    if (_drop_ts != 0) {
+        _STATS_STOP(Stats::Op::DROP_LAT); // Packet dropped
+    } else if (_recv_pkts.empty()) {
+        if (drop) {
+            _STATS_STOP(Stats::Op::PKT_LAT); // Packet accepted in silence
+        } else {
+            _STATS_STOP(Stats::Op::DROP_LAT); // May be dropped or accepted
+        }
     }
 
     _driver->pause();
