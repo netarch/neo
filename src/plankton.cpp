@@ -66,14 +66,16 @@ void Plankton::init(bool all_ecs,
     }
 
     EmulationMgr::get().max_emulations(_max_emu);
+    DropTimeout::get().init();
 
     if (_drop_method == "dropmon") {
         drop = &DropMon::get();
     } else if (_drop_method == "ebpf") {
         drop = &DropTrace::get();
+    } else {
+        drop = nullptr;
     }
 
-    DropTimeout::get().init();
     if (drop) {
         drop->init();
     }
@@ -114,6 +116,7 @@ void Plankton::reset(bool destruct) {
         DropTrace::get().teardown();
         PayloadMgr::get().reset();
         model.reset();
+        drop = nullptr;
         _STATS_RESET();
     }
 }

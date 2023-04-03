@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cerrno>
+#include <csignal>
 #include <cstdio>
 #include <cstring>
 #include <netinet/in.h>
@@ -180,6 +181,10 @@ uint64_t DropTrace::get_drop_ts(chrono::microseconds timeout) {
     }
 
     return _drop_ts;
+}
+
+void DropTrace::unblock(thread &t) {
+    pthread_kill(t.native_handle(), SIGUSR1);
 }
 
 void DropTrace::stop_listening() {

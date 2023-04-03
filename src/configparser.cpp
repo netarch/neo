@@ -12,6 +12,7 @@
 #include "dockerapi.hpp"
 #include "dockernode.hpp"
 #include "driver/docker.hpp"
+#include "dropdetection.hpp"
 #include "droptimeout.hpp"
 #include "interface.hpp"
 #include "invariant/conditional.hpp"
@@ -914,13 +915,15 @@ void ConfigParser::estimate_pkt_lat(int num_injections) {
     action.sa_flags = SA_NOCLDSTOP;
     sigaction(SIGUSR1, &action, oldaction);
 
+    // Set a temporary initial timeout
+    DropTimeout::get()._timeout = chrono::microseconds{5000};
+    DropDetection *orig_drop = drop;
+    drop = nullptr;
+
     // Start an emulation
     Emulation emu;
     emu.init(fw, /* log_pkts */ false);
     fw->_emulation = &emu;
-
-    // Set a temporary initial timeout
-    DropTimeout::get()._timeout = chrono::microseconds{5000};
 
     // Send N ping packets from node1 to node2
     auto pkt = make_unique<Packet>(fw_eth0, "192.168.1.2", "192.168.2.2", 0, 0,
@@ -929,11 +932,12 @@ void ConfigParser::estimate_pkt_lat(int num_injections) {
         emu.send_pkt(*pkt);
     }
 
-    // Reset the initial timeout
-    DropTimeout::get()._timeout = chrono::microseconds{};
-
     // Terminate the emulation
     emu.teardown();
+
+    // Reset the initial timeout
+    DropTimeout::get()._timeout = chrono::microseconds{};
+    drop = orig_drop;
 
     // Reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);

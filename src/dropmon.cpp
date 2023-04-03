@@ -163,6 +163,10 @@ uint64_t DropMon::get_drop_ts(chrono::microseconds timeout) {
     return _drop_ts;
 }
 
+void DropMon::unblock([[maybe_unused]] thread &t) {
+    _cv.notify_all();
+}
+
 void DropMon::stop_listening() {
     if (!_enabled) {
         return;

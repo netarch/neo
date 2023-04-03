@@ -197,7 +197,7 @@ TEST_CASE("droptrace") {
         auto stop_dt_thread = [&]() {
             if (dt_thread) {
                 stop_dt = true;
-                pthread_kill(dt_thread->native_handle(), SIGUSR1);
+                dt.unblock(*dt_thread);
                 if (dt_thread->joinable()) {
                     dt_thread->join();
                 }

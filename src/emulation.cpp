@@ -55,7 +55,7 @@ void Emulation::listen_packets() {
         pkts = _driver->read_packets();
 
         if (!pkts.empty()) {
-            unique_lock<mutex> lck(_mtx);
+            lock_guard<mutex> lck(_mtx);
 
             // Remove the retransmitted packets
             auto p = pkts.begin();
@@ -86,7 +86,7 @@ void Emulation::listen_drops() {
         }
 
         if (ts) {
-            unique_lock<mutex> lck(_mtx);
+            lock_guard<mutex> lck(_mtx);
             _recv_pkts.clear();
             _pkts_hash.clear();
             _drop_ts = ts;
@@ -138,7 +138,9 @@ void Emulation::start_drop_thread() {
 void Emulation::stop_drop_thread() {
     if (_drop_thread) {
         _stop_drop = true;
-        pthread_kill(_drop_thread->native_handle(), SIGUSR1);
+        if (drop) {
+            drop->unblock(*_drop_thread);
+        }
         if (_drop_thread->joinable()) {
             _drop_thread->join();
         }
@@ -275,11 +277,12 @@ int Emulation::rewind(NodePacketHistory *nph) {
 
     // Reset the emulation state
     if (!nph || !nph->contains(_nph)) {
-        unique_lock<mutex> lck(_mtx);
+        lock_guard<mutex> lck(_mtx);
         reset_offsets();
         _driver->reset();
         _recv_pkts.clear();
         _pkts_hash.clear();
+        _drop_ts = 0;
         logger.info("Reset " + _mb->get_name());
     }
 

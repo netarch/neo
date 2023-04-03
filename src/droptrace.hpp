@@ -66,8 +66,8 @@ public:
 
     /**
      * @brief Return a non-zero timestamp if the target packet is dropped. The
-     * function blocks for a timeout if no such packet drop is observed. If the
-     * timeout is negative (default), then it will block indefinitely if no
+     * function blocks for a timeout until a such packet drop is observed. If
+     * the timeout is negative (default), then it will block indefinitely if no
      * packet drop is observed. If the timeout is zero, the function will not
      * block.
      *
@@ -84,6 +84,13 @@ public:
      */
     uint64_t get_drop_ts(std::chrono::microseconds timeout =
                              std::chrono::microseconds{-1}) override;
+
+    /**
+     * @brief Unblock the thread calling get_drop_ts() immediately.
+     *
+     * @param t reference to the thread calling get_drop_ts().
+     */
+    void unblock(std::thread &t) override;
 
     /**
      * @brief Free the ring buffer, detach the BPF program, and remove the

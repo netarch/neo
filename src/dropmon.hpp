@@ -74,13 +74,16 @@ public:
      * to listen for those messages
      *
      * @param pkt the target packet to listen for
+     * @param driver if provided, the target packet will contain the
+     * ingress_ifindex and netns_ino for filtering events (This variable has no
+     * effect at the moment.)
      */
     void start_listening_for(const Packet &pkt, Driver *driver) override;
 
     /**
      * @brief Return a non-zero timestamp if the target packet is dropped. The
-     * function blocks for a timeout if no such packet drop is observed. If the
-     * timeout is negative (default), then it will block indefinitely if no
+     * function blocks for a timeout until a such packet drop is observed. If
+     * the timeout is negative (default), then it will block indefinitely if no
      * packet drop is observed. If the timeout is zero, the function will not
      * block.
      *
@@ -91,8 +94,15 @@ public:
                              std::chrono::microseconds{-1}) override;
 
     /**
+     * @brief Unblock the thread calling get_drop_ts() immediately.
+     *
+     * @param t reference to the thread calling get_drop_ts().
+     */
+    void unblock(std::thread &t) override;
+
+    /**
      * @brief Stop the drop listener thread, reset the dropmon variables, and
-     * reset the dropmon socket
+     * reset the dropmon socket.
      */
     void stop_listening() override;
 };

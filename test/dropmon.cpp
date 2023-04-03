@@ -137,14 +137,6 @@ TEST_CASE("dropmon") {
     }
 
     SECTION("Packet drops (asynchronous)") {
-        // Register signal handler to nullify SIGUSR1
-        struct sigaction action, *oldaction = nullptr;
-        action.sa_handler = [](int) {};
-        sigemptyset(&action.sa_mask);
-        sigaddset(&action.sa_mask, SIGUSR1);
-        action.sa_flags = SA_NOCLDSTOP;
-        sigaction(SIGUSR1, &action, oldaction);
-
         REQUIRE_NOTHROW(docker.init());
         REQUIRE_NOTHROW(docker.pause());
         REQUIRE_NOTHROW(dm.init());
@@ -177,7 +169,7 @@ TEST_CASE("dropmon") {
         auto stop_dm_thread = [&]() {
             if (dm_thread) {
                 stop_dm = true;
-                pthread_kill(dm_thread->native_handle(), SIGUSR1);
+                dm.unblock(*dm_thread);
                 if (dm_thread->joinable()) {
                     dm_thread->join();
                 }
@@ -256,8 +248,5 @@ TEST_CASE("dropmon") {
         REQUIRE_NOTHROW(dm.teardown());
         // Reset docker driver object
         REQUIRE_NOTHROW(docker.teardown());
-
-        // Reset signal handler
-        sigaction(SIGUSR1, oldaction, nullptr);
     }
 }
