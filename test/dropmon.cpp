@@ -52,7 +52,7 @@ TEST_CASE("dropmon") {
         REQUIRE_NOTHROW(dm.teardown());
         REQUIRE_NOTHROW(dm.start());
         REQUIRE_NOTHROW(dm.stop());
-        REQUIRE_NOTHROW(dm.start_listening_for(Packet()));
+        REQUIRE_NOTHROW(dm.start_listening_for(Packet(), nullptr));
         CHECK(dm.get_drop_ts() == 0);
         REQUIRE_NOTHROW(dm.stop_listening());
     }
@@ -64,8 +64,8 @@ TEST_CASE("dropmon") {
 
         REQUIRE_NOTHROW(dm.init());
         REQUIRE_NOTHROW(dm.start());
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
-        CHECK_THROWS_WITH(dm.start_listening_for(pkt),
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, nullptr));
+        CHECK_THROWS_WITH(dm.start_listening_for(pkt, nullptr),
                           "dropmon socket is already connected");
         REQUIRE_NOTHROW(dm.stop_listening());
         REQUIRE_NOTHROW(dm.stop_listening());
@@ -82,7 +82,7 @@ TEST_CASE("dropmon") {
         Packet pkt(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                    PS_ICMP_ECHO_REQ);
         // Start the dropmon listener thread
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
         size_t nwrite;
@@ -100,7 +100,7 @@ TEST_CASE("dropmon") {
         pkt = Packet(eth1, "192.168.2.2", "192.168.1.2", 0, 0, 0, 0,
                      PS_ICMP_ECHO_REQ);
         // Start the dropmon listener thread
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
         REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
@@ -116,7 +116,7 @@ TEST_CASE("dropmon") {
         pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                      PS_ICMP_ECHO_REQ);
         // Start the dropmon listener thread
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
         REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
@@ -190,7 +190,7 @@ TEST_CASE("dropmon") {
         Packet pkt(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                    PS_ICMP_ECHO_REQ);
         // Start the dropmon listener thread
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         REQUIRE_NOTHROW(start_dm_thread());
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
@@ -212,7 +212,7 @@ TEST_CASE("dropmon") {
         pkt = Packet(eth1, "192.168.2.2", "192.168.1.2", 0, 0, 0, 0,
                      PS_ICMP_ECHO_REQ);
         // Start the dropmon listener thread
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         REQUIRE_NOTHROW(start_dm_thread());
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
@@ -233,7 +233,7 @@ TEST_CASE("dropmon") {
         pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                      PS_ICMP_ECHO_REQ);
         // Start the dropmon listener thread
-        REQUIRE_NOTHROW(dm.start_listening_for(pkt));
+        REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         REQUIRE_NOTHROW(start_dm_thread());
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());

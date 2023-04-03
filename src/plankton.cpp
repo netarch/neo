@@ -9,7 +9,10 @@
 #include <unistd.h>
 
 #include "configparser.hpp"
+#include "dropdetection.hpp"
+#include "dropmon.hpp"
 #include "droptimeout.hpp"
+#include "droptrace.hpp"
 #include "emulationmgr.hpp"
 #include "eqclassmgr.hpp"
 #include "logger.hpp"
@@ -25,7 +28,7 @@ unordered_set<pid_t> Plankton::_tasks;
 const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
                               SIGINT,  SIGQUIT, SIGTERM};
 
-Plankton::Plankton() : _dropmon(false), _max_jobs(0), _max_emu(0) {}
+Plankton::Plankton() : _max_jobs(0), _max_emu(0) {}
 
 Plankton &Plankton::get() {
     static Plankton instance;
@@ -33,16 +36,16 @@ Plankton &Plankton::get() {
 }
 
 void Plankton::init(bool all_ecs,
-                    bool dropmon,
                     size_t max_jobs,
                     size_t max_emu,
+                    const string &drop_method,
                     const string &input_file,
                     const string &output_dir) {
     // Initialize system-wide configuration
     this->_all_ecs = all_ecs;
-    this->_dropmon = dropmon;
     this->_max_jobs = min(max_jobs, size_t(thread::hardware_concurrency()));
     this->_max_emu = max_emu;
+    this->_drop_method = drop_method;
     fs::create_directories(output_dir);
     this->_in_file = fs::canonical(input_file);
     this->_out_dir = fs::canonical(output_dir);
@@ -56,11 +59,17 @@ void Plankton::init(bool all_ecs,
     if (this->_max_emu == 0) {
         this->_max_emu = _network.middleboxes().size();
     }
+
     EmulationMgr::get().max_emulations(_max_emu);
+
+    if (_drop_method == "dropmon") {
+        drop = &DropMon::get();
+    } else if (_drop_method == "ebpf") {
+        drop = &DropTrace::get();
+    }
+
     DropTimeout::get().init();
-    // DropMon::get().init(dropmon);
-    // TODO: After eBPF drop tracing (and dropmon) is implemented, we don't need
-    // to estimate the latency when they're enabled
+    drop->init();
 
     // Compute initial ECs (oblivious to the invariants)
     auto &ec_mgr = EqClassMgr::get();
@@ -72,7 +81,6 @@ void Plankton::init(bool all_ecs,
 // Reset to as if it was just constructed
 void Plankton::reset() {
     this->_all_ecs = false;
-    this->_dropmon = false;
     this->_max_jobs = 0;
     this->_max_emu = 0;
     this->_in_file.clear();
@@ -101,7 +109,8 @@ int Plankton::run() {
         sigaction(sigs[i], &action, nullptr);
     }
 
-    // DropMon::get().start();
+    DropMon::get().start(); // Start kernel drop_monitor (if enabled)
+
     _STATS_START(Stats::Op::MAIN_PROC);
 
     // Fork for each invariant to get their memory usage measurements
@@ -125,8 +134,8 @@ int Plankton::run() {
 
     _STATS_STOP(Stats::Op::MAIN_PROC);
     _STATS_LOGRESULTS(Stats::Op::MAIN_PROC);
-    // DropMon::get().stop();
 
+    DropMon::get().stop(); // Stop kernel drop_monitor (if enabled)
     return 0;
 }
 
@@ -136,7 +145,7 @@ int Plankton::run() {
  */
 void Plankton::inv_sig_handler(int sig,
                                siginfo_t *siginfo,
-                               void *ctx __attribute__((unused))) {
+                               [[maybe_unused]] void *ctx) {
     pid_t pid;
 
     switch (sig) {
@@ -149,7 +158,7 @@ void Plankton::inv_sig_handler(int sig,
             if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
                 // A task exited abnormally. Halt all verification tasks.
                 kill_all_tasks(SIGTERM);
-                // DropMon::get().stop();
+                DropMon::get().stop(); // Stop kernel drop_monitor (if enabled)
                 logger.error("Process " + to_string(pid) + " exited " +
                              to_string(rc));
             }
@@ -173,7 +182,7 @@ void Plankton::inv_sig_handler(int sig,
     case SIGQUIT:
     case SIGTERM: {
         kill_all_tasks(sig);
-        // DropMon::get().stop();
+        DropMon::get().stop(); // Stop kernel drop_monitor (if enabled)
         exit(0);
     }
     }
@@ -278,12 +287,10 @@ void Plankton::verify_conn() {
         sigaction(sigs[i], &action, nullptr);
     }
 
-    // Spawn a dropmon thread (will be joined and disconnected on exit)
-    // DropMon::get().connect();
+    // Open and load the BPF program (if enabled)
+    DropTrace::get().start();
 
-    _STATS_START(Stats::Op::CHECK_EC);
-
-    // run SPIN verifier
+    // Run SPIN verifier
     const string trail_suffix = "-t" + to_string(getpid()) + ".trail";
     const char *spin_args[] = {
         // See http://spinroot.com/spin/Man/Pan.html
@@ -293,6 +300,7 @@ void Plankton::verify_conn() {
         "-n", // suppress report for unreached states
         trail_suffix.c_str(),
     };
+    _STATS_START(Stats::Op::CHECK_EC);
     spin_main(sizeof(spin_args) / sizeof(char *), spin_args);
     logger.error("verify_exit isn't called by Spin");
 }
@@ -429,8 +437,12 @@ void Plankton::report() {
 }
 
 void Plankton::verify_exit(int status) {
-    // output per EC process stats
+    // Output per EC process stats
     _STATS_STOP(Stats::Op::CHECK_EC);
     _STATS_LOGRESULTS(Stats::Op::CHECK_EC);
+
+    // Remove the BPF program (if enabled)
+    DropTrace::get().stop();
+
     exit(status);
 }

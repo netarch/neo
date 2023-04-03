@@ -8,7 +8,10 @@
 #include "dockernode.hpp"
 #include "driver/docker.hpp"
 #include "driver/driver.hpp"
+#include "dropdetection.hpp"
+#include "dropmon.hpp"
 #include "droptimeout.hpp"
+#include "droptrace.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
 #include "middlebox.hpp"
@@ -76,7 +79,11 @@ void Emulation::listen_drops() {
     uint64_t ts = 0;
 
     while (!_stop_drop) {
-        // ts = DropMon::get().is_dropped();
+        if (drop) {
+            ts = drop->get_drop_ts();
+        } else {
+            break;
+        }
 
         if (ts) {
             unique_lock<mutex> lck(_mtx);
@@ -304,15 +311,18 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
     Packet pkt(send_pkt);
     this->apply_offsets(pkt);
 
-    // Clear packet receive buffer
+    // Reset packet receive buffer and drop ts
     unique_lock<mutex> lck(_mtx);
-    size_t num_pkts = 0;
     _recv_pkts.clear();
     _pkts_hash.clear();
+    _drop_ts = 0;
 
-    // Set up the recv thread
+    // Set up the recv and drop threads
     start_recv_thread();
-    // DropMon::get().start_listening_for(pkt);
+    if (drop) {
+        drop->start_listening_for(pkt, _driver.get());
+        start_drop_thread();
+    }
 
     // Send the concrete packet
     _driver->unpause();
@@ -320,41 +330,49 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
     _STATS_START(Stats::Op::DROP_LAT);
     _driver->inject_packet(pkt);
 
-    // Collect received packets iteratively until no new packets are read within
-    // one complete timeout period.
+    // Receive packets iteratively until:
+    // (1) the injected packet was detected dropped, or
+    // (2) no new packets are read within one complete timeout period.
+    size_t num_pkts = 0;
+    bool first_recv = true;
+
     do {
         num_pkts = _recv_pkts.size();
+        cv_status status = _cv.wait_for(lck, DropTimeout::get().timeout());
 
-        // Timeout method
-        _cv.wait_for(lck, DropTimeout::get().timeout());
-        if (_recv_pkts.size() > num_pkts) {
-            // PKT_LAT records the time for the first response packet
-            _STATS_STOP(Stats::Op::PKT_LAT);
+        if (_drop_ts != 0) { // Packet drop detected
+            assert(_recv_pkts.empty());
+            break;
         }
 
-        // ? How to incorporate dropmon with timeouts ?
-        // if (_dropmon) { // use drop monitor
-        //     _drop_ts = 0;
-        //     chrono::microseconds timeout(5000);
-        //     cv_status status = _cv.wait_for(lck, timeout);
-        //     Stats::set_pkt_latency(timeout, _drop_ts);
-        //     if (status == cv_status::timeout && _recv_pkts.empty() &&
-        //         _drop_ts == 0) {
-        //         logger.error("Drop monitor timed out!");
-        //     }
-        // }
+        if (first_recv && _recv_pkts.size() > num_pkts) {
+            // PKT_LAT records the time for the first response packet
+            _STATS_STOP(Stats::Op::PKT_LAT);
+            first_recv = false;
+        }
     } while (_recv_pkts.size() > num_pkts);
 
-    if (num_pkts == 0) { // packet drop (or accepted silently)
+    // When _drop_ts != 0, the packet was certainly dropped.
+    // But when _drop_ts == 0 and _recv_pkts.empty():
+    // (1) if drop != null, then the packet was silently accepted, or
+    // (2) if drop == null, then we don't know for sure, the packet may be
+    // dropped or accepted silently.
+
+    // FIXME
+    if (_drop_ts != 0 || _recv_pkts.empty()) {
+        // Packet dropped (or accepted silently)
         _STATS_STOP(Stats::Op::DROP_LAT);
     }
 
     _driver->pause();
 
-    // Stop the recv thread
+    // Stop the recv and drop threads
     lck.unlock();
     stop_recv_thread();
-    // DropMon::get().stop_listening();
+    if (drop) {
+        stop_drop_thread();
+        drop->stop_listening();
+    }
     lck.lock();
 
     // Move and reset the received packets

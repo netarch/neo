@@ -18,12 +18,12 @@ extern "C" int spin_main(int argc, const char *argv[]);
 class Plankton {
 private:
     // System-wide configuration
-    static bool _all_ecs; // Verify all ECs
-    bool _dropmon;        // Enable drop_monitor
-    size_t _max_jobs;     // Max number of parallel tasks
-    size_t _max_emu;      // Max number of emulations
-    std::string _in_file; // Input TOML file
-    std::string _out_dir; // Output directory
+    static bool _all_ecs;     // Verify all ECs
+    size_t _max_jobs;         // Max number of parallel tasks
+    size_t _max_emu;          // Max number of emulations
+    std::string _drop_method; // Drop detection method
+    std::string _in_file;     // Input TOML file
+    std::string _out_dir;     // Output directory
 
     // System states
     Network _network; // Network information (inc. data plane)
@@ -64,9 +64,9 @@ public:
     const decltype(_invs) &invariants() const { return _invs; }
 
     void init(bool all_ecs,
-              bool dropmon,
               size_t max_jobs,
               size_t max_emu,
+              const std::string &drop_method,
               const std::string &input_file,
               const std::string &output_dir);
     void reset(); // Reset to as if it was just constructed

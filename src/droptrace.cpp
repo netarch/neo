@@ -16,7 +16,7 @@
 using namespace std;
 
 DropTrace::DropTrace()
-    : _enabled(false), _bpf(nullptr), _ringbuf(nullptr), _target_pkt_key(0),
+    : DropDetection(), _bpf(nullptr), _ringbuf(nullptr), _target_pkt_key(0),
       _drop_ts(0) {
     memset(&_target_pkt, 0, sizeof(_target_pkt));
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
@@ -113,12 +113,12 @@ DropTrace &DropTrace::get() {
 
 void DropTrace::init() {
     teardown();
-    _enabled = true;
+    DropDetection::init();
 }
 
 void DropTrace::teardown() {
     stop();
-    _enabled = false;
+    DropDetection::teardown();
 }
 
 void DropTrace::start() {

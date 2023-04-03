@@ -70,9 +70,10 @@ Neo options:
   -h [ --help ]                Show help message
   -a [ --all ]                 Verify all ECs after violation
   -f [ --force ]               Remove output dir if exists
-  -d [ --dropmon ]             Use drop_monitor for packet drops
   -j [ --jobs ] arg (=1)       Max number of parallel tasks [default: 1]
   -e [ --emulations ] arg (=0) Max number of emulations
+  -d [ --drop ] arg (=timeout) Drop detection method: ['timeout', 'dropmon',
+                               'ebpf']
   -i [ --input ] arg           Input configuration file
   -o [ --output ] arg          Output directory
 ```

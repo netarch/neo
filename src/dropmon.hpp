@@ -8,15 +8,16 @@
 #include <mutex>
 #include <thread>
 
+#include "driver/driver.hpp"
+#include "dropdetection.hpp"
 #include "packet.hpp"
 
 struct nl_sock;
 struct nl_msg;
 
-class DropMon {
+class DropMon : public DropDetection {
 private:
     int _family;
-    bool _enabled;
     struct nl_sock *_dm_sock;
 
     std::unique_ptr<std::thread> _dm_thread; // dropmon listener thread
@@ -41,7 +42,7 @@ public:
     DropMon(DropMon &&) = delete;
     DropMon &operator=(const DropMon &) = delete;
     DropMon &operator=(DropMon &&) = delete;
-    ~DropMon();
+    ~DropMon() override;
 
     static DropMon &get();
 
@@ -49,22 +50,22 @@ public:
      * @brief Initialize the module, must be called before other functions have
      * effects.
      */
-    void init();
+    void init() override;
 
     /**
      * @brief Reset everything as if it was just default-constructed.
      */
-    void teardown();
+    void teardown() override;
 
     /**
      * @brief Start kernel drop_monitor
      */
-    void start();
+    void start() override;
 
     /**
      * @brief Stop kernel drop_monitor
      */
-    void stop() const;
+    void stop() override;
 
     /**
      * @brief Start a dropmon thread receiving packet drop messages
@@ -74,7 +75,7 @@ public:
      *
      * @param pkt the target packet to listen for
      */
-    void start_listening_for(const Packet &pkt);
+    void start_listening_for(const Packet &pkt, Driver *driver) override;
 
     /**
      * @brief Return a non-zero timestamp if the target packet is dropped. The
@@ -86,12 +87,12 @@ public:
      * @param timeout timeout for the packet drop message.
      * @return timestamp (nsec) of the packet drop in kernel
      */
-    uint64_t get_drop_ts(
-        std::chrono::microseconds timeout = std::chrono::microseconds{-1});
+    uint64_t get_drop_ts(std::chrono::microseconds timeout =
+                             std::chrono::microseconds{-1}) override;
 
     /**
      * @brief Stop the drop listener thread, reset the dropmon variables, and
      * reset the dropmon socket
      */
-    void stop_listening();
+    void stop_listening() override;
 };

@@ -14,7 +14,7 @@
 using namespace std;
 
 DropMon::DropMon()
-    : _family(0), _enabled(false), _dm_sock(nullptr), _stop_dm_thread(false),
+    : DropDetection(), _family(0), _dm_sock(nullptr), _stop_dm_thread(false),
       _drop_ts(0) {}
 
 DropMon::~DropMon() {
@@ -41,13 +41,13 @@ void DropMon::init() {
     nl_socket_free(sock);
 
     // Enable the module
-    _enabled = true;
+    DropDetection::init();
 }
 
 void DropMon::teardown() {
     this->stop_listening();
     _family = 0;
-    _enabled = false;
+    DropDetection::teardown();
 }
 
 void DropMon::start() {
@@ -95,7 +95,7 @@ void DropMon::start() {
     nl_socket_free(sock);
 }
 
-void DropMon::stop() const {
+void DropMon::stop() {
     if (!_enabled) {
         return;
     }
@@ -108,7 +108,8 @@ void DropMon::stop() const {
     nl_socket_free(sock);
 }
 
-void DropMon::start_listening_for(const Packet &pkt) {
+void DropMon::start_listening_for(const Packet &pkt,
+                                  [[maybe_unused]] Driver *driver) {
     if (!_enabled) {
         return;
     }
