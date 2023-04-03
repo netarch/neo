@@ -338,7 +338,7 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
 
     do {
         num_pkts = _recv_pkts.size();
-        cv_status status = _cv.wait_for(lck, DropTimeout::get().timeout());
+        _cv.wait_for(lck, DropTimeout::get().timeout());
 
         if (_drop_ts != 0) { // Packet drop detected
             assert(_recv_pkts.empty());
