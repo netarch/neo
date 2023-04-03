@@ -48,6 +48,88 @@
       "program": "${workspaceFolder}/build/neo",
       "args": [
         "-f",
+        "-d",
+        "timeout",
+        "-i",
+        "${workspaceFolder}/examples/00-reverse-path-filtering/network.toml",
+        "-o",
+        "${workspaceFolder}/examples/00-reverse-path-filtering/results/debug"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=0"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "${workspaceFolder}/test/gdb_root.sh",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing"
+        },
+        {
+          "description": "Set Disassembly Flavor to AT&T",
+          "text": "-gdb-set disassembly-flavor att"
+        },
+        {
+          "description": "Follow forked children",
+          "text": "-gdb-set follow-fork-mode child"
+        }
+      ]
+    },
+    {
+      "name": "00 (dropmon)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/neo",
+      "args": [
+        "-f",
+        "-d",
+        "dropmon",
+        "-i",
+        "${workspaceFolder}/examples/00-reverse-path-filtering/network.toml",
+        "-o",
+        "${workspaceFolder}/examples/00-reverse-path-filtering/results/debug"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=0"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "${workspaceFolder}/test/gdb_root.sh",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing"
+        },
+        {
+          "description": "Set Disassembly Flavor to AT&T",
+          "text": "-gdb-set disassembly-flavor att"
+        },
+        {
+          "description": "Follow forked children",
+          "text": "-gdb-set follow-fork-mode child"
+        }
+      ]
+    },
+    {
+      "name": "00 (ebpf)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/neo",
+      "args": [
+        "-f",
+        "-d",
+        "ebpf",
         "-i",
         "${workspaceFolder}/examples/00-reverse-path-filtering/network.toml",
         "-o",
