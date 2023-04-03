@@ -30,6 +30,7 @@ private:
     friend class Plankton;
     void set_state(State *);
     void init(Network *, OpenflowProcess *);
+    void reset();
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -38,7 +39,7 @@ public:
 
     static Model &get();
 
-    /*
+    /**
      * per-connection state variables
      */
 
@@ -90,7 +91,7 @@ public:
     Choices *get_path_choices() const;
     Choices *set_path_choices(Choices &&) const;
 
-    /*
+    /**
      * non-connection specific, system-wide state variables
      */
 

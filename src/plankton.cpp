@@ -17,6 +17,7 @@
 #include "eqclassmgr.hpp"
 #include "logger.hpp"
 #include "model-access.hpp"
+#include "payloadmgr.hpp"
 #include "stats.hpp"
 
 using namespace std;
@@ -105,16 +106,15 @@ void Plankton::reset(bool destruct) {
     // During program destruction, these singletons will get destroyed
     // automatically, so we don't reset them to avoid use after free.
     if (!destruct) {
-        // TODO
-        // EqClassMgr::get().reset();
-        // EmulationMgr::get().reset();
-        // DropTimeout::get().reset();
+        EmulationMgr::get().reset();
+        EqClassMgr::get().reset();
+        DropTimeout::get().reset();
         DropMon::get().stop();
         DropMon::get().teardown();
         DropTrace::get().teardown();
+        PayloadMgr::get().reset();
+        model.reset();
         _STATS_RESET();
-        // Net::get().reset();
-        // PayloadMgr::get().reset();
     }
 }
 

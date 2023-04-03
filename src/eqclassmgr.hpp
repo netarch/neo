@@ -29,6 +29,7 @@ public:
     const decltype(_all_ecs) &all_ecs() const { return _all_ecs; }
     const decltype(_ports) &ports() const { return _ports; }
 
+    void reset();
     void add_ec(const IPNetwork<IPv4Address> &);
     void add_ec(const IPv4Address &, bool owned = false);
     void compute_initial_ecs(const Network &, const OpenflowProcess &);

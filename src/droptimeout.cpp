@@ -49,6 +49,15 @@ void DropTimeout::init() {
     _STATS_RESET();
 }
 
+void DropTimeout::reset() {
+    _lat_avg = chrono::microseconds();
+    _lat_mdev = chrono::microseconds();
+    _timeout = chrono::microseconds();
+    _has_initial_estimate = false;
+    _nprocs = 0;
+    _mdev_scalar = 0;
+}
+
 /**
  * The function adjusts the timeout value based on the number of parallel
  * processes.

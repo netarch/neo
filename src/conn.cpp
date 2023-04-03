@@ -4,7 +4,7 @@
 #include "eqclassmgr.hpp"
 #include "model-access.hpp"
 #include "packet.hpp"
-#include "payload.hpp"
+#include "payloadmgr.hpp"
 #include "process/forwarding.hpp"
 #include "process/process.hpp"
 #include "protocols.hpp"

@@ -38,29 +38,41 @@ public:
         reach_counts_hist;
 
     VariableHist() = default;
-    ~VariableHist();
-};
+    ~VariableHist() { reset(); }
 
-VariableHist::~VariableHist() {
-    for (Candidates *candidates : candidates_hist) {
-        delete candidates;
+    void reset() {
+        for (Candidates *candidates : this->candidates_hist) {
+            delete candidates;
+        }
+        this->candidates_hist.clear();
+
+        for (FIB *fib : this->fib_hist) {
+            delete fib;
+        }
+        this->fib_hist.clear();
+
+        for (Choices *path_choices : this->path_choices_hist) {
+            delete path_choices;
+        }
+        this->path_choices_hist.clear();
+
+        for (PacketHistory *pkt_hist : this->pkt_hist_hist) {
+            delete pkt_hist;
+        }
+        this->pkt_hist_hist.clear();
+
+        for (OpenflowUpdateState *update_state :
+             this->openflow_update_state_hist) {
+            delete update_state;
+        }
+        this->openflow_update_state_hist.clear();
+
+        for (ReachCounts *reach_counts : this->reach_counts_hist) {
+            delete reach_counts;
+        }
+        this->reach_counts_hist.clear();
     }
-    for (FIB *fib : this->fib_hist) {
-        delete fib;
-    }
-    for (Choices *path_choices : this->path_choices_hist) {
-        delete path_choices;
-    }
-    for (PacketHistory *pkt_hist : this->pkt_hist_hist) {
-        delete pkt_hist;
-    }
-    for (OpenflowUpdateState *update_state : this->openflow_update_state_hist) {
-        delete update_state;
-    }
-    for (ReachCounts *reach_counts : this->reach_counts_hist) {
-        delete reach_counts;
-    }
-}
+};
 
 static VariableHist storage;
 Model &model = Model::get();
@@ -83,6 +95,13 @@ void Model::set_state(State *state) {
 void Model::init(Network *network, OpenflowProcess *openflow) {
     this->network = network;
     this->openflow = openflow;
+}
+
+void Model::reset() {
+    state = nullptr;
+    network = nullptr;
+    openflow = nullptr;
+    storage.reset();
 }
 
 void Model::print_conn_states() const {

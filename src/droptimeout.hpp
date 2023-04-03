@@ -31,6 +31,7 @@ public:
     decltype(_mdev_scalar) mdev_scalar() const { return _mdev_scalar; }
 
     void init();
+    void reset();
     void adjust_latency_estimate_by_nprocs(int nprocs);
     void update_timeout();
 };

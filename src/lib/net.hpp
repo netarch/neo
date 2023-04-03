@@ -33,7 +33,7 @@ public:
 
     static Net &get();
 
-    /*
+    /**
      * Net::serialize()
      * It serializes the packet and stores it in buffer.
      * NOTE: the buffer should be freed later by calling Net::free().
@@ -45,7 +45,7 @@ public:
                    const uint8_t *dst_mac) const;
     void free(uint8_t *) const;
 
-    /*
+    /**
      * Net::deserialize()
      * It deserializes the buffer into packet. If the buffer is ill-formed, the
      * packet would be empty.

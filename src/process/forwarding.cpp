@@ -14,6 +14,7 @@
 #include "model-access.hpp"
 #include "network.hpp"
 #include "payload.hpp"
+#include "payloadmgr.hpp"
 #include "protocols.hpp"
 #include "stats.hpp"
 

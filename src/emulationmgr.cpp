@@ -7,14 +7,22 @@ using namespace std;
 EmulationMgr::EmulationMgr() : _max_emu(0) {}
 
 EmulationMgr::~EmulationMgr() {
-    for (Emulation *emulation : _emus) {
-        delete emulation;
-    }
+    reset();
 }
 
 EmulationMgr &EmulationMgr::get() {
     static EmulationMgr instance;
     return instance;
+}
+
+void EmulationMgr::reset() {
+    for (Emulation *emu : _emus) {
+        delete emu;
+    }
+
+    _max_emu = 0;
+    _emus.clear();
+    _mb_emu_map.clear();
 }
 
 Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {

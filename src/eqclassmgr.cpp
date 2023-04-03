@@ -13,14 +13,23 @@
 using namespace std;
 
 EqClassMgr::~EqClassMgr() {
-    for (EqClass *const &ec : _all_ecs) {
-        delete ec;
-    }
+    reset();
 }
 
 EqClassMgr &EqClassMgr::get() {
     static EqClassMgr instance;
     return instance;
+}
+
+void EqClassMgr::reset() {
+    for (EqClass *const &ec : _all_ecs) {
+        delete ec;
+    }
+
+    _allranges.clear();
+    _all_ecs.clear();
+    _owned_ecs.clear();
+    _ports.clear();
 }
 
 void EqClassMgr::split_intersected_ec(EqClass *ec,

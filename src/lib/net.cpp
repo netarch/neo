@@ -17,6 +17,7 @@
 #include "model-access.hpp"
 #include "packet.hpp"
 #include "payload.hpp"
+#include "payloadmgr.hpp"
 #include "pktbuffer.hpp"
 #include "protocols.hpp"
 
@@ -26,7 +27,7 @@ Net::Net() {
     char errbuf[LIBNET_ERRBUF_SIZE];
     l = libnet_init(LIBNET_LINK_ADV, NULL, errbuf);
     if (!l) {
-        logger.error(std::string("libnet_init() failed: ") + errbuf);
+        logger.error(std::string("libnet_init(): ") + errbuf);
     }
 }
 

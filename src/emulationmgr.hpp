@@ -42,6 +42,7 @@ public:
 
     static EmulationMgr &get();
 
+    void reset();
     void max_emulations(decltype(_max_emu) n) { _max_emu = n; }
 
     Emulation *get_emulation(Middlebox *, NodePacketHistory *);
