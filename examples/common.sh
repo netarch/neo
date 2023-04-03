@@ -28,9 +28,11 @@ fi
 NEO="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../build/neo)"
 CONF="${SCRIPT_DIR}/network.toml"
 CONFGEN=("python3" "${SCRIPT_DIR}/confgen.py")
+DROP_METHODS=("timeout" "dropmon" "ebpf")
 RESULTS_DIR="$(realpath "${SCRIPT_DIR}/results")"
 export CONF
 export CONFGEN
+export DROP_METHODS
 
 mkdir -p "${RESULTS_DIR}"
 

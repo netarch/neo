@@ -5,13 +5,11 @@ source "${SCRIPT_DIR}/../common.sh"
 
 procs=16
 
-drop="timeout"
-# drop="dropmon"
-# drop="ebpf"
-
-name="output.$procs-procs.$drop"
-run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.toml"
-name="output.$procs-procs.$drop.fault"
-run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.fault.toml"
+for drop in "${DROP_METHODS[@]}"; do
+    name="output.$procs-procs.$drop"
+    run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.toml"
+    name="output.$procs-procs.$drop.fault"
+    run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.fault.toml"
+done
 
 msg "Done"
