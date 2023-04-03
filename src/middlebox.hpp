@@ -4,6 +4,7 @@
 #include <list>
 #include <set>
 #include <string>
+#include <utility>
 
 #include "emulation.hpp"
 #include "lib/ip.hpp"
@@ -40,7 +41,7 @@ public:
 
     void rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::list<Packet> send_pkt(const Packet &);
+    std::pair<std::list<Packet>, bool> send_pkt(const Packet &);
 
     bool is_emulated() const override { return true; }
     std::set<FIB_IPNH>

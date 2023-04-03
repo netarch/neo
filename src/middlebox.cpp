@@ -36,7 +36,7 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {
  *
  * @return A list of received packets.
  */
-std::list<Packet> Middlebox::send_pkt(const Packet &pkt) {
+std::pair<std::list<Packet>, bool> Middlebox::send_pkt(const Packet &pkt) {
     assert(_emulation->mb() == this);
     return _emulation->send_pkt(pkt);
 }

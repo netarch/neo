@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 
 #include "driver/driver.hpp"
 #include "emu-pkt-key.hpp"
@@ -75,5 +76,5 @@ public:
     void teardown();
     void init(Middlebox *, bool log_pkts = true); // re-initialize the emulation
     int rewind(NodePacketHistory *);
-    std::list<Packet> send_pkt(const Packet &);
+    std::pair<std::list<Packet>, bool> send_pkt(const Packet &);
 };

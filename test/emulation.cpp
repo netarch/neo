@@ -64,7 +64,7 @@ TEST_CASE("emulation") {
         // Send a ping req packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_pkts = emu.send_pkt(send_pkt);
+        recv_pkts = emu.send_pkt(send_pkt).first;
         REQUIRE(recv_pkts.size() == 1);
         REQUIRE_NOTHROW(compare_pkt = send_pkt);
         REQUIRE_NOTHROW(compare_pkt.set_intf(eth1));
@@ -73,7 +73,7 @@ TEST_CASE("emulation") {
         // Send a TCP SYN packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", DYNAMIC_PORT, 80,
                           0, 0, PS_TCP_INIT_1);
-        recv_pkts = emu.send_pkt(send_pkt);
+        recv_pkts = emu.send_pkt(send_pkt).first;
         REQUIRE(recv_pkts.size() == 1);
         REQUIRE_NOTHROW(compare_pkt = send_pkt);
         REQUIRE_NOTHROW(compare_pkt.set_intf(eth1));
@@ -84,7 +84,7 @@ TEST_CASE("emulation") {
         // Send a ping req packet from node1 to fw
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_pkts = emu.send_pkt(send_pkt);
+        recv_pkts = emu.send_pkt(send_pkt).first;
         REQUIRE(recv_pkts.size() == 1);
         REQUIRE_NOTHROW(compare_pkt = send_pkt);
         REQUIRE_NOTHROW(compare_pkt.set_src_ip(send_pkt.get_dst_ip()));

@@ -306,7 +306,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
  *
  * @return A list of received packets.
  */
-list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
+std::pair<std::list<Packet>, bool> Emulation::send_pkt(const Packet &send_pkt) {
     // Prepare send packet, apply offsets
     Packet pkt(send_pkt);
     this->apply_offsets(pkt);
@@ -365,6 +365,9 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
         } else {
             _STATS_STOP(Stats::Op::DROP_LAT); // May be dropped or accepted
         }
+    } else {
+        // Update drop timeout estimates based on received packets latencies
+        DropTimeout::get().update_timeout();
     }
 
     _driver->pause();
@@ -386,11 +389,5 @@ list<Packet> Emulation::send_pkt(const Packet &send_pkt) {
     // Process the received packets
     Net::get().reassemble_segments(pkts);
     this->update_offsets(pkts);
-
-    // Update drop timeout estimates
-    if (!pkts.empty()) {
-        DropTimeout::get().update_timeout();
-    }
-
-    return pkts;
+    return {std::move(pkts), _drop_ts != 0};
 }

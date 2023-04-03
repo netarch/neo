@@ -339,8 +339,9 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
 
     // Inject packet
     logger.info("Injecting packet: " + new_pkt->to_string());
-    std::list<Packet> recv_pkts = mb->send_pkt(*new_pkt);
-    update_model_from_pkts(mb, recv_pkts);
+    auto send_res = mb->send_pkt(*new_pkt);
+    update_model_from_pkts(mb, send_res.first);
+    // TODO: consider using the packet drop information
 
     _STATS_STOP(Stats::Op::FWD_INJECT_PKT);
 }
