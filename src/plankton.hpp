@@ -55,9 +55,12 @@ private:
     Plankton();
 
 public:
-    // Disable the copy constructor and the copy assignment operator
+    // Disable the copy/move constructors and the assignment operators
     Plankton(const Plankton &) = delete;
+    Plankton(Plankton &&) = delete;
     Plankton &operator=(const Plankton &) = delete;
+    Plankton &operator=(Plankton &&) = delete;
+    ~Plankton();
 
     static Plankton &get();
     const decltype(_network) &network() const { return _network; }
@@ -69,7 +72,7 @@ public:
               const std::string &drop_method,
               const std::string &input_file,
               const std::string &output_dir);
-    void reset(); // Reset to as if it was just constructed
+    void reset(bool destruct = false); // Reset as if it was just constructed
     int run();
 
     /***** functions used by the Promela network model *****/

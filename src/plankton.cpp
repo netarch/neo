@@ -30,6 +30,10 @@ const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
 
 Plankton::Plankton() : _max_jobs(0), _max_emu(0) {}
 
+Plankton::~Plankton() {
+    reset(/* destruct */ true);
+}
+
 Plankton &Plankton::get() {
     static Plankton instance;
     return instance;
@@ -79,7 +83,7 @@ void Plankton::init(bool all_ecs,
 }
 
 // Reset to as if it was just constructed
-void Plankton::reset() {
+void Plankton::reset(bool destruct) {
     this->_all_ecs = false;
     this->_max_jobs = 0;
     this->_max_emu = 0;
@@ -94,6 +98,22 @@ void Plankton::reset() {
     this->_violated = false;
     this->kill_all_tasks(SIGKILL);
     this->_tasks.clear();
+
+    // Reset system-wide configurations
+    // During program destruction, these singletons will get destroyed
+    // automatically, so we don't reset them to avoid use after free.
+    if (!destruct) {
+        // TODO
+        // EqClassMgr::get().reset();
+        // EmulationMgr::get().reset();
+        // DropTimeout::get().reset();
+        DropMon::get().stop();
+        DropMon::get().teardown();
+        DropTrace::get().teardown();
+        _STATS_RESET();
+        // Net::get().reset();
+        // PayloadMgr::get().reset();
+    }
 }
 
 int Plankton::run() {
