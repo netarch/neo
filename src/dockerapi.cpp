@@ -59,8 +59,7 @@ Document DockerAPI::send_curl_request(method method,
     CURLcode res = curl_easy_perform(_curl);
 
     if (res != CURLE_OK) {
-        logger.error("curl_easy_perform() failed: " +
-                     string(curl_easy_strerror(res)));
+        logger.error("curl_easy_perform(): " + string(curl_easy_strerror(res)));
     }
 
     unsigned int res_code = 0;
@@ -120,6 +119,24 @@ DockerAPI::~DockerAPI() {
     _header = nullptr;
     curl_easy_cleanup(_curl);
     _curl = nullptr;
+}
+
+void DockerAPI::reset() {
+    // curl: cleanup the current session handle
+    curl_slist_free_all(_header);
+    _header = nullptr;
+    curl_easy_cleanup(_curl);
+    _curl = nullptr;
+
+    // Re-initialize curl
+    this->_curl = curl_easy_init();
+
+    if (!this->_curl) {
+        logger.error("Failed to initialize curl");
+    }
+
+    // curl: set socket path
+    curl_easy_setopt(_curl, CURLOPT_UNIX_SOCKET_PATH, _socket_path.c_str());
 }
 
 Document DockerAPI::create_cntr(const string &name, const DockerNode &node) {

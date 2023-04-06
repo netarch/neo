@@ -391,6 +391,7 @@ void Docker::teardown() {
     closens();
 
     // Terminate and remove container, it will also kill exec processes
+    this->_dapi.reset();
     this->_dapi.remove_cntr(_cntr_name);
     this->_pid = 0;
     this->_execs.clear();
