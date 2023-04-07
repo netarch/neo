@@ -25,6 +25,7 @@ namespace fs = std::filesystem;
 
 bool Plankton::_all_ecs = false;
 bool Plankton::_violated = false;
+bool Plankton::_terminate = false;
 unordered_set<pid_t> Plankton::_tasks;
 const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
                               SIGINT,  SIGQUIT, SIGTERM};
@@ -101,6 +102,7 @@ void Plankton::reset(bool destruct) {
     this->_openflow.reset();
     this->_inv.reset();
     this->_violated = false;
+    this->_terminate = false;
     this->kill_all_tasks(SIGKILL);
     this->_tasks.clear();
 
@@ -152,8 +154,12 @@ int Plankton::run() {
 
         this->_tasks.insert(childpid);
 
-        while (!this->_tasks.empty()) {
+        while (!this->_tasks.empty() && !this->_terminate) {
             pause();
+        }
+
+        if (this->_terminate) {
+            break;
         }
     }
 
@@ -182,10 +188,10 @@ void Plankton::inv_sig_handler(int sig,
 
             if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
                 // A task exited abnormally. Halt all verification tasks.
+                logger.warn("Process " + to_string(pid) + " exited " +
+                            to_string(rc));
                 kill_all_tasks(SIGTERM);
-                DropMon::get().stop(); // Stop kernel drop_monitor (if enabled)
-                logger.error("Process " + to_string(pid) + " exited " +
-                             to_string(rc));
+                _terminate = true;
             }
         }
         break;
@@ -193,22 +199,23 @@ void Plankton::inv_sig_handler(int sig,
     case SIGUSR1: {
         // Invariant violated. Stop all remaining tasks
         pid = siginfo->si_pid;
+        logger.warn("Invariant violated in process " + to_string(pid));
         _violated = true;
 
         if (!_all_ecs) {
             kill_all_tasks(SIGTERM, /* exclude */ pid);
         }
 
-        logger.warn("Invariant violated in process " + to_string(pid));
         break;
     }
     case SIGHUP:
     case SIGINT:
     case SIGQUIT:
     case SIGTERM: {
+        logger.warn("Killed");
         kill_all_tasks(sig);
-        DropMon::get().stop(); // Stop kernel drop_monitor (if enabled)
-        exit(0);
+        _terminate = true;
+        break;
     }
     }
 }
@@ -253,7 +260,7 @@ void Plankton::verify_invariant() {
     _STATS_START(Stats::Op::CHECK_INVARIANT);
 
     // Fork for each combination of concurrent connections
-    while ((!_violated || _all_ecs) && _inv->set_conns()) {
+    while ((!_violated || _all_ecs) && !_terminate && _inv->set_conns()) {
         pid_t childpid;
 
         if ((childpid = fork()) < 0) {
@@ -265,12 +272,12 @@ void Plankton::verify_invariant() {
 
         _tasks.insert(childpid);
 
-        while (_tasks.size() >= _max_jobs) {
+        while (_tasks.size() >= _max_jobs && !_terminate) {
             pause();
         }
     }
 
-    while (!_tasks.empty()) {
+    while (!_tasks.empty() && !_terminate) {
         pause();
     }
 
@@ -343,8 +350,10 @@ void Plankton::ec_sig_handler(int sig) {
 
         while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
             if (WIFEXITED(status) && (rc = WEXITSTATUS(status)) != 0) {
-                logger.error("Process " + to_string(pid) + " exited " +
-                             to_string(rc));
+                logger.warn("Process " + to_string(pid) + " exited " +
+                            to_string(rc));
+                kill(-getpid(), SIGTERM);
+                _terminate = true;
             }
         }
         break;
@@ -353,11 +362,12 @@ void Plankton::ec_sig_handler(int sig) {
     case SIGINT:
     case SIGQUIT:
     case SIGTERM: {
+        logger.warn("Killed");
         kill(-getpid(), sig);
         while (wait(nullptr) != -1 || errno != ECHILD)
             ;
-        logger.info("Killed");
-        exit(0);
+        _terminate = true;
+        break;
     }
     }
 }
@@ -365,6 +375,10 @@ void Plankton::ec_sig_handler(int sig) {
 /***** functions used by the Promela network model *****/
 
 void Plankton::initialize() {
+    if (_terminate) {
+        verify_exit(0);
+    }
+
     model.init(&_network, &_openflow);
 
     // processes
@@ -381,6 +395,10 @@ void Plankton::initialize() {
 }
 
 void Plankton::reinit() {
+    if (_terminate) {
+        verify_exit(0);
+    }
+
     // processes
     _forwarding.init(_network);
     _openflow.init(); // openflow has to be initialized before fib
@@ -395,6 +413,10 @@ void Plankton::reinit() {
 }
 
 void Plankton::exec_step() {
+    if (_terminate) {
+        verify_exit(0);
+    }
+
     int process_id = model.get_process_id();
 
     switch (process_id) {
@@ -420,6 +442,10 @@ void Plankton::exec_step() {
 }
 
 void Plankton::check_to_switch_process() const {
+    if (_terminate) {
+        verify_exit(0);
+    }
+
     if (model.get_executable() != 2) {
         /**
          * 2: executable, not entering a middlebox
@@ -457,11 +483,15 @@ void Plankton::check_to_switch_process() const {
     }
 }
 
-void Plankton::report() {
+void Plankton::report() const {
+    if (_terminate) {
+        verify_exit(0);
+    }
+
     _inv->report();
 }
 
-void Plankton::verify_exit(int status) {
+void Plankton::verify_exit(int status) const {
     // Output per EC process stats
     _STATS_STOP(Stats::Op::CHECK_EC);
     _STATS_LOGRESULTS(Stats::Op::CHECK_EC);

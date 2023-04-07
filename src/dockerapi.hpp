@@ -23,13 +23,6 @@ public:
 /**
  * Synchronous API for interacting with docker daemons
  * https://docs.docker.com/engine/api/latest/
- *
- * Note that this is a synchronous API. At any given time there should be at
- * most 1 thread accessing a DockerAPI object. However, even so, some code may
- * still be concurrently reentered because of signal handling, for example when
- * a violation occurs in another connection EC process and the other processes
- * are getting killed. In such situation, be sure to call DockerAPI::reset() to
- * reset CURL handles before using the DockerAPI object.
  */
 class DockerAPI {
 private:
@@ -101,8 +94,6 @@ public:
     DockerAPI();
     DockerAPI(const std::string &socket_path);
     ~DockerAPI();
-
-    void reset();
 
     const decltype(_socket_path) &socket_path() const { return _socket_path; }
     const decltype(_uri_prefix) &uri_prefix() const { return _uri_prefix; }

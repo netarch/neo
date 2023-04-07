@@ -41,6 +41,7 @@ private:
     void verify_invariant();
     void verify_conn();
 
+    static bool _terminate;                  // Terminate the entire program
     static std::unordered_set<pid_t> _tasks; // Invariant or EC tasks
     static const int sigs[];
     static void inv_sig_handler(int sig, siginfo_t *siginfo, void *ctx);
@@ -79,6 +80,6 @@ public:
     void initialize();
     void reinit(); // used by invariants with correlated sub-invariants
     void exec_step();
-    void report();
-    void verify_exit(int);
+    void report() const;
+    void verify_exit(int) const;
 };
