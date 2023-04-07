@@ -38,7 +38,9 @@ private:
 
     void phase_transition(uint8_t next_proto_state, bool opposite_dir) const;
     void inject_packet(Middlebox *);
-    void update_model_from_pkts(Middlebox *, std::list<Packet> &) const;
+    void update_model_from_pkts(Middlebox *,
+                                std::list<Packet> &,
+                                bool explicit_drop) const;
 
 public:
     ~ForwardingProcess();

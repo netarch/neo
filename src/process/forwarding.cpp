@@ -18,6 +18,8 @@
 #include "protocols.hpp"
 #include "stats.hpp"
 
+using namespace std;
+
 ForwardingProcess::~ForwardingProcess() {
     this->reset();
 }
@@ -49,7 +51,7 @@ void ForwardingProcess::exec_step() {
         model.set_executable(0);
         break;
     default:
-        logger.error("Unknown forwarding mode: " + std::to_string(mode));
+        logger.error("Unknown forwarding mode: " + to_string(mode));
     }
 }
 
@@ -97,9 +99,9 @@ void ForwardingProcess::collect_next_hops() {
         return;
     } // else: current_node is a Node; look up next hops from FIB
 
-    std::set<FIB_IPNH> next_hops = model.get_fib()->lookup(current_node);
+    set<FIB_IPNH> next_hops = model.get_fib()->lookup(current_node);
     if (next_hops.empty()) {
-        logger.info("Connection " + std::to_string(model.get_conn()) +
+        logger.info("Connection " + to_string(model.get_conn()) +
                     " dropped by " + current_node->to_string());
         model.set_fwd_mode(fwd_mode::DROPPED);
         model.set_executable(0);
@@ -109,7 +111,7 @@ void ForwardingProcess::collect_next_hops() {
     Candidates candidates;
     EqClass *ec = model.get_dst_ip_ec();
     Choices *choices = model.get_path_choices();
-    std::optional<FIB_IPNH> choice = choices->get_choice(ec, current_node);
+    optional<FIB_IPNH> choice = choices->get_choice(ec, current_node);
 
     // in case of multipath, use the past choice if it's been made
     if (next_hops.size() > 1 && choice && next_hops.count(*choice) > 0) {
@@ -156,7 +158,7 @@ void ForwardingProcess::forward_packet() {
             // so don't check endpoint consistency for PS_TCP_TERM_*
             // inconsistent endpoints: dropped by middlebox
             logger.info("Inconsistent endpoints");
-            logger.info("Connection " + std::to_string(model.get_conn()) +
+            logger.info("Connection " + to_string(model.get_conn()) +
                         " dropped by " + current_node->to_string());
             model.set_fwd_mode(fwd_mode::DROPPED);
             model.set_executable(0);
@@ -237,7 +239,7 @@ void ForwardingProcess::accepted() {
         model.set_executable(0);
         break;
     default:
-        logger.error("Unknown protocol state " + std::to_string(proto_state));
+        logger.error("Unknown protocol state " + to_string(proto_state));
     }
 }
 
@@ -249,7 +251,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
     Node *new_src_node =
         change_direction ? model.get_pkt_location() : model.get_src_node();
     if (new_src_node->is_emulated()) {
-        logger.debug("Freeze conn " + std::to_string(model.get_conn()));
+        logger.debug("Freeze conn " + to_string(model.get_conn()));
         model.set_executable(0);
         return;
     }
@@ -268,7 +270,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
             seq += 1;
         }
         if (change_direction) {
-            std::swap(seq, ack);
+            swap(seq, ack);
         }
         model.set_seq(seq);
         model.set_ack(ack);
@@ -341,8 +343,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     // Inject packet
     logger.info("Injecting packet: " + new_pkt->to_string());
     auto send_res = mb->send_pkt(*new_pkt);
-    update_model_from_pkts(mb, send_res.first);
-    // TODO: consider using the packet drop information
+    update_model_from_pkts(mb, send_res.first, send_res.second);
 
     _STATS_STOP(Stats::Op::FWD_INJECT_PKT);
 }
@@ -350,15 +351,20 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
 /**
  * No multicast.
  */
-void ForwardingProcess::update_model_from_pkts(
-    Middlebox *mb,
-    std::list<Packet> &recv_pkts) const {
+void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
+                                               list<Packet> &recv_pkts,
+                                               bool explicit_drop) const {
+    if (explicit_drop && !recv_pkts.empty()) {
+        logger.error("Sent packet dropped but still received packets");
+    }
+
     int orig_conn = model.get_conn();
     bool current_conn_updated = false;
 
+    // Process each received packet and update the model state based on the
+    // inferred connection status
     for (Packet &recv_pkt : recv_pkts) {
         if (recv_pkt.empty()) {
-            logger.info("Received packet: (empty)");
             continue;
         }
 
@@ -431,32 +437,46 @@ void ForwardingProcess::update_model_from_pkts(
         model.set_conn(orig_conn);
     }
 
-    // The current connection isn't updated. I.e., no packets are received for
-    // the current connection. In this case we assume the injected packet is
-    // accepted by the middlebox, unless in the future (TODO) we incorporate
-    // DropMon and know if the injected packet were dropped. This is useful
-    // because we can assume that packets of PS_TCP_INIT_3, PS_TCP_L7_REQ_A,
-    // PS_TCP_L7_REP_A in TCP are delivered even when there's no response.
     if (!current_conn_updated) {
-        logger.info("No packets are received for conn " +
-                    std::to_string(model.get_conn()) +
-                    ", assuming the injected packet is delivered");
-        model.set_executable(2);
-        model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
-        Candidates candidates;
-        candidates.add(FIB_IPNH(mb, nullptr, mb, nullptr));
-        model.set_candidates(std::move(candidates));
-    }
-
-    if (model.get_candidates()->empty()) {
-        // this only happens if the current connection is updated, but no next
-        // hop is available for the received outgoing packet
-        logger.info("Connection " + std::to_string(model.get_conn()) +
-                    " dropped by " + mb->to_string());
-        model.set_fwd_mode(fwd_mode::DROPPED);
-        model.set_executable(0);
+        // The current connection isn't updated, which means no packets are
+        // received for the current connection. In this case, if we know that
+        // the sent packet was dropped because of dropmon or droptrace, we mark
+        // the connection as dropped. Otherwise, we assume the injected packet
+        // was accepted by the middlebox. This is useful when the middlebox is a
+        // connection endpoint, because we can assume that packets of
+        // PS_TCP_INIT_3, PS_TCP_L7_REQ_A, PS_TCP_L7_REP_A in TCP are delivered
+        // even when there's no response.
+        if (explicit_drop) {
+            logger.info("Connection " + to_string(model.get_conn()) +
+                        " dropped by " + mb->to_string());
+            model.set_fwd_mode(fwd_mode::DROPPED);
+            model.set_executable(0);
+        } else {
+            logger.info("No packets are received for conn " +
+                        to_string(model.get_conn()) +
+                        ", assuming the injected packet is delivered");
+            model.set_executable(2);
+            model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
+            Candidates candidates;
+            candidates.add(FIB_IPNH(mb, nullptr, mb, nullptr));
+            model.set_candidates(std::move(candidates));
+            model.set_choice_count(1);
+        }
     } else {
-        // update choice_count for the current connection
-        model.set_choice_count(model.get_candidates()->size());
+        // The current connection is updated, which means we received packets of
+        // this connection. Candidates should have been set based on the next
+        // hops, so we update the choice count based on the number of
+        // candidates. If there's no candidates, it means there's no next hops.
+        if (model.get_candidates()->empty()) {
+            // This only happens if the current connection is updated, but no
+            // next hop is available for the received outgoing packet
+            logger.info("Connection " + to_string(model.get_conn()) +
+                        " dropped by " + mb->to_string());
+            model.set_fwd_mode(fwd_mode::DROPPED);
+            model.set_executable(0);
+        } else {
+            // Update choice_count for the current connection
+            model.set_choice_count(model.get_candidates()->size());
+        }
     }
 }
