@@ -160,6 +160,27 @@
           "text": "-gdb-set follow-fork-mode child"
         }
       ]
+    },
+    {
+      "name": "Attach",
+      "type": "cppdbg",
+      "request": "attach",
+      "program": "${workspaceFolder}/build/neo",
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing"
+        },
+        {
+          "description": "Set Disassembly Flavor to AT&T",
+          "text": "-gdb-set disassembly-flavor att"
+        },
+        {
+          "description": "Follow forked children",
+          "text": "-gdb-set follow-fork-mode child"
+        }
+      ]
     }
   ]
 }
