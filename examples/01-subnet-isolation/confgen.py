@@ -42,18 +42,20 @@ COMMIT
     internet_node.add_static_route(Route('11.0.0.0/8', '8.0.0.2'))
     internet_node.add_static_route(Route('12.0.0.0/8', '8.0.0.2'))
     config.add_node(internet_node)
-    fw = Middlebox('fw', 'netns', 'netfilter')
+    fw = DockerNode('fw',
+                    image='kyechou/iptables:latest',
+                    working_dir='/',
+                    command=['/start.sh'])
     fw.add_interface(Interface('eth0', '8.0.0.2/24'))
     fw.add_interface(Interface('eth1', '9.0.0.1/24'))
     fw.add_static_route(Route('0.0.0.0/0', '8.0.0.1'))
     fw.add_static_route(Route('10.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('11.0.0.0/8', '9.0.0.2'))
     fw.add_static_route(Route('12.0.0.0/8', '9.0.0.2'))
-    fw.add_config('rp_filter', 0)
-    if fault:
-        fw.add_config('rules', fw_bad_rules)
-    else:
-        fw.add_config('rules', fw_rules)
+    fw.add_env_var('RULES', fw_rules if not fault else fw_bad_rules)
+    fw.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+    fw.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
+    fw.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
     config.add_node(fw)
     gw = Node('gw')
     gw.add_interface(Interface('eth0', '9.0.0.2/24'))
