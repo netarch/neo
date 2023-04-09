@@ -96,7 +96,9 @@ class DockerNode(Middlebox):
         self.container['config_files']: Optional[list[str]] = config_files
         self.container['ports']: list[dict[str, str | int]] = list()
         self.container['env']: list[dict[str, str]] = list()
-        self.container['volume_mounts']: list[dict[str, Optional[str | bool]]] = list()
+        self.container['volume_mounts']: list[dict[str,
+                                                   Optional[str
+                                                            | bool]]] = list()
         self.container['sysctls']: list[dict[str, str]] = list()
 
     def add_port(self, port_no: int, proto: str):
