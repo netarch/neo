@@ -37,7 +37,7 @@ export DROP_METHODS
 mkdir -p "${RESULTS_DIR}"
 
 docker_clean() {
-    dockerfiles_dir="$(realpath "${BASH_SOURCE[0]}"/../Dockerfiles)"
+    dockerfiles_dir="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../Dockerfiles)"
     make -C "$dockerfiles_dir" clean
 }
 
