@@ -190,7 +190,7 @@ void ConfigParser::parse_route(Route &route, const toml::table &config) {
 void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     this->parse_middlebox(dn, config);
 
-    auto daemon = config.get_as<string>("docker-daemon");
+    auto daemon = config.get_as<string>("daemon");
     auto cntr_cfg = config.get_as<toml::table>("container");
 
     if (!cntr_cfg) {
@@ -198,13 +198,13 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     }
 
     auto image = cntr_cfg->get_as<string>("image");
-    auto working_dir = cntr_cfg->get_as<string>("workingDir");
+    auto working_dir = cntr_cfg->get_as<string>("working_dir");
     auto command = cntr_cfg->get_as<toml::array>("command");
     auto args = cntr_cfg->get_as<toml::array>("args");
     auto cfg_files = cntr_cfg->get_as<toml::array>("config_files");
     auto ports = cntr_cfg->get_as<toml::array>("ports");
     auto env = cntr_cfg->get_as<toml::array>("env");
-    auto mounts = cntr_cfg->get_as<toml::array>("volumeMounts");
+    auto mounts = cntr_cfg->get_as<toml::array>("volume_mounts");
     auto sysctls = cntr_cfg->get_as<toml::array>("sysctls");
 
     if (!daemon) {
@@ -226,7 +226,7 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     if (working_dir) {
         dn._working_dir = **working_dir;
     } else {
-        logger.error("Missing container workingDir");
+        logger.error("Missing container working_dir");
     }
 
     if (command) {
@@ -252,14 +252,14 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     if (ports) {
         for (const auto &port_config : *ports) {
             const auto &cfg = *port_config.as_table();
-            auto port = cfg.get_as<int64_t>("containerPort");
+            auto port = cfg.get_as<int64_t>("port");
             auto protocol = cfg.get_as<string>("protocol");
             proto proto_enum;
 
             if (!port) {
-                logger.error("Missing containerPort");
+                logger.error("Missing port");
             } else if (**port < 1) {
-                logger.error("Invalid containerPort: " + to_string(**port));
+                logger.error("Invalid port: " + to_string(**port));
             }
 
             if (!protocol) {
@@ -297,21 +297,21 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     if (mounts) {
         for (const auto &mnt_config : *mounts) {
             const auto &cfg = *mnt_config.as_table();
-            auto mount_path = cfg.get_as<string>("mountPath");
-            auto host_path = cfg.get_as<string>("hostPath");
+            auto mount_path = cfg.get_as<string>("mount_path");
+            auto host_path = cfg.get_as<string>("host_path");
             auto driver = cfg.get_as<string>("driver");
-            auto read_only = cfg.get_as<bool>("readOnly");
+            auto read_only = cfg.get_as<bool>("read_only");
 
             if (!mount_path) {
-                logger.error("Missing mountPath");
+                logger.error("Missing mount_path");
             }
 
             if (!host_path) {
-                logger.error("Missing hostPath");
+                logger.error("Missing host_path");
             }
 
             if (driver && **driver != "local") {
-                logger.error("Unsupported volumnMounts driver: " + **driver);
+                logger.error("Unsupported volumn_mounts driver: " + **driver);
             }
 
             struct DockerVolumeMount mount;

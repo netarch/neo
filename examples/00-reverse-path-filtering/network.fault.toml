@@ -88,10 +88,10 @@
     name = "fw"
     type = "emulation"
     driver = "docker"
-    docker-daemon = "/var/run/docker.sock"
+    daemon = "/var/run/docker.sock"
     [nodes.container]
     image = "kyechou/iptables:latest"
-    workingDir = "/"
+    working_dir = "/"
     command = ["/start.sh"]
     config_files = ["/start.sh"]
     [[nodes.container.env]]

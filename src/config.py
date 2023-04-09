@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from typing import Any
 from typing import Optional
 import toml
 
@@ -87,53 +88,54 @@ class DockerNode(Middlebox):
         super().__init__(name, 'docker')
 
         self.daemon: Optional[str] = daemon
-        self.image: str = image
-        self.working_dir: str = working_dir
-        self.command: Optional[list[str]] = command
-        self.args: Optional[list[str]] = args
-        self.config_files: Optional[list[str]] = config_files
-        self.ports: list[dict[str, str | int]] = list()
-        self.env: list[dict[str, str]] = list()
-        self.volumeMounts: list[dict[str, Optional[str | bool]]] = list()
-        self.sysctls: list[dict[str, str]] = list()
+        self.container: dict[str, Any] = dict()
+        self.container['image']: str = image
+        self.container['working_dir']: str = working_dir
+        self.container['command']: Optional[list[str]] = command
+        self.container['args']: Optional[list[str]] = args
+        self.container['config_files']: Optional[list[str]] = config_files
+        self.container['ports']: list[dict[str, str | int]] = list()
+        self.container['env']: list[dict[str, str]] = list()
+        self.container['volume_mounts']: list[dict[str, Optional[str | bool]]] = list()
+        self.container['sysctls']: list[dict[str, str]] = list()
 
     def add_port(self, port_no: int, proto: str):
-        self.ports.append({'containerPort': port_no, 'protocol': proto})
+        self.container['ports'].append({'port': port_no, 'protocol': proto})
 
     def add_env_var(self, name: str, value: str):
-        self.env.append({'name': name, 'value': value})
+        self.container['env'].append({'name': name, 'value': value})
 
     def add_volume(self,
                    mount_path: str,
                    host_path: str,
                    driver: Optional[str] = None,
                    read_only: Optional[bool] = None):
-        self.volumeMounts.append({
-            'mountPath': mount_path,
-            'hostPath': host_path,
+        self.container['volume_mounts'].append({
+            'mount_path': mount_path,
+            'host_path': host_path,
             'driver': driver,
-            'readOnly': read_only
+            'read_only': read_only
         })
 
     def add_sysctl(self, key: str, value: str):
-        self.sysctls.append({'key': key, 'value': value})
+        self.container['sysctls'].append({'key': key, 'value': value})
 
     def to_dict(self):
         data = super().to_dict()
-        if not self.command:
-            data.pop('command')
-        if not self.args:
-            data.pop('args')
-        if not self.config_files:
-            data.pop('config_files')
-        if not self.ports:
-            data.pop('ports')
-        if not self.env:
-            data.pop('env')
-        if not self.volumeMounts:
-            data.pop('volumeMounts')
-        if not self.sysctls:
-            data.pop('sysctls')
+        if not self.container['command']:
+            data['container'].pop('command')
+        if not self.container['args']:
+            data['container'].pop('args')
+        if not self.container['config_files']:
+            data['container'].pop('config_files')
+        if not self.container['ports']:
+            data['container'].pop('ports')
+        if not self.container['env']:
+            data['container'].pop('env')
+        if not self.container['volume_mounts']:
+            data['container'].pop('volume_mounts')
+        if not self.container['sysctls']:
+            data['container'].pop('sysctls')
         return data
 
 

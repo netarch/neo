@@ -24,25 +24,25 @@
     # Optional, socket endpoint of the docker daemon.
     # For a remote service, use something like "http://10.0.0.1:33444".
     # Default: "/var/run/docker.sock"
-    docker-daemon = "/var/run/docker.sock"
+    daemon = "/var/run/docker.sock"
     [nodes.container]
     # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
     image = "alpine:3.17"
-    workingDir = "/"
+    working_dir = "/"
     command = ["/bin/sh"]       # optional
     args = []                   # optional
     config_files = []           # optional
     [[nodes.container.ports]]   # optional
-    containerPort = 1234
+    port = 1234
     protocol = "tcp"            # "tcp" or "udp"
     [[nodes.container.env]]     # optional
     name = "PATH"
     value = "/usr/sbin/:/usr/bin:/sbin:/bin"
-    [[nodes.container.volumeMounts]]    # optional
-    mountPath = ""
-    hostPath = ""
+    [[nodes.container.volume_mounts]]   # optional
+    mount_path = ""
+    host_path = ""
     driver = "local"            # optional ("local"), default: "local"
-    readOnly = false            # optional, default: false
+    read_only = false           # optional, default: false
     [[nodes.container.sysctls]] # optional
     # https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/Documentation/networking/ip-sysctl.rst?h=linux-6.2.y
     key = ""
