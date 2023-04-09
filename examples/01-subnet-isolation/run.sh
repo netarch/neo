@@ -7,11 +7,10 @@ for subnets in 4 8 10 12; do
     hosts=$subnets
     "${CONFGEN[@]}" --subnets $subnets --hosts $hosts > "$CONF"
     for procs in 1 4 8 16 20; do
-        name="$subnets-subnets.$hosts-hosts.$procs-procs"
-        run_with_timeout "$name" "$procs" "$CONF"
-
-        name="$subnets-subnets.$hosts-hosts.$procs-procs.dropmon"
-        run_with_dropmon "$name" "$procs" "$CONF"
+        for drop in "${DROP_METHODS[@]}"; do
+            name="output.$subnets-subnets.$hosts-hosts.$procs-procs.$drop"
+            run "$name" "$procs" "$drop" "$CONF"
+        done
     done
     rm "$CONF"
 done
@@ -21,11 +20,10 @@ for subnets in 4 8 10 12; do
     hosts=$subnets
     "${CONFGEN[@]}" --subnets $subnets --hosts $hosts --fault > "$CONF"
     for procs in 1 4 8 16 20; do
-        name="$subnets-subnets.$hosts-hosts.$procs-procs.fault"
-        run_with_timeout "$name" "$procs" "$CONF"
-
-        name="$subnets-subnets.$hosts-hosts.$procs-procs.fault.dropmon"
-        run_with_dropmon "$name" "$procs" "$CONF"
+        for drop in "${DROP_METHODS[@]}"; do
+            name="output.$subnets-subnets.$hosts-hosts.$procs-procs.$drop.fault"
+            run "$name" "$procs" "$drop" "$CONF"
+        done
     done
     rm "$CONF"
 done
