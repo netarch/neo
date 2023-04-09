@@ -52,6 +52,13 @@ run() {
     sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir"
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
+
+    # If there's any container left, there's an error. Abort the current run.
+    cntrs="$(docker ps -a -q)"
+    if [[ -n "$cntrs" ]]; then
+        docker_clean
+        die "Containers were not cleared up"
+    fi
 }
 
 # extract_per_session_stats() {

@@ -4,7 +4,6 @@ all: $(EXAMPLES)
 
 $(EXAMPLES):
 	./$@/run.sh
-	make clean
 
 clean:
 	make -C ../Dockerfiles clean
