@@ -26,7 +26,7 @@
     name = "fw"
     type = "emulation"
     driver = "docker"
-    docker-daemon = "/var/run/docker.sock"
+    daemon = "/var/run/docker.sock"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.1.1/24"
@@ -35,7 +35,7 @@
     ipv4 = "192.168.2.1/24"
     [nodes.container]
     image = "kyechou/iptables:latest"
-    workingDir = "/"
+    working_dir = "/"
     command = ["/start.sh"]
     config_files = ["/start.sh"]
     [[nodes.container.env]]
