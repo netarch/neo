@@ -30,7 +30,7 @@ def confgen(lbs, servers, algorithm):
             'lb%d' % lb,
             image='kyechou/ipvs:latest',
             working_dir='/',
-            reset_wait_time=5000,  # usec
+            reset_wait_time=3000,  # usec
             command=['/start.sh'])
         load_balancer.add_interface(Interface('eth0', '8.0.%d.2/24' % lb))
         load_balancer.add_interface(Interface('eth1', '9.%d.0.1/16' % lb))

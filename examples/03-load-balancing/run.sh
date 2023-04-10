@@ -11,7 +11,6 @@ for lbs in 2 4; do
             for drop in "${DROP_METHODS[@]}"; do
                 name="output.$lbs-lbs.$srvs-servers.algo-$algo.$procs-procs.$drop"
                 run "$name" "$procs" "$drop" "$CONF"
-                break
             done
         done
         rm "$CONF"
