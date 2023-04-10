@@ -46,11 +46,11 @@ set(SPIN_FLAGS -a -DMAX_CONNS=${MAX_CONNS} -DSIZEOF_VOID_P=${SIZEOF_VOID_P}
 #
 # release/debug compile options
 #
-set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_RELEASE   "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g -O3")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
-set(CMAKE_C_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -fsanitize=address -fno-omit-frame-pointer -fno-common")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO   "-O3 -g")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
+set(CMAKE_C_FLAGS_DEBUG   "-DENABLE_DEBUG -g3 -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_CXX_FLAGS_DEBUG "-DENABLE_DEBUG -g3 -fsanitize=address -fno-omit-frame-pointer -fno-common")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address")
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -92,7 +92,21 @@ find_package(Threads REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
     program_options
+    stacktrace_backtrace
+    stacktrace_noop
 )
+
+#
+# backtrace
+#
+add_library(backtrace_config INTERFACE)
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    target_compile_definitions(backtrace_config INTERFACE BOOST_STACKTRACE_USE_BACKTRACE)
+    target_link_libraries(backtrace_config INTERFACE Boost::stacktrace_backtrace)
+else()
+    target_compile_definitions(backtrace_config INTERFACE BOOST_STACKTRACE_USE_NOOP)
+    target_link_libraries(backtrace_config INTERFACE Boost::stacktrace_noop)
+endif()
 
 #
 # source directory and files
@@ -137,7 +151,7 @@ add_custom_command(
 #
 add_library(libneo OBJECT ${SRC_FILES})
 target_include_directories(libneo PUBLIC ${SRC_DIR})
-target_link_libraries(libneo PUBLIC coverage_config)
+target_link_libraries(libneo PUBLIC coverage_config backtrace_config)
 target_link_libraries(libneo PRIVATE
     Boost::program_options
     CURL::libcurl

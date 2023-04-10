@@ -182,8 +182,8 @@ main() {
         bpf_deps=(libelf zlib binutils libcap clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
                  "${bpf_deps[@]}"
-                 glibc libnet libnl boost curl pcapplusplus python-toml
-                 spin-git docker)
+                 glibc libnet libnl boost boost-stacktrace-backtrace curl
+                 pcapplusplus python-toml spin-git docker)
         non_local_depends=()
 
         for dep in "${depends[@]}"; do

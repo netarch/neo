@@ -6,7 +6,8 @@ arch=('any')
 url="https://github.com/netarch/neo"
 license=()
 depends=(cmake clang yapf libelf zlib binutils libcap llvm glibc libnet libnl
-         boost curl pcapplusplus python-toml spin-git docker)
+         boost boost-stacktrace-backtrace curl pcapplusplus python-toml spin-git
+         docker)
 makedepends=()
 checkdepends=()
 optdepends=()

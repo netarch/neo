@@ -3,20 +3,23 @@
 #include <clocale>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <string>
+
+#include <boost/stacktrace.hpp>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
-#include <string>
 
 // [second.microsecond] [pid] [log_level] log_msg
 #define LOG_PATTERN "[%E.%f] [%P] [%^%L%L%$] %v"
 
 using namespace std;
+namespace st = boost::stacktrace;
 
 Logger logger; // global logger
 
-Logger::Logger(const std::string &name) : _name(name) {}
+Logger::Logger(const string &name) : _name(name) {}
 
 void Logger::enable_console_logging() {
     if (!this->_stdout_logger) {
@@ -38,7 +41,7 @@ void Logger::disable_console_logging() {
     }
 }
 
-void Logger::enable_file_logging(const std::string &filename, bool append) {
+void Logger::enable_file_logging(const string &filename, bool append) {
     if (this->filename() != filename) {
         disable_file_logging();
         this->_file_logger =
@@ -61,16 +64,16 @@ void Logger::disable_file_logging() {
     }
 }
 
-std::string Logger::filename() {
+string Logger::filename() {
     if (this->_file_logger) {
-        return std::static_pointer_cast<spdlog::sinks::basic_file_sink_st>(
+        return static_pointer_cast<spdlog::sinks::basic_file_sink_st>(
                    this->_file_logger->sinks()[0])
             ->filename();
     }
     return "";
 }
 
-void Logger::debug(const std::string &msg) {
+void Logger::debug(const string &msg) {
     if (this->_stdout_logger) {
         this->_stdout_logger->debug(msg);
     }
@@ -79,7 +82,7 @@ void Logger::debug(const std::string &msg) {
     }
 }
 
-void Logger::info(const std::string &msg) {
+void Logger::info(const string &msg) {
     if (this->_stdout_logger) {
         this->_stdout_logger->info(msg);
     }
@@ -88,7 +91,7 @@ void Logger::info(const std::string &msg) {
     }
 }
 
-void Logger::warn(const std::string &msg) {
+void Logger::warn(const string &msg) {
     if (this->_stdout_logger) {
         this->_stdout_logger->warn(msg);
     }
@@ -97,19 +100,20 @@ void Logger::warn(const std::string &msg) {
     }
 }
 
-void Logger::error(const std::string &msg) {
+void Logger::error(const string &msg) {
+    string msg_with_trace = msg + "\n" + st::to_string(st::stacktrace());
     if (this->_stdout_logger) {
-        this->_stdout_logger->error(msg);
+        this->_stdout_logger->error(msg_with_trace);
     }
     if (this->_file_logger) {
-        this->_file_logger->error(msg);
+        this->_file_logger->error(msg_with_trace);
     }
     throw runtime_error(msg);
 }
 
-void Logger::error(const std::string &msg, int err_num) {
+void Logger::error(const string &msg, int err_num) {
     locale_t locale = newlocale(LC_ALL_MASK, "", 0);
-    std::string err_str = strerror_l(err_num, locale);
+    string err_str = strerror_l(err_num, locale);
     freelocale(locale);
     error(msg + ": " + err_str);
 }
