@@ -57,6 +57,7 @@ run() {
     cntrs="$(docker ps -a -q)"
     if [[ -n "$cntrs" ]]; then
         docker_clean
+        sudo pkill -9 neo
         die "Containers were not cleared up"
     fi
 }
