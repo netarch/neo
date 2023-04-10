@@ -101,13 +101,20 @@ void Logger::warn(const string &msg) {
 }
 
 void Logger::error(const string &msg) {
-    string msg_with_trace = msg + "\n" + st::to_string(st::stacktrace());
+    auto trace = st::stacktrace();
+    string msg_with_trace = msg;
+
+    if (!trace.empty()) {
+        msg_with_trace += "\n" + st::to_string(trace);
+    }
+
     if (this->_stdout_logger) {
         this->_stdout_logger->error(msg_with_trace);
     }
     if (this->_file_logger) {
         this->_file_logger->error(msg_with_trace);
     }
+
     throw runtime_error(msg);
 }
 
