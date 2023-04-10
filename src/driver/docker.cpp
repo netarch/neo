@@ -462,6 +462,7 @@ void Docker::reset() {
 
     // Restart the container, it will also kill exec processes
     _dapi.restart_cntr(_cntr_name);
+    usleep(_node->reset_wait_time());
     _pid = _dapi.get_cntr_pid(_cntr_name);
     _execs.clear();
     fetchns();

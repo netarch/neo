@@ -199,6 +199,7 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 
     auto image = cntr_cfg->get_as<string>("image");
     auto working_dir = cntr_cfg->get_as<string>("working_dir");
+    auto reset_wait_time = cntr_cfg->get_as<int64_t>("reset_wait_time");
     auto command = cntr_cfg->get_as<toml::array>("command");
     auto args = cntr_cfg->get_as<toml::array>("args");
     auto cfg_files = cntr_cfg->get_as<toml::array>("config_files");
@@ -227,6 +228,15 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
         dn._working_dir = **working_dir;
     } else {
         logger.error("Missing container working_dir");
+    }
+
+    if (reset_wait_time) {
+        if (**reset_wait_time < 0) {
+            logger.error("Invalid reset_wait_time: " +
+                         to_string(**reset_wait_time));
+        }
+
+        dn._reset_wait_time = **reset_wait_time;
     }
 
     if (command) {

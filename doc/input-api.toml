@@ -29,6 +29,7 @@
     # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
     image = "alpine:3.17"
     working_dir = "/"
+    reset_wait_time = 0         # optional (# usec), default: 0
     command = ["/bin/sh"]       # optional
     args = []                   # optional
     config_files = []           # optional
