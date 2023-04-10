@@ -55,12 +55,17 @@ def confgen(apps, hosts, fault):
     agg1_sink.add_interface(Interface('eth0', '8.0.2.1/24'))
     agg1_sink.add_interface(Interface('eth1', '8.0.0.2/24'))
     agg1_sink.add_static_route(Route('0.0.0.0/0', '8.0.2.2'))
-    fw1 = Middlebox('fw1', 'netns', 'netfilter')
+    fw1 = DockerNode('fw1',
+                     image='kyechou/iptables:latest',
+                     working_dir='/',
+                     command=['/start.sh'])
     fw1.add_interface(Interface('eth0', '8.0.2.2/24'))
     fw1.add_interface(Interface('eth1', '8.0.3.1/24'))
     fw1.add_static_route(Route('0.0.0.0/0', '8.0.3.2'))
-    fw1.add_config('rp_filter', 0)
-    fw1.add_config('rules', fw_rules)
+    fw1.add_env_var('RULES', fw_rules)
+    fw1.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+    fw1.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
+    fw1.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
     agg1_source = Node('agg1-source')
     agg1_source.add_interface(Interface('eth0', '8.0.3.2/24'))
     agg1_source.add_interface(Interface('eth1', '8.0.1.2/24'))
@@ -71,15 +76,17 @@ def confgen(apps, hosts, fault):
     agg2_sink.add_interface(Interface('eth0', '8.0.6.1/24'))
     agg2_sink.add_interface(Interface('eth1', '8.0.4.2/24'))
     agg2_sink.add_static_route(Route('0.0.0.0/0', '8.0.6.2'))
-    fw2 = Middlebox('fw2', 'netns', 'netfilter')
+    fw2 = DockerNode('fw2',
+                     image='kyechou/iptables:latest',
+                     working_dir='/',
+                     command=['/start.sh'])
     fw2.add_interface(Interface('eth0', '8.0.6.2/24'))
     fw2.add_interface(Interface('eth1', '8.0.7.1/24'))
     fw2.add_static_route(Route('0.0.0.0/0', '8.0.7.2'))
-    fw2.add_config('rp_filter', 0)
-    if fault:
-        fw2.add_config('rules', wrong_fw_rules)
-    else:
-        fw2.add_config('rules', fw_rules)
+    fw2.add_env_var('RULES', fw_rules if not fault else wrong_fw_rules)
+    fw2.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+    fw2.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
+    fw2.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
     agg2_source = Node('agg2-source')
     agg2_source.add_interface(Interface('eth0', '8.0.7.2/24'))
     agg2_source.add_interface(Interface('eth1', '8.0.5.2/24'))
