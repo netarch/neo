@@ -1,6 +1,6 @@
 [[nodes]]
     name = "h0"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.1/30"
@@ -9,25 +9,31 @@
     next_hop = "192.168.0.2"
 [[nodes]]
     name = "h1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.1.1/30"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "8.8.8.1/24"
     [[nodes.static_routes]]
     network = "0.0.0.0/0"
     next_hop = "192.168.1.2"
 [[nodes]]
     name = "h2"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.2.1/30"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "8.8.8.2/24"
     [[nodes.static_routes]]
     network = "0.0.0.0/0"
     next_hop = "192.168.2.2"
 [[nodes]]
     name = "r0"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.2/30"
@@ -37,6 +43,21 @@
     [[nodes.interfaces]]
     name = "eth2"
     ipv4 = "192.168.2.2/30"
+[[nodes]]
+    name = "s1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+[[nodes]]
+    name = "server"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "8.8.8.8/24"
 [[links]]
     node1 = "h0"
     intf1 = "eth0"
@@ -52,6 +73,21 @@
     intf1 = "eth0"
     node2 = "r0"
     intf2 = "eth2"
+[[links]]
+    node1 = "h1"
+    intf1 = "eth1"
+    node2 = "s1"
+    intf2 = "eth1"
+[[links]]
+    node1 = "h2"
+    intf1 = "eth1"
+    node2 = "s1"
+    intf2 = "eth2"
+[[links]]
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "s1"
+    intf2 = "eth0"
 
 [openflow]
     [[openflow.updates]]
@@ -63,21 +99,21 @@
     network = "8.8.8.8/32"
     outport = "eth2"
 
-[[policies]]
+[[invariants]]
     type = "waypoint"
     target_node = "h1"
     pass_through = false
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "tcp"
     src_node = "h0"
     dst_ip = "8.8.8.8"
-    dst_port = 80
-[[policies]]
+    dst_port = [80]
+[[invariants]]
     type = "waypoint"
     target_node = "h2"
-    pass_through = false
-    [[policies.connections]]
+    pass_through = true
+    [[invariants.connections]]
     protocol = "tcp"
     src_node = "h0"
     dst_ip = "8.8.8.8"
-    dst_port = 80
+    dst_port = [80]
