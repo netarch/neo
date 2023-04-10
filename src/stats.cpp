@@ -114,6 +114,12 @@ void Stats::stop(Op op) {
 
 void Stats::set_rewind_injection_count(int n) {
     _rewind_injection_count.push_back(n);
+
+    for (int i = 0; i < n; ++i) {
+        _latencies.at(Op::PKT_LAT).pop_back();
+        _latencies.at(Op::DROP_LAT).pop_back();
+        _latencies.at(Op::TIMEOUT).pop_back();
+    }
 }
 
 void Stats::reset() {
