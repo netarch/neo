@@ -1,5 +1,6 @@
 TARGETS = \
-	iptables
+	iptables \
+	ipvs
 
 PUSH_TARGETS = $(TARGETS:%=%-push)
 
