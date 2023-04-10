@@ -792,6 +792,7 @@ void ConfigParser::parse_conn_spec(ConnSpec &conn_spec,
     auto dst_ip_str = config.get_as<string>("dst_ip");
     auto src_port = config.get_as<int64_t>("src_port");
     auto dst_ports = config.get_as<toml::array>("dst_port");
+    auto dport_int = config.get_as<int64_t>("dst_port");
     auto owned_dst_only = config.get_as<bool>("owned_dst_only");
 
     if (!proto_str) {
@@ -835,6 +836,8 @@ void ConfigParser::parse_conn_spec(ConnSpec &conn_spec,
             for (const auto &dst_port : *dst_ports) {
                 conn_spec.dst_ports.insert(**dst_port.as_integer());
             }
+        } else if (dport_int) {
+            conn_spec.dst_ports.insert(**dport_int);
         }
     }
 
