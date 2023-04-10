@@ -57,11 +57,13 @@ int LoadBalance::check_violation() {
         // logger.debug(new_reach_counts.to_string());
 
         if (target_nodes.count(rx_node)) {
-            double current_dispersion_index =
+            double dispersion_index =
                 compute_dispersion_index(target_nodes, new_reach_counts);
-            if (current_dispersion_index > max_dispersion_index) {
-                logger.info("Current dispersion index: " +
-                            std::to_string(current_dispersion_index));
+            logger.info("Dispersion index: " +
+                        std::to_string(dispersion_index));
+            if (dispersion_index > max_dispersion_index) {
+                logger.warn("Dispersion index larger than the maximum " +
+                            std::to_string(max_dispersion_index));
                 model.set_violated(true); // violation
                 model.set_choice_count(0);
             }
