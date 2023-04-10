@@ -14,8 +14,7 @@ fi
 
 iptables -F
 iptables -Z
-# shellcheck disable=SC3001
-iptables-restore <(echo "$RULES")
+echo "$RULES" | iptables-restore
 trap sig_handler HUP INT QUIT ABRT TERM
 sleep infinity &
 wait

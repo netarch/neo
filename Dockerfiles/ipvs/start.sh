@@ -14,7 +14,6 @@ fi
 
 iptables -F
 iptables -Z
-# shellcheck disable=SC3001
 iptables-restore <<EOF
 *filter
 :INPUT ACCEPT [0:0]
@@ -24,8 +23,7 @@ COMMIT
 EOF
 
 ipvsadm -C
-# shellcheck disable=SC3001
-ipvsadm -R <(echo "$RULES")
+echo "$RULES" | ipvsadm -R
 
 trap sig_handler HUP INT QUIT ABRT TERM
 sleep infinity &
