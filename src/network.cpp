@@ -59,6 +59,7 @@ void Network::reset() {
     }
 
     this->_nodes.clear();
+    this->_mbs.clear();
 
     for (const auto &link : this->_links) {
         delete link;
