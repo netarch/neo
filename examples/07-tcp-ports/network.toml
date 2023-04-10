@@ -130,7 +130,7 @@ COMMIT
     node2 = "h3"
     intf2 = "eth0"
 
-# Policy:
+# Invariants:
 #   1. Outgoing packets are always allowed.
 #   2. Incoming replies to past requests are allowed.
 #   3. Incoming connections are always denied. (violation)

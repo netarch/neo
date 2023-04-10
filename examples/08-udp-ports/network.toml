@@ -1,6 +1,6 @@
 [[nodes]]
     name = "h1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.1/24"
@@ -9,7 +9,7 @@
     next_hop = "192.168.0.254"
 [[nodes]]
     name = "h2"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.2/24"
@@ -18,7 +18,7 @@
     next_hop = "192.168.0.254"
 [[nodes]]
     name = "h3"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.0.3/24"
@@ -27,7 +27,7 @@
     next_hop = "192.168.0.254"
 [[nodes]]
     name = "s1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     [[nodes.interfaces]]
@@ -38,7 +38,7 @@
     name = "eth3"
 [[nodes]]
     name = "r1"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "192.168.1.2/24"
@@ -50,10 +50,17 @@
     next_hop = "192.168.1.1"
 [[nodes]]
     name = "fw"
-    type = "middlebox"
-    env = "netns"
-    app = "netfilter"
-    rules = """
+    type = "emulation"
+    driver = "docker"
+    daemon = "/var/run/docker.sock"
+    [nodes.container]
+    image = "kyechou/iptables:latest"
+    working_dir = "/"
+    command = ["/start.sh"]
+    config_files = ["/start.sh"]
+    [[nodes.container.env]]
+    name = "RULES"
+    value = """
 *filter
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
@@ -64,6 +71,15 @@
 -A FORWARD -i eth0 -p udp -d 192.168.0.1 --dport 2222 -j ACCEPT
 COMMIT
 """
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.forwarding"
+    value = "1"
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.rp_filter"
+    value = "0"
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.default.rp_filter"
+    value = "0"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.2/24"
@@ -75,7 +91,7 @@ COMMIT
     next_hop = "192.168.1.2"
 [[nodes]]
     name = "server"
-    type = "generic"
+    type = "model"
     [[nodes.interfaces]]
     name = "eth0"
     ipv4 = "10.0.0.1/24"
@@ -114,54 +130,54 @@ COMMIT
     node2 = "h3"
     intf2 = "eth0"
 
-# Policy:
+# Invariants:
 #   1. Outgoing packets are always allowed.
 #   2. Incoming replies to past requests are allowed.
 #   3. Incoming connections are always denied. (violation)
 #   4. Incoming port 22 connections are allowed.
 #   5. Incoming connections to h1 port 2222 are allowed.
 
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "server"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "udp"
     src_node = "h[123]"
     dst_ip = "10.0.0.1"
-[[policies]]
+[[invariants]]
     type = "reply-reachability"
     target_node = "server"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "udp"
     src_node = "h[123]"
     dst_ip = "10.0.0.1"
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "h[123]|r1"
     reachable = false
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "udp"
     src_node = "server"
     dst_ip = "192.168.0.0/24"
     owned_dst_only = true
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "h[123]|r1"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "udp"
     src_node = "server"
     dst_ip = "192.168.0.0/24"
-    dst_port = 22
+    dst_port = [22]
     owned_dst_only = true
-[[policies]]
+[[invariants]]
     type = "reachability"
     target_node = "h1"
     reachable = true
-    [[policies.connections]]
+    [[invariants.connections]]
     protocol = "udp"
     src_node = "server"
     dst_ip = "192.168.0.1"
-    dst_port = 2222
+    dst_port = [2222]
