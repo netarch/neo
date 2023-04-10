@@ -26,10 +26,12 @@ def confgen(lbs, servers, algorithm):
 
     ## add the load balancers, switches, and servers
     for lb in range(1, lbs + 1):
-        load_balancer = DockerNode('lb%d' % lb,
-                                   image='kyechou/ipvs:latest',
-                                   working_dir='/',
-                                   command=['/start.sh'])
+        load_balancer = DockerNode(
+            'lb%d' % lb,
+            image='kyechou/ipvs:latest',
+            working_dir='/',
+            reset_wait_time=5000,  # usec
+            command=['/start.sh'])
         load_balancer.add_interface(Interface('eth0', '8.0.%d.2/24' % lb))
         load_balancer.add_interface(Interface('eth1', '9.%d.0.1/16' % lb))
         load_balancer.add_static_route(Route('0.0.0.0/0', '8.0.%d.1' % lb))
@@ -63,7 +65,7 @@ def confgen(lbs, servers, algorithm):
     #for lb in range(1, lbs + 1):
     lb = 1
     inv = LoadBalance(target_node='server%d\.[0-9]+' % lb,
-                      max_dispersion_index=2.0)
+                      max_dispersion_index=2.5)
     num_conns = int(lbs * 1.5)
     for repeat in range(num_conns):
         inv.add_connection(
