@@ -114,7 +114,7 @@
 [[invariants]]
     type = "loadbalance"
     target_node = "node name regex"
-    max_dispersion_index = 1        # optional, default: 1
+    max_dispersion_index = 1.0      # optional, default: 1.0
     [[invariants.connections]]
     # < connection spec >
 

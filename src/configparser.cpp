@@ -717,6 +717,7 @@ void ConfigParser::parse_loadbalance(shared_ptr<LoadBalance> &inv,
                                      const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
     auto max_vmr = config.get_as<double>("max_dispersion_index");
+    auto max_vmr_int = config.get_as<int64_t>("max_dispersion_index");
 
     if (!target_node_regex) {
         logger.error("Missing target_node");
@@ -727,7 +728,8 @@ void ConfigParser::parse_loadbalance(shared_ptr<LoadBalance> &inv,
             inv->target_nodes.insert(node.second);
         }
     }
-    inv->max_dispersion_index = max_vmr ? **max_vmr : 1;
+    inv->max_dispersion_index =
+        max_vmr ? **max_vmr : (max_vmr_int ? **max_vmr_int : 1);
     this->parse_connections(inv, config, network);
     assert(inv->_conn_specs.size() >= 1);
 }
