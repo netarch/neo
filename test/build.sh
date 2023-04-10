@@ -44,7 +44,7 @@ parse_params() {
     TESTS=0
     COVERAGE=0
     COMPILER=clang
-    MAX_CONNS=10
+    MAX_CONNS=16
 
     while :; do
         case "${1-}" in
