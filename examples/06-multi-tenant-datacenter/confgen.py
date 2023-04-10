@@ -49,7 +49,10 @@ COMMIT
         ## add routers and firewall
         r1 = Node('r%d.1' % tenant_id)
         r2 = Node('r%d.2' % tenant_id)
-        fw = Middlebox('fw%d' % tenant_id, 'netns', 'netfilter')
+        fw = DockerNode('fw%d' % tenant_id,
+                        image='kyechou/iptables:latest',
+                        working_dir='/',
+                        command=['/start.sh'])
         r1.add_interface(Interface('eth0', '8.0.%d.%d/16' % (X_2, Y_2)))
         r1.add_interface(Interface('eth1', '9.%d.%d.1/30' % (X, Y)))
         r1.add_interface(Interface('eth2', '9.%d.%d.5/30' % (X, Y)))
@@ -65,8 +68,10 @@ COMMIT
         fw.add_static_route(
             Route('10.%d.%d.0/24' % (X, Y), '9.%d.%d.10' % (X, Y)))
         fw.add_static_route(Route('0.0.0.0/0', '9.%d.%d.5' % (X, Y)))
-        fw.add_config('rp_filter', 0)
-        fw.add_config('rules', fw_rules)
+        fw.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+        fw.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
+        fw.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
+        fw.add_env_var('RULES', fw_rules)
         config.add_node(r1)
         config.add_node(r2)
         config.add_node(fw)
