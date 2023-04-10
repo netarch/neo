@@ -8,18 +8,11 @@ for lbs in 2 4; do
     for algo in rr sh dh; do    # round-robin, source-hashing, destination-hashing
         "${CONFGEN[@]}" -l $lbs -s $srvs -a $algo > "$CONF"
         for procs in 1 4 8 16; do
-            # timeout
-            name="$lbs-lbs.$srvs-servers.algo-$algo.DOP-$procs"
-            msg "Verifying $name"
-            sudo "$NEO" -fj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-            sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-            cp "$CONF" "$RESULTS_DIR/$name"
-            # dropmon
-            name="$lbs-lbs.$srvs-servers.algo-$algo.DOP-$procs.dropmon"
-            msg "Verifying $name"
-            sudo "$NEO" -fdj $procs -i "$CONF" -o "$RESULTS_DIR/$name"
-            sudo chown -R "$(id -u):$(id -g)" "$RESULTS_DIR/$name"
-            cp "$CONF" "$RESULTS_DIR/$name"
+            for drop in "${DROP_METHODS[@]}"; do
+                name="output.$lbs-lbs.$srvs-servers.algo-$algo.$procs-procs.$drop"
+                run "$name" "$procs" "$drop" "$CONF"
+                break
+            done
         done
         rm "$CONF"
     done
