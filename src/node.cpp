@@ -77,6 +77,28 @@ Interface *Node::get_interface(const IPv4Address &addr) const {
     return intf->second;
 }
 
+Interface *Node::loopback_intf() const {
+    auto itr1 = intfs.find("lo");
+    if (itr1 != intfs.end()) {
+        return itr1->second;
+    }
+
+    auto itr2 = intfs_l3.find("127.0.0.1");
+    if (itr2 != intfs_l3.end()) {
+        return itr2->second;
+    }
+
+    if (!intfs_l3.empty()) {
+        return intfs_l3.begin()->second;
+    }
+
+    if (!intfs_l2.empty()) {
+        return *intfs_l2.begin();
+    }
+
+    return nullptr;
+}
+
 const std::map<std::string, Interface *> &Node::get_intfs() const {
     return intfs;
 }
@@ -165,7 +187,7 @@ Node::get_ipnhs(const IPv4Address &dst,
         } else {
             // connected route; forward
             FIB_IPNH next_hop = this->get_ipnh(it->get_intf(), dst);
-            if (next_hop.get_l3_node()) { // next hop does exist
+            if (next_hop.l3_node()) { // next hop does exist
                 next_hops.insert(next_hop);
             }
         }

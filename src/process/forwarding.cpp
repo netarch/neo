@@ -79,13 +79,26 @@ void ForwardingProcess::first_forward() {
         // update the source IP address according to the egress interface
         Candidates *candidates = model.get_candidates();
         FIB_IPNH next_hop = candidates->at(model.get_choice());
-        if (next_hop.get_l2_intf()) {
+        if (next_hop.l2_intf()) {
             const Interface *egress_intf =
-                next_hop.get_l2_node()
-                    ->get_peer(next_hop.get_l2_intf()->get_name())
+                next_hop.l2_node()
+                    ->get_peer(next_hop.l2_intf()->get_name())
                     .second;
             model.set_src_ip(egress_intf->addr().get_value());
-        } // else: sender == receiver
+        } else {
+            // sender == receiver
+            Node *current_node = model.get_pkt_location();
+            assert(!next_hop.l3_intf() && !next_hop.l2_intf());
+            assert(next_hop.l3_node() == next_hop.l2_node() &&
+                   next_hop.l2_node() == current_node);
+            Interface *lo_candidate = current_node->loopback_intf();
+            if (lo_candidate->is_l2()) {
+                logger.warn(current_node->to_string() +
+                            " does not have L3 interfaces");
+                logger.error("Loopback interfaces are not fully implemented");
+            }
+            model.set_src_ip(lo_candidate->addr().get_value());
+        }
     }
 
     forward_packet();
@@ -138,8 +151,8 @@ void ForwardingProcess::forward_packet() {
         model.set_path_choices(std::move(new_choices));
     }
 
-    Node *next_hop = candidates->at(model.get_choice()).get_l3_node();
-    Interface *ingress_intf = candidates->at(model.get_choice()).get_l3_intf();
+    Node *next_hop = candidates->at(model.get_choice()).l3_node();
+    Interface *ingress_intf = candidates->at(model.get_choice()).l3_intf();
 
     // When the packet is delivered at its destination
     if (next_hop == current_node) {
@@ -306,6 +319,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
     model.set_fwd_mode(fwd_mode::FIRST_COLLECT);
     model.set_ingress_intf(nullptr);
     model.reset_candidates();
+    model.print_conn_states();
 }
 
 void ForwardingProcess::inject_packet(Middlebox *mb) {
@@ -427,7 +441,7 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
         Candidates candidates;
         FIB_IPNH next_hop = mb->get_ipnh(recv_pkt.get_intf()->get_name(),
                                          recv_pkt.get_dst_ip());
-        if (next_hop.get_l3_node()) {
+        if (next_hop.l3_node()) {
             candidates.add(next_hop);
         } else {
             logger.warn("No next hop found");
