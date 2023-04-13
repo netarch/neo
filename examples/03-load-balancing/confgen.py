@@ -62,19 +62,18 @@ def confgen(lbs, servers, algorithm):
         load_balancer.add_env_var('RULES', lb_config)
 
     ## add invariants
-    #for lb in range(1, lbs + 1):
-    lb = 1
-    inv = LoadBalance(target_node='server%d\.[0-9]+' % lb,
-                      max_dispersion_index=2.5)
-    num_conns = int(lbs * 1.5)
-    for repeat in range(num_conns):
-        inv.add_connection(
-            Connection(protocol='tcp',
-                       src_node=internet_node.name,
-                       dst_ip='8.0.%d.2' % lb,
-                       src_port=50000 + repeat,
-                       dst_port=[80]))
-    config.add_invariant(inv)
+    for lb in range(1, lbs + 1):
+        inv = LoadBalance(target_node='server%d\.[0-9]+' % lb,
+                          max_dispersion_index=2.5)
+        num_conns = int(lbs * 1.5)
+        for repeat in range(num_conns):
+            inv.add_connection(
+                Connection(protocol='tcp',
+                           src_node=internet_node.name,
+                           dst_ip='8.0.%d.2' % lb,
+                           src_port=50000 + repeat,
+                           dst_port=[80]))
+        config.add_invariant(inv)
 
     ## output as TOML
     config.output_toml()
