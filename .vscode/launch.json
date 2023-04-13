@@ -38,6 +38,10 @@
         {
           "description": "Follow forked children",
           "text": "-gdb-set follow-fork-mode child"
+        },
+        {
+          "description": "Ignore SIGUSR1",
+          "text": "handle SIGUSR1 nostop"
         }
       ]
     },
@@ -78,6 +82,10 @@
         {
           "description": "Follow forked children",
           "text": "-gdb-set follow-fork-mode child"
+        },
+        {
+          "description": "Ignore SIGUSR1",
+          "text": "handle SIGUSR1 nostop"
         }
       ]
     },
@@ -118,6 +126,10 @@
         {
           "description": "Follow forked children",
           "text": "-gdb-set follow-fork-mode child"
+        },
+        {
+          "description": "Ignore SIGUSR1",
+          "text": "handle SIGUSR1 nostop"
         }
       ]
     },
@@ -158,6 +170,54 @@
         {
           "description": "Follow forked children",
           "text": "-gdb-set follow-fork-mode child"
+        },
+        {
+          "description": "Ignore SIGUSR1",
+          "text": "handle SIGUSR1 nostop"
+        }
+      ]
+    },
+    {
+      "name": "09 (timeout)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/neo",
+      "args": [
+        "-f",
+        "-d",
+        "timeout",
+        "-i",
+        "${workspaceFolder}/examples/09-icmp-echo/network.toml",
+        "-o",
+        "${workspaceFolder}/examples/09-icmp-echo/results/debug"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=0"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "${workspaceFolder}/test/gdb_root.sh",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing"
+        },
+        {
+          "description": "Set Disassembly Flavor to AT&T",
+          "text": "-gdb-set disassembly-flavor att"
+        },
+        {
+          "description": "Follow forked children",
+          "text": "-gdb-set follow-fork-mode child"
+        },
+        {
+          "description": "Ignore SIGUSR1",
+          "text": "handle SIGUSR1 nostop"
         }
       ]
     },
@@ -179,6 +239,10 @@
         {
           "description": "Follow forked children",
           "text": "-gdb-set follow-fork-mode child"
+        },
+        {
+          "description": "Ignore SIGUSR1",
+          "text": "handle SIGUSR1 nostop"
         }
       ]
     }
