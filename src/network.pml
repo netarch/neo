@@ -1,6 +1,7 @@
 #ifndef SIZEOF_VOID_P
 #define SIZEOF_VOID_P 8
 #endif
+
 #ifndef SIZEOF_INT
 #define SIZEOF_INT 4
 #endif
