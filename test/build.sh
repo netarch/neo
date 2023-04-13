@@ -44,7 +44,7 @@ parse_params() {
     TESTS=0
     COVERAGE=0
     COMPILER=clang
-    MAX_CONNS=16
+    MAX_CONNS=0
 
     while :; do
         case "${1-}" in
@@ -88,37 +88,39 @@ main() {
     cd "${PROJECT_DIR}"
     git submodule update --init --recursive
 
-    if [ $REBUILD -ne 0 ] || [ $CLEAN -ne 0 ]; then
+    if [[ $REBUILD -ne 0 ]] || [[ $CLEAN -ne 0 ]]; then
         # clean up old builds
         git submodule foreach --recursive git clean -xdf
         rm -rf "${BUILD_DIR}"
 
-        if [ $CLEAN -ne 0 ]; then
+        if [[ $CLEAN -ne 0 ]]; then
             return
         fi
     fi
 
-    if [ $DEBUG -ne 0 ]; then
+    if [[ $DEBUG -ne 0 ]]; then
         CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug')
     else
         CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Release')
     fi
-    if [ $TESTS -ne 0 ]; then
+    if [[ $TESTS -ne 0 ]]; then
         CMAKE_ARGS+=('-DENABLE_TESTS=ON')
     else
         CMAKE_ARGS+=('-DENABLE_TESTS=OFF')
     fi
-    if [ $COVERAGE -ne 0 ]; then
+    if [[ $COVERAGE -ne 0 ]]; then
         CMAKE_ARGS+=('-DENABLE_COVERAGE=ON')
     else
         CMAKE_ARGS+=('-DENABLE_COVERAGE=OFF')
     fi
-    if [ "$COMPILER" = 'clang' ]; then
+    if [[ "$COMPILER" = 'clang' ]]; then
         CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
-    elif [ "$COMPILER" = 'gcc' ]; then
+    elif [[ "$COMPILER" = 'gcc' ]]; then
         CMAKE_ARGS+=('-DCMAKE_C_COMPILER=gcc' '-DCMAKE_CXX_COMPILER=g++')
     fi
-    CMAKE_ARGS+=("-DMAX_CONNS=${MAX_CONNS}")
+    if [[ "$MAX_CONNS" -ne 0 ]]; then
+        CMAKE_ARGS+=("-DMAX_CONNS=${MAX_CONNS}")
+    fi
 
     # configure and build
     cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" "${CMAKE_ARGS[@]}"

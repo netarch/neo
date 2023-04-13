@@ -61,7 +61,7 @@ main() {
     EXAMPLES_DIR="$(realpath "${SCRIPT_DIR}"/../examples)"
     TARGET_DIRS=("$SRC_DIR" "$TEST_DIR" "$EXAMPLES_DIR")
 
-    if [ $OVERWRITE -eq 0 ]; then
+    if [[ $OVERWRITE -eq 0 ]]; then
         # C++: clang-format
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror --dry-run {} +
