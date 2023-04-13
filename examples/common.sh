@@ -26,15 +26,13 @@ if [ -z "${SCRIPT_DIR+x}" ]; then
 fi
 
 NEO="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../build/neo)"
-CONF="${SCRIPT_DIR}/network.toml"
-CONFGEN=("python3" "${SCRIPT_DIR}/confgen.py")
+CONF="$SCRIPT_DIR/network.toml"
+CONFGEN=("python3" "$SCRIPT_DIR/confgen.py")
 DROP_METHODS=("timeout" "dropmon" "ebpf")
-RESULTS_DIR="$(realpath "${SCRIPT_DIR}/results")"
+RESULTS_DIR="$(realpath "$SCRIPT_DIR/results")"
 export CONF
 export CONFGEN
 export DROP_METHODS
-
-mkdir -p "${RESULTS_DIR}"
 
 docker_clean() {
     dockerfiles_dir="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../Dockerfiles)"
@@ -61,6 +59,27 @@ run() {
         die "Containers were not cleared up. Something went wrong."
     fi
 }
+
+_main() {
+    mkdir -p "$RESULTS_DIR"
+
+    while :; do
+        case "${1-}" in
+        -d | --debug)
+            # https://github.com/google/sanitizers/wiki/AddressSanitizerFlags#run-time-flags
+            ASAN_OPTIONS="${ASAN_OPTIONS:-verbosity=1:debug=true}"
+            ;;
+        --) shift; break ;;
+        -?*) die "Unknown option: ${1-}" ;;
+        *) break ;;
+        esac
+        shift
+    done
+
+    export ASAN_OPTIONS
+}
+
+_main "$@"
 
 # extract_per_session_stats() {
 #     dir="$1"
