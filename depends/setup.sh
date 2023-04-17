@@ -179,7 +179,7 @@ main() {
         script_deps=(base-devel curl git)
         build_deps=(cmake clang)
         style_deps=(clang yapf)
-        bpf_deps=(libelf zlib binutils libcap clang llvm)
+        bpf_deps=(libelf zlib binutils libcap clang llvm lib32-glibc)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
                  "${bpf_deps[@]}"
                  glibc libnet libnl boost boost-stacktrace-backtrace curl
