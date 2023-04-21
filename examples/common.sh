@@ -55,13 +55,16 @@ run() {
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
 
-    # If there's any container left, there's an error. Abort the current run.
+    # Clean up containers and processes
+    set +e
     cntrs="$(docker ps -a -q)"
     if [[ -n "$cntrs" ]]; then
+        sleep 1
         docker_clean
-        sudo pkill -9 neo || true
-        die "Containers were not cleared up. Something went wrong."
+        sudo pkill -9 neo
+        warn "Containers were not cleared up. Something went wrong."
     fi
+    set -e
 }
 
 _main() {
