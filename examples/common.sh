@@ -56,10 +56,10 @@ run() {
     cp "$infile" "$outdir/network.toml"
 
     # Clean up containers and processes
+    sleep 5
     set +e
     cntrs="$(docker ps -a -q)"
     if [[ -n "$cntrs" ]]; then
-        sleep 1
         docker_clean
         sudo pkill -9 neo
         warn "Containers were not cleared up. Something went wrong."
