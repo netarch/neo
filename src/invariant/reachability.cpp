@@ -28,7 +28,8 @@ int Reachability::check_violation() {
     int mode = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 
-    if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(proto_state)) {
+    if ((mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(proto_state)) ||
+        (mode == fwd_mode::FIRST_FORWARD && PS_REQ_ACK_OR_REP(proto_state))) {
         reached = (target_nodes.count(model.get_rx_node()) > 0);
     } else if (mode == fwd_mode::DROPPED) {
         reached = false;

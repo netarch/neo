@@ -32,7 +32,9 @@ int ReplyReachability::check_violation() {
         (PS_IS_ICMP_ECHO(proto_state) && proto_state < PS_ICMP_ECHO_REP)) {
         // request
         Node *rx_node = model.get_rx_node();
-        if ((mode == fwd_mode::ACCEPTED && target_nodes.count(rx_node) == 0) ||
+        if (((mode == fwd_mode::ACCEPTED || (mode == fwd_mode::FIRST_FORWARD &&
+                                             PS_REQ_ACK_OR_REP(proto_state))) &&
+             target_nodes.count(rx_node) == 0) ||
             mode == fwd_mode::DROPPED) {
             // if the request is accepted by a wrong node or dropped
             model.set_violated(reachable);

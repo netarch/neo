@@ -54,6 +54,7 @@ static inline std::string proto_str_lower(int n) {
     ((x) == PS_TCP_L7_REQ || (x) == PS_UDP_REQ || (x) == PS_ICMP_ECHO_REQ)
 #define PS_IS_REPLY(x)                                                         \
     ((x) == PS_TCP_L7_REP || (x) == PS_UDP_REP || (x) == PS_ICMP_ECHO_REP)
+#define PS_REQ_ACK_OR_REP(x) ((x) == PS_TCP_L7_REQ_A || PS_IS_REPLY(x))
 #define PS_IS_FIRST(x)                                                         \
     ((x) == PS_TCP_INIT_1 || (x) == PS_UDP_REQ || (x) == PS_ICMP_ECHO_REQ)
 #define PS_IS_LAST(x)                                                          \

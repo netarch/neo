@@ -443,6 +443,17 @@ void Net::convert_proto_state(Packet &pkt, uint16_t old_proto_state) const {
                 assert(!pkt.opposite_dir());
                 break;
             case PS_TCP_L7_REQ:
+                if (payloadlen == 0) {
+                    proto_state = old_proto_state + 1;
+                    assert(pkt.opposite_dir());
+                } else {
+                    if (pkt.opposite_dir()) {
+                        proto_state = old_proto_state + 2;
+                    } else {
+                        proto_state = old_proto_state;
+                    }
+                }
+                break;
             case PS_TCP_L7_REP:
                 if (payloadlen == 0) {
                     proto_state = old_proto_state + 1;
