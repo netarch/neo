@@ -1,0 +1,98 @@
+[[nodes]]
+    name = "h1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "9.0.0.1/8"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "9.0.1.1"
+[[nodes]]
+    name = "h2"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "9.0.0.2/8"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "9.0.1.1"
+[[nodes]]
+    name = "s1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+[[nodes]]
+    name = "r1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "9.0.1.1/8"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "10.0.0.1/8"
+[[nodes]]
+    name = "echo-server"
+    type = "emulation"
+    driver = "docker"
+    daemon = "/var/run/docker.sock"
+    [nodes.container]
+    image = "hashicorp/http-echo:latest"
+    working_dir = "/"
+    command = [
+        "/http-echo",
+        "-text=\"hello world\"",
+        "-listen=:80"
+    ]
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.forwarding"
+    value = "1"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/8"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "10.0.0.1"
+
+[[links]]
+    node1 = "echo-server"
+    intf1 = "eth0"
+    node2 = "r1"
+    intf2 = "eth1"
+[[links]]
+    node1 = "r1"
+    intf1 = "eth0"
+    node2 = "s1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth1"
+    node2 = "h1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth2"
+    node2 = "h2"
+    intf2 = "eth0"
+
+[[invariants]]
+    type = "reachability"
+    target_node = "echo-server"
+    reachable = true
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "h[12]"
+    dst_ip = "10.0.0.2"
+    dst_port = 80
+[[invariants]]
+    type = "reply-reachability"
+    target_node = "echo-server"
+    reachable = true
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "h[12]"
+    dst_ip = "10.0.0.2"
+    dst_port = 80
