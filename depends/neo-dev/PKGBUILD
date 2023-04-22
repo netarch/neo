@@ -7,7 +7,8 @@ url="https://github.com/netarch/neo"
 license=()
 depends=(cmake clang yapf libelf zlib binutils libcap llvm lib32-glibc glibc
          libnet libnl boost boost-stacktrace-backtrace curl pcapplusplus
-         python-toml spin-git docker)
+         python-toml spin-git docker python-pandas python-numpy
+         python-matplotlib)
 makedepends=()
 checkdepends=()
 optdepends=()
