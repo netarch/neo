@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
 from config import *
 
 
-def confgen(tenants, updates, servers):
+def confgen(tenants, updates, servers, model_only=False):
     config = Config()
 
     ## firewall rules
@@ -49,10 +49,13 @@ COMMIT
         ## add routers and firewall
         r1 = Node('r%d.1' % tenant_id)
         r2 = Node('r%d.2' % tenant_id)
-        fw = DockerNode('fw%d' % tenant_id,
-                        image='kyechou/iptables:latest',
-                        working_dir='/',
-                        command=['/start.sh'])
+        if model_only:
+            fw = Node('fw%d' % tenant_id)
+        else:
+            fw = DockerNode('fw%d' % tenant_id,
+                            image='kyechou/iptables:latest',
+                            working_dir='/',
+                            command=['/start.sh'])
         r1.add_interface(Interface('eth0', '8.0.%d.%d/16' % (X_2, Y_2)))
         r1.add_interface(Interface('eth1', '9.%d.%d.1/30' % (X, Y)))
         r1.add_interface(Interface('eth2', '9.%d.%d.5/30' % (X, Y)))
@@ -68,10 +71,11 @@ COMMIT
         fw.add_static_route(
             Route('10.%d.%d.0/24' % (X, Y), '9.%d.%d.10' % (X, Y)))
         fw.add_static_route(Route('0.0.0.0/0', '9.%d.%d.5' % (X, Y)))
-        fw.add_sysctl('net.ipv4.conf.all.forwarding', '1')
-        fw.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
-        fw.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
-        fw.add_env_var('RULES', fw_rules)
+        if not model_only:
+            fw.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+            fw.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
+            fw.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
+            fw.add_env_var('RULES', fw_rules)
         config.add_node(r1)
         config.add_node(r2)
         config.add_node(fw)
@@ -151,6 +155,11 @@ def main():
                         '--servers',
                         type=int,
                         help='Number of servers within each tenant')
+    parser.add_argument('-m',
+                        '--model',
+                        action='store_true',
+                        default=False,
+                        help='Use only models without emulations')
     arg = parser.parse_args()
 
     if not arg.tenants or arg.tenants > 65533:
@@ -160,7 +169,7 @@ def main():
     if not arg.servers or arg.servers > 253:
         sys.exit('Invalid number of servers per tenant: ' + str(arg.servers))
 
-    confgen(arg.tenants, arg.updates, arg.servers)
+    confgen(arg.tenants, arg.updates, arg.servers, arg.model)
 
 
 if __name__ == '__main__':
