@@ -1160,41 +1160,30 @@ def plot_perf_vs_tenants(df, outDir):
         df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
         df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
 
-        # Plot time
         time_df = df.pivot(index='tenants',
                            columns='updates',
                            values='inv_time').reset_index()
-        ax = time_df.plot(
-            x='tenants',
-            y=['None', 'Half-tenant', 'All-tenant'],
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=0,
-        )
-        ax.grid(axis='y')
-        ax.legend(ncol=1, fontsize=16)
-        ax.set_yscale('log')
-        ax.set_xlabel('Tenants', fontsize=20)
-        ax.set_ylabel('Time (seconds)', fontsize=20)
-        ax.tick_params(axis='both', which='both', labelsize=18)
-        ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        fig = ax.get_figure()
-        fn = os.path.join(outDir,
-                          ('06.multi-tenant.time.inv-' + str(inv) + '.' +
-                           str(nproc) + '-procs.' + drop + '.pdf'))
-        fig.savefig(fn, bbox_inches='tight')
-        plt.close(fig)
-
-        # Plot memory
+        time_df = time_df.rename(
+            columns={
+                'None': 'Time (none)',
+                'Half-tenant': 'Time (half-tenant)',
+                'All-tenant': 'Time (all-tenant)',
+            })
         mem_df = df.pivot(index='tenants',
                           columns='updates',
                           values='inv_memory').reset_index()
-        ax = mem_df.plot(
+        mem_df = mem_df.rename(
+            columns={
+                'None': 'Memory (none)',
+                'Half-tenant': 'Memory (half-tenant)',
+                'All-tenant': 'Memory (all-tenant)',
+            })
+        merged_df = pd.merge(time_df, mem_df, on=['tenants'])
+
+        # Plot time/memory
+        ax = merged_df.plot(
             x='tenants',
-            y=['None', 'Half-tenant', 'All-tenant'],
+            y=['Time (none)', 'Time (half-tenant)', 'Time (all-tenant)'],
             kind='bar',
             legend=False,
             width=0.8,
@@ -1202,20 +1191,44 @@ def plot_perf_vs_tenants(df, outDir):
             ylabel='',
             rot=0,
         )
+        ax = merged_df.plot(
+            x='tenants',
+            secondary_y=[
+                'Memory (none)', 'Memory (half-tenant)', 'Memory (all-tenant)'
+            ],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  ncol=1,
+                  fontsize=14,
+                  frameon=False,
+                  fancybox=False)
+
         ax.grid(axis='y')
-        ax.legend(ncol=1, fontsize=16)
-        # ax.autoscale(enable=False, axis='y', tight=None)
-        # ax.set_yscale('log')
-        y_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
-        ax.set_ylim(bottom=y_start_val)
-        ax.set_xlabel('Tenants', fontsize=20)
-        ax.set_ylabel('Memory (MiB)', fontsize=20)
-        ax.tick_params(axis='both', which='both', labelsize=18)
+        ax.set_yscale('log')
+        ax.set_xlabel('Tenants', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=18)
         fig = ax.get_figure()
-        fn = os.path.join(outDir,
-                          ('06.multi-tenant.memory.inv-' + str(inv) + '.' +
-                           str(nproc) + '-procs.' + drop + '.pdf'))
+        fn = os.path.join(outDir, ('06.multi-tenant.inv-' + str(inv) + '.' +
+                                   str(nproc) + '-procs.' + drop + '.pdf'))
         fig.savefig(fn, bbox_inches='tight')
         plt.close(fig)
 
