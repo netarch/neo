@@ -1276,7 +1276,7 @@ def plot_perf_vs_nprocs(df, outDir):
                 '64 tenants'
             ],
             kind='line',
-            style=['x-', 'o-', 'D-', 's-', '^-'],
+            style=['^-', 'o-', 'D-', 's-', 'x-'],
             legend=False,
             xlabel='',
             ylabel='',
@@ -1312,12 +1312,81 @@ def plot_perf_vs_nprocs(df, outDir):
             _plot(inv_df, outDir, drop, inv)
 
 
+def plot_perf_vs_drop_methods(df, outDir):
+
+    def _plot(df, outDir, updates, nproc, inv):
+        # Filter columns
+        df = df.drop([
+            'inv_memory', 'num_nodes', 'num_links', 'num_updates',
+            'independent_cec', 'violated', 'model_only'
+        ],
+                     axis=1)
+        # Sorting
+        df = df.sort_values(by=['tenants', 'drop_method'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        # Rename values
+        df = (df.replace('dropmon', 'drop_mon'))
+
+        df = df.pivot(index='tenants',
+                      columns='drop_method',
+                      values='inv_time').reset_index()
+
+        # Plot time w. drop methods
+        ax = df.plot(
+            x='tenants',
+            y=['timeout', 'ebpf', 'drop_mon'],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.1, 1.18),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=20,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Tenants', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('06.perf-drop.inv-' + str(inv) + '.' + updates.lower() +
+                     '-updates.' + str(nproc) + '-procs.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    # Rename values
+    df.loc[df['updates'] == 0, 'updates'] = 'None'
+    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
+    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
+    # Filter rows
+    df = df[df.model_only == False]
+
+    for updates in df.updates.unique():
+        upd_df = df[df.updates == updates].drop(['updates'], axis=1)
+
+        for nproc in upd_df.procs.unique():
+            nproc_df = upd_df[upd_df.procs == nproc].drop(['procs'], axis=1)
+
+            for inv in nproc_df.invariant.unique():
+                inv_df = nproc_df[nproc_df.invariant == inv].drop(
+                    ['invariant'], axis=1)
+                _plot(inv_df, outDir, updates, nproc, inv)
+
+
 def plot_stats(invDir, outDir, compare_model=False):
     df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
 
     plot_perf_vs_tenants(df, outDir)
     plot_perf_vs_nprocs(df, outDir)
-    # plot_perf_vs_drop_methods(df, outDir)
+    plot_perf_vs_drop_methods(df, outDir)
 
 
 def plot_latency(invDir, outDir):
