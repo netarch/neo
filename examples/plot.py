@@ -9,7 +9,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from math import floor
 
-LINE_WIDTH = 7
+LINE_WIDTH = 3
 colors = [
     '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
     '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
@@ -1137,15 +1137,16 @@ def plot_placement(baseDir, outDir):
         plot_widening_intents(net_df, outDir, network)
 
 
+###############################################################################
+
+
 def plot_perf_vs_tenants(df, outDir):
 
     def _plot(df, outDir, nproc, drop, inv):
-        # Filter rows
-        df = df[df.model_only == False]
         # Filter columns
         df = df.drop([
             'model_only', 'num_nodes', 'num_links', 'num_updates',
-            'independent_cec'
+            'independent_cec', 'violated'
         ],
                      axis=1)
         # Sorting
@@ -1155,10 +1156,6 @@ def plot_perf_vs_tenants(df, outDir):
         df['inv_memory'] /= 1024  # KiB -> MiB
         # Rename column titles
         # df = df.rename(columns={'inv_time', 'Time'})
-        # Rename values
-        df.loc[df['updates'] == 0, 'updates'] = 'None'
-        df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
-        df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
 
         time_df = df.pivot(index='tenants',
                            columns='updates',
@@ -1227,10 +1224,17 @@ def plot_perf_vs_tenants(df, outDir):
         ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
         ax.right_ax.tick_params(axis='both', which='both', labelsize=18)
         fig = ax.get_figure()
-        fn = os.path.join(outDir, ('06.multi-tenant.inv-' + str(inv) + '.' +
+        fn = os.path.join(outDir, ('06.perf-tenants.inv-' + str(inv) + '.' +
                                    str(nproc) + '-procs.' + drop + '.pdf'))
         fig.savefig(fn, bbox_inches='tight')
-        plt.close(fig)
+        plt.close('all')
+
+    # Filter rows
+    df = df[df.model_only == False]
+    # Rename values
+    df.loc[df['updates'] == 0, 'updates'] = 'None'
+    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
+    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
 
     for nproc in df.procs.unique():
         nproc_df = df[df.procs == nproc].drop(['procs'], axis=1)
@@ -1246,8 +1250,66 @@ def plot_perf_vs_tenants(df, outDir):
 
 
 def plot_perf_vs_nprocs(df, outDir):
-    pass
-    # TODO
+
+    def _plot(df, outDir, drop, inv):
+        # Filter columns
+        df = df.drop([
+            'inv_memory', 'model_only', 'num_nodes', 'num_links',
+            'num_updates', 'independent_cec', 'violated', 'updates'
+        ],
+                     axis=1)
+        # Sorting
+        df = df.sort_values(by=['procs', 'tenants'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        # Rename values
+        df['tenants'] = df['tenants'].astype(str) + ' tenants'
+
+        df = df.pivot(index='procs', columns='tenants',
+                      values='inv_time').reset_index()
+
+        # Plot time vs nprocs
+        ax = df.plot(
+            x='procs',
+            y=[
+                '4 tenants', '8 tenants', '12 tenants', '32 tenants',
+                '64 tenants'
+            ],
+            kind='line',
+            style=['x-', 'o-', 'D-', 's-', '^-'],
+            legend=False,
+            xlabel='',
+            ylabel='',
+            rot=0,
+            lw=LINE_WIDTH,
+        )
+        ax.legend(ncol=2, fontsize=14, frameon=False, fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Parallel processes', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('06.perf-nproc.inv-' + str(inv) + '.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    # Rename values
+    df.loc[df['updates'] == 0, 'updates'] = 'None'
+    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
+    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
+    # Filter rows
+    df = df[df.model_only == False]
+    df = df[df.updates == 'None']
+
+    for drop in df.drop_method.unique():
+        d_df = df[df.drop_method == drop].drop(['drop_method'], axis=1)
+
+        for inv in d_df.invariant.unique():
+            inv_df = d_df[d_df.invariant == inv].drop(['invariant'], axis=1)
+            _plot(inv_df, outDir, drop, inv)
 
 
 def plot_stats(invDir, outDir, compare_model=False):
@@ -1255,6 +1317,7 @@ def plot_stats(invDir, outDir, compare_model=False):
 
     plot_perf_vs_tenants(df, outDir)
     plot_perf_vs_nprocs(df, outDir)
+    # plot_perf_vs_drop_methods(df, outDir)
 
 
 def plot_latency(invDir, outDir):
