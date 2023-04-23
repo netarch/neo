@@ -148,25 +148,50 @@ def parse_06(base_dir):
                   index=False)
 
 
+def merge_stats(model_stats_fn, neo_stats_fn):
+    model_stats_df = pd.read_csv(model_stats_fn)
+    neo_stats_df = pd.read_csv(neo_stats_fn)
+    model_stats_df['model_only'] = True
+    neo_stats_df['model_only'] = False
+    stats_df = pd.concat([model_stats_df, neo_stats_df], ignore_index=True)
+    stats_df.to_csv('stats.csv', encoding='utf-8', index=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Log parser for Neo')
-    parser.add_argument('target',
+    parser.add_argument('-t',
+                        '--target',
                         help='Parser target',
+                        type=str,
+                        action='store')
+    parser.add_argument('--merge',
+                        help='Merge the model-based and neo stats',
+                        action='store_true')
+    parser.add_argument('--model-stats',
+                        help='Model-based stats csv file',
+                        type=str,
+                        action='store')
+    parser.add_argument('--neo-stats',
+                        help='Neo stats csv file',
                         type=str,
                         action='store')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO,
                         format='[%(levelname)s] %(message)s')
-    target_dir = os.path.abspath(args.target)
-    if not os.path.isdir(target_dir):
-        raise Exception("'" + target_dir + "' is not a directory")
 
-    exp_id = os.path.basename(target_dir)[:2]
-    if exp_id == '06':
-        parse_06(target_dir)
+    if args.merge:
+        merge_stats(args.model_stats, args.neo_stats)
     else:
-        raise Exception("Parser not implemented for experiment " + exp_id)
+        target_dir = os.path.abspath(args.target)
+        if not os.path.isdir(target_dir):
+            raise Exception("'" + target_dir + "' is not a directory")
+
+        exp_id = os.path.basename(target_dir)[:2]
+        if exp_id == '06':
+            parse_06(target_dir)
+        else:
+            raise Exception("Parser not implemented for experiment " + exp_id)
 
 
 if __name__ == '__main__':
