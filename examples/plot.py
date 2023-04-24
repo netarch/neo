@@ -138,7 +138,7 @@ def plot_06_perf_vs_nprocs(df, outDir):
         ax = df.plot(
             x='procs',
             y=[
-                '4 tenants', '8 tenants', '12 tenants', '32 tenants',
+                '4 tenants', '8 tenants', '16 tenants', '32 tenants',
                 '64 tenants'
             ],
             kind='line',
