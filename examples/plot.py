@@ -16,6 +16,110 @@ colors = [
 ]
 
 
+def plot_02_perf_vs_apps_hosts(df, outDir):
+
+    def _plot(df, outDir, nproc, drop, inv):
+        # Filter columns
+        df = df.drop(['violated'], axis=1)
+        # Sorting
+        df = df.sort_values(by=['apps', 'fault'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        df['inv_memory'] /= 1024  # KiB -> MiB
+
+        time_df = df.pivot(index='apps', columns='fault',
+                           values='inv_time').reset_index()
+        time_df = time_df.rename(columns={
+            False: 'Time (passing)',
+            True: 'Time (failing)',
+        })
+        mem_df = df.pivot(index='apps', columns='fault',
+                          values='inv_memory').reset_index()
+        mem_df = mem_df.rename(columns={
+            False: 'Memory (passing)',
+            True: 'Memory (failing)',
+        })
+        merged_df = pd.merge(time_df, mem_df, on=['apps'])
+
+        # Plot time/memory
+        ax = merged_df.plot(
+            x='apps',
+            y=['Time (passing)', 'Time (failing)'],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax = merged_df.plot(
+            x='apps',
+            secondary_y=['Memory (passing)', 'Memory (failing)'],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  bbox_to_anchor=(1.18, 1.3),
+                  columnspacing=0.8,
+                  ncol=2,
+                  fontsize=20,
+                  frameon=False,
+                  fancybox=False)
+
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Applications and Hosts', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=18)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir, ('02.perf-apps.inv-' + str(inv) + '.' +
+                                   str(nproc) + '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    for nproc in df.procs.unique():
+        nproc_df = df[df.procs == nproc].drop(['procs'], axis=1)
+
+        for drop in nproc_df.drop_method.unique():
+            d_df = nproc_df[nproc_df.drop_method == drop].drop(['drop_method'],
+                                                               axis=1)
+
+            for inv in d_df.invariant.unique():
+                inv_df = d_df[d_df.invariant == inv].drop(['invariant'],
+                                                          axis=1)
+                _plot(inv_df, outDir, nproc, drop, inv)
+
+
+def plot_02_stats(invDir, outDir):
+    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+    # Filter columns
+    df = df.drop([
+        'hosts', 'num_nodes', 'num_links', 'num_updates', 'total_conn',
+        'independent_cec'
+    ],
+                 axis=1)
+
+    plot_02_perf_vs_apps_hosts(df, outDir)
+    # plot_02_perf_vs_nprocs(df, outDir)
+    # plot_02_perf_vs_drop_methods(df, outDir)
+
+
 def plot_06_perf_vs_tenants(df, outDir):
 
     def _plot(df, outDir, nproc, drop, inv):
@@ -300,7 +404,7 @@ def plot_06_model_comparison(df, outDir):
         _plot(nproc_df, outDir, nproc)
 
 
-def plot_06_stats(invDir, outDir, compare_model=False):
+def plot_06_stats(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
     # Rename values
     df.loc[df['updates'] == 0, 'updates'] = 'None'
@@ -522,7 +626,12 @@ def main():
     os.makedirs(outDir, exist_ok=True)
 
     exp_id = os.path.basename(targetDir)[:2]
-    if exp_id == '06':
+    if exp_id == '02':
+        plot_02_stats(targetDir, outDir)
+        # plot_02_latency(targetDir, outDir)
+    elif exp_id == '03':
+        pass
+    elif exp_id == '06':
         plot_06_stats(targetDir, outDir)
         plot_06_latency(targetDir, outDir)
     else:
