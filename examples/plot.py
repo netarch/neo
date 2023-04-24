@@ -407,11 +407,6 @@ def main():
                         type=str,
                         action='store',
                         required=True)
-    parser.add_argument('-l',
-                        '--latency',
-                        help='Plot latency',
-                        action='store_true',
-                        default=False)
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO,
@@ -424,14 +419,12 @@ def main():
     outDir = os.path.join(sourceDir, 'figures')
     os.makedirs(outDir, exist_ok=True)
 
-    if args.latency:
+    exp_id = os.path.basename(targetDir)[:2]
+    if exp_id == '06':
+        plot_06_stats(targetDir, outDir)
         plot_06_latency(targetDir, outDir)
     else:
-        exp_id = os.path.basename(targetDir)[:2]
-        if exp_id == '06':
-            plot_06_stats(targetDir, outDir)
-        else:
-            raise Exception("Parser not implemented for experiment " + exp_id)
+        raise Exception("Parser not implemented for experiment " + exp_id)
 
 
 if __name__ == '__main__':
