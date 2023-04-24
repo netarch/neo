@@ -78,7 +78,7 @@ def plot_02_perf_vs_apps_hosts(df, outDir):
 
         ax.grid(axis='y')
         # ax.set_yscale('log')
-        ax.set_xlabel('Applications and Hosts', fontsize=22)
+        ax.set_xlabel('Applications and hosts', fontsize=22)
         ax.set_ylabel('Time (seconds)', fontsize=22)
         ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
@@ -159,6 +159,63 @@ def plot_02_perf_vs_nprocs(df, outDir):
                 _plot(inv_df, outDir, drop, fault, inv)
 
 
+def plot_02_perf_vs_drop_methods(df, outDir):
+
+    def _plot(df, outDir, nproc, fault, inv):
+        # Filter columns
+        df = df.drop(['inv_memory', 'violated'], axis=1)
+        # Sorting
+        df = df.sort_values(by=['apps', 'drop_method'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        # Rename values
+        df = (df.replace('dropmon', 'drop_mon'))
+
+        df = df.pivot(index='apps', columns='drop_method',
+                      values='inv_time').reset_index()
+
+        # Plot time w. drop methods
+        ax = df.plot(
+            x='apps',
+            y=['timeout', 'ebpf', 'drop_mon'],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.1, 1.18),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=20,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Applications and hosts', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir, ('02.perf-drop.inv-' + str(inv) +
+                                   ('.failing.' if fault else '.passing.') +
+                                   str(nproc) + '-procs.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    for nproc in df.procs.unique():
+        nproc_df = df[df.procs == nproc].drop(['procs'], axis=1)
+
+        for fault in nproc_df.fault.unique():
+            f_df = nproc_df[nproc_df.fault == fault].drop(['fault'], axis=1)
+
+            for inv in f_df.invariant.unique():
+                inv_df = f_df[f_df.invariant == inv].drop(['invariant'],
+                                                          axis=1)
+                _plot(inv_df, outDir, nproc, fault, inv)
+
+
 def plot_02_stats(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
     # Filter columns
@@ -170,7 +227,7 @@ def plot_02_stats(invDir, outDir):
 
     plot_02_perf_vs_apps_hosts(df, outDir)
     plot_02_perf_vs_nprocs(df, outDir)
-    # plot_02_perf_vs_drop_methods(df, outDir)
+    plot_02_perf_vs_drop_methods(df, outDir)
 
 
 def plot_06_perf_vs_tenants(df, outDir):
