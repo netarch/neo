@@ -50,6 +50,67 @@ def parse_main_log(output_dir, settings):
                 settings['violated'][inv_id - 1] = True
 
 
+def parse_02_settings(output_dir):
+    settings = {
+        'apps': None,
+        'hosts': None,
+        'procs': None,
+        'drop_method': None,
+        'fault': False,
+    }
+    dirname = os.path.basename(output_dir)
+    m = re.search(
+        'output\.(\d+)-apps\.(\d+)-hosts\.(\d+)-procs\.([a-z]+)(\.fault)?',
+        dirname)
+    settings['apps'] = int(m.group(1))
+    settings['hosts'] = int(m.group(2))
+    settings['procs'] = int(m.group(3))
+    settings['drop_method'] = m.group(4)
+    settings['fault'] = m.group(5) is not None
+    parse_main_log(output_dir, settings)
+    return settings
+
+
+def parse_03_settings(output_dir):
+    settings = {
+        'lbs': None,
+        'servers': None,
+        'algorithm': None,
+        'procs': None,
+        'drop_method': None,
+    }
+    dirname = os.path.basename(output_dir)
+    m = re.search(
+        'output\.(\d+)-lbs\.(\d+)-servers\.algo-([a-z]+)\.(\d+)-procs\.([a-z]+)',
+        dirname)
+    settings['lbs'] = int(m.group(1))
+    settings['servers'] = int(m.group(2))
+    settings['algorithm'] = m.group(3)
+    settings['procs'] = int(m.group(4))
+    settings['drop_method'] = m.group(5)
+    parse_main_log(output_dir, settings)
+    return settings
+
+
+def parse_06_settings(output_dir):
+    settings = {
+        'tenants': None,
+        'updates': None,
+        'procs': None,
+        'drop_method': None,
+    }
+    dirname = os.path.basename(output_dir)
+    m = re.search(
+        'output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)',
+        dirname)
+    settings['tenants'] = int(m.group(1))
+    settings['updates'] = int(m.group(2))
+    settings['procs'] = int(m.group(3))
+    settings['drop_method'] = m.group(4)
+    parse_main_log(output_dir, settings)
+    return settings
+
+
 def parse_stats(inv_dir, settings, stats):
     invStatsFn = os.path.join(inv_dir, 'invariant.stats.csv')
     with open(invStatsFn) as inv_stats:
@@ -96,32 +157,12 @@ def parse_latencies(inv_dir, settings, latencies):
             latencies[key].extend([settings[key]] * num_injections)
 
 
-def parse_06(base_dir):
-
-    def _parse_settings(output_dir):
-        settings = {
-            'tenants': None,
-            'updates': None,
-            'procs': None,
-            'drop_method': None,
-        }
-
-        dirname = os.path.basename(output_dir)
-        m = re.search(
-            'output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs.([a-z]+)',
-            dirname)
-        settings['tenants'] = int(m.group(1))
-        settings['updates'] = int(m.group(2))
-        settings['procs'] = int(m.group(3))
-        settings['drop_method'] = m.group(4)
-        parse_main_log(output_dir, settings)
-        return settings
-
+def parse(base_dir):
+    settings = {}
     stats = {
         'inv_time': [],  # usec
         'inv_memory': [],  # KiB
     }
-
     latencies = {
         # usec
         'overall_lat': [],
@@ -131,15 +172,24 @@ def parse_06(base_dir):
         'drop_lat': [],
         'timeout': [],
     }
-
+    exp_id = os.path.basename(base_dir)[:2]
     results_dir = os.path.join(base_dir, 'results')
+
     for entry in os.scandir(results_dir):
         if not entry.is_dir():
             continue
 
         logging.info("Processing %s", entry.name)
         output_dir = entry.path
-        settings = _parse_settings(output_dir)
+
+        if exp_id == '02':
+            settings = parse_02_settings(output_dir)
+        elif exp_id == '03':
+            settings = parse_03_settings(output_dir)
+        elif exp_id == '06':
+            settings = parse_06_settings(output_dir)
+        else:
+            raise Exception("Parser not implemented for experiment " + exp_id)
 
         for entry in os.scandir(output_dir):
             if not entry.is_dir() or not entry.name.isdigit():
@@ -198,8 +248,8 @@ def main():
             raise Exception("'" + target_dir + "' is not a directory")
 
         exp_id = os.path.basename(target_dir)[:2]
-        if exp_id == '06':
-            parse_06(target_dir)
+        if exp_id in ['02', '03', '06']:
+            parse(target_dir)
         else:
             raise Exception("Parser not implemented for experiment " + exp_id)
 
