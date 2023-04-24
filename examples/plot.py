@@ -529,11 +529,7 @@ def plot_06_stats(invDir, outDir):
 
 def plot_latency(df, outFn, sample_limit=None):
     # Filter columns
-    df = df.drop([
-        'index', 'overall_lat', 'rewind_lat', 'rewind_injections', 'pkt_lat',
-        'drop_lat', 'tenants', 'updates', 'invariant', 'violated'
-    ],
-                 axis=1)
+    df = df.drop(['rewind_lat', 'pkt_lat', 'drop_lat'], axis=1)
 
     df = df.pivot(columns='drop_method', values=['latency', 'timeout'])
     df.columns = ['_'.join(col) for col in df.columns.values]
@@ -585,15 +581,15 @@ def plot_latency(df, outFn, sample_limit=None):
     plt.close(fig)
 
 
-def plot_latency_cdf(df, outDir, exp_id):
+def plot_latency_cdf(df,
+                     outDir,
+                     exp_id,
+                     logscale_for_reset=False,
+                     logscale_for_no_reset=False):
     df.loc[:, 'latency_with_reset'] = df['latency'] + df['rewind_lat']
 
     # Filter columns
-    df = df.drop([
-        'index', 'overall_lat', 'rewind_lat', 'rewind_injections', 'pkt_lat',
-        'drop_lat', 'timeout', 'tenants', 'updates', 'invariant', 'violated'
-    ],
-                 axis=1)
+    df = df.drop(['rewind_lat', 'pkt_lat', 'drop_lat', 'timeout'], axis=1)
 
     df = df.pivot(columns='drop_method',
                   values=['latency', 'latency_with_reset'])
@@ -665,7 +661,8 @@ def plot_latency_cdf(df, outDir, exp_id):
                   frameon=False,
                   fancybox=False)
         ax.grid(axis='both')
-        if with_reset:
+        if ((with_reset and logscale_for_reset)
+                or (not with_reset and logscale_for_no_reset)):
             ax.set_xscale('log')
         ax.set_xlabel('Latency (microseconds)', fontsize=24)
         ax.set_ylabel('Packet injections', fontsize=24)
@@ -687,8 +684,36 @@ def plot_latency_cdf(df, outDir, exp_id):
         plt.close(fig)
 
 
+def plot_02_latency(invDir, outDir):
+    df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
+    # Merge latency values
+    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
+    # Filter rows
+    df = df[df.procs == 1]
+    # Filter columns
+    df = df.drop([
+        'overall_lat', 'rewind_injections', 'apps', 'hosts', 'procs', 'fault',
+        'num_nodes', 'num_links', 'num_updates', 'total_conn', 'invariant',
+        'independent_cec', 'violated'
+    ],
+                 axis=1)
+    df = df.reset_index().drop(['index'], axis=1)
+
+    # latency line charts
+    plot_latency(df[df.pkt_lat > 0],
+                 os.path.join(outDir, '02.latency.recv.pdf'),
+                 sample_limit=300)
+    plot_latency(df[df.drop_lat > 0],
+                 os.path.join(outDir, '02.latency.drop.pdf'))
+
+    # latency CDF
+    plot_latency_cdf(df, outDir, os.path.basename(invDir)[:2])
+
+
 def plot_06_latency(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
+    # Merge latency values
+    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
     # Rename values
     df.loc[df['updates'] == 0, 'updates'] = 'None'
     df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
@@ -697,12 +722,12 @@ def plot_06_latency(invDir, outDir):
     df = df[df.procs == 1]
     # Filter columns
     df = df.drop([
-        'num_nodes', 'num_links', 'num_updates', 'total_conn',
-        'independent_cec', 'procs'
+        'overall_lat', 'rewind_injections', 'tenants', 'updates', 'procs',
+        'num_nodes', 'num_links', 'num_updates', 'total_conn', 'invariant',
+        'independent_cec', 'violated'
     ],
                  axis=1)
-    df = df.reset_index()
-    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
+    df = df.reset_index().drop(['index'], axis=1)
 
     # latency line charts
     plot_latency(df[df.pkt_lat > 0],
@@ -712,7 +737,10 @@ def plot_06_latency(invDir, outDir):
                  os.path.join(outDir, '06.latency.drop.pdf'))
 
     # latency CDF
-    plot_latency_cdf(df, outDir, os.path.basename(invDir)[:2])
+    plot_latency_cdf(df,
+                     outDir,
+                     os.path.basename(invDir)[:2],
+                     logscale_for_reset=True)
 
 
 def main():
@@ -738,7 +766,7 @@ def main():
     exp_id = os.path.basename(targetDir)[:2]
     if exp_id == '02':
         plot_02_stats(targetDir, outDir)
-        # plot_02_latency(targetDir, outDir)
+        plot_02_latency(targetDir, outDir)
     elif exp_id == '03':
         pass
     elif exp_id == '06':
