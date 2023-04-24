@@ -310,12 +310,9 @@ def plot_06_stats(invDir, outDir, compare_model=False):
 
 
 def plot_latency(df, outFn, sample_limit=None):
-    df = df.reset_index()
-    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
-
     # Filter columns
     df = df.drop([
-        'overall_lat', 'rewind_lat', 'rewind_injections', 'pkt_lat',
+        'index', 'overall_lat', 'rewind_lat', 'rewind_injections', 'pkt_lat',
         'drop_lat', 'tenants', 'updates', 'invariant', 'violated'
     ],
                  axis=1)
@@ -370,6 +367,98 @@ def plot_latency(df, outFn, sample_limit=None):
     plt.close(fig)
 
 
+def plot_latency_cdf(df, outDir, exp_id):
+    df.loc[:, 'latency_with_reset'] = df['latency'] + df['rewind_lat']
+
+    # Filter columns
+    df = df.drop([
+        'index', 'overall_lat', 'rewind_lat', 'rewind_injections', 'pkt_lat',
+        'drop_lat', 'timeout', 'tenants', 'updates', 'invariant', 'violated'
+    ],
+                 axis=1)
+
+    df = df.pivot(columns='drop_method',
+                  values=['latency', 'latency_with_reset'])
+    df.columns = ['_'.join(col) for col in df.columns.values]
+    df = df.apply(lambda x: pd.Series(x.dropna().values))
+
+    no_reset_df = df.drop([
+        'latency_with_reset_dropmon', 'latency_with_reset_ebpf',
+        'latency_with_reset_timeout'
+    ],
+                          axis=1).rename(
+                              columns={
+                                  'latency_dropmon': 'dropmon',
+                                  'latency_ebpf': 'ebpf',
+                                  'latency_timeout': 'timeout',
+                              })
+    reset_df = df.drop(['latency_dropmon', 'latency_ebpf', 'latency_timeout'],
+                       axis=1).rename(
+                           columns={
+                               'latency_with_reset_dropmon': 'dropmon',
+                               'latency_with_reset_ebpf': 'ebpf',
+                               'latency_with_reset_timeout': 'timeout',
+                           })
+
+    def _get_cdf_df(df, col):
+        df = df[col].to_frame()
+        df = df.sort_values(by=[col]).reset_index().rename(
+            columns={col: 'latency'})
+        df[col] = df.index + 1
+        df = df[df.columns.drop(list(df.filter(regex='index')))]
+        return df
+
+    for (df, with_reset) in [(no_reset_df, False), (reset_df, True)]:
+        # For each drop_method x with/without reset, get the latency CDF
+        cdf_df = pd.DataFrame()
+
+        for col in list(df.columns):
+            df1 = _get_cdf_df(df, col)
+            if cdf_df.empty:
+                cdf_df = df1
+            else:
+                cdf_df = pd.merge(cdf_df, df1, how='outer', on='latency')
+            del df1
+
+        df = cdf_df.sort_values(by='latency').interpolate(
+            limit_area='inside').rename(columns={
+                'dropmon': 'drop_mon',
+                'ebpf': 'ebpf',
+                'timeout': 'timeout',
+            })
+        del cdf_df
+
+        ax = df.plot(
+            x='latency',
+            y=['drop_mon', 'ebpf', 'timeout'],
+            kind='line',
+            legend=False,
+            xlabel='',
+            ylabel='',
+            rot=0,
+            lw=LINE_WIDTH,
+        )
+        ax.legend(bbox_to_anchor=(1.07, 1.2),
+                  columnspacing=0.8,
+                  ncol=3,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='both')
+        if with_reset:
+            ax.set_xscale('log')
+        ax.set_xlabel('Latency (microseconds)', fontsize=24)
+        ax.set_ylabel('Packet injections', fontsize=24)
+        ax.tick_params(axis='both', which='both', labelsize=24)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fig.savefig(os.path.join(
+            outDir, (exp_id + '.latency-cdf' +
+                     ('.with-reset' if with_reset else '') + '.pdf')),
+                    bbox_inches='tight')
+        plt.close(fig)
+
+
 def plot_06_latency(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
     # Rename values
@@ -384,6 +473,8 @@ def plot_06_latency(invDir, outDir):
         'independent_cec', 'procs'
     ],
                  axis=1)
+    df = df.reset_index()
+    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
 
     # latency line charts
     plot_latency(df[df.pkt_lat > 0],
@@ -393,10 +484,7 @@ def plot_06_latency(invDir, outDir):
                  os.path.join(outDir, '06.latency.drop.pdf'))
 
     # latency CDF
-    # TODO: plot one with pkt_lat > 0 and one with drop_lat > 0 with varying drop methods?
-    lat_df = df[df.updates == 'None'].drop(['updates'], axis=1)
-    # lat_df = lat_df.loc[lat_df.rewind_injections != -1]
-    print(lat_df.to_string())
+    plot_latency_cdf(df, outDir, os.path.basename(invDir)[:2])
 
 
 def main():
