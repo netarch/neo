@@ -1140,7 +1140,7 @@ def plot_placement(baseDir, outDir):
 ###############################################################################
 
 
-def plot_perf_vs_tenants(df, outDir):
+def plot_06_perf_vs_tenants(df, outDir):
 
     def _plot(df, outDir, nproc, drop, inv):
         # Filter columns
@@ -1231,10 +1231,6 @@ def plot_perf_vs_tenants(df, outDir):
 
     # Filter rows
     df = df[df.model_only == False]
-    # Rename values
-    df.loc[df['updates'] == 0, 'updates'] = 'None'
-    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
-    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
 
     for nproc in df.procs.unique():
         nproc_df = df[df.procs == nproc].drop(['procs'], axis=1)
@@ -1249,7 +1245,7 @@ def plot_perf_vs_tenants(df, outDir):
                 _plot(inv_df, outDir, nproc, drop, inv)
 
 
-def plot_perf_vs_nprocs(df, outDir):
+def plot_06_perf_vs_nprocs(df, outDir):
 
     def _plot(df, outDir, drop, inv):
         # Filter columns
@@ -1296,10 +1292,6 @@ def plot_perf_vs_nprocs(df, outDir):
         fig.savefig(fn, bbox_inches='tight')
         plt.close(fig)
 
-    # Rename values
-    df.loc[df['updates'] == 0, 'updates'] = 'None'
-    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
-    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
     # Filter rows
     df = df[df.model_only == False]
     df = df[df.updates == 'None']
@@ -1312,7 +1304,7 @@ def plot_perf_vs_nprocs(df, outDir):
             _plot(inv_df, outDir, drop, inv)
 
 
-def plot_perf_vs_drop_methods(df, outDir):
+def plot_06_perf_vs_drop_methods(df, outDir):
 
     def _plot(df, outDir, updates, nproc, inv):
         # Filter columns
@@ -1362,10 +1354,6 @@ def plot_perf_vs_drop_methods(df, outDir):
         fig.savefig(fn, bbox_inches='tight')
         plt.close(fig)
 
-    # Rename values
-    df.loc[df['updates'] == 0, 'updates'] = 'None'
-    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
-    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
     # Filter rows
     df = df[df.model_only == False]
 
@@ -1381,12 +1369,74 @@ def plot_perf_vs_drop_methods(df, outDir):
                 _plot(inv_df, outDir, updates, nproc, inv)
 
 
-def plot_stats(invDir, outDir, compare_model=False):
-    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+def plot_06_model_comparison(df, outDir):
 
-    plot_perf_vs_tenants(df, outDir)
-    plot_perf_vs_nprocs(df, outDir)
-    plot_perf_vs_drop_methods(df, outDir)
+    def _plot(df, outDir, nproc):
+        # Sorting
+        df = df.sort_values(by=['tenants'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+
+        df = df.pivot(index='tenants', columns='model_only',
+                      values='inv_time').reset_index()
+        df = df.rename(columns={False: 'Neo', True: 'Model-based'})
+
+        # Plot time comparison
+        ax = df.plot(
+            x='tenants',
+            y=['Model-based', 'Neo'],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.0, 1.18),
+                  ncol=2,
+                  fontsize=20,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        ax.set_yscale('log')
+        ax.set_xlabel('Tenants', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir,
+            ('06.compare-model.inv-1.0-updates.' + str(nproc) + '-procs.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    # Filter rows
+    df = df[df.invariant == 1].drop(['invariant'], axis=1)
+    df = df[df.drop_method == 'timeout'].drop(['drop_method'], axis=1)
+    df = df[df.updates == 'None'].drop(['updates'], axis=1)
+    # Filter columns
+    df = df.drop([
+        'inv_memory', 'num_nodes', 'num_links', 'num_updates', 'total_conn',
+        'independent_cec', 'violated'
+    ],
+                 axis=1)
+
+    for nproc in df.procs.unique():
+        nproc_df = df[df.procs == nproc].drop(['procs'], axis=1)
+        _plot(nproc_df, outDir, nproc)
+
+
+def plot_06_stats(invDir, outDir, compare_model=False):
+    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+    # Rename values
+    df.loc[df['updates'] == 0, 'updates'] = 'None'
+    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
+    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
+
+    plot_06_perf_vs_tenants(df, outDir)
+    plot_06_perf_vs_nprocs(df, outDir)
+    plot_06_perf_vs_drop_methods(df, outDir)
+    plot_06_model_comparison(df, outDir)
 
 
 def plot_latency(invDir, outDir):
@@ -1402,8 +1452,9 @@ def main():
                         type=str,
                         action='store',
                         required=True)
-    parser.add_argument('--compare-model',
-                        help='Compare Neo with model-based approach',
+    parser.add_argument('-l',
+                        '--latency',
+                        help='Plot latency',
                         action='store_true',
                         default=False)
     args = parser.parse_args()
@@ -1418,8 +1469,14 @@ def main():
     outDir = os.path.join(sourceDir, 'figures')
     os.makedirs(outDir, exist_ok=True)
 
-    plot_stats(targetDir, outDir, args.compare_model)
-    plot_latency(targetDir, outDir)
+    if args.latency:
+        plot_latency(targetDir, outDir)
+    else:
+        exp_id = os.path.basename(targetDir)[:2]
+        if exp_id == '06':
+            plot_06_stats(targetDir, outDir)
+        else:
+            raise Exception("Parser not implemented for experiment " + exp_id)
 
 
 if __name__ == '__main__':
