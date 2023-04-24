@@ -101,8 +101,7 @@ def parse_06_settings(output_dir):
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
-        'output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)',
-        dirname)
+        'output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)', dirname)
     settings['tenants'] = int(m.group(1))
     settings['updates'] = int(m.group(2))
     settings['procs'] = int(m.group(3))
