@@ -8,6 +8,48 @@ import pandas as pd
 from itertools import islice
 
 
+def parse_main_log(output_dir, settings):
+    settings['num_nodes'] = None
+    settings['num_links'] = None
+    settings['num_updates'] = 0
+    settings['total_conn'] = 0
+    settings['invariant'] = []
+    settings['independent_cec'] = []
+    settings['violated'] = []
+
+    mainlogFn = os.path.join(output_dir, 'main.log')
+    with open(mainlogFn) as mainlog:
+        inv_id = 0
+        for line in mainlog:
+            if re.search('Loaded (\d+) nodes', line):
+                m = re.search('Loaded (\d+) nodes', line)
+                settings['num_nodes'] = int(m.group(1))
+            elif ' links' in line:
+                m = re.search('Loaded (\d+) links', line)
+                settings['num_links'] = int(m.group(1))
+            elif 'openflow updates' in line:
+                m = re.search('Loaded (\d+) openflow updates', line)
+                settings['num_updates'] = int(m.group(1))
+            elif 'Initial ECs:' in line:
+                m = re.search('Initial ECs: (\d+)', line)
+                settings['total_conn'] = int(m.group(1))
+            elif 'Initial ports:' in line:
+                m = re.search('Initial ports: (\d+)', line)
+                settings['total_conn'] *= int(m.group(1))
+            elif 'Verifying invariant ' in line:
+                m = re.search('(\d+)\.?\s*Verifying invariant ', line)
+                inv_id = int(m.group(1))
+                settings['invariant'].append(inv_id)
+                settings['violated'].append(False)
+                assert (len(settings['invariant']) == inv_id)
+            elif 'Connection ECs:' in line:
+                m = re.search('Connection ECs: (\d+)', line)
+                settings['independent_cec'].append(int(m.group(1)))
+                assert (len(settings['independent_cec']) == inv_id)
+            elif 'Invariant violated' in line:
+                settings['violated'][inv_id - 1] = True
+
+
 def parse_stats(inv_dir, settings, stats):
     invStatsFn = os.path.join(inv_dir, 'invariant.stats.csv')
     with open(invStatsFn) as inv_stats:
@@ -62,12 +104,6 @@ def parse_06(base_dir):
             'updates': None,
             'procs': None,
             'drop_method': None,
-            'num_nodes': None,
-            'num_links': None,
-            'num_updates': 0,
-            'invariant': [],
-            'independent_cec': [],
-            'violated': [],
         }
 
         dirname = os.path.basename(output_dir)
@@ -78,33 +114,7 @@ def parse_06(base_dir):
         settings['updates'] = int(m.group(2))
         settings['procs'] = int(m.group(3))
         settings['drop_method'] = m.group(4)
-
-        mainlogFn = os.path.join(output_dir, 'main.log')
-        with open(mainlogFn) as mainlog:
-            inv_id = 0
-            for line in mainlog:
-                if re.search('Loaded (\d+) nodes', line):
-                    m = re.search('Loaded (\d+) nodes', line)
-                    settings['num_nodes'] = int(m.group(1))
-                elif ' links' in line:
-                    m = re.search('Loaded (\d+) links', line)
-                    settings['num_links'] = int(m.group(1))
-                elif 'openflow updates' in line:
-                    m = re.search('Loaded (\d+) openflow updates', line)
-                    settings['num_updates'] = int(m.group(1))
-                elif 'Verifying invariant ' in line:
-                    m = re.search('(\d+)\.?\s*Verifying invariant ', line)
-                    inv_id = int(m.group(1))
-                    settings['invariant'].append(inv_id)
-                    settings['violated'].append(False)
-                    assert (len(settings['invariant']) == inv_id)
-                elif 'Connection ECs:' in line:
-                    m = re.search('Connection ECs: (\d+)', line)
-                    settings['independent_cec'].append(int(m.group(1)))
-                    assert (len(settings['independent_cec']) == inv_id)
-                elif 'Invariant violated' in line:
-                    settings['violated'][inv_id - 1] = True
-
+        parse_main_log(output_dir, settings)
         return settings
 
     stats = {
