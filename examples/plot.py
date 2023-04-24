@@ -10,6 +10,10 @@ from matplotlib import pyplot as plt
 from math import floor
 
 LINE_WIDTH = 3
+colors = [
+    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+    '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+]
 
 
 def plot_06_perf_vs_tenants(df, outDir):
@@ -401,7 +405,7 @@ def plot_latency_cdf(df, outDir, exp_id):
                            })
 
     def _get_cdf_df(df, col):
-        df = df[col].to_frame()
+        df = df[col].to_frame().dropna()
         df = df.sort_values(by=[col]).reset_index().rename(
             columns={col: 'latency'})
         df[col] = df.index + 1
@@ -411,9 +415,11 @@ def plot_latency_cdf(df, outDir, exp_id):
     for (df, with_reset) in [(no_reset_df, False), (reset_df, True)]:
         # For each drop_method x with/without reset, get the latency CDF
         cdf_df = pd.DataFrame()
+        peak_latencies = []
 
         for col in list(df.columns):
             df1 = _get_cdf_df(df, col)
+            peak_latencies.append(df1.latency.iloc[-1])
             if cdf_df.empty:
                 cdf_df = df1
             else:
@@ -451,6 +457,14 @@ def plot_latency_cdf(df, outDir, exp_id):
         ax.set_ylabel('Packet injections', fontsize=24)
         ax.tick_params(axis='both', which='both', labelsize=24)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        i = 0
+        for peak_lat in peak_latencies:
+            ax.axvline(peak_lat,
+                       ymax=0.95,
+                       linestyle='--',
+                       linewidth=LINE_WIDTH - 1,
+                       color=colors[i])
+            i += 1
         fig = ax.get_figure()
         fig.savefig(os.path.join(
             outDir, (exp_id + '.latency-cdf' +
