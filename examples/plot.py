@@ -106,6 +106,59 @@ def plot_02_perf_vs_apps_hosts(df, outDir):
                 _plot(inv_df, outDir, nproc, drop, inv)
 
 
+def plot_02_perf_vs_nprocs(df, outDir):
+
+    def _plot(df, outDir, drop, fault, inv):
+        # Filter columns
+        df = df.drop(['inv_memory', 'violated'], axis=1)
+        # Sorting
+        df = df.sort_values(by=['procs', 'apps'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        # Rename values
+        df['apps'] = df['apps'].astype(str) + ' apps/hosts'
+
+        df = df.pivot(index='procs', columns='apps',
+                      values='inv_time').reset_index()
+
+        # Plot time vs nprocs
+        ax = df.plot(
+            x='procs',
+            y=['4 apps/hosts', '8 apps/hosts', '12 apps/hosts'],
+            kind='line',
+            style=['^-', 'o-', 'D-', 's-', 'x-'],
+            legend=False,
+            xlabel='',
+            ylabel='',
+            rot=0,
+            lw=LINE_WIDTH,
+        )
+        ax.legend(ncol=1, fontsize=20, frameon=False, fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Parallel processes', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('02.perf-nproc.inv-' + str(inv) +
+                     ('.failing.' if fault else '.passing.') + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    for drop in df.drop_method.unique():
+        d_df = df[df.drop_method == drop].drop(['drop_method'], axis=1)
+
+        for fault in d_df.fault.unique():
+            f_df = d_df[d_df.fault == fault].drop(['fault'], axis=1)
+
+            for inv in f_df.invariant.unique():
+                inv_df = f_df[f_df.invariant == inv].drop(['invariant'],
+                                                          axis=1)
+                _plot(inv_df, outDir, drop, fault, inv)
+
+
 def plot_02_stats(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
     # Filter columns
@@ -116,7 +169,7 @@ def plot_02_stats(invDir, outDir):
                  axis=1)
 
     plot_02_perf_vs_apps_hosts(df, outDir)
-    # plot_02_perf_vs_nprocs(df, outDir)
+    plot_02_perf_vs_nprocs(df, outDir)
     # plot_02_perf_vs_drop_methods(df, outDir)
 
 
