@@ -1,12 +1,15 @@
 #include "process/choose_conn.hpp"
 
 #include <cassert>
+#include <string>
 
 #include "candidates.hpp"
 #include "logger.hpp"
 #include "model-access.hpp"
 #include "process/forwarding.hpp"
 #include "protocols.hpp"
+
+using namespace std;
 
 static inline std::vector<std::vector<int>> get_conn_map() {
     std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
@@ -36,10 +39,8 @@ void ChooseConnProcess::update_choice_count() const {
      * 0: not executable (missing packet or terminated)
      */
 
-    if (!conn_map[2].empty()) {
-        model.set_choice_count(1);
-    } else if (!conn_map[1].empty()) {
-        model.set_choice_count(conn_map[1].size());
+    if (!conn_map[2].empty() || !conn_map[1].empty()) {
+        model.set_choice_count(conn_map[2].size() + conn_map[1].size());
     } else if (!conn_map[0].empty()) {
         model.set_choice_count(1);
     } else {
@@ -58,12 +59,12 @@ void ChooseConnProcess::exec_step() {
      * 0: not executable (missing packet or terminated)
      */
 
-    if (!conn_map[2].empty()) {
-        assert(choice == 0);
-        model.set_conn(conn_map[2][0]);
-        model.print_conn_states();
-    } else if (!conn_map[1].empty()) {
-        model.set_conn(conn_map[1][choice]);
+    if (!conn_map[2].empty() || !conn_map[1].empty()) {
+        if (choice < (int)conn_map[2].size()) {
+            model.set_conn(conn_map[2][choice]);
+        } else {
+            model.set_conn(conn_map[1][choice - conn_map[2].size()]);
+        }
         model.set_executable(2);
         model.print_conn_states();
     } else if (!conn_map[0].empty()) {
