@@ -26,8 +26,6 @@ def plot_06_perf_vs_tenants(df, outDir):
         # Change units
         df['inv_time'] /= 1e6  # usec -> sec
         df['inv_memory'] /= 1024  # KiB -> MiB
-        # Rename column titles
-        # df = df.rename(columns={'inv_time', 'Time'})
 
         time_df = df.pivot(index='tenants',
                            columns='updates',
@@ -311,9 +309,94 @@ def plot_06_stats(invDir, outDir, compare_model=False):
     plot_06_model_comparison(df, outDir)
 
 
-def plot_latency(invDir, outDir):
+def plot_latency(df, outFn, sample_limit=None):
+    df = df.reset_index()
+    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
+
+    # Filter columns
+    df = df.drop([
+        'overall_lat', 'rewind_lat', 'rewind_injections', 'pkt_lat',
+        'drop_lat', 'tenants', 'updates', 'invariant', 'violated'
+    ],
+                 axis=1)
+
+    df = df.pivot(columns='drop_method', values=['latency', 'timeout'])
+    df.columns = ['_'.join(col) for col in df.columns.values]
+    df = df.drop(['timeout_dropmon', 'timeout_ebpf'], axis=1)
+    df = df.apply(lambda x: pd.Series(x.dropna().values))
+
+    # Rename column titles
+    df = df.rename(
+        columns={
+            'latency_dropmon': 'Latency (drop_mon)',
+            'latency_ebpf': 'Latency (ebpf)',
+            'latency_timeout': 'Latency (timeout)',
+            'timeout_timeout': 'Drop timeout'
+        })
+
+    if sample_limit:
+        df = df.sample(n=sample_limit).sort_index()
+
+    ax = df.plot(
+        y=[
+            'Latency (drop_mon)', 'Latency (ebpf)', 'Latency (timeout)',
+            'Drop timeout'
+        ],
+        kind='line',
+        legend=False,
+        xlabel='',
+        ylabel='',
+        rot=0,
+        lw=2,
+    )
+    ax.legend(bbox_to_anchor=(1.1, 1.27),
+              columnspacing=0.8,
+              ncol=2,
+              fontsize=18,
+              frameon=False,
+              fancybox=False)
+    ax.grid(axis='y')
+    # ax.set_yscale('log')
+    ax.set_xlabel('Packet injections', fontsize=22)
+    ax.set_ylabel('Latency (microseconds)', fontsize=22)
+    ax.tick_params(axis='both', which='both', labelsize=22)
+    ax.tick_params(axis='x',
+                   which='both',
+                   top=False,
+                   bottom=False,
+                   labelbottom=False)
+    fig = ax.get_figure()
+    fig.savefig(outFn, bbox_inches='tight')
+    plt.close(fig)
+
+
+def plot_06_latency(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
-    # TODO
+    # Rename values
+    df.loc[df['updates'] == 0, 'updates'] = 'None'
+    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
+    df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
+    # Filter rows
+    df = df[df.procs == 1]
+    # Filter columns
+    df = df.drop([
+        'num_nodes', 'num_links', 'num_updates', 'total_conn',
+        'independent_cec', 'procs'
+    ],
+                 axis=1)
+
+    # latency line charts
+    plot_latency(df[df.pkt_lat > 0],
+                 os.path.join(outDir, '06.latency.recv.pdf'),
+                 sample_limit=300)
+    plot_latency(df[df.drop_lat > 0],
+                 os.path.join(outDir, '06.latency.drop.pdf'))
+
+    # latency CDF
+    # TODO: plot one with pkt_lat > 0 and one with drop_lat > 0 with varying drop methods?
+    lat_df = df[df.updates == 'None'].drop(['updates'], axis=1)
+    # lat_df = lat_df.loc[lat_df.rewind_injections != -1]
+    print(lat_df.to_string())
 
 
 def main():
@@ -342,7 +425,7 @@ def main():
     os.makedirs(outDir, exist_ok=True)
 
     if args.latency:
-        plot_latency(targetDir, outDir)
+        plot_06_latency(targetDir, outDir)
     else:
         exp_id = os.path.basename(targetDir)[:2]
         if exp_id == '06':
