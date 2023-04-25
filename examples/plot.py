@@ -308,7 +308,7 @@ def plot_03_stats(invDir, outDir):
               fancybox=False)
 
     ax.grid(axis='y')
-    # ax.set_yscale('log')
+    ax.set_yscale('log')
     ax.set_xlabel('LBs and servers/LB', fontsize=22)
     ax.set_ylabel('Time (seconds)', fontsize=22)
     ax.tick_params(axis='both', which='both', labelsize=22)
@@ -902,9 +902,9 @@ def plot_03_latency(invDir, outDir):
         df = cdf_df.sort_values(by='latency').interpolate(limit_area='inside')
         del cdf_df
 
-        # Change units
-        df['latency'] /= 1e6  # usec -> sec
-        peak_latencies = [l / 1e6 for l in peak_latencies]
+        # # Change units
+        # df['latency'] /= 1e6  # usec -> sec
+        # peak_latencies = [l / 1e6 for l in peak_latencies]
 
         ax = df.plot(
             x='latency',
