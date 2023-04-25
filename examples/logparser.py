@@ -207,13 +207,22 @@ def parse(base_dir):
                   index=False)
 
 
-def merge_stats(model_stats_fn, neo_stats_fn):
+def merge_model(model_stats_fn, neo_stats_fn):
     model_stats_df = pd.read_csv(model_stats_fn)
     neo_stats_df = pd.read_csv(neo_stats_fn)
     model_stats_df['model_only'] = True
     neo_stats_df['model_only'] = False
     stats_df = pd.concat([model_stats_df, neo_stats_df], ignore_index=True)
     stats_df.to_csv('stats.csv', encoding='utf-8', index=False)
+
+
+def merge_unoptimized(opted_stats_fn, unopt_stats_fn):
+    opted_stats = pd.read_csv(opted_stats_fn)
+    unopt_stats = pd.read_csv(unopt_stats_fn)
+    opted_stats['optimization'] = True
+    unopt_stats['optimization'] = False
+    df = pd.concat([opted_stats, unopt_stats], ignore_index=True)
+    df.to_csv('stats.csv', encoding='utf-8', index=False)
 
 
 def main():
@@ -223,7 +232,7 @@ def main():
                         help='Parser target',
                         type=str,
                         action='store')
-    parser.add_argument('--merge',
+    parser.add_argument('--merge-model',
                         help='Merge the model-based and neo stats',
                         action='store_true')
     parser.add_argument('--model-stats',
@@ -234,13 +243,26 @@ def main():
                         help='Neo stats csv file',
                         type=str,
                         action='store')
+    parser.add_argument('--merge-unopt',
+                        help='Merge unoptimized and optimized stats',
+                        action='store_true')
+    parser.add_argument('--opted-stats',
+                        help='Optimized (original) stats csv',
+                        type=str,
+                        action='store')
+    parser.add_argument('--unopt-stats',
+                        help='Unoptimized stats csv',
+                        type=str,
+                        action='store')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO,
                         format='[%(levelname)s] %(message)s')
 
-    if args.merge:
-        merge_stats(args.model_stats, args.neo_stats)
+    if args.merge_model:
+        merge_model(args.model_stats, args.neo_stats)
+    elif args.merge_unopt:
+        merge_unoptimized(args.opted_stats, args.unopt_stats)
     else:
         target_dir = os.path.abspath(args.target)
         if not os.path.isdir(target_dir):
