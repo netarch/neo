@@ -325,6 +325,33 @@ def plot_03_stats(invDir, outDir):
     plt.close('all')
 
 
+def plot_03_compare_unopt(invDir):
+    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+    # Rename values
+    df.loc[df['optimization'] == True, 'optimization'] = 'Opt.'
+    df.loc[df['optimization'] == False, 'optimization'] = 'Unopt.'
+    # Filter rows
+    df = df[df.procs == 1]
+    df = df[df.drop_method == 'timeout']
+    df = df[df.invariant == 1]
+    # Filter columns
+    df = df.drop([
+        'inv_memory', 'procs', 'drop_method', 'num_nodes', 'num_links',
+        'num_updates', 'total_conn', 'invariant', 'independent_cec', 'violated'
+    ],
+                 axis=1)
+    # Sorting
+    df = df.sort_values(by=['lbs', 'algorithm'])
+    # Change units
+    df['inv_time'] /= 1e6  # usec -> sec
+
+    df = df.pivot(index='lbs',
+                  columns=['algorithm', 'optimization'],
+                  values='inv_time').reset_index()
+    with open(os.path.join(invDir, 'compare-unopt.txt'), 'w') as f:
+        f.write(df.to_string())
+
+
 def plot_06_perf_vs_tenants(df, outDir):
 
     def _plot(df, outDir, nproc, drop, inv):
@@ -1099,6 +1126,7 @@ def main():
     elif exp_id == '03':
         plot_03_stats(targetDir, outDir)
         plot_03_latency(targetDir, outDir)
+        plot_03_compare_unopt(targetDir)
     elif exp_id == '06':
         plot_06_stats(targetDir, outDir)
         plot_06_latency(targetDir, outDir)

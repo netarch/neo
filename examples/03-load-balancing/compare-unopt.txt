@@ -1,0 +1,4 @@
+algorithm    lbs         dh                       rr                      sh            
+optimization           Opt.      Unopt.         Opt.     Unopt.         Opt.      Unopt.
+0              2  12.458632  563.113988    12.644237  551.37038    12.609245  555.163165
+1              4   3.430389    3.387870  1752.548894        NaN  1792.557529         NaN
