@@ -216,13 +216,21 @@ def merge_model(model_stats_fn, neo_stats_fn):
     stats_df.to_csv('stats.csv', encoding='utf-8', index=False)
 
 
-def merge_unoptimized(opted_stats_fn, unopt_stats_fn):
+def merge_unoptimized(opted_stats_fn, unopt_stats_fn, opted_lat_fn,
+                      unopt_lat_fn):
     opted_stats = pd.read_csv(opted_stats_fn)
     unopt_stats = pd.read_csv(unopt_stats_fn)
     opted_stats['optimization'] = True
     unopt_stats['optimization'] = False
     df = pd.concat([opted_stats, unopt_stats], ignore_index=True)
     df.to_csv('stats.csv', encoding='utf-8', index=False)
+
+    opted_lat = pd.read_csv(opted_lat_fn)
+    unopt_lat = pd.read_csv(unopt_lat_fn)
+    opted_lat['optimization'] = True
+    unopt_lat['optimization'] = False
+    df = pd.concat([opted_lat, unopt_lat], ignore_index=True)
+    df.to_csv('lat.csv', encoding='utf-8', index=False)
 
 
 def main():
@@ -254,6 +262,14 @@ def main():
                         help='Unoptimized stats csv',
                         type=str,
                         action='store')
+    parser.add_argument('--opted-lat',
+                        help='Optimized (original) lat csv',
+                        type=str,
+                        action='store')
+    parser.add_argument('--unopt-lat',
+                        help='Unoptimized lat csv',
+                        type=str,
+                        action='store')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO,
@@ -262,7 +278,8 @@ def main():
     if args.merge_model:
         merge_model(args.model_stats, args.neo_stats)
     elif args.merge_unopt:
-        merge_unoptimized(args.opted_stats, args.unopt_stats)
+        merge_unoptimized(args.opted_stats, args.unopt_stats, args.opted_lat,
+                          args.unopt_lat)
     else:
         target_dir = os.path.abspath(args.target)
         if not os.path.isdir(target_dir):

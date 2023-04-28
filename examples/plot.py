@@ -618,6 +618,8 @@ def plot_06_stats(invDir, outDir):
     df.loc[df['updates'] == 0, 'updates'] = 'None'
     df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'Half-tenant'
     df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
+    # Filter rows
+    df = df[df.optimization == True].drop(['optimization'], axis=1)
 
     plot_06_perf_vs_tenants(df, outDir)
     plot_06_perf_vs_nprocs(df, outDir)
@@ -974,11 +976,12 @@ def plot_06_latency(invDir, outDir):
     df.loc[df['tenants'] == df['updates'], 'updates'] = 'All-tenant'
     # Filter rows
     df = df[df.procs == 1]
+    df = df[df.optimization == True]
     # Filter columns
     df = df.drop([
         'overall_lat', 'rewind_injections', 'tenants', 'updates', 'procs',
         'num_nodes', 'num_links', 'num_updates', 'total_conn', 'invariant',
-        'independent_cec', 'violated'
+        'independent_cec', 'violated', 'optimization'
     ],
                  axis=1)
     df = df.reset_index().drop(['index'], axis=1)
@@ -995,6 +998,78 @@ def plot_06_latency(invDir, outDir):
                      outDir,
                      os.path.basename(invDir)[:2],
                      logscale_for_reset=True)
+
+
+def plot_06_compare_unopt(invDir, outDir):
+
+    def _plot(df, outDir, drop, inv):
+        # Filter columns
+        df = df.drop([
+            'inv_memory', 'procs', 'num_nodes', 'num_links', 'num_updates',
+            'total_conn', 'independent_cec', 'violated', 'model_only'
+        ],
+                     axis=1)
+        # Sorting
+        df = df.sort_values(by=['tenants', 'updates'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        df['opt_update'] = df.optimization + ' (' + df.updates + ')'
+
+        df = df.pivot(index='tenants', columns='opt_update',
+                      values='inv_time').reset_index()
+
+        ax = df.plot(
+            x='tenants',
+            y=[
+                'Opt. (all-tenant)',
+                'Unopt. (all-tenant)',
+                'Opt. (half-tenant)',
+                'Unopt. (half-tenant)',
+                'Opt. (none)',
+                'Unopt. (none)',
+            ],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.14, 1.2),
+                  columnspacing=0.8,
+                  ncol=3,
+                  fontsize=13,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        ax.set_yscale('log')
+        ax.set_xlabel('Tenants', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('06.compare-unopt.inv-' + str(inv) + '.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+    # Rename values
+    df.loc[df['updates'] == 0, 'updates'] = 'none'
+    df.loc[df['tenants'] == df['updates'] * 2, 'updates'] = 'half-tenant'
+    df.loc[df['tenants'] == df['updates'], 'updates'] = 'all-tenant'
+    df.loc[df['optimization'] == True, 'optimization'] = 'Opt.'
+    df.loc[df['optimization'] == False, 'optimization'] = 'Unopt.'
+    # Filter rows
+    df = df[df.model_only != True]
+    df = df[df.procs == 1]
+
+    for drop in df.drop_method.unique():
+        d_df = df[df.drop_method == drop].drop(['drop_method'], axis=1)
+
+        for inv in d_df.invariant.unique():
+            inv_df = d_df[d_df.invariant == inv].drop(['invariant'], axis=1)
+            _plot(inv_df, outDir, drop, inv)
 
 
 def main():
@@ -1027,6 +1102,7 @@ def main():
     elif exp_id == '06':
         plot_06_stats(targetDir, outDir)
         plot_06_latency(targetDir, outDir)
+        plot_06_compare_unopt(targetDir, outDir)
     else:
         raise Exception("Parser not implemented for experiment " + exp_id)
 
