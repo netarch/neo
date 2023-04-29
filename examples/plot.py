@@ -584,41 +584,41 @@ def plot_06_perf_vs_drop_methods(df, outDir):
 
 def plot_06_model_comparison(df, outDir):
 
-    def _plot(df, outDir, nproc):
-        # Sorting
-        df = df.sort_values(by=['tenants'])
+    # def _plot(df, outDir, nproc):
+    #     # Sorting
+    #     df = df.sort_values(by=['tenants'])
 
-        df = df.pivot(index='tenants', columns='model_only',
-                      values='inv_time').reset_index()
+    #     df = df.pivot(index='tenants', columns='model_only',
+    #                   values='inv_time').reset_index()
 
-        # Plot time comparison
-        ax = df.plot(
-            x='tenants',
-            y=['Model-based', 'Neo'],
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=0,
-        )
-        ax.legend(bbox_to_anchor=(1.0, 1.18),
-                  ncol=2,
-                  fontsize=20,
-                  frameon=False,
-                  fancybox=False)
-        ax.grid(axis='y')
-        ax.set_yscale('log')
-        ax.set_xlabel('Tenants', fontsize=22)
-        ax.set_ylabel('Time (seconds)', fontsize=22)
-        ax.tick_params(axis='both', which='both', labelsize=22)
-        ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        fig = ax.get_figure()
-        fn = os.path.join(
-            outDir,
-            ('06.compare-model.inv-1.0-updates.' + str(nproc) + '-procs.pdf'))
-        fig.savefig(fn, bbox_inches='tight')
-        plt.close(fig)
+    #     # Plot time comparison
+    #     ax = df.plot(
+    #         x='tenants',
+    #         y=['Model-based', 'Neo'],
+    #         kind='bar',
+    #         legend=False,
+    #         width=0.8,
+    #         xlabel='',
+    #         ylabel='',
+    #         rot=0,
+    #     )
+    #     ax.legend(bbox_to_anchor=(1.0, 1.18),
+    #               ncol=2,
+    #               fontsize=20,
+    #               frameon=False,
+    #               fancybox=False)
+    #     ax.grid(axis='y')
+    #     ax.set_yscale('log')
+    #     ax.set_xlabel('Tenants', fontsize=22)
+    #     ax.set_ylabel('Time (seconds)', fontsize=22)
+    #     ax.tick_params(axis='both', which='both', labelsize=22)
+    #     ax.tick_params(axis='x', which='both', top=False, bottom=False)
+    #     fig = ax.get_figure()
+    #     fn = os.path.join(
+    #         outDir,
+    #         ('06.compare-model.inv-1.0-updates.' + str(nproc) + '-procs.pdf'))
+    #     fig.savefig(fn, bbox_inches='tight')
+    #     plt.close(fig)
 
     # Rename values
     df.loc[df['model_only'] == True, 'model_only'] = 'Model-based'
@@ -626,7 +626,8 @@ def plot_06_model_comparison(df, outDir):
     # Filter rows
     df = df[df.invariant == 1].drop(['invariant'], axis=1)
     df = df[df.drop_method == 'timeout'].drop(['drop_method'], axis=1)
-    df = df[df.updates == 'None'].drop(['updates'], axis=1)
+    df = df[df.procs == 1].drop(['procs'], axis=1)
+    # df = df[df.updates == 'None'].drop(['updates'], axis=1)
     # Filter columns
     df = df.drop([
         'inv_memory', 'num_nodes', 'num_links', 'num_updates', 'total_conn',
@@ -635,12 +636,13 @@ def plot_06_model_comparison(df, outDir):
                  axis=1)
     # Change units
     df['inv_time'] /= 1e6  # usec -> sec
+    # Sorting
+    df = df.sort_values(by=['tenants', 'updates', 'model_only'])
 
-    with open('compare-model.inv-1.no-updates.1-proc.txt', 'w') as f:
-        df = df[df.procs == 1].drop(['procs'], axis=1)
-        df = df.sort_values(by=['tenants'])
-        df = df.pivot(index='tenants', columns='model_only',
-                      values='inv_time').reset_index()
+    df = df.pivot(index='tenants', columns=['updates', 'model_only'],
+                  values='inv_time').reset_index()
+
+    with open('compare-model.inv-1.1-proc.txt', 'w') as f:
         f.write(df.to_string())
 
     # for nproc in df.procs.unique():
@@ -657,9 +659,9 @@ def plot_06_stats(invDir, outDir):
     # Filter rows
     df = df[df.optimization == True].drop(['optimization'], axis=1)
 
-    # plot_06_perf_vs_tenants(df, outDir)
-    # plot_06_perf_vs_nprocs(df, outDir)
-    # plot_06_perf_vs_drop_methods(df, outDir)
+    plot_06_perf_vs_tenants(df, outDir)
+    plot_06_perf_vs_nprocs(df, outDir)
+    plot_06_perf_vs_drop_methods(df, outDir)
     plot_06_model_comparison(df, outDir)
 
 
@@ -1138,8 +1140,8 @@ def main():
         plot_03_compare_unopt(targetDir)
     elif exp_id == '06':
         plot_06_stats(targetDir, outDir)
-        # plot_06_latency(targetDir, outDir)
-        # plot_06_compare_unopt(targetDir, outDir)
+        plot_06_latency(targetDir, outDir)
+        plot_06_compare_unopt(targetDir, outDir)
     else:
         raise Exception("Parser not implemented for experiment " + exp_id)
 
