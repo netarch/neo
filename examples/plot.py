@@ -782,6 +782,11 @@ def plot_latency_cdf(df,
             })
         del cdf_df
 
+        for col in list(df.columns):
+            if col == 'latency':
+                continue
+            df[col] /= df[col].max()
+
         ax = df.plot(
             x='latency',
             y=['drop_mon', 'ebpf', 'timeout'],
@@ -792,7 +797,7 @@ def plot_latency_cdf(df,
             rot=0,
             lw=LINE_WIDTH,
         )
-        ax.legend(bbox_to_anchor=(1.07, 1.2),
+        ax.legend(bbox_to_anchor=(1.1, 1.2),
                   columnspacing=0.8,
                   ncol=3,
                   fontsize=22,
@@ -803,7 +808,7 @@ def plot_latency_cdf(df,
                 or (not with_reset and logscale_for_no_reset)):
             ax.set_xscale('log')
         ax.set_xlabel('Latency (microseconds)', fontsize=24)
-        ax.set_ylabel('Packet injections', fontsize=24)
+        ax.set_ylabel('CDF', fontsize=24)
         ax.tick_params(axis='both', which='both', labelsize=24)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
         i = 0
