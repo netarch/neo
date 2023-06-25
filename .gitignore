@@ -22,6 +22,8 @@ __pycache__
 *.code-workspace
 .vscode/**/*
 !.vscode/launch.json
+.cache/
+.venv/
 
 # Packages
 *.tar.*
