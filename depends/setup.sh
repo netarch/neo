@@ -29,7 +29,8 @@ get_distro() {
     elif type lsb_release >/dev/null 2>&1; then # linuxbase.org
         lsb_release -si | tr '[:upper:]' '[:lower:]'
     elif test -f /etc/lsb-release; then
-        . /etc/lsb-release
+        # shellcheck source=/dev/null
+        source /etc/lsb-release
         echo "$DISTRIB_ID" | tr '[:upper:]' '[:lower:]'
     elif test -f /etc/arch-release; then
         echo "arch"
@@ -180,11 +181,10 @@ main() {
         build_deps=(cmake clang)
         style_deps=(clang yapf)
         bpf_deps=(libelf zlib binutils libcap clang llvm lib32-glibc)
-        example_deps=(python-pandas python-numpy python-matplotlib)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-                 "${bpf_deps[@]}" "${example_deps[@]}"
-                 glibc libnet libnl boost boost-stacktrace-backtrace curl
-                 pcapplusplus python-toml spin-git docker)
+            "${bpf_deps[@]}"
+            glibc libnet libnl boost boost-stacktrace-backtrace curl
+            pcapplusplus spin-git docker)
         non_local_depends=()
 
         for dep in "${depends[@]}"; do
@@ -207,13 +207,12 @@ main() {
         build_deps=(cmake pkg-config clang)
         style_deps=(clang-format yapf3)
         bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
-                  libcap-dev clang llvm)
-        example_deps=(python3-pandas python3-numpy python3-matplotlib)
+            libcap-dev clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-                 "${bpf_deps[@]}" "${example_deps[@]}"
-                 libpthread-stubs0-dev libstdc++-12-dev libnet1 libnet1-dev
-                 libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev
-                 libboost-all-dev libcurl4-openssl-dev libpcap-dev python3-toml)
+            "${bpf_deps[@]}"
+            libpthread-stubs0-dev libstdc++-12-dev libnet1 libnet1-dev
+            libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev
+            libboost-all-dev libcurl4-openssl-dev libpcap-dev)
         aur_pkgs=(spin-git pcapplusplus)
 
         sudo apt update -y -qq
@@ -230,7 +229,6 @@ main() {
 
     msg "Finished"
 }
-
 
 main "$@"
 

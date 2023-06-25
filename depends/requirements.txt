@@ -1,0 +1,5 @@
+conan>=2.0.7
+matplotlib>=3.7.1
+numpy>=1.25.0
+pandas>=2.0.2
+toml>=0.10.2
