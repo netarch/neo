@@ -6,6 +6,7 @@ add_executable(neotests $<TARGET_OBJECTS:libneo> ${TEST_SRC_FILES})
 target_link_libraries(neotests PRIVATE
     Catch2::Catch2
     libneo
+    pcapplusplus::pcapplusplus
     rapidjson
     tomlplusplus::tomlplusplus
 )
