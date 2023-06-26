@@ -13,11 +13,6 @@
   "problemMatcher": [
     "$msCompile"
   ],
-  "options": {
-    "env": {
-      "MAKEFLAGS": "-j$(nproc)"
-    }
-  },
   "tasks": [
     {
       "label": "configure (release)",
