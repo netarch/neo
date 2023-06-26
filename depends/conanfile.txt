@@ -8,7 +8,11 @@ spdlog/1.11.0
 tomlplusplus/3.3.0
 xxhash/0.8.1
 
+# Required by libbpf (co-re)
+zlib/1.2.13
+
 # Recipes not migrated to Conan 2.0:
+# elfutils/0.186    # Required by libbpf (co-re)
 # libbpf/0.7.0
 # libnl/3.2.25
 

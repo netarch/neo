@@ -73,11 +73,14 @@ endif()
 # third party libraries
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+add_subdirectory(third_party/bpftool EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/libbpf EXCLUDE_FROM_ALL)
 find_package(Boost REQUIRED
     program_options
     stacktrace_backtrace
     stacktrace_noop
 )
+find_package(BpfObject REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Catch2 REQUIRED)
 find_package(Libnl REQUIRED)
@@ -89,9 +92,7 @@ find_package(pcapplusplus REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(tomlplusplus REQUIRED)
 find_package(xxHash REQUIRED)
-add_subdirectory(third_party/bpftool EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/libbpf EXCLUDE_FROM_ALL)
-find_package(BpfObject REQUIRED)
+find_package(ZLIB REQUIRED)
 
 #
 # backtrace
