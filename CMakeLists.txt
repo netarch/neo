@@ -73,30 +73,25 @@ endif()
 # third party libraries
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-add_subdirectory(third_party/bpftool EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/catch2 EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/libbpf EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/rapidjson EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/spdlog EXCLUDE_FROM_ALL)
-add_subdirectory(third_party/tomlplusplus EXCLUDE_FROM_ALL)
-set(XXHASH_BUILD_ENABLE_INLINE_API ON)
-set(XXHASH_BUILD_XXHSUM OFF)
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(third_party/xxhash/cmake_unofficial EXCLUDE_FROM_ALL)
-find_package(BpfObject REQUIRED)
-find_package(CURL REQUIRED)
-find_package(Libnet REQUIRED)
-find_package(Libnl REQUIRED)
-find_package(PcapPlusPlus REQUIRED)
-find_package(RapidJSON REQUIRED)
-find_package(Spin REQUIRED)
-find_package(Threads REQUIRED)
-set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED
     program_options
     stacktrace_backtrace
     stacktrace_noop
 )
+find_package(CURL REQUIRED)
+find_package(Catch2 REQUIRED)
+find_package(Libnl REQUIRED)
+find_package(RapidJSON REQUIRED)
+find_package(Spin REQUIRED)
+find_package(Threads REQUIRED)
+find_package(libnet REQUIRED)
+find_package(pcapplusplus REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(tomlplusplus REQUIRED)
+find_package(xxHash REQUIRED)
+add_subdirectory(third_party/bpftool EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/libbpf EXCLUDE_FROM_ALL)
+find_package(BpfObject REQUIRED)
 
 #
 # backtrace
@@ -166,9 +161,9 @@ target_link_libraries(libneo PUBLIC coverage_config backtrace_config)
 target_link_libraries(libneo PRIVATE
     Boost::program_options
     CURL::libcurl
-    Libnet::Libnet
+    libnet::libnet
     Libnl::Libnl
-    PcapPlusPlus::pcap++
+    pcapplusplus::pcapplusplus
     Threads::Threads
     rapidjson
     spdlog::spdlog
