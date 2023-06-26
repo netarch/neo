@@ -187,7 +187,7 @@ main() {
         script_deps=(base-devel git)
         build_deps=(clang)
         style_deps=(clang yapf)
-        bpf_deps=(clang llvm lib32-glibc)
+        bpf_deps=(libelf zlib binutils libcap clang llvm lib32-glibc)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
             "${bpf_deps[@]}" glibc libnl spin-git docker)
 
@@ -198,7 +198,8 @@ main() {
         script_deps=(build-essential curl git)
         build_deps=(clang)
         style_deps=(clang-format yapf3)
-        bpf_deps=(libc6-dev libc6-dev-i386 clang llvm)
+        bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
+            libcap-dev clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
             "${bpf_deps[@]}" libpthread-stubs0-dev libstdc++-12-dev libnl-3-200
             libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)

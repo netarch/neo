@@ -5,7 +5,8 @@ pkgdesc="meta package for neo development"
 arch=('any')
 url="https://github.com/netarch/neo"
 license=()
-depends=(clang yapf llvm lib32-glibc glibc libnl spin-git docker)
+depends=(clang yapf libelf zlib binutils libcap llvm lib32-glibc glibc libnl
+         spin-git docker)
 makedepends=()
 checkdepends=()
 optdepends=()

@@ -8,16 +8,9 @@ spdlog/1.11.0
 tomlplusplus/3.3.0
 xxhash/0.8.1
 
-# Required by eBPF
-binutils/2.38
-libcap/2.68
-libelf/0.8.13
-zlib/1.2.13
-
 # Recipes not migrated to Conan 2.0:
 # libbpf/0.7.0
 # libnl/3.2.25
-# llvm-core/13.0.0  # Required by eBPF
 
 [tool_requires]
 cmake/[>=3.26]
