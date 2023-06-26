@@ -26,4 +26,4 @@ comment:
 ignore:
   - "examples"
   - "third_party"
-  - "test"
+  - "tests"

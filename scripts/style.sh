@@ -32,7 +32,10 @@ EOF
 parse_params() {
     while :; do
         case "${1-}" in
-        -h | --help) usage; exit ;;
+        -h | --help)
+            usage
+            exit
+            ;;
         -f | --overwrite)
             OVERWRITE=1
             ;;
@@ -57,7 +60,7 @@ main() {
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
-    TEST_DIR="$(realpath "${SCRIPT_DIR}"/../test)"
+    TEST_DIR="$(realpath "${SCRIPT_DIR}"/../tests)"
     EXAMPLES_DIR="$(realpath "${SCRIPT_DIR}"/../examples)"
     TARGET_DIRS=("$SRC_DIR" "$TEST_DIR" "$EXAMPLES_DIR")
 
@@ -76,7 +79,6 @@ main() {
         $YAPF -p -r -i "${TARGET_DIRS[@]}"
     fi
 }
-
 
 main "$@"
 

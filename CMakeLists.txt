@@ -190,7 +190,7 @@ target_link_libraries(neo PRIVATE libneo)
 option(ENABLE_TESTS "Build tests" OFF)
 if (ENABLE_TESTS)
     enable_testing()
-    add_subdirectory(test)
+    add_subdirectory(tests)
 endif()
 
 #
