@@ -1,6 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
+
+# SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+# PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# VENV_DIR="$PROJECT_DIR/.venv"
+# BUILD_DIR="$PROJECT_DIR/build"
 
 msg() {
     echo -e "[+] ${1-}" >&2
@@ -11,6 +16,8 @@ die() {
     exit 1
 }
 
+[ $UID -eq 0 ] && die 'Please run this script without root privilege'
+
 check_depends() {
     for cmd in "$@"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -19,8 +26,7 @@ check_depends() {
     done
 }
 
-usage()
-{
+usage() {
     cat <<EOF
 [!] Usage: $(basename "${BASH_SOURCE[0]}") [options]
 
@@ -48,21 +54,31 @@ parse_params() {
 
     while :; do
         case "${1-}" in
-        -h | --help) usage; exit ;;
+        -h | --help)
+            usage
+            exit
+            ;;
         -d | --debug)
-            DEBUG=1 ;;
+            DEBUG=1
+            ;;
         --clean)
-            CLEAN=1 ;;
+            CLEAN=1
+            ;;
         -r | --rebuild)
-            REBUILD=1 ;;
+            REBUILD=1
+            ;;
         -t | --tests)
-            TESTS=1 ;;
+            TESTS=1
+            ;;
         -c | --coverage)
-            COVERAGE=1 ;;
+            COVERAGE=1
+            ;;
         --gcc)
-            COMPILER=gcc ;;
+            COMPILER=gcc
+            ;;
         --clang)
-            COMPILER=clang ;;
+            COMPILER=clang
+            ;;
         --max-conns)
             MAX_CONNS="${2-}"
             shift
@@ -126,7 +142,6 @@ main() {
     cmake -B "${BUILD_DIR}" -S "${PROJECT_DIR}" "${CMAKE_ARGS[@]}"
     cmake --build "${BUILD_DIR}"
 }
-
 
 main "$@"
 
