@@ -75,7 +75,7 @@ makepkg_arch() {
     popd # "$TARGET"
 }
 
-elementIn() {
+element_in() {
     local e match="$1"
     shift
     for e in "$@"; do [[ "$e" == "$match" ]] && return 0; done
@@ -85,7 +85,7 @@ elementIn() {
 #
 # Build and install the package with PKGBUILD
 #
-makepkg_ubuntu() {
+makepkg_manual() {
     MAKEFLAGS="-j$(nproc)"
     export MAKEFLAGS
     [[ -z "${CFLAGS+x}" ]] && export CFLAGS=""
@@ -136,7 +136,8 @@ makepkg_ubuntu() {
         ln -sf "../$target" "$srcdir/$target"
         # extract tarballs if the target is not in noextract
         # shellcheck disable=SC2154
-        if [[ "$target" == *.tar.* ]] && ! elementIn "$target" "${noextract[@]}"; then
+        if [[ "$target" == *.tar.* ]] &&
+            ! element_in "$target" "${noextract[@]}"; then
             tar -C "$srcdir" -xf "$srcdir/$target"
         fi
         i=$((i + 1))
@@ -165,7 +166,13 @@ aur_install() {
     else
         git clone "https://aur.archlinux.org/$TARGET.git"
     fi
-    ("makepkg_$(get_distro)" "$TARGET" "$@")
+
+    DISTRO="$(get_distro)"
+    if [ "$DISTRO" = "arch" ]; then
+        (makepkg_arch "$TARGET" "$@")
+    else
+        (makepkg_manual "$TARGET" "$@")
+    fi
     rm -rf "$TARGET"
 }
 
@@ -177,43 +184,25 @@ main() {
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
 
-        script_deps=(base-devel curl git)
-        build_deps=(cmake clang)
+        script_deps=(base-devel git)
+        build_deps=(clang)
         style_deps=(clang yapf)
-        bpf_deps=(libelf zlib binutils libcap clang llvm lib32-glibc)
+        bpf_deps=(clang llvm lib32-glibc)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-            "${bpf_deps[@]}"
-            glibc libnet libnl boost boost-stacktrace-backtrace curl
-            pcapplusplus spin-git docker)
-        non_local_depends=()
+            "${bpf_deps[@]}" glibc libnl spin-git docker)
 
-        for dep in "${depends[@]}"; do
-            if [[ -d "$dep" ]]; then
-                "makepkg_$DISTRO" "$dep" -srci --asdeps --noconfirm "$@"
-            else
-                non_local_depends+=("$dep")
-            fi
-        done
-
-        if [[ ${#non_local_depends[@]} -ne 0 ]]; then
-            paru -S --asdeps --needed --noconfirm --removemake \
-                "${non_local_depends[@]}" "$@"
-        fi
-
-        "makepkg_$DISTRO" neo-dev -srci --asdeps --noconfirm "$@"
+        paru -S --asdeps --needed --noconfirm --removemake "${depends[@]}" "$@"
+        makepkg_arch neo-dev -srci --asdeps --noconfirm "$@"
 
     elif [ "$DISTRO" = "ubuntu" ]; then
-        script_deps=(build-essential flex bison curl git)
-        build_deps=(cmake pkg-config clang)
+        script_deps=(build-essential curl git)
+        build_deps=(clang)
         style_deps=(clang-format yapf3)
-        bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
-            libcap-dev clang llvm)
+        bpf_deps=(libc6-dev libc6-dev-i386 clang llvm)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-            "${bpf_deps[@]}"
-            libpthread-stubs0-dev libstdc++-12-dev libnet1 libnet1-dev
-            libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev
-            libboost-all-dev libcurl4-openssl-dev libpcap-dev)
-        aur_pkgs=(spin-git pcapplusplus)
+            "${bpf_deps[@]}" libpthread-stubs0-dev libstdc++-12-dev libnl-3-200
+            libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
+        aur_pkgs=(spin-git)
 
         sudo apt update -y -qq
         sudo apt install -y -qq "${depends[@]}"
