@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$PROJECT_DIR/.venv"
 BUILD_DIR="$PROJECT_DIR/build"
+PROFILE="$PROJECT_DIR/scripts/release_profile.ini"
+BUILD_TYPE="$(grep -E "^build_type" "$PROFILE" | head -n1 | cut -d= -f2)"
+GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
 
 msg() {
     echo -e "[+] ${1-}" >&2
@@ -46,40 +49,47 @@ set_up_python_dependencies() {
 
 activate_conan_env() {
     # shellcheck source=/dev/null
-    source "$BUILD_DIR/conanbuild.sh"
+    source "$GENERATORS_DIR/conanbuild.sh"
     # shellcheck source=/dev/null
-    source "$BUILD_DIR/conanrun.sh"
+    source "$GENERATORS_DIR/conanrun.sh"
 }
 
 deactivate_conan_env() {
     # shellcheck source=/dev/null
-    source "$BUILD_DIR/deactivate_conanbuild.sh"
+    source "$GENERATORS_DIR/deactivate_conanbuild.sh"
     # shellcheck source=/dev/null
-    source "$BUILD_DIR/deactivate_conanrun.sh"
+    source "$GENERATORS_DIR/deactivate_conanrun.sh"
 }
 
 set_up_cpp_dependencies() {
     local recipe_path="$PROJECT_DIR/depends/conanfile.txt"
-    local profile_path="$PROJECT_DIR/scripts/release_profile.ini"
 
     activate_python_venv
     conan install "$recipe_path" \
-        --profile:host="$profile_path" \
-        --profile:build="$profile_path" \
+        --profile:host="$PROFILE" \
+        --profile:build="$PROFILE" \
         --output-folder="$BUILD_DIR" \
         --build=missing \
         --build=cascade
     deactivate_python_venv
 }
 
+bootstrapped() {
+    if [[ -e "$GENERATORS_DIR/conanbuild.sh" ]] &&
+        [[ -e "$GENERATORS_DIR/conanrun.sh" ]]; then
+        echo true
+    else
+        echo false
+    fi
+}
+
 bootstrap() {
     set_up_python_dependencies
     set_up_cpp_dependencies
-
-    # cmake .. -DCMAKE_TOOLCHAIN_FILE=$BUILD_DIR/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
-    # cmake --build .
 }
 
-bootstrap "$@"
+if [[ "$(basename "$0")" == "bootstrap.sh" ]]; then
+    bootstrap "$@"
+fi
 
 # vim: set ts=4 sw=4 et:
