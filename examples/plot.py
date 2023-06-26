@@ -639,7 +639,8 @@ def plot_06_model_comparison(df, outDir):
     # Sorting
     df = df.sort_values(by=['tenants', 'updates', 'model_only'])
 
-    df = df.pivot(index='tenants', columns=['updates', 'model_only'],
+    df = df.pivot(index='tenants',
+                  columns=['updates', 'model_only'],
                   values='inv_time').reset_index()
 
     with open('compare-model.inv-1.1-proc.txt', 'w') as f:
