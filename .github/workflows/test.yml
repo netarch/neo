@@ -25,7 +25,7 @@ jobs:
         with:
           submodules: 'recursive'
       - run: ./depends/setup.sh
-      - run: ./test/build.sh --debug --tests --coverage --${{ matrix.cc }}
+      - run: ./scripts/build.sh --debug --tests --coverage --${{ matrix.cc }}
       - run: ctest --progress --output-on-failure
         working-directory: ./build
       - if: matrix.cc == 'gcc'
