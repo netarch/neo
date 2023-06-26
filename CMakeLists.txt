@@ -99,19 +99,8 @@ find_package(ZLIB REQUIRED)
 #
 add_library(backtrace_config INTERFACE)
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        execute_process(COMMAND /bin/sh -c "ls -d /usr/lib/gcc/x86_64-*linux-gnu/*/include/backtrace.h | head -n1"
-                        OUTPUT_VARIABLE GCC_BACKTRACE_H
-                        OUTPUT_STRIP_TRAILING_WHITESPACE)
-        if (NOT GCC_BACKTRACE_H STREQUAL "")
-            target_compile_definitions(backtrace_config INTERFACE BOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE="${GCC_BACKTRACE_H}")
-        endif()
-    endif()
-
-    target_compile_definitions(backtrace_config INTERFACE BOOST_STACKTRACE_USE_BACKTRACE)
     target_link_libraries(backtrace_config INTERFACE Boost::stacktrace_backtrace backtrace dl)
 else()
-    target_compile_definitions(backtrace_config INTERFACE BOOST_STACKTRACE_USE_NOOP)
     target_link_libraries(backtrace_config INTERFACE Boost::stacktrace_noop)
 endif()
 

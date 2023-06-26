@@ -2,14 +2,6 @@
 
 set -eo pipefail
 
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-VENV_DIR="$PROJECT_DIR/.venv"
-BUILD_DIR="$PROJECT_DIR/build"
-PROFILE="$PROJECT_DIR/scripts/release_profile.ini"
-BUILD_TYPE="$(grep -E "^build_type" "$PROFILE" | head -n1 | cut -d= -f2)"
-GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
-
 msg() {
     echo -e "[+] ${1-}" >&2
 }
@@ -26,6 +18,42 @@ check_depends() {
         if ! command -v "$cmd" >/dev/null 2>&1; then
             die "'$cmd' not found"
         fi
+    done
+}
+
+usage() {
+    cat <<EOF
+[!] Usage: $(basename "${BASH_SOURCE[0]}") [options]
+
+    Options:
+    -h, --help          Print this message and exit
+    -d, --debug         Enable debugging
+EOF
+}
+
+parse_args() {
+    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+    PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+    VENV_DIR="$PROJECT_DIR/.venv"
+    BUILD_DIR="$PROJECT_DIR/build"
+    PROFILE="$PROJECT_DIR/scripts/release_profile.ini"
+    BUILD_TYPE="$(grep -E "^build_type" "$PROFILE" | head -n1 | cut -d= -f2)"
+    GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
+
+    while :; do
+        case "${1-}" in
+        -h | --help)
+            usage
+            exit
+            ;;
+        -d | --debug)
+            BUILD_TYPE=Debug
+            GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
+            ;;
+        -?*) die "Unknown option: $1\n$(usage)" ;;
+        *) break ;;
+        esac
+        shift
     done
 }
 
@@ -69,6 +97,7 @@ set_up_cpp_dependencies() {
         --profile:host="$PROFILE" \
         --profile:build="$PROFILE" \
         --output-folder="$BUILD_DIR" \
+        --settings=build_type="$BUILD_TYPE" \
         --build=missing \
         --build=cascade
     deactivate_python_venv
@@ -87,6 +116,8 @@ bootstrap() {
     set_up_python_dependencies
     set_up_cpp_dependencies
 }
+
+parse_args "$@"
 
 if [[ "$(basename "$0")" == "bootstrap.sh" ]]; then
     bootstrap "$@"
