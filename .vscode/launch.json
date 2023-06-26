@@ -8,10 +8,10 @@
       "name": "neotests",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/test/neotests",
+      "program": "${workspaceFolder}/build/tests/neotests",
       "args": [
         "--test-data-dir",
-        "${workspaceFolder}/test/networks",
+        "${workspaceFolder}/tests/networks",
         "--durations",
         "yes"
       ],
