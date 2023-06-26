@@ -1,0 +1,54 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "presentation": {
+    "echo": true,
+    "reveal": "always",
+    "focus": true,
+    "panel": "dedicated",
+    "showReuseMessage": true,
+    "clear": true,
+  },
+  "problemMatcher": [
+    "$msCompile"
+  ],
+  "options": {
+    "env": {
+      "MAKEFLAGS": "-j$(nproc)"
+    }
+  },
+  "tasks": [
+    {
+      "label": "configure (release)",
+      "type": "shell",
+      "command": "./scripts/configure.sh -r",
+    },
+    {
+      "label": "configure (debug)",
+      "type": "shell",
+      "command": "./scripts/configure.sh -r -d -t -c",
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "./scripts/build.sh",
+      "group": {
+        "kind": "build",
+        "isDefault": true,
+      },
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "ctest --progress --output-on-failure",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true,
+      },
+    },
+  ]
+}
