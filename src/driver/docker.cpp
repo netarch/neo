@@ -19,8 +19,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <PcapFileDevice.h>
 #include <curl/curl.h>
-#include <pcapplusplus/PcapFileDevice.h>
 
 #include "dockerapi.hpp"
 #include "dockernode.hpp"

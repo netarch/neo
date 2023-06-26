@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <pcapplusplus/PcapFileDevice.h>
+#include <PcapFileDevice.h>
 
 #include "dockerapi.hpp"
 #include "driver/driver.hpp"
