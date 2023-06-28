@@ -37,6 +37,9 @@
       "label": "test",
       "type": "shell",
       "command": "ctest --progress --output-on-failure",
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "cwd": "${workspaceFolder}/build"
       },
