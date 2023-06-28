@@ -25,7 +25,7 @@ usage() {
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
     --gcc               Use GCC
-    --clang             Use Clang
+    --clang             Use Clang (default)
     --max-conns N       Maximum number of concurrent connections
 EOF
 }
@@ -77,6 +77,8 @@ parse_args() {
         esac
         shift
     done
+
+    BOOTSTRAP_FLAGS+=("--compiler" "$COMPILER")
 }
 
 reset_files() {
@@ -130,8 +132,8 @@ main() {
     # Reset intermediate files if needed
     reset_files
     # Bootstrap the python and conan environment
-    source "$SCRIPT_DIR/bootstrap.sh" "${BOOTSTRAP_FLAGS[@]}"
-    bootstrap
+    source "$SCRIPT_DIR/bootstrap.sh"
+    bootstrap "${BOOTSTRAP_FLAGS[@]}"
     # Activate the conan environment
     activate_conan_env
     # Prepare build parameters

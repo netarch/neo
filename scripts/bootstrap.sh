@@ -28,17 +28,13 @@ usage() {
     Options:
     -h, --help          Print this message and exit
     -d, --debug         Enable debugging
+    --compiler <...>    Either gcc or clang (default: clang)
 EOF
 }
 
 parse_args() {
-    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-    PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-    VENV_DIR="$PROJECT_DIR/.venv"
-    BUILD_DIR="$PROJECT_DIR/build"
-    PROFILE="$PROJECT_DIR/scripts/release_profile.ini"
-    BUILD_TYPE="$(grep -E "^build_type" "$PROFILE" | head -n1 | cut -d= -f2)"
-    GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
+    BUILD_TYPE=Release
+    COMPILER=clang
 
     while :; do
         case "${1-}" in
@@ -48,13 +44,25 @@ parse_args() {
             ;;
         -d | --debug)
             BUILD_TYPE=Debug
-            GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
+            ;;
+        --compiler)
+            COMPILER="${2-}"
+            if [[ "$COMPILER" != "clang" && "$COMPILER" != "gcc" ]]; then
+                die "Unknown compiler: $COMPILER\n$(usage)"
+            fi
+            shift
             ;;
         -?*) die "Unknown option: $1\n$(usage)" ;;
         *) break ;;
         esac
         shift
     done
+
+    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+    PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+    VENV_DIR="$PROJECT_DIR/.venv"
+    BUILD_DIR="$PROJECT_DIR/build"
+    GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
 }
 
 activate_python_venv() {
@@ -91,11 +99,12 @@ deactivate_conan_env() {
 
 set_up_cpp_dependencies() {
     local recipe_path="$PROJECT_DIR/depends/conanfile.txt"
+    local profile="$PROJECT_DIR/scripts/${COMPILER}_profile.ini"
 
     activate_python_venv
     conan install "$recipe_path" \
-        --profile:host="$PROFILE" \
-        --profile:build="$PROFILE" \
+        --profile:host="$profile" \
+        --profile:build="$profile" \
         --output-folder="$BUILD_DIR" \
         --settings=build_type="$BUILD_TYPE" \
         --build=missing \
@@ -104,11 +113,10 @@ set_up_cpp_dependencies() {
 }
 
 bootstrap() {
+    parse_args "$@"
     set_up_python_dependencies
     set_up_cpp_dependencies
 }
-
-parse_args "$@"
 
 if [[ "$(basename "$0")" == "bootstrap.sh" ]]; then
     bootstrap "$@"
