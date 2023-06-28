@@ -20,9 +20,9 @@ usage() {
     Options:
     -h, --help          Print this message and exit
     -d, --debug         Enable debugging
-    --clean             Clean all build files
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
+    --clean             Clean all build files without configuring
     --gcc               Use GCC
     --clang             Use Clang (default)
     --max-conns N       Maximum number of concurrent connections
@@ -48,14 +48,14 @@ parse_args() {
             DEBUG=1
             BOOTSTRAP_FLAGS+=("-d")
             ;;
-        --clean)
-            CLEAN=1
-            ;;
         -t | --tests)
             TESTS=1
             ;;
         -c | --coverage)
             COVERAGE=1
+            ;;
+        --clean)
+            CLEAN=1
             ;;
         --gcc)
             COMPILER=gcc
