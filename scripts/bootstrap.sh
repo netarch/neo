@@ -103,15 +103,6 @@ set_up_cpp_dependencies() {
     deactivate_python_venv
 }
 
-bootstrapped() {
-    if [[ -e "$GENERATORS_DIR/conanbuild.sh" ]] &&
-        [[ -e "$GENERATORS_DIR/conanrun.sh" ]]; then
-        echo true
-    else
-        echo false
-    fi
-}
-
 bootstrap() {
     set_up_python_dependencies
     set_up_cpp_dependencies

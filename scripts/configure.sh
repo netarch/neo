@@ -131,9 +131,7 @@ main() {
     reset_files
     # Bootstrap the python and conan environment
     source "$SCRIPT_DIR/bootstrap.sh" "${BOOTSTRAP_FLAGS[@]}"
-    if [[ "$(bootstrapped)" == "false" ]]; then
-        bootstrap
-    fi
+    bootstrap
     # Activate the conan environment
     activate_conan_env
     # Prepare build parameters
