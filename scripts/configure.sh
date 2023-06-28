@@ -96,7 +96,6 @@ reset_files() {
 prepare_flags() {
     local toolchain_file="$GENERATORS_DIR/conan_toolchain.cmake"
     CMAKE_ARGS=("-DCMAKE_TOOLCHAIN_FILE=$toolchain_file")
-    PKG_CONFIG_PATH="/usr/lib/pkgconfig"
 
     if [[ $DEBUG -ne 0 ]]; then
         CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug')
@@ -123,7 +122,6 @@ prepare_flags() {
     fi
 
     export CMAKE_ARGS
-    export PKG_CONFIG_PATH
 }
 
 main() {
