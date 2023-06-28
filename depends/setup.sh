@@ -192,7 +192,7 @@ main() {
             "${bpf_deps[@]}" glibc libnl spin-git docker)
 
         paru -S --asdeps --needed --noconfirm --removemake "${depends[@]}" "$@"
-        makepkg_arch neo-dev -srci --asdeps --noconfirm "$@"
+        makepkg_arch neo-dev -srcfi --asdeps --noconfirm "$@"
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_deps=(build-essential curl git)
