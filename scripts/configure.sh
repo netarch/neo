@@ -21,7 +21,6 @@ usage() {
     -h, --help          Print this message and exit
     -d, --debug         Enable debugging
     --clean             Clean all build files
-    -r, --rebuild       Reconfigure and rebuild everything
     -t, --tests         Build tests
     -c, --coverage      Enable coverage
     --gcc               Use GCC
@@ -33,7 +32,6 @@ EOF
 parse_args() {
     DEBUG=0
     CLEAN=0
-    REBUILD=0
     TESTS=0
     COVERAGE=0
     COMPILER=clang
@@ -52,9 +50,6 @@ parse_args() {
             ;;
         --clean)
             CLEAN=1
-            ;;
-        -r | --rebuild)
-            REBUILD=1
             ;;
         -t | --tests)
             TESTS=1
@@ -84,14 +79,12 @@ parse_args() {
 reset_files() {
     git -C "$PROJECT_DIR" submodule update --init --recursive
 
-    if [[ $REBUILD -ne 0 ]] || [[ $CLEAN -ne 0 ]]; then
-        # clean up old builds
-        git -C "$PROJECT_DIR" submodule foreach --recursive git clean -xdf
-        rm -rf "$BUILD_DIR"
+    # Clean up old builds
+    git -C "$PROJECT_DIR" submodule foreach --recursive git clean -xdf
+    rm -rf "$BUILD_DIR"
 
-        if [[ $CLEAN -ne 0 ]]; then
-            exit 0
-        fi
+    if [[ $CLEAN -ne 0 ]]; then
+        exit 0
     fi
 }
 
