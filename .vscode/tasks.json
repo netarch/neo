@@ -22,7 +22,7 @@
     {
       "label": "configure (debug)",
       "type": "shell",
-      "command": "./scripts/configure.sh -r -d -t -c",
+      "command": "./scripts/configure.sh -d -t -c",
     },
     {
       "label": "build",
