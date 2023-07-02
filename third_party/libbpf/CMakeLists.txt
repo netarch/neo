@@ -1,5 +1,5 @@
 ExternalProject_Add(libbpf
-    PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/libbpf
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
     CONFIGURE_COMMAND ""
     BUILD_COMMAND make -s
