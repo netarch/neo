@@ -91,6 +91,11 @@ activate_conan_env() {
     source "$(get_generators_dir)/conanbuild.sh"
     # shellcheck source=/dev/null
     source "$(get_generators_dir)/conanrun.sh"
+
+    # This is required to also search for system paths, and can be removed once
+    # we don't have to depend on the system packages.
+    PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+    export PKG_CONFIG_PATH
 }
 
 deactivate_conan_env() {
