@@ -89,7 +89,8 @@ reset_files() {
 }
 
 prepare_flags() {
-    local toolchain_file="$GENERATORS_DIR/conan_toolchain.cmake"
+    local toolchain_file
+    toolchain_file="$(get_generators_dir)/conan_toolchain.cmake"
     CMAKE_ARGS=(
         "-DCMAKE_TOOLCHAIN_FILE=$toolchain_file"
         "-DCMAKE_GENERATOR=Ninja"

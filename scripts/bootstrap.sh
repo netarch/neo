@@ -13,6 +13,11 @@ die() {
 
 [ $UID -eq 0 ] && die 'Please run this script without root privilege'
 
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+VENV_DIR="$PROJECT_DIR/.venv"
+BUILD_DIR="$PROJECT_DIR/build"
+
 check_depends() {
     for cmd in "$@"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -57,12 +62,6 @@ parse_args() {
         esac
         shift
     done
-
-    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-    PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-    VENV_DIR="$PROJECT_DIR/.venv"
-    BUILD_DIR="$PROJECT_DIR/build"
-    GENERATORS_DIR="$BUILD_DIR/build/$BUILD_TYPE/generators"
 }
 
 activate_python_venv() {
@@ -83,18 +82,22 @@ set_up_python_dependencies() {
     deactivate_python_venv
 }
 
+get_generators_dir() {
+    find "$BUILD_DIR"/build/*/generators -maxdepth 0 -type d | head -n1
+}
+
 activate_conan_env() {
     # shellcheck source=/dev/null
-    source "$GENERATORS_DIR/conanbuild.sh"
+    source "$(get_generators_dir)/conanbuild.sh"
     # shellcheck source=/dev/null
-    source "$GENERATORS_DIR/conanrun.sh"
+    source "$(get_generators_dir)/conanrun.sh"
 }
 
 deactivate_conan_env() {
     # shellcheck source=/dev/null
-    source "$GENERATORS_DIR/deactivate_conanbuild.sh"
+    source "$(get_generators_dir)/deactivate_conanbuild.sh"
     # shellcheck source=/dev/null
-    source "$GENERATORS_DIR/deactivate_conanrun.sh"
+    source "$(get_generators_dir)/deactivate_conanrun.sh"
 }
 
 set_up_cpp_dependencies() {
