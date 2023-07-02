@@ -22,20 +22,13 @@ high-coverage testing for softwarized networks with middlebox components.
 
 The following dependencies are needed for Neo.
 
-- Modern C and C++ compilers
 - Clang
 - LLVM
-- cmake (>= 3.13)
-- libnet
 - libnl
 - libelf
 - zlib
-- boost
-- curl
-- pcapplusplus
 - [spin](https://github.com/nimble-code/Spin)
-- docker
-- Linux (>= 5.4)
+- Docker
 
 `depends/setup.sh` can be used to automatically set up the environment, but it
 only supports Arch Linux and Ubuntu at the moment. Pull requests are
@@ -51,16 +44,15 @@ installed.
 
 ```sh
 cd neo
-git submodule update --init --recursive
-rm -rf build
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j $(nproc)
+./scripts/configure.sh
+./scripts/build.sh
 ```
 
-Optionally you can install Neo to system paths if desired.
+The executable will be at `build/neo`. Optionally you can install Neo to system
+paths if desired.
 
 ```sh
-sudo DESTDIR=/ cmake --install build --prefix /usr
+sudo DESTDIR=/ ./scripts/install.sh --prefix /usr
 ```
 
 ## Usage
