@@ -90,7 +90,10 @@ reset_files() {
 
 prepare_flags() {
     local toolchain_file="$GENERATORS_DIR/conan_toolchain.cmake"
-    CMAKE_ARGS=("-DCMAKE_TOOLCHAIN_FILE=$toolchain_file")
+    CMAKE_ARGS=(
+        "-DCMAKE_TOOLCHAIN_FILE=$toolchain_file"
+        "-DCMAKE_GENERATOR=Ninja"
+    )
 
     if [[ $DEBUG -ne 0 ]]; then
         CMAKE_ARGS+=('-DCMAKE_BUILD_TYPE=Debug')

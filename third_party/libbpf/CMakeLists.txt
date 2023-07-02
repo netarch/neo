@@ -10,6 +10,7 @@ ExternalProject_Add(libbpf
         UAPIDIR=
         LIBDIR=
         install install_uapi_headers
+    BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/install/libbpf.a
     BUILD_IN_SOURCE TRUE
     INSTALL_COMMAND ""
     STEP_TARGETS build
