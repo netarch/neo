@@ -196,7 +196,7 @@ main() {
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_deps=(build-essential curl git)
-        build_deps=(clang)
+        build_deps=(clang bison yacc)
         style_deps=(clang-format yapf3)
         bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
             libcap-dev clang llvm)
