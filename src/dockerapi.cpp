@@ -83,8 +83,10 @@ Document DockerAPI::send_curl_request(method method,
     return response;
 }
 
-size_t
-DockerAPI::write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
+size_t DockerAPI::write_cb(void *contents,
+                           size_t size,
+                           size_t nmemb,
+                           void *userp) {
     ((string *)userp)->append((char *)contents, size * nmemb);
     return size * nmemb;
 }

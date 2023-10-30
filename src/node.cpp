@@ -119,8 +119,8 @@ RoutingTable &Node::get_rib() {
     return rib;
 }
 
-std::pair<Node *, Interface *>
-Node::get_peer(const std::string &intf_name) const {
+std::pair<Node *, Interface *> Node::get_peer(
+    const std::string &intf_name) const {
     auto peer = l2_peers.find(intf_name);
     if (peer == l2_peers.end()) {
         return std::make_pair(nullptr, nullptr);
@@ -159,10 +159,10 @@ L2_LAN *Node::get_l2lan(Interface *intf) const {
  *
  * @return A set of FIB_IPNHs
  */
-std::set<FIB_IPNH>
-Node::get_ipnhs(const IPv4Address &dst,
-                const RoutingTable *rib,
-                std::unordered_set<IPv4Address> *looked_up_ips) {
+std::set<FIB_IPNH> Node::get_ipnhs(
+    const IPv4Address &dst,
+    const RoutingTable *rib,
+    std::unordered_set<IPv4Address> *looked_up_ips) {
     std::set<FIB_IPNH> next_hops;
     std::unordered_set<IPv4Address> empty_set;
 

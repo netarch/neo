@@ -46,8 +46,8 @@ public:
      * element that goes after the given route.
      */
     std::pair<iterator, iterator> lookup(const IPNetwork<IPv4Address> &);
-    std::pair<const_iterator, const_iterator>
-    lookup(const IPNetwork<IPv4Address> &) const;
+    std::pair<const_iterator, const_iterator> lookup(
+        const IPNetwork<IPv4Address> &) const;
     std::pair<iterator, iterator> lookup(const IPv4Address &);
     std::pair<const_iterator, const_iterator> lookup(const IPv4Address &) const;
 

@@ -24,9 +24,9 @@ void LoadBalance::init() {
     model.set_reach_counts(ReachCounts());
 }
 
-static inline double
-compute_dispersion_index(const unordered_set<Node *> &target_nodes,
-                         const ReachCounts &reach_counts) {
+static inline double compute_dispersion_index(
+    const unordered_set<Node *> &target_nodes,
+    const ReachCounts &reach_counts) {
     double mean = 0;
     for (Node *node : target_nodes) {
         mean += reach_counts[node];

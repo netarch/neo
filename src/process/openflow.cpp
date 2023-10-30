@@ -17,8 +17,8 @@ void OpenflowUpdateState::install_update_at(int node_order) {
     this->update_vector.at(node_order)++;
 }
 
-size_t
-OFUpdateStateHash::operator()(const OpenflowUpdateState *const &s) const {
+size_t OFUpdateStateHash::operator()(
+    const OpenflowUpdateState *const &s) const {
     return hash::hash(s->update_vector.data(),
                       s->update_vector.size() * sizeof(size_t));
 }
@@ -61,8 +61,8 @@ const decltype(OpenflowProcess::updates) &OpenflowProcess::get_updates() const {
     return updates;
 }
 
-std::map<Node *, std::set<FIB_IPNH>>
-OpenflowProcess::get_installed_updates() const {
+std::map<Node *, std::set<FIB_IPNH>> OpenflowProcess::get_installed_updates()
+    const {
     std::map<Node *, std::set<FIB_IPNH>> installed_updates;
     EqClass *ec = model.get_dst_ip_ec();
     OpenflowUpdateState *update_state = model.get_openflow_update_state();

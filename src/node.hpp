@@ -57,8 +57,8 @@ public:
     virtual const RoutingTable &get_rib() const;
     virtual RoutingTable &get_rib();
 
-    virtual std::pair<Node *, Interface *>
-    get_peer(const std::string &intf_name) const;
+    virtual std::pair<Node *, Interface *> get_peer(
+        const std::string &intf_name) const;
     virtual void add_peer(const std::string &, Node *, Interface *);
 
     virtual bool mapped_to_l2lan(Interface *) const;
@@ -69,10 +69,10 @@ public:
      * Compute the IP next hops from this node for a given destination address
      * by recursively looking up in the given RIB.
      */
-    virtual std::set<FIB_IPNH>
-    get_ipnhs(const IPv4Address &,
-              const RoutingTable *rib = nullptr,
-              std::unordered_set<IPv4Address> *looked_up_ips = nullptr);
+    virtual std::set<FIB_IPNH> get_ipnhs(
+        const IPv4Address &,
+        const RoutingTable *rib = nullptr,
+        std::unordered_set<IPv4Address> *looked_up_ips = nullptr);
 
     /**
      * Compute the IP next hop from this node for a given egress interface and a

@@ -40,8 +40,8 @@ std::string L2_LAN::to_string() const {
     return ret;
 }
 
-const std::set<std::pair<Node *, Interface *>> &
-L2_LAN::get_l2_endpoints() const {
+const std::set<std::pair<Node *, Interface *>> &L2_LAN::get_l2_endpoints()
+    const {
     return l2_endpoints;
 }
 
@@ -50,8 +50,8 @@ L2_LAN::get_l3_endpoints() const {
     return l3_endpoints;
 }
 
-std::pair<Node *, Interface *>
-L2_LAN::find_l3_endpoint(const IPv4Address &dst) const {
+std::pair<Node *, Interface *> L2_LAN::find_l3_endpoint(
+    const IPv4Address &dst) const {
     auto l3_peer = l3_endpoints.find(dst);
     if (l3_peer == l3_endpoints.end()) {
         return std::make_pair(nullptr, nullptr);
