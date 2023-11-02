@@ -110,8 +110,8 @@ public:
     PacketHistory *get_pkt_hist() const;
     PacketHistory *set_pkt_hist(PacketHistory &&) const;
     OpenflowUpdateState *get_openflow_update_state() const;
-    OpenflowUpdateState *set_openflow_update_state(
-        OpenflowUpdateState &&) const;
+    OpenflowUpdateState *
+    set_openflow_update_state(OpenflowUpdateState &&) const;
     // invariant
     bool get_violated() const;
     bool set_violated(bool) const;

@@ -69,8 +69,8 @@ void RoutingTable::clear() {
     tbl.clear();
 }
 
-std::pair<RoutingTable::iterator, RoutingTable::iterator> RoutingTable::lookup(
-    const IPNetwork<IPv4Address> &dst_net) {
+std::pair<RoutingTable::iterator, RoutingTable::iterator>
+RoutingTable::lookup(const IPNetwork<IPv4Address> &dst_net) {
     return tbl.equal_range(Route(dst_net));
 }
 
@@ -79,8 +79,8 @@ RoutingTable::lookup(const IPNetwork<IPv4Address> &dst_net) const {
     return tbl.equal_range(Route(dst_net));
 }
 
-std::pair<RoutingTable::iterator, RoutingTable::iterator> RoutingTable::lookup(
-    const IPv4Address &dst) {
+std::pair<RoutingTable::iterator, RoutingTable::iterator>
+RoutingTable::lookup(const IPv4Address &dst) {
     for (const Route &route : tbl) {
         if (route.get_network().contains(dst)) { // longest prefix match
             return tbl.equal_range(route);
@@ -99,8 +99,8 @@ RoutingTable::lookup(const IPv4Address &dst) const {
     return std::make_pair(tbl.cend(), tbl.cend());
 }
 
-RoutingTable::size_type RoutingTable::count(
-    const IPNetwork<IPv4Address> &dst_net) const {
+RoutingTable::size_type
+RoutingTable::count(const IPNetwork<IPv4Address> &dst_net) const {
     return tbl.count(Route(dst_net));
 }
 

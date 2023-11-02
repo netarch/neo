@@ -78,19 +78,17 @@ private:
      * @param request_body the request body (only effective if method=POST)
      * @return a json Document of the response.
      */
-    rapidjson::Document send_curl_request(
-        method method,
-        const std::string &path,
-        const rapidjson::Document &request_body = _empty_json);
+    rapidjson::Document
+    send_curl_request(method method,
+                      const std::string &path,
+                      const rapidjson::Document &request_body = _empty_json);
 
     /**
      * Writes the body content into a string as specified by CURLOPT_WRITEDATA
      * (https://stackoverflow.com/questions/9786150/save-curl-content-result-into-a-string-in-c)
      */
-    static size_t write_cb(void *contents,
-                           size_t size,
-                           size_t nmemb,
-                           void *userp);
+    static size_t
+    write_cb(void *contents, size_t size, size_t nmemb, void *userp);
 
 public:
     DockerAPI();
@@ -135,11 +133,11 @@ public:
 
     // Exec API
     // https://docs.docker.com/engine/api/v1.42/#tag/Exec
-    rapidjson::Document create_exec(
-        const std::string &cntr_name,
-        const std::unordered_map<std::string, std::string> &envs,
-        const std::vector<std::string> &cmd,
-        const std::string &working_dir);
+    rapidjson::Document
+    create_exec(const std::string &cntr_name,
+                const std::unordered_map<std::string, std::string> &envs,
+                const std::vector<std::string> &cmd,
+                const std::string &working_dir);
     rapidjson::Document start_exec(const std::string &exec_id);
     rapidjson::Document inspect_exec(const std::string &exec_id);
 
@@ -152,10 +150,10 @@ public:
     int run(const std::string &cntr_name, const DockerNode &node);
     int get_cntr_pid(const std::string &cntr_name);
     bool is_cntr_running(const std::string &cntr_name);
-    std::pair<int, std::string> exec(
-        const std::string &cntr_name,
-        const std::unordered_map<std::string, std::string> &envs,
-        const std::vector<std::string> &cmd,
-        const std::string &working_dir);
+    std::pair<int, std::string>
+    exec(const std::string &cntr_name,
+         const std::unordered_map<std::string, std::string> &envs,
+         const std::vector<std::string> &cmd,
+         const std::string &working_dir);
     bool is_exec_running(const std::string &exec_id);
 };

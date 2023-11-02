@@ -437,8 +437,8 @@ OpenflowUpdateState *Model::get_openflow_update_state() const {
     return update_state;
 }
 
-OpenflowUpdateState *Model::set_openflow_update_state(
-    OpenflowUpdateState &&update_state) const {
+OpenflowUpdateState *
+Model::set_openflow_update_state(OpenflowUpdateState &&update_state) const {
     OpenflowUpdateState *new_state =
         new OpenflowUpdateState(std::move(update_state));
     auto res = storage.openflow_update_state_hist.insert(new_state);

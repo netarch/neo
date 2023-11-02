@@ -44,8 +44,8 @@ public:
     std::pair<std::list<Packet>, bool> send_pkt(const Packet &);
 
     bool is_emulated() const override { return true; }
-    std::set<FIB_IPNH> get_ipnhs(
-        const IPv4Address &,
-        const RoutingTable *rib,
-        std::unordered_set<IPv4Address> *looked_up_ips) override;
+    std::set<FIB_IPNH>
+    get_ipnhs(const IPv4Address &,
+              const RoutingTable *rib,
+              std::unordered_set<IPv4Address> *looked_up_ips) override;
 };

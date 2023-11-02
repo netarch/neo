@@ -13,8 +13,8 @@ std::list<Packet *> NodePacketHistory::get_packets() const {
     return packets;
 }
 
-std::list<Packet *> NodePacketHistory::get_packets_since(
-    NodePacketHistory *start) const {
+std::list<Packet *>
+NodePacketHistory::get_packets_since(NodePacketHistory *start) const {
     std::list<Packet *> packets;
     for (const NodePacketHistory *nph = this; nph && nph != start;
          nph = nph->past_hist) {
