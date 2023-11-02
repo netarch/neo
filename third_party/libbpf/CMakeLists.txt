@@ -17,6 +17,6 @@ ExternalProject_Add(libbpf
     STEP_TARGETS build
 )
 
-set(libbpf_VERSION "1.1.0" PARENT_SCOPE)
+set(libbpf_VERSION "1.2.2" PARENT_SCOPE)
 set(libbpf_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/install PARENT_SCOPE)
 set(libbpf_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/install/libbpf.a PARENT_SCOPE)
