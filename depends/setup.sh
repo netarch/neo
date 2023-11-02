@@ -196,7 +196,7 @@ main() {
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_deps=(build-essential curl git)
-        build_deps=(clang bison yacc)
+        build_deps=(clang bison python3-venv cmake)
         style_deps=(clang-format yapf3)
         bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
             libcap-dev clang llvm)
@@ -208,10 +208,15 @@ main() {
         sudo apt update -y -qq
         sudo apt install -y -qq "${depends[@]}"
         for pkg in "${aur_pkgs[@]}"; do
+            if [[ "$pkg" == "spin-git" ]] && command -v spin >/dev/null 2>&1; then
+                continue
+            fi
             aur_install "$pkg"
         done
 
-        get_docker
+        if ! command -v docker >/dev/null 2>&1; then
+            get_docker
+        fi
 
     else
         die "Unsupported distribution: $DISTRO"
