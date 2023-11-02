@@ -112,7 +112,11 @@ prepare_flags() {
         CMAKE_ARGS+=('-DENABLE_COVERAGE=OFF')
     fi
     if [[ "$COMPILER" = 'clang' ]]; then
-        CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
+        if command -v clang-17 &>/dev/null; then
+            CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang-17' '-DCMAKE_CXX_COMPILER=clang++-17')
+        else
+            CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
+        fi
     elif [[ "$COMPILER" = 'gcc' ]]; then
         CMAKE_ARGS+=('-DCMAKE_C_COMPILER=gcc' '-DCMAKE_CXX_COMPILER=g++')
     fi

@@ -64,6 +64,18 @@ get_docker() {
 }
 
 #
+# Set up LLVM 17 quick and dirty (for Ubuntu)
+# Ref:
+# - https://github.com/actions/runner-images/issues/8659
+# - https://github.com/wheremyfoodat/Panda3DS/blob/master/.github/workflows/Linux_Build.yml
+#
+get_llvm_17() {
+    wget https://apt.llvm.org/llvm.sh
+    sudo bash ./llvm.sh 17 all
+    rm -f ./llvm.sh
+}
+
+#
 # Build and install the package with PKGBUILD
 #
 makepkg_arch() {
@@ -217,7 +229,9 @@ main() {
         if ! command -v docker >/dev/null 2>&1; then
             get_docker
         fi
-
+        if ! command -v clang-17 >/dev/null 2>&1; then
+            get_llvm_17
+        fi
     else
         die "Unsupported distribution: $DISTRO"
     fi
