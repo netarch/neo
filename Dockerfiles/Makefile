@@ -1,6 +1,11 @@
 TARGETS = \
 	iptables \
-	ipvs
+	ipvs \
+	klint-bridge \
+	klint-firewall \
+	klint-maglev \
+	klint-nat \
+	klint-policer
 
 PUSH_TARGETS = $(TARGETS:%=%-push)
 
@@ -18,6 +23,9 @@ $(TARGETS):
 $(PUSH_TARGETS):
 	docker push kyechou/$(@:%-push=%):latest
 
+clean_klint_binaries:
+	@rm -rf klint-*/home klint-*/bin klint-*/*.so.*
+
 clean:
 	@[ -z "$(CONTAINERS)" ] || docker rm -f $(CONTAINERS)
 	@[ -z "$(NON_TAGGED_IMGS)" ] || docker rmi -f $(NON_TAGGED_IMGS)
@@ -26,4 +34,4 @@ cleanall:
 	@[ -z "$(CONTAINERS)" ] || docker rm -f $(CONTAINERS)
 	@[ -z "$(IMAGES)" ] || docker rmi -f $(IMAGES)
 
-.PHONY: all push $(TARGETS) $(PUSH_TARGETS) clean cleanall
+.PHONY: all push $(TARGETS) $(PUSH_TARGETS) clean_klint_binaries clean cleanall

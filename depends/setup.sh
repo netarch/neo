@@ -200,8 +200,9 @@ main() {
         build_deps=(clang)
         style_deps=(clang yapf)
         bpf_deps=(libelf zlib binutils libcap clang llvm lib32-glibc)
+        dpdk_deps=(python meson ninja python-pyelftools numactl)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-            "${bpf_deps[@]}" glibc libnl spin-git docker)
+            "${bpf_deps[@]}" "${dpdk_deps[@]}" glibc libnl spin-git docker)
 
         paru -S --asdeps --needed --noconfirm --removemake "${depends[@]}" "$@"
         makepkg_arch neo-dev -srcfi --asdeps --noconfirm "$@"
@@ -212,9 +213,11 @@ main() {
         style_deps=(clang-format yapf3)
         bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
             libcap-dev clang llvm)
+        dpdk_deps=(python3 meson ninja-build python3-pyelftools libnuma-dev)
         depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-            "${bpf_deps[@]}" libpthread-stubs0-dev libstdc++-12-dev libnl-3-200
-            libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
+            "${bpf_deps[@]}" "${dpdk_deps[@]}" libpthread-stubs0-dev
+            libstdc++-12-dev libnl-3-200 libnl-3-dev libnl-genl-3-200
+            libnl-genl-3-dev)
         aur_pkgs=(spin-git)
 
         sudo apt update -y -qq

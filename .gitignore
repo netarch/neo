@@ -9,6 +9,7 @@ unittests
 
 # Intermediate build files
 build/
+scripts/klint/
 
 # Coverage files
 *.gcov
