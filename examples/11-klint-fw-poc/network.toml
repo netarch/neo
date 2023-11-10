@@ -1,0 +1,145 @@
+[[nodes]]
+    name = "h1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h2"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.2/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "h3"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.3/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "s1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    [[nodes.interfaces]]
+    name = "eth1"
+    [[nodes.interfaces]]
+    name = "eth2"
+    [[nodes.interfaces]]
+    name = "eth3"
+[[nodes]]
+    name = "fw"
+    type = "emulation"
+    driver = "docker"
+    daemon = "/var/run/docker.sock"
+    [nodes.container]
+    image = "kyechou/klint-firewall:latest"
+    working_dir = "/"
+    command = [
+        "/nf",
+        "--vdev=net_tap0,iface=eth0,mac=aa:bb:cc:dd:ee:ff",
+        "--vdev=net_tap1,iface=eth1,mac=aa:bb:cc:dd:ee:ff"
+    ]
+    [[nodes.container.volume_mounts]]
+    mount_path = "/sys/bus/pci/devices"
+    host_path = "/sys/bus/pci/devices"
+    [[nodes.container.volume_mounts]]
+    mount_path = "/sys/bus/pci/drivers"
+    host_path = "/sys/bus/pci/drivers"
+    [[nodes.container.volume_mounts]]
+    mount_path = "/sys/kernel/mm/hugepages"
+    host_path = "/sys/kernel/mm/hugepages"
+    [[nodes.container.volume_mounts]]
+    mount_path = "/sys/devices/system/node"
+    host_path = "/sys/devices/system/node"
+    [[nodes.container.volume_mounts]]
+    mount_path = "/dev"
+    host_path = "/dev"
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.forwarding"
+    value = "1"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/24"
+    [[nodes.interfaces]]
+    name = "eth1"
+    ipv4 = "192.168.0.254/24"
+[[nodes]]
+    name = "server"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.1/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/22"
+    next_hop = "10.0.0.2"
+
+[[links]]
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "fw"
+    intf2 = "eth0"
+[[links]]
+    node1 = "fw"
+    intf1 = "eth1"
+    node2 = "s1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth1"
+    node2 = "h1"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth2"
+    node2 = "h2"
+    intf2 = "eth0"
+[[links]]
+    node1 = "s1"
+    intf1 = "eth3"
+    node2 = "h3"
+    intf2 = "eth0"
+
+# Invariants:
+#   1. Outgoing packets are always allowed.
+#   2. Incoming packets are always denied, except for 3.
+#   3. Incoming replies to past requests are allowed.
+
+[[invariants]]
+    type = "reachability"
+    target_node = "server"
+    reachable = true
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "h[123]"
+    dst_ip = "10.0.0.1"
+    dst_port = [80]
+[[invariants]]
+    type = "reachability"
+    target_node = ".*"
+    # target_node = "h[123]|s1|fw"
+    reachable = false
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "server"
+    dst_ip = "192.168.0.0/24"
+    # dst_port = [80]
+    owned_dst_only = true
+# [[invariants]]
+#     type = "reply-reachability"
+#     target_node = "server"
+#     reachable = true
+#     [[invariants.connections]]
+#     protocol = "tcp"
+#     src_node = "h[123]"
+#     dst_ip = "10.0.0.1"
+#     dst_port = [80]
