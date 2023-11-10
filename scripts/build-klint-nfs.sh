@@ -15,6 +15,7 @@ die() {
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+BUILD_DIR="$PROJECT_DIR/build"
 DOCKERFILES_DIR="$PROJECT_DIR/Dockerfiles"
 
 check_depends() {
@@ -54,17 +55,19 @@ main() {
 
     NFs=(bridge firewall maglev nat policer)
     KLINT_URL=https://github.com/kyechou/klint.git
-    KLINT_DIR="$SCRIPT_DIR/klint"
+    KLINT_DIR="$BUILD_DIR/klint"
 
+    mkdir -p "$BUILD_DIR"
     if [[ ! -e "$KLINT_DIR" ]]; then
         git clone --depth 1 "$KLINT_URL" "$KLINT_DIR"
     fi
-    cd "$KLINT_DIR"
 
     for NF in "${NFs[@]}"; do
         msg "Building $NF..."
-        make "build-$NF"
-        make -j -C ./env OS=linux NET=dpdk NF="$KLINT_DIR/nf/$NF/libnf.so" \
+        make -C "$KLINT_DIR" "build-$NF"
+        make -j -C "$KLINT_DIR/env" \
+            OS=linux NET=dpdk \
+            NF="$KLINT_DIR/nf/$NF/libnf.so" \
             OS_CONFIG="$KLINT_DIR/env/config" \
             NF_CONFIG="$KLINT_DIR/nf/$NF/config"
         msg "Finished building $NF"

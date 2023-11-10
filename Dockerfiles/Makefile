@@ -1,6 +1,7 @@
 TARGETS = \
 	iptables \
 	ipvs \
+	dpdk \
 	klint-bridge \
 	klint-firewall \
 	klint-maglev \

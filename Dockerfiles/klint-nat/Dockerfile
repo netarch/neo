@@ -11,5 +11,5 @@ COPY bin /nf
 COPY home /home
 COPY *.so.* /lib/
 
-ENV LD_LIBRARY_PATH=/lib
+ENV LD_LIBRARY_PATH /lib
 ENTRYPOINT ["/nf"]
