@@ -677,7 +677,7 @@ std::string Net::mac_to_str(const uint8_t *mac) const {
     return ss.str();
 }
 
-static void write_value_to_file(int val, const std::string &filename) {
+static inline void write_value_to_file(int val, const std::string &filename) {
     int fd = open(filename.c_str(), O_WRONLY);
     if (fd < 0) {
         logger.error("Failed to open " + filename, errno);

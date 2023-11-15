@@ -1,6 +1,7 @@
 #include "configparser.hpp"
 
 #include <cstdlib>
+#include <format>
 #include <fstream>
 #include <memory>
 #include <regex>
@@ -75,7 +76,7 @@ void ConfigParser::parse_network(Network &network) {
         }
     }
 
-    logger.info("Loaded " + to_string(network.nodes().size()) + " nodes");
+    logger.info(std::format("Loaded {} nodes", network.nodes().size()));
     auto links_config = this->_config->get_as<toml::array>("links");
 
     if (links_config) {
@@ -87,7 +88,7 @@ void ConfigParser::parse_network(Network &network) {
         }
     }
 
-    logger.info("Loaded " + to_string(network.links().size()) + " links");
+    logger.info(std::format("Loaded {} links", network.links().size()));
 
     // Populate L2 LANs (assuming there is no VLAN for now)
     for (const auto &[_, node] : network.nodes()) {
@@ -245,8 +246,8 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 
     if (reset_wait_time) {
         if (**reset_wait_time < 0) {
-            logger.error("Invalid reset_wait_time: " +
-                         to_string(**reset_wait_time));
+            logger.error(
+                std::format("Invalid reset_wait_time: {}", **reset_wait_time));
         }
 
         dn._reset_wait_time = **reset_wait_time;

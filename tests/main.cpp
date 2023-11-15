@@ -25,9 +25,9 @@ int main(int argc, char **argv) {
     session.cli(cli);
 
     // Let Catch2 (using Clara) parse the command line
-    int returnCode = session.applyCommandLine(argc, argv);
-    if (returnCode != 0) {
-        return returnCode;
+    if (int return_code = session.applyCommandLine(argc, argv);
+        return_code != 0) {
+        return return_code;
     }
 
     if (test_data_dir.empty()) {

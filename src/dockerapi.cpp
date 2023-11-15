@@ -4,6 +4,7 @@
 
 #include "dockernode.hpp"
 #include "logger.hpp"
+#include "protocols.hpp"
 
 using namespace std;
 using namespace rapidjson;
@@ -56,9 +57,7 @@ Document DockerAPI::send_curl_request(method method,
     curl_easy_setopt(_curl, CURLOPT_WRITEDATA, &read_buffer);
 
     // curl: send request and collect response code
-    CURLcode res = curl_easy_perform(_curl);
-
-    if (res != CURLE_OK) {
+    if (CURLcode res = curl_easy_perform(_curl); res != CURLE_OK) {
         logger.error("curl_easy_perform(): " + string(curl_easy_strerror(res)));
     }
 
@@ -166,7 +165,7 @@ Document DockerAPI::create_cntr(const string &name, const DockerNode &node) {
 
     Value exposed_ports(kObjectType);
     for (const auto &[protocol, port] : node.ports()) {
-        string port_str = to_string(port) + "/" + proto_str_lower(protocol);
+        string port_str = std::format("{}/{}", port, proto_str_lower(protocol));
         exposed_ports.AddMember(Value(port_str.c_str(), allocator).Move(),
                                 Value().Move(), allocator);
     }
