@@ -1,11 +1,15 @@
 #include "driver/docker.hpp"
 
 #include <arpa/inet.h>
+#include <asm-generic/errno-base.h>
+#include <asm-generic/socket.h>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
 #include <filesystem>
+#include <format>
+#include <linux/if_packet.h>
 #include <linux/if_tun.h>
 #include <list>
 #include <net/if.h>
@@ -33,6 +37,8 @@
 #include "pktbuffer.hpp"
 #include "routingtable.hpp"
 
+// TODO: Switch all instances of `usleep` to `nanosleep`.
+
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -46,9 +52,145 @@ Docker::~Docker() {
     this->teardown();
 }
 
+bool Docker::interface_exists(const string &if_name) const {
+    int ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (ctrl_sock < 0) {
+        logger.error("socket()", errno);
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, if_name.c_str(), IFNAMSIZ - 1);
+
+    // NOTE: We can't use the sysfs method because we may not be in the
+    // container's mount namespace. But the ioctl method works because we
+    // are (and should be) in the container's network namespace.
+    if (ioctl(ctrl_sock, SIOCGIFINDEX, &ifr) == -1) {
+        close(ctrl_sock);
+        if (errno == ENODEV) {
+            return false;
+        } else {
+            logger.error(ifr.ifr_name, errno);
+        }
+    }
+
+    close(ctrl_sock);
+    return true;
+}
+
+void Docker::wait_for_dpdk_interfaces() const {
+    // No need to wait if the container is not running DPDK.
+    if (!_node->dpdk()) {
+        return;
+    }
+
+    // Gather the L3 interface names.
+    std::set<string> if_names;
+    for (const auto &[addr, intf] : _node->get_intfs_l3()) {
+        if_names.insert(intf->get_name());
+    }
+
+    unsigned long repetition = 0;
+
+    // Wait until all interfaces have been created.
+    while (!if_names.empty() && repetition < 1000) {
+        auto it = if_names.begin();
+        if (interface_exists(*it)) {
+            if_names.erase(it);
+        } else {
+            // The interface hasn't been created yet. Sleep for 1 ms.
+            usleep(1000);
+            ++repetition;
+        }
+    }
+
+    // Abort if some interfaces are not created after some time.
+    if (!if_names.empty()) {
+        string remaining_intfs = *if_names.begin();
+        auto it = if_names.begin();
+        ++it;
+        for (; it != if_names.end(); ++it) {
+            remaining_intfs += ", " + *it;
+        }
+        logger.error(std::format("Interfaces not created after a while: {}",
+                                 remaining_intfs));
+    }
+}
+
+/**
+ * @brief Bind an fd to the given tap device created by DPDK.
+ *
+ * @param if_name Name of the interface to be opened.
+ * @return The file descriptor bound to the tap device.
+ */
+int Docker::tap_open_dpdk(const string &if_name) const {
+    if (!_node->dpdk()) {
+        return -1;
+    }
+
+    // We only support IP packets for now. It is possible to change it to
+    // `ETH_P_ALL` for sending/receiving all raw packets. Remember to make it
+    // consistent with the `sockaddr_ll` structure below for `bind()`.
+    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP));
+    if (sock == -1) {
+        logger.error("socket()", errno);
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, if_name.c_str(), IFNAMSIZ - 1);
+    if (ioctl(sock, SIOCGIFINDEX, &ifr) == -1) {
+        close(sock);
+        logger.error(if_name, errno);
+    }
+
+    struct sockaddr_ll saddr;
+    memset(&saddr, 0, sizeof(saddr));
+    saddr.sll_family = AF_PACKET;
+    saddr.sll_protocol = htons(ETH_P_IP);
+    saddr.sll_ifindex = ifr.ifr_ifindex;
+    saddr.sll_pkttype = PACKET_HOST;
+
+    if (bind(sock, (struct sockaddr *)&saddr, sizeof(saddr)) == -1) {
+        close(sock);
+        logger.error("bind()", errno);
+    }
+
+    return sock;
+}
+
+/**
+ * @brief Create a new tap device.
+ *
+ * @param if_name Name of the interface to be opened.
+ * @return The file descriptor bound to the tap device.
+ */
+int Docker::tap_open(const string &if_name) const {
+    if (_node->dpdk()) {
+        return -1;
+    }
+
+    int tapfd = open("/dev/net/tun", O_RDWR);
+    if (tapfd < 0) {
+        logger.error("/dev/net/tun", errno);
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    strncpy(ifr.ifr_name, if_name.c_str(), IFNAMSIZ - 1);
+
+    if (ioctl(tapfd, TUNSETIFF, &ifr) < 0) {
+        close(tapfd);
+        logger.error(if_name, errno);
+    }
+
+    return tapfd;
+}
+
 void Docker::set_interfaces() {
     struct ifreq ifr;
-    int tapfd, ctrl_sock;
+    int ctrl_sock;
 
     // open a ctrl_sock for setting up IP addresses
     if ((ctrl_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
@@ -57,15 +199,12 @@ void Docker::set_interfaces() {
 
     for (const auto &[addr, intf] : _node->get_intfs_l3()) {
         // create a new tap device
-        if ((tapfd = open("/dev/net/tun", O_RDWR)) < 0) {
-            logger.error("/dev/net/tun", errno);
-        }
-        memset(&ifr, 0, sizeof(ifr));
-        ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-        strncpy(ifr.ifr_name, intf->get_name().c_str(), IFNAMSIZ - 1);
-        if (ioctl(tapfd, TUNSETIFF, &ifr) < 0) {
-            close(tapfd);
-            goto error;
+        int tapfd = -1;
+        // tapfd = tap_open(intf->get_name());
+        if (_node->dpdk()) {
+            tapfd = tap_open_dpdk(intf->get_name());
+        } else {
+            tapfd = tap_open(intf->get_name());
         }
         this->_tapfds.emplace(intf, tapfd);
 
@@ -400,8 +539,10 @@ void Docker::init() {
     teardown();
     _dapi.pull(_node->image());
     _pid = _dapi.run(_cntr_name, *_node);
+    usleep(_node->start_wait_time());
     fetchns();
     enterns();
+    wait_for_dpdk_interfaces();
     set_interfaces();   // Set tap interfaces and IP addresses
     set_rttable();      // Set routing table based on node.rib
     set_arp_cache();    // Set ARP entries
@@ -462,11 +603,12 @@ void Docker::reset() {
 
     // Restart the container, it will also kill exec processes
     _dapi.restart_cntr(_cntr_name);
-    usleep(_node->reset_wait_time());
+    usleep(std::max(_node->start_wait_time(), _node->reset_wait_time()));
     _pid = _dapi.get_cntr_pid(_cntr_name);
     _execs.clear();
     fetchns();
     enterns();
+    wait_for_dpdk_interfaces();
     set_interfaces();   // Set tap interfaces and IP addresses
     set_rttable();      // Set routing table based on node.rib
     set_arp_cache();    // Set ARP entries

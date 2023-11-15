@@ -41,6 +41,29 @@ private:
     int _epollfd;
     struct epoll_event *_events;
 
+    /**
+     * @brief Returns true if an interface with the provided interface name
+     * exists.
+     *
+     * @param if_name Interface name.
+     * @return true if an interface with the name `if_name` exists.
+     * @return false otherwise.
+     */
+    bool interface_exists(const std::string &if_name) const;
+    /**
+     * @brief Wait until all L3 interfaces have been created by DPDK if the node
+     * is running DPDK. Otherwise, do nothing.
+     */
+    void wait_for_dpdk_interfaces() const;
+
+    // TODO: either use https://doc.dpdk.org/guides/nics/af_packet.html, letting
+    // DPDK bind to the tap devices Neo created (by having a parent shell
+    // script, sleep, etc.), or use https://doc.dpdk.org/guides/nics/tap.html
+    // and let DPDK create the tap devices, while Neo attaches to them with raw
+    // sockets like https://stackoverflow.com/a/55277637.
+
+    int tap_open_dpdk(const std::string &if_name) const;
+    int tap_open(const std::string &if_name) const;
     void set_interfaces();
     void set_rttable();
     void set_arp_cache();

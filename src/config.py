@@ -81,6 +81,8 @@ class DockerNode(Middlebox):
                  name: str,
                  image: str,
                  working_dir: str,
+                 dpdk: Optional[bool] = None,
+                 start_wait_time: Optional[int] = None,
                  reset_wait_time: Optional[int] = None,
                  daemon: Optional[str] = None,
                  command: Optional[list[str]] = None,
@@ -92,6 +94,8 @@ class DockerNode(Middlebox):
         self.container: dict[str, Any] = dict()
         self.container['image']: str = image
         self.container['working_dir']: str = working_dir
+        self.container['dpdk']: Optional[bool] = dpdk
+        self.container['start_wait_time']: Optional[int] = start_wait_time
         self.container['reset_wait_time']: Optional[int] = reset_wait_time
         self.container['command']: Optional[list[str]] = command
         self.container['args']: Optional[list[str]] = args

@@ -199,6 +199,8 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 
     auto image = cntr_cfg->get_as<string>("image");
     auto working_dir = cntr_cfg->get_as<string>("working_dir");
+    auto dpdk = cntr_cfg->get_as<bool>("dpdk");
+    auto start_wait_time = cntr_cfg->get_as<int64_t>("start_wait_time");
     auto reset_wait_time = cntr_cfg->get_as<int64_t>("reset_wait_time");
     auto command = cntr_cfg->get_as<toml::array>("command");
     auto args = cntr_cfg->get_as<toml::array>("args");
@@ -228,6 +230,17 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
         dn._working_dir = **working_dir;
     } else {
         logger.error("Missing container working_dir");
+    }
+
+    dn._dpdk = dpdk ? **dpdk : false;
+
+    if (start_wait_time) {
+        if (**start_wait_time < 0) {
+            logger.error(
+                std::format("Invalid start_wait_time: {}", **start_wait_time));
+        }
+
+        dn._start_wait_time = **start_wait_time;
     }
 
     if (reset_wait_time) {
