@@ -2,11 +2,9 @@ TARGETS = \
 	iptables \
 	ipvs \
 	dpdk \
-	klint-bridge \
 	klint-firewall \
 	klint-maglev \
-	klint-nat \
-	klint-policer
+	klint-nat
 
 PUSH_TARGETS = $(TARGETS:%=%-push)
 

@@ -26,6 +26,41 @@ check_depends() {
     done
 }
 
+#
+# Output a short name of the Linux distribution
+#
+get_distro() {
+    if test -f /etc/os-release; then # freedesktop.org and systemd
+        . /etc/os-release
+        echo "$NAME" | cut -f 1 -d ' ' | tr '[:upper:]' '[:lower:]'
+    elif type lsb_release >/dev/null 2>&1; then # linuxbase.org
+        lsb_release -si | tr '[:upper:]' '[:lower:]'
+    elif test -f /etc/lsb-release; then
+        # shellcheck source=/dev/null
+        source /etc/lsb-release
+        echo "$DISTRIB_ID" | tr '[:upper:]' '[:lower:]'
+    elif test -f /etc/arch-release; then
+        echo "arch"
+    elif test -f /etc/debian_version; then
+        # Older Debian, Ubuntu
+        echo "debian"
+    elif test -f /etc/SuSe-release; then
+        # Older SuSE
+        echo "opensuse"
+    elif test -f /etc/fedora-release; then
+        # Older Fedora
+        echo "fedora"
+    elif test -f /etc/redhat-release; then
+        # Older Red Hat, CentOS
+        echo "centos"
+    elif type uname >/dev/null 2>&1; then
+        # Fall back to uname
+        uname -s
+    else
+        die 'Unable to determine the distribution'
+    fi
+}
+
 usage() {
     cat <<EOF
 [!] Usage: $(basename "${BASH_SOURCE[0]}") [options]
@@ -53,20 +88,30 @@ main() {
     parse_params "$@"
     check_depends git make meson ninja
 
-    NFs=(bridge firewall maglev nat policer)
+    DISTRO="$(get_distro)"
+    NFs=(firewall maglev nat)
     KLINT_URL=https://github.com/kyechou/klint.git
     KLINT_DIR="$BUILD_DIR/klint"
+
+    if [ "$DISTRO" = "arch" ]; then
+        LIB_DIR="/usr/lib"
+    elif [ "$DISTRO" = "ubuntu" ]; then
+        LIB_DIR="/usr/lib/x86_64-linux-gnu"
+    else
+        die "Unsupported distribution: $DISTRO"
+    fi
 
     mkdir -p "$BUILD_DIR"
     if [[ ! -e "$KLINT_DIR" ]]; then
         git clone --depth 1 "$KLINT_URL" "$KLINT_DIR"
     fi
+    cd "$KLINT_DIR"
 
     for NF in "${NFs[@]}"; do
         msg "Building $NF..."
-        make -C "$KLINT_DIR" "build-$NF"
+        make OS=dpdk NET=dpdk "build-$NF"
         make -j -C "$KLINT_DIR/env" \
-            OS=linux NET=dpdk \
+            OS=dpdk NET=dpdk \
             NF="$KLINT_DIR/nf/$NF/libnf.so" \
             OS_CONFIG="$KLINT_DIR/env/config" \
             NF_CONFIG="$KLINT_DIR/nf/$NF/config"
@@ -76,10 +121,10 @@ main() {
         msg "Installing $NF binaries and required shared libraries"
         install -Dm755 "$KLINT_DIR/env/build/bin" -t "$NF_DIR"
         install -D "$KLINT_DIR/nf/$NF/libnf.so" -t "$NF_DIR/$KLINT_DIR/nf/$NF"
-        install -D /usr/lib/libnuma.so.1 -t "$NF_DIR"
-        install -D /usr/lib/libc.so.6 -t "$NF_DIR"
-        install -D /usr/lib/libm.so.6 -t "$NF_DIR"
-        install -D /usr/lib/ld-linux-x86-64.so.2 -t "$NF_DIR"
+        install -D "$LIB_DIR/libnuma.so.1" -t "$NF_DIR"
+        install -D "$LIB_DIR/libc.so.6" -t "$NF_DIR"
+        install -D "$LIB_DIR/libm.so.6" -t "$NF_DIR"
+        install -D "$LIB_DIR/ld-linux-x86-64.so.2" -t "$NF_DIR"
     done
 }
 
