@@ -165,7 +165,7 @@ Document DockerAPI::create_cntr(const string &name, const DockerNode &node) {
 
     Value exposed_ports(kObjectType);
     for (const auto &[protocol, port] : node.ports()) {
-        string port_str = std::format("{}/{}", port, proto_str_lower(protocol));
+        string port_str = to_string(port) + "/" + proto_str_lower(protocol);
         exposed_ports.AddMember(Value(port_str.c_str(), allocator).Move(),
                                 Value().Move(), allocator);
     }
