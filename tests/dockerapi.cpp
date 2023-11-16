@@ -1,4 +1,3 @@
-#include <format>
 #include <string>
 #include <unistd.h>
 
@@ -28,7 +27,7 @@ TEST_CASE("dockerapi") {
     REQUIRE_NOTHROW(node = static_cast<DockerNode *>(network.nodes().at("fw")));
     REQUIRE(node);
 
-    const string &cntr_name = std::format("{}.{}", getpid(), node->get_name());
+    const string &cntr_name = to_string(getpid()) + "." + node->get_name();
     DockerAPI dapi;
 
     SECTION("Container API") {

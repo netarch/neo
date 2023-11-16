@@ -8,7 +8,6 @@
 #include <ctime>
 #include <fcntl.h>
 #include <filesystem>
-#include <format>
 #include <linux/if_packet.h>
 #include <linux/if_tun.h>
 #include <list>
@@ -112,8 +111,8 @@ void Docker::wait_for_dpdk_interfaces() const {
         for (; it != if_names.end(); ++it) {
             remaining_intfs += ", " + *it;
         }
-        logger.error(std::format("Interfaces not created after a while: {}",
-                                 remaining_intfs));
+        logger.error("Interfaces not created after a while: " +
+                     remaining_intfs);
     }
 }
 

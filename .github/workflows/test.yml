@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
 
   style-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install clang-format yapf3
@@ -11,7 +11,7 @@ jobs:
 
   tests:
     needs: style-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         cc: [gcc, clang]
