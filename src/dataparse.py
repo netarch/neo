@@ -5,15 +5,16 @@ from collections import deque
 
 
 class NetSynthesizer:
+
     def __init__(self, linkfile):
         self.G = dict()
         self.subnets = dict()
         self.parent_map = dict()
         self.node_to_interfaces = dict()
-        self.interface_to_node=dict()
-        self.interface_links=dict()
-        self.links=[]
-        self.rules=dict()
+        self.interface_to_node = dict()
+        self.interface_links = dict()
+        self.links = []
+        self.rules = dict()
 
         links = read_dsv(linkfile)
         subnet = 0
@@ -28,27 +29,28 @@ class NetSynthesizer:
             self.G[link[0]].add(link[1])
             self.G[link[1]].add(link[0])
 
-            if (link[0], link[1]) not in self.subnets and (link[1], link[0]) not in self.subnets:
+            if (link[0], link[1]) not in self.subnets and (
+                    link[1], link[0]) not in self.subnets:
                 subnet_str = str(ipaddress.IPv4Address(subnet))
-                ip_1=ipaddress.IPv4Address(subnet + 1)
-                ip_2=ipaddress.IPv4Address(subnet + 2)
-                if1="eth"+str((len(self.node_to_interfaces[link[0]])))
-                if2="eth"+str((len(self.node_to_interfaces[link[1]])))
-                self.subnets[(link[0], link[1])] = ipaddress.ip_network(subnet_str + "/30")
-                self.node_to_interfaces[link[0]].append((if1,ip_1))
-                self.interface_to_node[ip_1]=link[0]
-                self.node_to_interfaces[link[1]].append((if2,ip_2))
+                ip_1 = ipaddress.IPv4Address(subnet + 1)
+                ip_2 = ipaddress.IPv4Address(subnet + 2)
+                if1 = "eth" + str((len(self.node_to_interfaces[link[0]])))
+                if2 = "eth" + str((len(self.node_to_interfaces[link[1]])))
+                self.subnets[(link[0],
+                              link[1])] = ipaddress.ip_network(subnet_str +
+                                                               "/30")
+                self.node_to_interfaces[link[0]].append((if1, ip_1))
+                self.interface_to_node[ip_1] = link[0]
+                self.node_to_interfaces[link[1]].append((if2, ip_2))
                 self.interface_to_node[ip_2] = link[1]
                 if ip_1 not in self.interface_links:
-                    self.interface_links[ip_1]=ip_2
+                    self.interface_links[ip_1] = ip_2
                     self.interface_links[ip_2] = ip_1
-                self.links.append((link[0],if1, link[1], if2))
+                self.links.append((link[0], if1, link[1], if2))
                 subnet += 4
 
-
-
         for n in self.node_to_interfaces:
-            self.rules[n]=self.synthesize_rules(n)
+            self.rules[n] = self.synthesize_rules(n)
         # print(self.interface_links)
         # print(self.node_to_interfaces)
         # print(self.interface_to_node)
@@ -69,8 +71,16 @@ class NetSynthesizer:
         head_labels = nx.get_edge_attributes(G, 'headlabel')
         tail_labels = nx.get_edge_attributes(G, 'taillabel')
 
-        nx.draw_networkx_edge_labels(G, pos, label_pos=0.25, edge_labels=head_labels, rotate=False)
-        nx.draw_networkx_edge_labels(G, pos, label_pos=0.75, edge_labels=tail_labels, rotate=False)
+        nx.draw_networkx_edge_labels(G,
+                                     pos,
+                                     label_pos=0.25,
+                                     edge_labels=head_labels,
+                                     rotate=False)
+        nx.draw_networkx_edge_labels(G,
+                                     pos,
+                                     label_pos=0.75,
+                                     edge_labels=tail_labels,
+                                     rotate=False)
 
         plt.axis('off')
         plt.savefig('topo.png')
@@ -87,12 +97,12 @@ class NetSynthesizer:
                 parent_to_subnet[subnet_to_parent[subnet]] = []
             parent_to_subnet[subnet_to_parent[subnet]].append(subnet)
         for p in parent_to_subnet:
-            parent_to_subnet[p] = list(ipaddress.collapse_addresses(parent_to_subnet[p]))
+            parent_to_subnet[p] = list(
+                ipaddress.collapse_addresses(parent_to_subnet[p]))
 
-
-        rules=[]
+        rules = []
         for p in parent_to_subnet:
-            di=self.get_dst_interface(src, p)
+            di = self.get_dst_interface(src, p)
             for s in parent_to_subnet[p]:
                 rules.append((s, di))
         return rules
@@ -100,12 +110,10 @@ class NetSynthesizer:
     def get_dst_interface(self, src, dst):
 
         for i in self.node_to_interfaces[src]:
-            di=self.interface_links[i[1]]
-            dn=self.interface_to_node[di]
-            if dn==dst:
+            di = self.interface_links[i[1]]
+            dn = self.interface_to_node[di]
+            if dn == dst:
                 return di
-
-
 
 
 class FileParser:
@@ -144,8 +152,16 @@ class FileParser:
         head_labels = nx.get_edge_attributes(G, 'headlabel')
         tail_labels = nx.get_edge_attributes(G, 'taillabel')
 
-        nx.draw_networkx_edge_labels(G, pos, label_pos=0.25, edge_labels=head_labels, rotate=False)
-        nx.draw_networkx_edge_labels(G, pos, label_pos=0.75, edge_labels=tail_labels, rotate=False)
+        nx.draw_networkx_edge_labels(G,
+                                     pos,
+                                     label_pos=0.25,
+                                     edge_labels=head_labels,
+                                     rotate=False)
+        nx.draw_networkx_edge_labels(G,
+                                     pos,
+                                     label_pos=0.75,
+                                     edge_labels=tail_labels,
+                                     rotate=False)
 
         plt.axis('off')
         plt.savefig('topo.png')
