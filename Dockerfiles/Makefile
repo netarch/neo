@@ -5,7 +5,8 @@ TARGETS = \
 	dpdk \
 	klint-firewall \
 	klint-maglev \
-	klint-nat
+	klint-nat \
+	klint-faulty-nat
 
 PUSH_TARGETS = $(TARGETS:%=%-push)
 

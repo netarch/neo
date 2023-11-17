@@ -89,7 +89,7 @@ main() {
     check_depends git make meson ninja
 
     DISTRO="$(get_distro)"
-    NFs=(firewall maglev nat)
+    NFs=(firewall maglev nat faulty-nat)
     KLINT_URL=https://github.com/kyechou/klint.git
     KLINT_DIR="$BUILD_DIR/klint"
 

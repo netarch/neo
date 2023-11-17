@@ -1,0 +1,87 @@
+[[nodes]]
+    name = "h1"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "192.168.0.1/24"
+    [[nodes.static_routes]]
+    network = "0.0.0.0/0"
+    next_hop = "192.168.0.254"
+[[nodes]]
+    name = "nat"
+    type = "emulation"
+    driver = "docker"
+    daemon = "/var/run/docker.sock"
+    [[nodes.interfaces]]    # internal, connected to h1
+    name = "eth0"
+    ipv4 = "192.168.0.254/24"
+    [[nodes.interfaces]]    # external, connected to server
+    name = "eth1"
+    ipv4 = "10.0.0.1/24"
+    [nodes.container]
+    image = "kyechou/klint-faulty-nat:latest"
+    working_dir = "/"
+    dpdk = true
+    command = [
+        # /nf --vdev=net_tap0,iface=eth0 --vdev=net_tap1,iface=eth1 --no-huge
+        "/nf",
+        "--vdev=net_tap0,iface=eth0",
+        "--vdev=net_tap1,iface=eth1",
+        "--no-huge"
+    ]
+    [[nodes.container.sysctls]]
+    key = "net.ipv4.conf.all.forwarding"
+    value = "1"
+[[nodes]]
+    name = "server"
+    type = "model"
+    [[nodes.interfaces]]
+    name = "eth0"
+    ipv4 = "10.0.0.2/24"
+    [[nodes.static_routes]]
+    network = "192.168.0.0/24"
+    next_hop = "10.0.0.1"
+
+[[links]]
+    node1 = "server"
+    intf1 = "eth0"
+    node2 = "nat"
+    intf2 = "eth1"
+[[links]]
+    node1 = "nat"
+    intf1 = "eth0"
+    node2 = "h1"
+    intf2 = "eth0"
+
+# Invariants:
+#   1. Outgoing connections are always allowed.
+#   2. Incoming connections are also allowed.
+#   3. Incoming replies to past requests are allowed.
+
+[[invariants]]
+    type = "reachability"
+    target_node = "server"
+    reachable = true
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "h1"
+    dst_ip = "10.0.0.2"
+    dst_port = [80]
+[[invariants]]
+    type = "reachability"
+    target_node = ".*"
+    reachable = true
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "server"
+    dst_ip = "192.168.0.0/24"
+    owned_dst_only = true
+[[invariants]]
+    type = "reply-reachability"
+    target_node = "server"
+    reachable = true
+    [[invariants.connections]]
+    protocol = "tcp"
+    src_node = "h1"
+    dst_ip = "10.0.0.2"
+    dst_port = [80]
