@@ -92,6 +92,7 @@ main() {
     NFs=(firewall maglev nat faulty-nat)
     KLINT_URL=https://github.com/kyechou/klint.git
     KLINT_DIR="$BUILD_DIR/klint"
+    KLINT_COMMIT=bbf11028a461fe12cf592c17a20e7d0be42b3ca1
 
     if [ "$DISTRO" = "arch" ]; then
         LIB_DIR="/usr/lib"
@@ -101,9 +102,13 @@ main() {
         die "Unsupported distribution: $DISTRO"
     fi
 
-    mkdir -p "$BUILD_DIR"
     if [[ ! -e "$KLINT_DIR" ]]; then
-        git clone --depth 1 "$KLINT_URL" "$KLINT_DIR"
+        mkdir -p "$KLINT_DIR"
+        cd "$KLINT_DIR"
+        git init
+        git remote add origin "$KLINT_URL"
+        git fetch --depth 1 origin "$KLINT_COMMIT"
+        git checkout FETCH_HEAD
     fi
     cd "$KLINT_DIR"
 
