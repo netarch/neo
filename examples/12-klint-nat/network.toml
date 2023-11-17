@@ -55,7 +55,7 @@
 
 # Invariants:
 #   1. Outgoing connections are always allowed.
-#   2. Incoming connections are also allowed.
+#   2. Incoming connections are denied. (Unknown flow)
 #   3. Incoming replies to past requests are allowed.
 
 [[invariants]]
@@ -70,7 +70,7 @@
 [[invariants]]
     type = "reachability"
     target_node = ".*"
-    reachable = true
+    reachable = false
     [[invariants.connections]]
     protocol = "tcp"
     src_node = "server"
