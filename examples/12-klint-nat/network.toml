@@ -8,7 +8,7 @@
     network = "0.0.0.0/0"
     next_hop = "192.168.0.254"
 [[nodes]]
-    name = "fw"
+    name = "nat"
     type = "emulation"
     driver = "docker"
     daemon = "/var/run/docker.sock"
@@ -17,39 +17,18 @@
     ipv4 = "192.168.0.254/24"
     [[nodes.interfaces]]    # external, connected to server
     name = "eth1"
-    ipv4 = "10.0.0.2/24"
+    ipv4 = "10.0.0.1/24"
     [nodes.container]
-    image = "kyechou/klint-firewall:latest"
+    image = "kyechou/klint-nat:latest"
     working_dir = "/"
     dpdk = true
     command = [
+        # /nf --vdev=net_tap0,iface=eth0 --vdev=net_tap1,iface=eth1 --no-huge
         "/nf",
         "--vdev=net_tap0,iface=eth0",
         "--vdev=net_tap1,iface=eth1",
         "--no-huge"
     ]
-    # TODO: Move the explanation to examples/README.
-    # We use the `--no-huge` option here because Neo is mainly used for testing
-    # and validation. The option shouldn't be used in a production environment,
-    # in which case, `/sys/kernel/mm/hugepages` should be mounted from the host
-    # file system, and other volume mounts below should also be enabled if a
-    # physical device/interface is used.
-    #
-    # [[nodes.container.volume_mounts]]
-    # mount_path = "/sys/bus/pci/devices"
-    # host_path = "/sys/bus/pci/devices"
-    # [[nodes.container.volume_mounts]]
-    # mount_path = "/sys/bus/pci/drivers"
-    # host_path = "/sys/bus/pci/drivers"
-    # [[nodes.container.volume_mounts]]
-    # mount_path = "/sys/kernel/mm/hugepages"
-    # host_path = "/sys/kernel/mm/hugepages"
-    # [[nodes.container.volume_mounts]]
-    # mount_path = "/sys/devices/system/node"
-    # host_path = "/sys/devices/system/node"
-    # [[nodes.container.volume_mounts]]
-    # mount_path = "/dev"
-    # host_path = "/dev"
     [[nodes.container.sysctls]]
     key = "net.ipv4.conf.all.forwarding"
     value = "1"
@@ -58,25 +37,25 @@
     type = "model"
     [[nodes.interfaces]]
     name = "eth0"
-    ipv4 = "10.0.0.1/24"
+    ipv4 = "10.0.0.2/24"
     [[nodes.static_routes]]
     network = "192.168.0.0/24"
-    next_hop = "10.0.0.2"
+    next_hop = "10.0.0.1"
 
 [[links]]
     node1 = "server"
     intf1 = "eth0"
-    node2 = "fw"
+    node2 = "nat"
     intf2 = "eth1"
 [[links]]
-    node1 = "fw"
+    node1 = "nat"
     intf1 = "eth0"
     node2 = "h1"
     intf2 = "eth0"
 
 # Invariants:
-#   1. Outgoing packets are always allowed.
-#   2. Incoming packets are always denied, except for 3.
+#   1. Outgoing connections are always allowed.
+#   2. Incoming connections are also allowed.
 #   3. Incoming replies to past requests are allowed.
 
 [[invariants]]
@@ -86,12 +65,12 @@
     [[invariants.connections]]
     protocol = "tcp"
     src_node = "h1"
-    dst_ip = "10.0.0.1"
+    dst_ip = "10.0.0.2"
     dst_port = [80]
 [[invariants]]
     type = "reachability"
     target_node = ".*"
-    reachable = false
+    reachable = true
     [[invariants.connections]]
     protocol = "tcp"
     src_node = "server"
@@ -104,5 +83,5 @@
     [[invariants.connections]]
     protocol = "tcp"
     src_node = "h1"
-    dst_ip = "10.0.0.1"
+    dst_ip = "10.0.0.2"
     dst_port = [80]
