@@ -2,10 +2,11 @@ import os
 import sys
 import argparse
 
-from dataparse import *
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
 from config import *
+from dataparse import *
 
 def confgen(links):
     config=Config()
