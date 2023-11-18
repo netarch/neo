@@ -351,6 +351,8 @@ class Conditional(Invariant):
             data['correlated_invariants'] = [
                 inv.to_dict() for inv in self.correlated_invs
             ]
+        data.pop('connections')
+        data.pop('correlated_invs')
         return data
 
 
@@ -366,6 +368,8 @@ class Consistency(Invariant):
             data['correlated_invariants'] = [
                 inv.to_dict() for inv in self.correlated_invs
             ]
+        data.pop('connections')
+        data.pop('correlated_invs')
         return data
 
 
