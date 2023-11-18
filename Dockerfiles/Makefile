@@ -6,7 +6,8 @@ TARGETS = \
 	klint-firewall \
 	klint-maglev \
 	klint-nat \
-	klint-faulty-nat
+	klint-faulty-nat \
+	click
 
 PUSH_TARGETS = $(TARGETS:%=%-push)
 
