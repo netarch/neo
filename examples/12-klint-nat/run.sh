@@ -8,7 +8,7 @@ procs=1
 drop="timeout"
 name="output.$procs-procs.$drop"
 run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.toml"
-name="output.$procs-procs.$drop.fault"
-run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.fault.toml"
+# name="output.$procs-procs.$drop.fault"
+# run "$name" "$procs" "$drop" "$SCRIPT_DIR/network.fault.toml"
 
 msg "Done"
