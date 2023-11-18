@@ -7,9 +7,10 @@ from config import *
 from dataparse import *
 
 
-def confgen(links):
+def confgen(topo_file_name):
     config = Config()
-    ns = NetSynthesizer(links)
+
+    ns = NetSynthesizer(topo_file_name)
     for n in ns.node_to_interfaces:
         newnode = Node(n)
         for i in ns.node_to_interfaces[n]:
@@ -27,9 +28,12 @@ def confgen(links):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', '--links', type=str)
-    arg = parser.parse_args()
-    confgen(arg.links)
+    parser.add_argument('-t',
+                        '--topology',
+                        type=str,
+                        help='Topology file name')
+    args = parser.parse_args()
+    confgen(args.topology)
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import ipaddress
 from collections import deque
+from pathlib import Path
 
 
 class NetSynthesizer:
@@ -15,6 +16,7 @@ class NetSynthesizer:
         self.interface_links = dict()
         self.links = []
         self.rules = dict()
+        self.topo_name = Path(linkfile).stem
 
         links = read_dsv(linkfile)
         subnet = 0
@@ -54,10 +56,10 @@ class NetSynthesizer:
         # print(self.interface_links)
         # print(self.node_to_interfaces)
         # print(self.interface_to_node)
-        #print(self.rules)
-        #print(self.subnets)
-        #print(self.node_to_interfaces)
-        #print(self.links)
+        # print(self.rules)
+        # print(self.subnets)
+        # print(self.node_to_interfaces)
+        # print(self.links)
 
     def visualize(self):
         G = nx.Graph()
@@ -83,7 +85,7 @@ class NetSynthesizer:
                                      rotate=False)
 
         plt.axis('off')
-        plt.savefig('topo.png')
+        plt.savefig(self.topo_name + '.png')
 
     def synthesize_rules(self, src):
         parent = BFSParent(self.G, src)
