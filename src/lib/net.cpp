@@ -372,14 +372,16 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
             }
         } else if (ip_proto == IPPROTO_ICMP) { // ICMP packets
             // ICMP type
-            uint8_t icmp_type;
+            uint8_t icmp_type, icmp_code;
             memcpy(&icmp_type, buffer + 34, 1);
+            memcpy(&icmp_code, buffer + 35, 1);
             if (icmp_type == ICMP_ECHO) {
                 pkt.set_proto_state(PS_ICMP_ECHO_REQ);
             } else if (icmp_type == ICMP_ECHOREPLY) {
                 pkt.set_proto_state(PS_ICMP_ECHO_REP);
             } else {
-                logger.warn("Unsupported ICMP type: " + to_string(icmp_type));
+                logger.warn("Unsupported ICMP type: " + to_string(icmp_type) +
+                            ", code: " + to_string(icmp_code));
                 goto bad_packet;
             }
             // The rest of ICMP header and its payload are ignored for now.
