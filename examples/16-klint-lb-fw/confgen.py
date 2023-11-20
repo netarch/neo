@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
 from config import *
 
 
-def confgen(num_backends, firewall_type):
+def confgen(num_backends, firewall_type, lb_type):
     config = Config()
 
     iptables_fw_rules = '''
@@ -22,27 +22,64 @@ def confgen(num_backends, firewall_type):
 COMMIT
 '''
 
+    if lb_type == 'ipvs':
+        # IPVS mode (masquerading):
+        # All backend servers have a different IP address.
+        target_service_ip = '10.0.0.2'  # client-facing IP of the LB
+    elif lb_type == 'klint':
+        # Klint maglev LB mode:
+        # All backend servers have the same IP address.
+        target_service_ip = '8.0.0.1'  # shared backend server IP address
+    else:
+        raise Exception('Unknown lb type: {}'.format(lb_type))
+
     # Add the host node.
     host = Node('host')
     host.add_interface(Interface('eth0', '10.0.0.1/24'))
     host.add_static_route(Route('8.0.0.0/24', '10.0.0.2'))
     config.add_node(host)
 
-    # Add the maglev LB node.
-    lb_cmd = ['/nf', '--no-huge']
-    for b in range(num_backends):
-        lb_cmd.append('--vdev=net_tap{0},iface=eth{0}'.format(b))
-    lb_cmd.append('--vdev=net_tap{0},iface=eth{0}'.format(num_backends))
-    lb = DockerNode('lb',
-                    image='kyechou/klint-maglev:latest',
-                    working_dir='/',
-                    dpdk=True,
-                    command=lb_cmd)
-    for b in range(num_backends):
-        lb.add_interface(Interface('eth{}'.format(b), '9.1.{}.2/24'.format(b)))
-    lb.add_interface(Interface('eth{}'.format(num_backends), '10.0.0.2/24'))
-    lb.add_sysctl('net.ipv4.conf.all.forwarding', '1')
-    config.add_node(lb)
+    # Add the LB node.
+    if lb_type == 'ipvs':
+        lb = DockerNode('lb',
+                        image='kyechou/ipvs:latest',
+                        working_dir='/',
+                        reset_wait_time=1000,
+                        command=['/start.sh'])
+        ipvs_config = '-A -t 10.0.0.2:80 -s mh\n'
+        ipvs_config += '-A -u 10.0.0.2:80 -s mh\n'
+        for b in range(num_backends):
+            lb.add_interface(
+                Interface('eth{}'.format(b), '9.1.{}.2/24'.format(b)))
+            lb.add_static_route(
+                Route('8.1.{}.0/24'.format(b), '9.1.{}.1'.format(b)))
+            ipvs_config += '-a -t 10.0.0.2:80 -r 8.1.{}.1:80 -m\n'.format(b)
+            ipvs_config += '-a -u 10.0.0.2:80 -r 8.1.{}.1:80 -m\n'.format(b)
+        lb.add_interface(Interface('eth{}'.format(num_backends),
+                                   '10.0.0.2/24'))
+        lb.add_volume('/lib/modules', '/lib/modules')
+        lb.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+        lb.add_sysctl('net.ipv4.vs.expire_nodest_conn', '1')
+        lb.add_env_var('RULES', ipvs_config)
+        config.add_node(lb)
+
+    elif lb_type == 'klint':
+        lb_cmd = ['/nf', '--no-huge']
+        for b in range(num_backends):
+            lb_cmd.append('--vdev=net_tap{0},iface=eth{0}'.format(b))
+        lb_cmd.append('--vdev=net_tap{0},iface=eth{0}'.format(num_backends))
+        lb = DockerNode('lb',
+                        image='kyechou/klint-maglev:latest',
+                        working_dir='/',
+                        dpdk=True,
+                        command=lb_cmd)
+        for b in range(num_backends):
+            lb.add_interface(
+                Interface('eth{}'.format(b), '9.1.{}.2/24'.format(b)))
+        lb.add_interface(Interface('eth{}'.format(num_backends),
+                                   '10.0.0.2/24'))
+        lb.add_sysctl('net.ipv4.conf.all.forwarding', '1')
+        config.add_node(lb)
 
     # Add the client-side router node for reply packets.
     r_client = Node('r-client')
@@ -71,8 +108,13 @@ COMMIT
         router.add_interface(Interface('eth0', '9.0.{}.1/24'.format(b)))
         router.add_interface(Interface('eth1', '9.1.{}.1/24'.format(b)))
         router.add_interface(Interface('eth2', '9.2.{}.1/24'.format(b)))
-        router.add_static_route(Route('8.0.0.0/24', '9.0.{}.2'.format(b)))
-        router.add_static_route(Route('10.0.0.0/24', '9.2.{}.2'.format(b)))
+        if lb_type == 'ipvs':
+            router.add_static_route(
+                Route('8.1.{}.0/24'.format(b), '9.0.{}.2'.format(b)))
+            router.add_static_route(Route('10.0.0.0/24', '9.1.{}.2'.format(b)))
+        elif lb_type == 'klint':
+            router.add_static_route(Route('8.0.0.0/24', '9.0.{}.2'.format(b)))
+            router.add_static_route(Route('10.0.0.0/24', '9.2.{}.2'.format(b)))
         config.add_node(router)
 
         if firewall_type == 'iptables':
@@ -96,14 +138,22 @@ COMMIT
                             ])
         else:
             raise Exception('Unknown firewall type: {}'.format(firewall_type))
+
         fw.add_interface(Interface('eth0', '9.0.{}.2/24'.format(b)))
-        fw.add_interface(Interface('eth1', '8.0.0.2/24'))
+        if lb_type == 'ipvs':
+            fw.add_interface(Interface('eth1', '8.1.{}.2/24'.format(b)))
+        elif lb_type == 'klint':
+            fw.add_interface(Interface('eth1', '8.0.0.2/24'))
         fw.add_static_route(Route('10.0.0.0/24', '9.0.{}.1'.format(b)))
         config.add_node(fw)
 
         server = Node('server{}'.format(b))
-        server.add_interface(Interface('eth0', '8.0.0.1/24'))
-        server.add_static_route(Route('10.0.0.0/24', '8.0.0.2'))
+        if lb_type == 'ipvs':
+            server.add_interface(Interface('eth0', '8.1.{}.1/24'.format(b)))
+            server.add_static_route(Route('10.0.0.0/24', '8.1.{}.2'.format(b)))
+        elif lb_type == 'klint':
+            server.add_interface(Interface('eth0', '8.0.0.1/24'))
+            server.add_static_route(Route('10.0.0.0/24', '8.0.0.2'))
         config.add_node(server)
         config.add_link(Link(router.name, 'eth0', fw.name, 'eth0'))
         config.add_link(Link(router.name, 'eth1', lb.name, 'eth{}'.format(b)))
@@ -118,36 +168,32 @@ COMMIT
                      reachable=True,
                      protocol='tcp',
                      src_node='host',
-                     dst_ip='8.0.0.1',
-                     dst_port=[80],
-                     owned_dst_only=True))
+                     dst_ip=target_service_ip,
+                     dst_port=[80]))
     ## The host can connect to the server via UDP.
     config.add_invariant(
         Reachability(target_node='server[0-9]+',
                      reachable=True,
                      protocol='udp',
                      src_node='host',
-                     dst_ip='8.0.0.1',
-                     dst_port=[80],
-                     owned_dst_only=True))
+                     dst_ip=target_service_ip,
+                     dst_port=[80]))
     ## Reply to past requests can reach the original sender via TCP.
     config.add_invariant(
         ReplyReachability(target_node='server[0-9]+',
                           reachable=True,
                           protocol='tcp',
                           src_node='host',
-                          dst_ip='8.0.0.1',
-                          dst_port=[80],
-                          owned_dst_only=True))
+                          dst_ip=target_service_ip,
+                          dst_port=[80]))
     ## Reply to past requests can reach the original sender via UDP.
     config.add_invariant(
         ReplyReachability(target_node='server[0-9]+',
                           reachable=True,
                           protocol='udp',
                           src_node='host',
-                          dst_ip='8.0.0.1',
-                          dst_port=[80],
-                          owned_dst_only=True))
+                          dst_ip=target_service_ip,
+                          dst_port=[80]))
 
     # Output as TOML
     config.output_toml()
@@ -166,12 +212,17 @@ def main():
                         choices=['iptables', 'klint'],
                         required=True,
                         help='Types of firewall')
+    parser.add_argument('--lb',
+                        type=str,
+                        choices=['ipvs', 'klint'],
+                        required=True,
+                        help='Types of load balancer')
     args = parser.parse_args()
 
     if not args.backends or args.backends < 1 or args.backends > 9:
         sys.exit('Invalid number of backends: ' + str(args.backends))
 
-    confgen(args.backends, args.firewall)
+    confgen(args.backends, args.firewall, args.lb)
 
 
 if __name__ == '__main__':

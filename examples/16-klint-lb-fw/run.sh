@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/../common.sh"
 
 # # Test
 # backends=4
-# "${CONFGEN[@]}" --backends $backends --firewall iptables >"$CONF"
+# "${CONFGEN[@]}" --backends $backends --firewall iptables --lb klint >"$CONF"
 # procs=1
 # drop="timeout"
 # name="output.$backends-backends.$procs-procs.$drop"
@@ -13,13 +13,15 @@ source "${SCRIPT_DIR}/../common.sh"
 
 for backends in 1 3 5 7 9; do
     for fw in iptables klint; do
-        "${CONFGEN[@]}" --backends $backends --firewall $fw >"$CONF"
-        for procs in 1 4 8 16; do
-            drop="timeout"
-            name="output.$backends-backends.$procs-procs.$drop"
-            run "$name" "$procs" "$drop" "$CONF"
+        for lb in ipvs klint; do
+            "${CONFGEN[@]}" --backends $backends --firewall $fw --lb $lb >"$CONF"
+            for procs in 1 4 8 16; do
+                drop="timeout"
+                name="output.$backends-backends.$fw-fw.$lb-lb.$procs-procs.$drop"
+                run "$name" "$procs" "$drop" "$CONF"
+            done
+            rm "$CONF"
         done
-        rm "$CONF"
     done
 done
 
