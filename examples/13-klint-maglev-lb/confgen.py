@@ -91,7 +91,8 @@ def confgen(num_backends):
                      dst_port=[80],
                      owned_dst_only=True))
     ## Load balance invariant with a given max dispersion index.
-    lb_inv = LoadBalance(target_node='server[0-9]+', max_dispersion_index=100.0)
+    lb_inv = LoadBalance(target_node='server[0-9]+',
+                         max_dispersion_index=100.0)
     for _ in range(2):
         lb_inv.add_connection(
             Connection(protocol='udp', src_node=host.name, dst_ip='8.0.0.1'))
