@@ -549,47 +549,89 @@ void Net::reassemble_segments(std::list<Packet> &pkts) const {
     }
 }
 
+/**
+ * @brief Check whether the `packet` belongs to the given connection `conn` of
+ * the given `model`.
+ *
+ * @param packet
+ * @param model
+ * @param conn
+ * @return std::pair<bool, bool> - The first element of the pair indicates
+ * whether the `packet` does belong to `conn`. If the first element is true, the
+ * second element indicates whether the `packet` has the same direction as
+ * `conn` (true: same direction; false: opposite direction). Otherwise, the
+ * value of the second element has no meaning.
+ */
+static inline std::pair<bool, bool>
+packet_belongs_to_connection(const Packet &packet,
+                             const Model &model,
+                             int conn) {
+    int orig_conn = model.get_conn();
+    model.set_conn(conn);
+    uint32_t src_ip = model.get_src_ip();
+    EqClass *dst_ip_ec = model.get_dst_ip_ec();
+    uint16_t src_port = model.get_src_port();
+    uint16_t dst_port = model.get_dst_port();
+    int conn_protocol = PS_TO_PROTO(model.get_proto_state());
+    model.set_conn(orig_conn);
+
+    /**
+     * Note that at this moment we have not converted the received
+     * packet's proto_state, so only protocol type is compared.
+     */
+    int pkt_protocol;
+    if (packet.get_proto_state() & 0x800U) {
+        pkt_protocol = proto::tcp;
+    } else {
+        pkt_protocol = PS_TO_PROTO(packet.get_proto_state());
+    }
+
+    if (packet.get_src_ip() == src_ip &&
+        dst_ip_ec->contains(packet.get_dst_ip()) &&
+        packet.get_src_port() == src_port &&
+        packet.get_dst_port() == dst_port && pkt_protocol == conn_protocol) {
+        // same connection, same direction
+        return {true, true};
+    } else if (packet.get_dst_ip() == src_ip &&
+               dst_ip_ec->contains(packet.get_src_ip()) &&
+               packet.get_dst_port() == src_port &&
+               packet.get_src_port() == dst_port &&
+               pkt_protocol == conn_protocol) {
+        // same connection, opposite direction
+        return {true, false};
+    }
+
+    // Not the same connection.
+    return {false, false};
+}
+
 void Net::identify_conn(Packet &pkt) const {
-    int conn;
     int orig_conn = model.get_conn();
 
-    for (conn = 0; conn < model.get_num_conns(); ++conn) {
-        model.set_conn(conn);
-        uint32_t src_ip = model.get_src_ip();
-        EqClass *dst_ip_ec = model.get_dst_ip_ec();
-        uint16_t src_port = model.get_src_port();
-        uint16_t dst_port = model.get_dst_port();
-        int conn_protocol = PS_TO_PROTO(model.get_proto_state());
-        model.set_conn(orig_conn);
+    // Check whether the packet belongs to the original connection first.
+    auto [same_conn, same_direction] =
+        packet_belongs_to_connection(pkt, model, orig_conn);
+    if (same_conn) {
+        pkt.set_is_new(false);
+        pkt.set_opposite_dir(!same_direction);
+        pkt.set_conn(orig_conn);
+        return;
+    }
 
-        /*
-         * Note that at this moment we have not converted the received
-         * packet's proto_state, so only protocol type is compared.
-         */
-        int pkt_protocol;
-        if (pkt.get_proto_state() & 0x800U) {
-            pkt_protocol = proto::tcp;
-        } else {
-            pkt_protocol = PS_TO_PROTO(pkt.get_proto_state());
+    // Check whether the packet belongs to any of the other connections.
+    int conn;
+    for (conn = 0; conn < model.get_num_conns(); ++conn) {
+        if (conn == orig_conn) {
+            continue;
         }
 
-        if (pkt.get_src_ip() == src_ip &&
-            dst_ip_ec->contains(pkt.get_dst_ip()) &&
-            pkt.get_src_port() == src_port && pkt.get_dst_port() == dst_port &&
-            pkt_protocol == conn_protocol) {
-            // same connection, same direction
+        auto [same_conn, same_direction] =
+            packet_belongs_to_connection(pkt, model, conn);
+        if (same_conn) {
             pkt.set_is_new(false);
-            pkt.set_opposite_dir(false);
-            break;
-        } else if (pkt.get_dst_ip() == src_ip &&
-                   dst_ip_ec->contains(pkt.get_src_ip()) &&
-                   pkt.get_dst_port() == src_port &&
-                   pkt.get_src_port() == dst_port &&
-                   pkt_protocol == conn_protocol) {
-            // same connection, opposite direction
-            pkt.set_is_new(false);
-            pkt.set_opposite_dir(true);
-            break;
+            pkt.set_opposite_dir(!same_direction);
+            pkt.set_conn(conn);
+            return;
         }
     }
 
@@ -601,9 +643,8 @@ void Net::identify_conn(Packet &pkt) const {
 
         pkt.set_is_new(true);
         pkt.set_opposite_dir(false);
+        pkt.set_conn(conn);
     }
-
-    pkt.set_conn(conn);
 }
 
 void Net::process_proto_state(Packet &pkt) const {
