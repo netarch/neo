@@ -35,6 +35,9 @@ def confgen(lbs, servers, algorithm):
         load_balancer.add_interface(Interface('eth0', '8.0.%d.2/24' % lb))
         load_balancer.add_interface(Interface('eth1', '9.%d.0.1/16' % lb))
         load_balancer.add_static_route(Route('0.0.0.0/0', '8.0.%d.1' % lb))
+        # This is needed because `ipvsadm` may need to load the `ip_vs` kernel
+        # module if it's not loaded already.
+        load_balancer.add_volume('/lib/modules', '/lib/modules')
         load_balancer.add_sysctl('net.ipv4.vs.expire_nodest_conn', '1')
         lb_config = ''
         lb_config += '-A -t 8.0.%d.2:80 -s %s' % (lb, algorithm)
