@@ -170,12 +170,12 @@ void ForwardingProcess::forward_packet() {
             // Note: Either tx or rx node can initiate the termination process,
             // so don't check endpoint consistency for PS_TCP_TERM_*
             // inconsistent endpoints: dropped by middlebox
-            logger.info("Inconsistent endpoints");
-            logger.info("Connection " + to_string(model.get_conn()) +
-                        " dropped by " + current_node->to_string());
-            model.set_fwd_mode(fwd_mode::DROPPED);
-            model.set_executable(0);
-            return;
+            logger.warn("Inconsistent endpoints");
+            // logger.info("Connection " + to_string(model.get_conn()) +
+            //             " dropped by " + current_node->to_string());
+            // model.set_fwd_mode(fwd_mode::DROPPED);
+            // model.set_executable(0);
+            // return;
         }
 
         logger.info("Packet delivered at " + current_node->to_string());
