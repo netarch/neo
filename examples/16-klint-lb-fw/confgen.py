@@ -163,7 +163,6 @@ def main():
     parser.add_argument('--firewall',
                         type=str,
                         choices=['iptables', 'klint'],
-                        # default='iptables',
                         required=True,
                         help='Types of firewall')
     args = parser.parse_args()
