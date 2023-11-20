@@ -16,8 +16,9 @@ def confgen(num_backends, firewall_type):
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
 :OUTPUT ACCEPT [0:0]
--A FORWARD -i eth0 -j ACCEPT
--A FORWARD -m conntrack --ctstate ESTABLISHED -j ACCEPT
+-A FORWARD -i eth0 -p tcp --syn -m conntrack --ctstate NEW -j ACCEPT
+-A FORWARD -i eth0 -p udp -m conntrack --ctstate NEW -j ACCEPT
+-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 COMMIT
 '''
 
