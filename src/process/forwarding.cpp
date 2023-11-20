@@ -374,6 +374,7 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
 
     int orig_conn = model.get_conn();
     bool current_conn_updated = false;
+    bool other_conns_updated = false;
 
     // Process each received packet and update the model state based on the
     // inferred connection status
@@ -392,6 +393,8 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
 
         if (recv_pkt.conn() == orig_conn) {
             current_conn_updated = true;
+        } else {
+            other_conns_updated = true;
         }
 
         // set conn (and recover it later)
@@ -465,16 +468,26 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
                         " dropped by " + mb->to_string());
             model.set_fwd_mode(fwd_mode::DROPPED);
             model.set_executable(0);
-        } else {
-            logger.info("No packets are received for conn " +
+        } else if (other_conns_updated) {
+            logger.info("No packets received for conn " +
                         to_string(model.get_conn()) +
-                        ", assuming the injected packet is delivered");
+                        ", but there are other conns. Assume the injected "
+                        "packet is delivered");
             model.set_executable(2);
             model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
             Candidates candidates;
             candidates.add(FIB_IPNH(mb, nullptr, mb, nullptr));
             model.set_candidates(std::move(candidates));
             model.set_choice_count(1);
+        } else {
+            logger.info("No packets received for conn " +
+                        to_string(model.get_conn()) +
+                        " and there is no other conn. Assume the injected "
+                        "packet is dropped");
+            logger.info("Connection " + to_string(model.get_conn()) +
+                        " dropped by " + mb->to_string());
+            model.set_fwd_mode(fwd_mode::DROPPED);
+            model.set_executable(0);
         }
     } else {
         // The current connection is updated, which means we received packets of
