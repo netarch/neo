@@ -23,7 +23,7 @@ enum fwd_mode {
 class ForwardingProcess : public Process {
 private:
     // all history packets
-    std::unordered_set<Packet *, PacketHash, PacketEq> all_pkts;
+    std::unordered_set<Packet *, PacketPtrHash, PacketPtrEq> all_pkts;
     // history of node packet histories
     std::unordered_set<NodePacketHistory *,
                        NodePacketHistoryHash,
