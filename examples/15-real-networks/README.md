@@ -1,3 +1,5 @@
+./run.sh "topology file name" "number of emulated nodes"
+
 0.test-network.txt : 
 Basic handwritten example with 8 nodes
 
