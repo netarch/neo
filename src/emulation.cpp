@@ -49,7 +49,7 @@ void Emulation::teardown() {
 
 void Emulation::listen_packets() {
     list<Packet> pkts;
-    PacketHash hasher;
+    PacketPtrHash hasher;
 
     while (!_stop_recv) {
         // read the output packets (it will block if there is no packet)

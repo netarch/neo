@@ -272,20 +272,56 @@ bool operator==(const Packet &a, const Packet &b) {
             a.proto_state == b.proto_state && a.payload == b.payload);
 }
 
-size_t PacketHash::operator()(Packet *const &p) const {
+bool operator<(const Packet &a, const Packet &b) {
+    if (a.interface < b.interface) {
+        return true;
+    }
+    if (a.src_ip < b.src_ip) {
+        return true;
+    }
+    if (a.dst_ip < b.dst_ip) {
+        return true;
+    }
+    if (a.src_port < b.src_port) {
+        return true;
+    }
+    if (a.dst_port < b.dst_port) {
+        return true;
+    }
+    if (a.seq < b.seq) {
+        return true;
+    }
+    if (a.ack < b.ack) {
+        return true;
+    }
+    if (a.proto_state < b.proto_state) {
+        return true;
+    }
+    if (a.payload < b.payload) {
+        return true;
+    }
+    return false;
+}
+
+size_t PacketHash::operator()(const Packet &p) const {
     size_t value = 0;
-    hash::hash_combine(value, std::hash<Interface *>()(p->interface));
-    hash::hash_combine(value, std::hash<IPv4Address>()(p->src_ip));
-    hash::hash_combine(value, std::hash<IPv4Address>()(p->dst_ip));
-    hash::hash_combine(value, std::hash<uint16_t>()(p->src_port));
-    hash::hash_combine(value, std::hash<uint16_t>()(p->dst_port));
-    hash::hash_combine(value, std::hash<uint32_t>()(p->seq));
-    hash::hash_combine(value, std::hash<uint32_t>()(p->ack));
-    hash::hash_combine(value, std::hash<uint16_t>()(p->proto_state));
-    hash::hash_combine(value, std::hash<Payload *>()(p->payload));
+    hash::hash_combine(value, std::hash<Interface *>()(p.interface));
+    hash::hash_combine(value, std::hash<IPv4Address>()(p.src_ip));
+    hash::hash_combine(value, std::hash<IPv4Address>()(p.dst_ip));
+    hash::hash_combine(value, std::hash<uint16_t>()(p.src_port));
+    hash::hash_combine(value, std::hash<uint16_t>()(p.dst_port));
+    hash::hash_combine(value, std::hash<uint32_t>()(p.seq));
+    hash::hash_combine(value, std::hash<uint32_t>()(p.ack));
+    hash::hash_combine(value, std::hash<uint16_t>()(p.proto_state));
+    hash::hash_combine(value, std::hash<Payload *>()(p.payload));
     return value;
 }
 
-bool PacketEq::operator()(Packet *const &a, Packet *const &b) const {
+size_t PacketPtrHash::operator()(const Packet *const &p) const {
+    return PacketHash()(*p);
+}
+
+bool PacketPtrEq::operator()(const Packet *const &a,
+                             const Packet *const &b) const {
     return *a == *b;
 }

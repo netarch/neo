@@ -45,6 +45,7 @@ private:
 
     friend class PacketHash;
     friend bool operator==(const Packet &, const Packet &);
+    friend bool operator<(const Packet &, const Packet &);
 
 public:
     Packet();
@@ -99,13 +100,19 @@ public:
 };
 
 bool operator==(const Packet &, const Packet &);
+bool operator<(const Packet &, const Packet &);
 
 class PacketHash {
 public:
-    size_t operator()(Packet *const &) const;
+    size_t operator()(const Packet &) const;
 };
 
-class PacketEq {
+class PacketPtrHash {
 public:
-    bool operator()(Packet *const &, Packet *const &) const;
+    size_t operator()(const Packet *const &) const;
+};
+
+class PacketPtrEq {
+public:
+    bool operator()(const Packet *const &, const Packet *const &) const;
 };
