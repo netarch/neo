@@ -40,6 +40,7 @@ typedef conn_state_t {
     int pkt_location[SIZEOF_VOID_P / SIZEOF_INT];   /* (Node *) */
     int ingress_intf[SIZEOF_VOID_P / SIZEOF_INT];   /* (Interface *) */
     int candidates[SIZEOF_VOID_P / SIZEOF_INT];     /* (Candidates *) */
+    int inj_results[SIZEOF_VOID_P / SIZEOF_INT];    /* (InjectionResults *) */
 
     /* per-flow data plane state */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */

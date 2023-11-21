@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "emulation.hpp"
+#include "injection-result.hpp"
 #include "lib/ip.hpp"
 #include "node.hpp"
 #include "packet.hpp"
@@ -53,7 +54,7 @@ public:
 
     void rewind(NodePacketHistory *);
     void set_node_pkt_hist(NodePacketHistory *);
-    std::pair<std::list<Packet>, bool> send_pkt(const Packet &);
+    InjectionResults send_pkt(const Packet &);
 
     bool is_emulated() const override { return true; }
     std::set<FIB_IPNH>

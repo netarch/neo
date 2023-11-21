@@ -6,6 +6,7 @@ class Candidates;
 class Choices;
 class EqClass;
 class FIB;
+class InjectionResults;
 class Interface;
 class Network;
 class Node;
@@ -84,6 +85,9 @@ public:
     Candidates *get_candidates() const;
     Candidates *set_candidates(Candidates &&) const;
     Candidates *reset_candidates() const;
+    InjectionResults *get_injection_results() const;
+    InjectionResults *set_injection_results(InjectionResults &&) const;
+    InjectionResults *reset_injection_results() const;
     // per-flow data plane state
     FIB *get_fib() const;
     FIB *set_fib(FIB &&) const;

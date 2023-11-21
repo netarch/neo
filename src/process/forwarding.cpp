@@ -8,6 +8,7 @@
 #include "choices.hpp"
 #include "eqclassmgr.hpp"
 #include "fib.hpp"
+#include "injection-result.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
 #include "middlebox.hpp"
@@ -40,6 +41,9 @@ void ForwardingProcess::exec_step() {
         break;
     case fwd_mode::COLLECT_NHOPS:
         collect_next_hops();
+        break;
+    case fwd_mode::CHOOSE_INJ_RES:
+        choose_injection_results();
         break;
     case fwd_mode::FORWARD_PACKET:
         forward_packet();
@@ -138,6 +142,13 @@ void ForwardingProcess::collect_next_hops() {
     model.set_choice_count(candidates.size());
     model.set_candidates(std::move(candidates));
     model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
+}
+
+void ForwardingProcess::choose_injection_results() {
+    Node *current_node = model.get_pkt_location();
+    InjectionResults *results = model.get_injection_results();
+    update_model_from_injection_result(static_cast<Middlebox *>(current_node),
+                                       results->at(model.get_choice()));
 }
 
 void ForwardingProcess::forward_packet() {
@@ -320,6 +331,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
     model.set_fwd_mode(fwd_mode::FIRST_COLLECT);
     model.set_ingress_intf(nullptr);
     model.reset_candidates();
+    model.reset_injection_results();
     model.print_conn_states();
 }
 
@@ -357,8 +369,10 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
 
     // Inject packet
     logger.info("Injecting packet: " + new_pkt->to_string());
-    auto send_res = mb->send_pkt(*new_pkt);
-    update_model_from_pkts(mb, send_res.first, send_res.second);
+    InjectionResults results = mb->send_pkt(*new_pkt);
+    model.set_choice_count(results.size());
+    model.set_injection_results(std::move(results));
+    model.set_fwd_mode(fwd_mode::CHOOSE_INJ_RES);
 
     _STATS_STOP(Stats::Op::FWD_INJECT_PKT);
 }
@@ -366,9 +380,12 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
 /**
  * No multicast.
  */
-void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
-                                               list<Packet> &recv_pkts,
-                                               bool explicit_drop) const {
+void ForwardingProcess::update_model_from_injection_result(
+    Middlebox *mb,
+    const InjectionResult &result) const {
+    vector<Packet> recv_pkts = result.recv_pkts();
+    bool explicit_drop = result.explicit_drop();
+
     if (explicit_drop && !recv_pkts.empty()) {
         logger.error("Sent packet dropped but still received packets");
     }
@@ -376,6 +393,7 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
     int orig_conn = model.get_conn();
     bool current_conn_updated = false;
     bool other_conns_updated = false;
+    logger.debug("Processing injection result " + result.to_string());
 
     // Process each received packet and update the model state based on the
     // inferred connection status
@@ -437,7 +455,6 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
             model.set_fwd_mode(fwd_mode::FIRST_FORWARD);
             model.set_ingress_intf(nullptr);
         } else { // same phase (middlebox is not an endpoint)
-            assert(model.get_fwd_mode() == fwd_mode::COLLECT_NHOPS);
             model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
         }
 

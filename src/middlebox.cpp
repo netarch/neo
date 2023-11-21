@@ -2,9 +2,13 @@
 
 #include <cassert>
 #include <cmath>
+#include <string>
+#include <unordered_set>
 
 #include "emulationmgr.hpp"
+#include "injection-result.hpp"
 #include "stats.hpp"
+#include "unique-storage.hpp"
 
 using namespace std;
 
@@ -28,15 +32,30 @@ void Middlebox::set_node_pkt_hist(NodePacketHistory *nph) {
 }
 
 /**
- * It sends a packet to the emulation, and updates the drop timeout.
+ * Sends a packet to the emulation.
  *
- * @param pkt the packet to send
+ * @param pkt the packet to be sent
  *
- * @return A list of received packets.
+ * @return InjectionResults - A sorted vector of unique injection results.
  */
-std::pair<std::list<Packet>, bool> Middlebox::send_pkt(const Packet &pkt) {
+InjectionResults Middlebox::send_pkt(const Packet &pkt) {
     assert(_emulation->mb() == this);
-    return _emulation->send_pkt(pkt);
+    assert(_packets_per_injection > 0);
+    logger.info("Sending the packet " + std::to_string(_packets_per_injection) +
+                " times");
+
+    // Since we expect the number of duplicate injection results will be small,
+    // using a vector should be more performant.
+    InjectionResults results;
+    for (int i = 0; i < _packets_per_injection; ++i) {
+        InjectionResult *ir = new InjectionResult(_emulation->send_pkt(pkt));
+        ir = storage.store_injection_result(ir);
+        results.add(ir);
+    }
+
+    logger.info("Got " + std::to_string(results.size()) +
+                " distinct injection results");
+    return results;
 }
 
 /**

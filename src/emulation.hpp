@@ -17,6 +17,7 @@
 
 #include "driver/driver.hpp"
 #include "emu-pkt-key.hpp"
+#include "injection-result.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
 class Middlebox;
@@ -76,5 +77,5 @@ public:
     void teardown();
     void init(Middlebox *, bool log_pkts = true); // re-initialize the emulation
     int rewind(NodePacketHistory *);
-    std::pair<std::list<Packet>, bool> send_pkt(const Packet &);
+    InjectionResult send_pkt(const Packet &);
 };

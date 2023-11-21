@@ -62,6 +62,7 @@ void Connection::init(size_t conn_idx) const {
     model.set_pkt_location(src_node);
     model.set_ingress_intf(nullptr);
     model.reset_candidates();
+    model.reset_injection_results();
 
     model.update_fib();
     model.set_path_choices(Choices());

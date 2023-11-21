@@ -13,6 +13,7 @@
 #include "dropmon.hpp"
 #include "droptimeout.hpp"
 #include "droptrace.hpp"
+#include "injection-result.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
 #include "middlebox.hpp"
@@ -325,7 +326,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
  * @return A list of received packets.
  * @return True if send_pkt was dropped.
  */
-std::pair<std::list<Packet>, bool> Emulation::send_pkt(const Packet &send_pkt) {
+InjectionResult Emulation::send_pkt(const Packet &send_pkt) {
     // Prepare send packet, apply offsets
     Packet pkt(send_pkt);
     this->apply_offsets(pkt);

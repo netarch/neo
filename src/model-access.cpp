@@ -9,6 +9,7 @@
 #include "choices.hpp"
 #include "eqclass.hpp"
 #include "fib.hpp"
+#include "injection-result.hpp"
 #include "interface.hpp"
 #include "invariant/loadbalance.hpp"
 #include "logger.hpp"
@@ -258,6 +259,28 @@ Candidates *Model::set_candidates(Candidates &&candidates) const {
 
 Candidates *Model::reset_candidates() const {
     memset(state->conn_state[state->conn].candidates, 0, sizeof(Candidates *));
+    return nullptr;
+}
+
+InjectionResults *Model::get_injection_results() const {
+    InjectionResults *results;
+    memcpy(&results, state->conn_state[state->conn].inj_results,
+           sizeof(InjectionResults *));
+    return results;
+}
+
+InjectionResults *
+Model::set_injection_results(InjectionResults &&results) const {
+    InjectionResults *new_results = new InjectionResults(std::move(results));
+    new_results = storage.store_injection_results(new_results);
+    memcpy(state->conn_state[state->conn].inj_results, &new_results,
+           sizeof(InjectionResults *));
+    return new_results;
+}
+
+InjectionResults *Model::reset_injection_results() const {
+    memset(state->conn_state[state->conn].inj_results, 0,
+           sizeof(InjectionResults *));
     return nullptr;
 }
 

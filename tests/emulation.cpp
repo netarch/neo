@@ -10,6 +10,7 @@
 #include "droptimeout.hpp"
 #include "droptrace.hpp"
 #include "emulation.hpp"
+#include "injection-result.hpp"
 #include "middlebox.hpp"
 #include "network.hpp"
 #include "packet.hpp"
@@ -63,12 +64,12 @@ TEST_CASE("emulation") {
         Emulation emu;
         REQUIRE_NOTHROW(emu.init(mb, false));
         Packet send_pkt, compare_pkt;
-        list<Packet> recv_pkts;
+        vector<Packet> recv_pkts;
 
         // Send a ping req packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_pkts = emu.send_pkt(send_pkt).first;
+        recv_pkts = emu.send_pkt(send_pkt).recv_pkts();
         REQUIRE(recv_pkts.size() == 1);
         REQUIRE_NOTHROW(compare_pkt = send_pkt);
         REQUIRE_NOTHROW(compare_pkt.set_intf(eth1));
@@ -77,7 +78,7 @@ TEST_CASE("emulation") {
         // Send a TCP SYN packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", DYNAMIC_PORT, 80,
                           0, 0, PS_TCP_INIT_1);
-        recv_pkts = emu.send_pkt(send_pkt).first;
+        recv_pkts = emu.send_pkt(send_pkt).recv_pkts();
         REQUIRE(recv_pkts.size() == 1);
         REQUIRE_NOTHROW(compare_pkt = send_pkt);
         REQUIRE_NOTHROW(compare_pkt.set_intf(eth1));
@@ -88,7 +89,7 @@ TEST_CASE("emulation") {
         // Send a ping req packet from node1 to fw
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_pkts = emu.send_pkt(send_pkt).first;
+        recv_pkts = emu.send_pkt(send_pkt).recv_pkts();
         REQUIRE(recv_pkts.size() == 1);
         REQUIRE_NOTHROW(compare_pkt = send_pkt);
         REQUIRE_NOTHROW(compare_pkt.set_src_ip(send_pkt.get_dst_ip()));
@@ -198,36 +199,36 @@ TEST_CASE("emulation (drop)") {
         Emulation emu;
         REQUIRE_NOTHROW(emu.init(mb, false));
         Packet send_pkt;
-        pair<list<Packet>, bool> recv_res;
+        InjectionResult inj_res;
         drop = nullptr; // Use the timeout method
 
         // Send a ping req packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(!recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(!inj_res.explicit_drop());
 
         // Send a TCP SYN packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", DYNAMIC_PORT, 80,
                           0, 0, PS_TCP_INIT_1);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(!recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(!inj_res.explicit_drop());
 
         // Send a ping req packet from node1 to fw
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(!recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(!inj_res.explicit_drop());
     }
 
     SECTION("Drop packets with dropmon") {
         Emulation emu;
         REQUIRE_NOTHROW(emu.init(mb, false));
         Packet send_pkt;
-        pair<list<Packet>, bool> recv_res;
+        InjectionResult inj_res;
         drop = &DropMon::get();
         DropMon::get().init();
         DropMon::get().start(); // Start kernel drop_monitor
@@ -235,23 +236,23 @@ TEST_CASE("emulation (drop)") {
         // Send a ping req packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(inj_res.explicit_drop());
 
         // Send a TCP SYN packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", DYNAMIC_PORT, 80,
                           0, 0, PS_TCP_INIT_1);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(inj_res.explicit_drop());
 
         // Send a ping req packet from node1 to fw
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(inj_res.explicit_drop());
 
         DropMon::get().stop(); // Stop kernel drop_monitor
         DropMon::get().teardown();
@@ -261,7 +262,7 @@ TEST_CASE("emulation (drop)") {
         Emulation emu;
         REQUIRE_NOTHROW(emu.init(mb, false));
         Packet send_pkt;
-        pair<list<Packet>, bool> recv_res;
+        InjectionResult inj_res;
         drop = &DropTrace::get();
         DropTrace::get().init();
         DropTrace::get().start(); // Open and load the BPF program
@@ -269,23 +270,23 @@ TEST_CASE("emulation (drop)") {
         // Send a ping req packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(inj_res.explicit_drop());
 
         // Send a TCP SYN packet from node1 to node2
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", DYNAMIC_PORT, 80,
                           0, 0, PS_TCP_INIT_1);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(inj_res.explicit_drop());
 
         // Send a ping req packet from node1 to fw
         send_pkt = Packet(eth0, "192.168.1.2", "192.168.1.1", 0, 0, 0, 0,
                           PS_ICMP_ECHO_REQ);
-        recv_res = emu.send_pkt(send_pkt);
-        CHECK(recv_res.first.empty());
-        CHECK(recv_res.second);
+        inj_res = emu.send_pkt(send_pkt);
+        CHECK(inj_res.recv_pkts().empty());
+        CHECK(inj_res.explicit_drop());
 
         DropTrace::get().stop(); // Remove the BPF program
         DropTrace::get().teardown();
