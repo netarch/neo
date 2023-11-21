@@ -28,7 +28,7 @@ def confgen(topo_file_name, emulated_nodes_count):
             newnode.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
 
         for i in ns.node_to_interfaces[n]:
-            newnode.add_interface(Interface(i[0], str(i[1])+"/30"))
+            newnode.add_interface(Interface(i[0], str(i[1]) + "/30"))
         for r in ns.rules[n]:
             newnode.add_static_route(Route(str(r[0]), str(r[1])))
         config.add_node(newnode)
@@ -47,8 +47,7 @@ def confgen(topo_file_name, emulated_nodes_count):
                                  protocol='tcp',
                                  src_node=u,
                                  dst_ip=dst,
-                                 dst_port=[80])
-                )
+                                 dst_port=[80]))
 
     config.output_toml()
 
