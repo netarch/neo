@@ -310,7 +310,6 @@ Candidates *Model::set_candidates(Candidates &&candidates) const {
     }
     memcpy(state->conn_state[state->conn].candidates, &new_candidates,
            sizeof(Candidates *));
-    state->choice_count = new_candidates->size();
     return new_candidates;
 }
 

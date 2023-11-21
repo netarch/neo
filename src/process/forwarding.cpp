@@ -135,6 +135,7 @@ void ForwardingProcess::collect_next_hops() {
         }
     }
 
+    model.set_choice_count(candidates.size());
     model.set_candidates(std::move(candidates));
     model.set_fwd_mode(fwd_mode::FORWARD_PACKET);
 }
@@ -449,6 +450,7 @@ void ForwardingProcess::update_model_from_pkts(Middlebox *mb,
         } else {
             logger.warn("No next hop found");
         }
+        model.set_choice_count(candidates.size());
         model.set_candidates(std::move(candidates));
 
         model.set_conn(orig_conn);
