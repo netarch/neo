@@ -4,6 +4,7 @@
 #include <list>
 #include <set>
 #include <string>
+#include <sys/types.h>
 #include <utility>
 
 #include "emulation.hpp"
@@ -14,8 +15,11 @@
 
 class Middlebox : public Node {
 protected:
+    useconds_t _start_delay = 0;
+    useconds_t _reset_delay = 0;
+    useconds_t _replay_delay = 0;
     // The actual emulation instance
-    Emulation *_emulation;
+    Emulation *_emulation = nullptr;
 
     // Interesting IP and port values parsed from the config files
     std::set<IPNetwork<IPv4Address>> _ec_ip_prefixes;
@@ -24,7 +28,7 @@ protected:
 
 protected:
     friend class ConfigParser;
-    Middlebox();
+    Middlebox() = default;
 
 public:
     Middlebox(const Middlebox &) = delete;
@@ -32,6 +36,9 @@ public:
     Middlebox &operator=(const Middlebox &) = delete;
     Middlebox &operator=(Middlebox &&) = delete;
 
+    decltype(_start_delay) start_delay() const { return _start_delay; }
+    decltype(_reset_delay) reset_delay() const { return _reset_delay; }
+    decltype(_replay_delay) replay_delay() const { return _replay_delay; }
     decltype(_emulation) emulation() const { return _emulation; }
     const decltype(_ec_ip_prefixes) &ec_ip_prefixes() const {
         return _ec_ip_prefixes;

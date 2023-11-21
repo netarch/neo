@@ -200,8 +200,6 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     auto image = cntr_cfg->get_as<string>("image");
     auto working_dir = cntr_cfg->get_as<string>("working_dir");
     auto dpdk = cntr_cfg->get_as<bool>("dpdk");
-    auto start_wait_time = cntr_cfg->get_as<int64_t>("start_wait_time");
-    auto reset_wait_time = cntr_cfg->get_as<int64_t>("reset_wait_time");
     auto command = cntr_cfg->get_as<toml::array>("command");
     auto args = cntr_cfg->get_as<toml::array>("args");
     auto cfg_files = cntr_cfg->get_as<toml::array>("config_files");
@@ -233,24 +231,6 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     }
 
     dn._dpdk = dpdk ? **dpdk : false;
-
-    if (start_wait_time) {
-        if (**start_wait_time < 0) {
-            logger.error("Invalid start_wait_time: " +
-                         to_string(**start_wait_time));
-        }
-
-        dn._start_wait_time = **start_wait_time;
-    }
-
-    if (reset_wait_time) {
-        if (**reset_wait_time < 0) {
-            logger.error("Invalid reset_wait_time: " +
-                         to_string(**reset_wait_time));
-        }
-
-        dn._reset_wait_time = **reset_wait_time;
-    }
 
     if (command) {
         for (const auto &cmd : *command) {
@@ -437,6 +417,33 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 void ConfigParser::parse_middlebox(Middlebox &middlebox,
                                    const toml::table &config) {
     this->parse_node(middlebox, config);
+    auto start_delay = config.get_as<int64_t>("start_delay");
+    auto reset_delay = config.get_as<int64_t>("reset_delay");
+    auto replay_delay = config.get_as<int64_t>("replay_delay");
+
+    if (start_delay) {
+        if (**start_delay < 0) {
+            logger.error("Invalid start_delay: " + to_string(**start_delay));
+        }
+
+        middlebox._start_delay = **start_delay;
+    }
+
+    if (reset_delay) {
+        if (**reset_delay < 0) {
+            logger.error("Invalid reset_delay: " + to_string(**reset_delay));
+        }
+
+        middlebox._reset_delay = **reset_delay;
+    }
+
+    if (replay_delay) {
+        if (**replay_delay < 0) {
+            logger.error("Invalid replay_delay: " + to_string(**replay_delay));
+        }
+
+        middlebox._replay_delay = **replay_delay;
+    }
 }
 
 #define IPV4_PREF_REGEX "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d+\\b"

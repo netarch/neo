@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ctime>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -21,8 +20,6 @@ private:
     std::string _image;
     std::string _working_dir;
     bool _dpdk;
-    useconds_t _start_wait_time;
-    useconds_t _reset_wait_time;
     std::vector<std::string> _cmd;
     std::vector<std::pair<proto, int>> _ports;
     std::unordered_map<std::string, std::string> _env_vars;
@@ -38,12 +35,6 @@ public:
     const decltype(_image) &image() const { return _image; }
     const decltype(_working_dir) &working_dir() const { return _working_dir; }
     decltype(_dpdk) dpdk() const { return _dpdk; }
-    const decltype(_start_wait_time) &start_wait_time() const {
-        return _start_wait_time;
-    }
-    const decltype(_reset_wait_time) &reset_wait_time() const {
-        return _reset_wait_time;
-    }
     const decltype(_cmd) &cmd() const { return _cmd; }
     const decltype(_ports) &ports() const { return _ports; }
     const decltype(_env_vars) &env_vars() const { return _env_vars; }

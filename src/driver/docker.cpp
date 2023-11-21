@@ -538,7 +538,6 @@ void Docker::init() {
     teardown();
     _dapi.pull(_node->image());
     _pid = _dapi.run(_cntr_name, *_node);
-    usleep(_node->start_wait_time());
     fetchns();
     enterns();
     wait_for_dpdk_interfaces();
@@ -602,7 +601,6 @@ void Docker::reset() {
 
     // Restart the container, it will also kill exec processes
     _dapi.restart_cntr(_cntr_name);
-    usleep(std::max(_node->start_wait_time(), _node->reset_wait_time()));
     _pid = _dapi.get_cntr_pid(_cntr_name);
     _execs.clear();
     fetchns();

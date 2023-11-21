@@ -4,6 +4,7 @@
 #include <csignal>
 #include <libnet.h>
 #include <typeinfo>
+#include <unistd.h>
 
 #include "dockernode.hpp"
 #include "driver/docker.hpp"
@@ -248,6 +249,11 @@ void Emulation::init(Middlebox *mb, bool log_pkts) {
 
     _mb = mb;
     _driver->init(); // Launch the emulation
+
+    if (_mb->start_delay() > 0) {
+        usleep(_mb->start_delay());
+    }
+
     _driver->pause();
 
     // drop monitor
@@ -280,6 +286,11 @@ int Emulation::rewind(NodePacketHistory *nph) {
         lock_guard<mutex> lck(_mtx);
         reset_offsets();
         _driver->reset();
+
+        if (_mb->start_delay() > 0 || _mb->reset_delay() > 0) {
+            usleep(std::max(_mb->start_delay(), _mb->reset_delay()));
+        }
+
         _recv_pkts.clear();
         _pkts_hash.clear();
         _drop_ts = 0;
@@ -294,6 +305,10 @@ int Emulation::rewind(NodePacketHistory *nph) {
         rewind_injections = pkts.size();
         for (Packet *packet : pkts) {
             send_pkt(*packet);
+
+            if (_mb->replay_delay() > 0) {
+                usleep(_mb->replay_delay());
+            }
         }
     }
 

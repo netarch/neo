@@ -21,6 +21,9 @@
     name = "<string>"
     type = "emulation"
     driver = "docker"           # optional ("docker"), default: "docker"
+    start_delay = 0             # optional (# usec), default: 0
+    reset_delay = 0             # optional (# usec), default: 0
+    replay_delay = 0            # optional (# usec), default: 0
     # Optional, socket endpoint of the docker daemon.
     # For a remote service, use something like "http://10.0.0.1:33444".
     # Default: "/var/run/docker.sock"
@@ -30,8 +33,6 @@
     image = "alpine:3.17"
     working_dir = "/"
     dpdk = false                # optional, default: false
-    start_wait_time = 0         # optional (# usec), default: 0
-    reset_wait_time = 0         # optional (# usec), default: 0
     command = ["/bin/sh"]       # optional
     args = []                   # optional
     config_files = []           # optional

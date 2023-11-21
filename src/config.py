@@ -70,9 +70,17 @@ class Node:
 
 class Middlebox(Node):
 
-    def __init__(self, name: str, driver: str):
+    def __init__(self,
+                 name: str,
+                 driver: Optional[str] = None,
+                 start_delay: Optional[int] = None,
+                 reset_delay: Optional[int] = None,
+                 replay_delay: Optional[int] = None):
         super().__init__(name, 'emulation')
-        self.driver: str = driver
+        self.driver: Optional[str] = driver
+        self.start_delay: Optional[int] = start_delay
+        self.reset_delay: Optional[int] = reset_delay
+        self.replay_delay: Optional[int] = replay_delay
 
 
 class DockerNode(Middlebox):
@@ -81,22 +89,25 @@ class DockerNode(Middlebox):
                  name: str,
                  image: str,
                  working_dir: str,
+                 start_delay: Optional[int] = None,
+                 reset_delay: Optional[int] = None,
+                 replay_delay: Optional[int] = None,
                  dpdk: Optional[bool] = None,
-                 start_wait_time: Optional[int] = None,
-                 reset_wait_time: Optional[int] = None,
                  daemon: Optional[str] = None,
                  command: Optional[list[str]] = None,
                  args: Optional[list[str]] = None,
                  config_files: Optional[list[str]] = None):
-        super().__init__(name, 'docker')
+        super().__init__(name,
+                         driver='docker',
+                         start_delay=start_delay,
+                         reset_delay=reset_delay,
+                         replay_delay=replay_delay)
 
         self.daemon: Optional[str] = daemon
         self.container: dict[str, Any] = dict()
         self.container['image']: str = image
         self.container['working_dir']: str = working_dir
         self.container['dpdk']: Optional[bool] = dpdk
-        self.container['start_wait_time']: Optional[int] = start_wait_time
-        self.container['reset_wait_time']: Optional[int] = reset_wait_time
         self.container['command']: Optional[list[str]] = command
         self.container['args']: Optional[list[str]] = args
         self.container['config_files']: Optional[list[str]] = config_files

@@ -8,8 +8,6 @@
 
 using namespace std;
 
-Middlebox::Middlebox() : _emulation(nullptr) {}
-
 void Middlebox::rewind(NodePacketHistory *nph) {
     _emulation = EmulationMgr::get().get_emulation(this, nph);
     _STATS_START(Stats::Op::REWIND);
