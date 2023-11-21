@@ -24,6 +24,7 @@
     start_delay = 0             # optional (# usec), default: 0
     reset_delay = 0             # optional (# usec), default: 0
     replay_delay = 0            # optional (# usec), default: 0
+    packets_per_injection = 1   # optional (> 0), default: 1
     # Optional, socket endpoint of the docker daemon.
     # For a remote service, use something like "http://10.0.0.1:33444".
     # Default: "/var/run/docker.sock"

@@ -75,12 +75,14 @@ class Middlebox(Node):
                  driver: Optional[str] = None,
                  start_delay: Optional[int] = None,
                  reset_delay: Optional[int] = None,
-                 replay_delay: Optional[int] = None):
+                 replay_delay: Optional[int] = None,
+                 packets_per_injection: Optional[int] = None):
         super().__init__(name, 'emulation')
         self.driver: Optional[str] = driver
         self.start_delay: Optional[int] = start_delay
         self.reset_delay: Optional[int] = reset_delay
         self.replay_delay: Optional[int] = replay_delay
+        self.packets_per_injection: Optional[int] = packets_per_injection
 
 
 class DockerNode(Middlebox):
@@ -92,6 +94,7 @@ class DockerNode(Middlebox):
                  start_delay: Optional[int] = None,
                  reset_delay: Optional[int] = None,
                  replay_delay: Optional[int] = None,
+                 packets_per_injection: Optional[int] = None,
                  dpdk: Optional[bool] = None,
                  daemon: Optional[str] = None,
                  command: Optional[list[str]] = None,
@@ -101,7 +104,8 @@ class DockerNode(Middlebox):
                          driver='docker',
                          start_delay=start_delay,
                          reset_delay=reset_delay,
-                         replay_delay=replay_delay)
+                         replay_delay=replay_delay,
+                         packets_per_injection=packets_per_injection)
 
         self.daemon: Optional[str] = daemon
         self.container: dict[str, Any] = dict()

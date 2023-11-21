@@ -420,6 +420,7 @@ void ConfigParser::parse_middlebox(Middlebox &middlebox,
     auto start_delay = config.get_as<int64_t>("start_delay");
     auto reset_delay = config.get_as<int64_t>("reset_delay");
     auto replay_delay = config.get_as<int64_t>("replay_delay");
+    auto pkts_per_injection = config.get_as<int64_t>("packets_per_injection");
 
     if (start_delay) {
         if (**start_delay < 0) {
@@ -443,6 +444,17 @@ void ConfigParser::parse_middlebox(Middlebox &middlebox,
         }
 
         middlebox._replay_delay = **replay_delay;
+    }
+
+    if (pkts_per_injection) {
+        if (**pkts_per_injection <= 0) {
+            logger.error("Invalid packets_per_injection: " +
+                         to_string(**pkts_per_injection));
+        }
+
+        middlebox._packets_per_injection = **pkts_per_injection;
+    } else {
+        middlebox._packets_per_injection = 1;
     }
 }
 
