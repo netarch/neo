@@ -19,6 +19,7 @@
 #include "model-access.hpp"
 #include "payloadmgr.hpp"
 #include "stats.hpp"
+#include "unique-storage.hpp"
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -118,6 +119,7 @@ void Plankton::reset(bool destruct) {
         DropTrace::get().teardown();
         PayloadMgr::get().reset();
         model.reset();
+        storage.reset();
         drop = nullptr;
         _STATS_RESET();
     }
