@@ -25,6 +25,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 bool Plankton::_all_ecs = false;
+bool Plankton::_parallel_invs = false;
 bool Plankton::_violated = false;
 bool Plankton::_terminate = false;
 unordered_set<pid_t> Plankton::_tasks;
@@ -43,6 +44,7 @@ Plankton &Plankton::get() {
 }
 
 void Plankton::init(bool all_ecs,
+                    bool parallel_invs,
                     size_t max_jobs,
                     size_t max_emu,
                     const string &drop_method,
@@ -50,6 +52,7 @@ void Plankton::init(bool all_ecs,
                     const string &output_dir) {
     // Initialize system-wide configuration
     this->_all_ecs = all_ecs;
+    this->_parallel_invs = parallel_invs;
     this->_max_jobs = min(max_jobs, size_t(thread::hardware_concurrency()));
     this->_max_emu = max_emu;
     this->_drop_method = drop_method;
@@ -156,13 +159,20 @@ int Plankton::run() {
 
         this->_tasks.insert(childpid);
 
-        while (!this->_tasks.empty() && !this->_terminate) {
+        while (((!this->_parallel_invs && !this->_tasks.empty()) ||
+                (this->_parallel_invs &&
+                 this->_tasks.size() >= this->_max_jobs)) &&
+               !this->_terminate) {
             pause();
         }
 
         if (this->_terminate) {
             break;
         }
+    }
+
+    while (!this->_tasks.empty() && !this->_terminate) {
+        pause();
     }
 
     _STATS_STOP(Stats::Op::MAIN_PROC);
