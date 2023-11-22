@@ -25,8 +25,21 @@ networks=(
     # rocketfuel-cch-AS-7018.11292-nodes.13700-edges.txt
 )
 
+# network=as-733.103-nodes.239-edges.txt
+# network=rocketfuel-bb-AS-1221.108-nodes.153-edges.txt
+# network_name="${network%.*}"
+# emu_pct=10
+# inv_eps=4
+# "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$inv_eps" >"$CONF"
+# procs=8
+# for drop in "${DROP_METHODS[@]}"; do
+#     name="output.$network_name.$emu_pct-emulated.$inv_eps-endpoints.$procs-procs.$drop"
+#     run "$name" "$procs" "$drop" "$CONF"
+# done
+# rm "$CONF"
+
 for network in "${networks[@]}"; do
-    network_name="${network%%.*}"
+    network_name="${network%.*}"
     for emu_pct in 4 8 12 16; do
         for inv_eps in 2 3 4; do
             "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$inv_eps" >"$CONF"
