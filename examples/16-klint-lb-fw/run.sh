@@ -5,10 +5,12 @@ source "${SCRIPT_DIR}/../common.sh"
 
 # # Test
 # backends=4
-# "${CONFGEN[@]}" --backends $backends --firewall iptables --lb klint >"$CONF"
+# fw=iptables
+# lb=klint
+# "${CONFGEN[@]}" --backends $backends --firewall $fw --lb $lb >"$CONF"
 # procs=1
 # drop="timeout"
-# name="output.$backends-backends.$procs-procs.$drop"
+# name="output.$backends-backends.$fw-fw.$lb-lb.$procs-procs.$drop"
 # run "$name" "$procs" "$drop" "$CONF"
 
 for backends in 1 3 5 7 9; do
