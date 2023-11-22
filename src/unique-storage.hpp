@@ -19,31 +19,19 @@ private:
     void reset();
 
     // Variables of unique storage for preventing duplicates
-    std::unordered_set<Candidates *, CandHash, CandEq> candidates_store;
-    std::unordered_set<FIB *, FIBHash, FIBEq> fib_store;
+    std::unordered_set<Candidates *> candidates_store;
+    std::unordered_set<FIB *> fib_store;
     std::unordered_set<Choices *, ChoicesHash, ChoicesEq> choices_store;
     // All sent packets
-    std::unordered_set<Packet *, PacketPtrHash, PacketPtrEq> pkt_store;
-    std::unordered_set<NodePacketHistory *,
-                       NodePacketHistoryHash,
-                       NodePacketHistoryEq>
-        node_pkt_hist_store;
-    std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq>
-        pkt_hist_store;
-    std::
-        unordered_set<OpenflowUpdateState *, OFUpdateStateHash, OFUpdateStateEq>
-            openflow_update_state_store;
+    std::unordered_set<Packet *> pkt_store;
+    std::unordered_set<NodePacketHistory *> node_pkt_hist_store;
+    std::unordered_set<PacketHistory *> pkt_hist_store;
+    std::unordered_set<OpenflowUpdateState *> openflow_update_state_store;
     std::unordered_set<ReachCounts *, ReachCountsHash, ReachCountsEq>
         reach_counts_store;
-    std::
-        unordered_set<InjectionResult *, InjectionResultHash, InjectionResultEq>
-            injection_result_store;
-    std::unordered_set<InjectionResults *,
-                       InjectionResultsHash,
-                       InjectionResultsEq>
-        injection_results_store;
-    std::unordered_set<VisitedHops *, VisitedHopsHash, VisitedHopsEq>
-        visited_hops_store;
+    std::unordered_set<InjectionResult *> injection_result_store;
+    std::unordered_set<InjectionResults *> injection_results_store;
+    std::unordered_set<VisitedHops *> visited_hops_store;
 
 public:
     // Disable the copy constructor and the copy assignment operator
