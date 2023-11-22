@@ -18,6 +18,7 @@
 #include "payloadmgr.hpp"
 #include "protocols.hpp"
 #include "stats.hpp"
+#include "unique-storage.hpp"
 
 using namespace std;
 
@@ -57,20 +58,6 @@ void ForwardingProcess::exec_step() {
     default:
         logger.error("Unknown forwarding mode: " + to_string(mode));
     }
-}
-
-void ForwardingProcess::reset() {
-    for (auto &packet : this->all_pkts) {
-        delete packet;
-    }
-
-    this->all_pkts.clear();
-
-    for (auto &node_pkt_hist : this->node_pkt_hist_hist) {
-        delete node_pkt_hist;
-    }
-
-    this->node_pkt_hist_hist.clear();
 }
 
 void ForwardingProcess::first_collect() {
@@ -346,20 +333,11 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     mb->rewind(current_nph);
 
     // Construct new packet
-    Packet *new_pkt = new Packet(model);
-    auto res = all_pkts.insert(new_pkt);
-    if (!res.second) {
-        delete new_pkt;
-        new_pkt = *(res.first);
-    }
+    Packet *new_pkt = storage.store_packet(new Packet(model));
 
     // Update node_pkt_hist with this new packet
     NodePacketHistory *new_nph = new NodePacketHistory(new_pkt, current_nph);
-    auto res2 = node_pkt_hist_hist.insert(new_nph);
-    if (!res2.second) {
-        delete new_nph;
-        new_nph = *(res2.first);
-    }
+    new_nph = storage.store_node_pkt_hist(new_nph);
     mb->set_node_pkt_hist(new_nph);
 
     // Update pkt_hist with this new node_pkt_hist

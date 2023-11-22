@@ -8,6 +8,7 @@
 #include "packet.hpp"
 #include "pkt-hist.hpp"
 #include "process/process.hpp"
+
 class Network;
 class FIB_IPNH;
 class Middlebox;
@@ -24,15 +25,6 @@ enum fwd_mode {
 
 class ForwardingProcess : public Process {
 private:
-    // TODO: Move to UniqueStorage.
-    // all history packets
-    std::unordered_set<Packet *, PacketPtrHash, PacketPtrEq> all_pkts;
-    // history of node packet histories
-    std::unordered_set<NodePacketHistory *,
-                       NodePacketHistoryHash,
-                       NodePacketHistoryEq>
-        node_pkt_hist_hist;
-
     void first_collect();
     void first_forward();
     void collect_next_hops();
@@ -50,5 +42,4 @@ public:
 
     void init(const Network &);
     void exec_step() override;
-    void reset() override;
 };

@@ -1,4 +1,5 @@
 #include "unique-storage.hpp"
+#include "pkt-hist.hpp"
 
 using namespace std;
 
@@ -24,6 +25,16 @@ void UniqueStorage::reset() {
         delete path_choices;
     }
     this->choices_store.clear();
+
+    for (Packet *pkt : this->pkt_store) {
+        delete pkt;
+    }
+    this->pkt_store.clear();
+
+    for (NodePacketHistory *nph : this->node_pkt_hist_store) {
+        delete nph;
+    }
+    this->node_pkt_hist_store.clear();
 
     for (PacketHistory *pkt_hist : this->pkt_hist_store) {
         delete pkt_hist;
@@ -77,6 +88,24 @@ Choices *UniqueStorage::store_choices(Choices *choices) {
         choices = *(res.first);
     }
     return choices;
+}
+
+Packet *UniqueStorage::store_packet(Packet *packet) {
+    auto res = storage.pkt_store.insert(packet);
+    if (!res.second) {
+        delete packet;
+        packet = *(res.first);
+    }
+    return packet;
+}
+
+NodePacketHistory *UniqueStorage::store_node_pkt_hist(NodePacketHistory *nph) {
+    auto res = storage.node_pkt_hist_store.insert(nph);
+    if (!res.second) {
+        delete nph;
+        nph = *(res.first);
+    }
+    return nph;
 }
 
 PacketHistory *UniqueStorage::store_pkt_hist(PacketHistory *pkt_hist) {

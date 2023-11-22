@@ -6,6 +6,7 @@
 #include "choices.hpp"
 #include "fib.hpp"
 #include "injection-result.hpp"
+#include "packet.hpp"
 #include "pkt-hist.hpp"
 #include "process/openflow.hpp"
 #include "reachcounts.hpp"
@@ -20,6 +21,12 @@ private:
     std::unordered_set<Candidates *, CandHash, CandEq> candidates_store;
     std::unordered_set<FIB *, FIBHash, FIBEq> fib_store;
     std::unordered_set<Choices *, ChoicesHash, ChoicesEq> choices_store;
+    // All sent packets
+    std::unordered_set<Packet *, PacketPtrHash, PacketPtrEq> pkt_store;
+    std::unordered_set<NodePacketHistory *,
+                       NodePacketHistoryHash,
+                       NodePacketHistoryEq>
+        node_pkt_hist_store;
     std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq>
         pkt_hist_store;
     std::
@@ -46,6 +53,8 @@ public:
     Candidates *store_candidates(Candidates *);
     FIB *store_fib(FIB *);
     Choices *store_choices(Choices *);
+    Packet *store_packet(Packet *);
+    NodePacketHistory *store_node_pkt_hist(NodePacketHistory *);
     PacketHistory *store_pkt_hist(PacketHistory *);
     OpenflowUpdateState *store_of_update_state(OpenflowUpdateState *);
     ReachCounts *store_reach_counts(ReachCounts *);
