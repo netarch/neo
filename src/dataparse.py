@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import ipaddress
 from collections import deque
 from pathlib import Path
+import os
 
 
 class NetSynthesizer:
@@ -22,6 +23,8 @@ class NetSynthesizer:
         subnet = 0
         # print(links)
         for link in links:
+            if link[0] == link[1]:
+                continue
             if link[0] not in self.G:
                 self.G[link[0]] = set()
                 self.node_to_interfaces[link[0]] = []
@@ -240,6 +243,72 @@ def split_lines(lines):
     for line in lines:
         ret.append(line.split())
     return ret
+
+
+def parse_rfuel(filepath, prefix):
+    dir = os.path.dirname(filepath)
+    f = open(filepath, 'r')
+    lines = f.readlines()
+    f.close()
+    newfile = ""
+    lines = split_lines(lines)
+    nodes = dict()
+    edges = set()
+    dup = set()
+
+    for l in lines:
+        if l[0] == l[1]:
+            dup.add((l[0], l[1]))
+            continue
+
+        for i in [0, 1]:
+            if l[i] not in nodes:
+                nodes[l[i]] = str(len(nodes))
+
+        newfile += (nodes[l[0]] + " " + nodes[l[1]] + "\n")
+
+        if (l[1], l[0]) not in edges:
+            edges.add((l[0], l[1]))
+
+    g = open(
+        dir + "/" + prefix + "-" + str(len(nodes)) + "-nodes-" +
+        str(len(edges)) + "-edges.txt", "w")
+    g.write(newfile)
+    g.close()
+
+
+def parse_snap(filepath, prefix):
+    dir = os.path.dirname(filepath)
+    f = open(filepath, 'r')
+    lines = f.readlines()
+    f.close()
+    lines = split_lines(lines)
+    newfile = ""
+    nodes = set()
+    edges = set()
+    dup = set()
+
+    for l in lines:
+        if l[0] == '#':
+            continue
+        if l[0] == l[1]:
+            dup.add((l[0], l[1]))
+            continue
+
+        newfile += (l[0] + " " + l[1] + "\n")
+        nodes.add(l[0])
+        nodes.add(l[1])
+
+        if (l[1], l[0]) not in edges:
+            edges.add((l[0], l[1]))
+    while newfile[-1] != '\n':
+        newfile = newfile[:-1]
+
+    g = open(
+        dir + "/" + prefix + "-" + str(len(nodes)) + "-nodes-" +
+        str(len(edges)) + "-edges.txt", "w")
+    g.write(newfile)
+    g.close()
 
 
 """
