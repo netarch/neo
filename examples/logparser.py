@@ -52,10 +52,10 @@ def parse_main_log(output_dir, settings):
 
 def parse_02_settings(output_dir):
     settings = {
-        'apps': None,
-        'hosts': None,
-        'procs': None,
-        'drop_method': None,
+        'apps': 0,
+        'hosts': 0,
+        'procs': 0,
+        'drop_method': '',
         'fault': False,
     }
     dirname = os.path.basename(output_dir)
@@ -73,11 +73,11 @@ def parse_02_settings(output_dir):
 
 def parse_03_settings(output_dir):
     settings = {
-        'lbs': None,
-        'servers': None,
-        'algorithm': None,
-        'procs': None,
-        'drop_method': None,
+        'lbs': 0,
+        'servers': 0,
+        'algorithm': '',
+        'procs': 0,
+        'drop_method': '',
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
@@ -94,10 +94,10 @@ def parse_03_settings(output_dir):
 
 def parse_06_settings(output_dir):
     settings = {
-        'tenants': None,
-        'updates': None,
-        'procs': None,
-        'drop_method': None,
+        'tenants': 0,
+        'updates': 0,
+        'procs': 0,
+        'drop_method': '',
     }
     dirname = os.path.basename(output_dir)
     m = re.search(

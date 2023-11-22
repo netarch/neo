@@ -22,6 +22,8 @@ class NetSynthesizer:
         subnet = 0
         # print(links)
         for link in links:
+            if link[0] == link[1]:
+                continue
             if link[0] not in self.G:
                 self.G[link[0]] = set()
                 self.node_to_interfaces[link[0]] = []
@@ -117,6 +119,9 @@ class NetSynthesizer:
             if dn == dst:
                 return di
 
+    def leaves(self):
+        return bfs_leaves(self.G, list(self.G)[0][0])
+
 
 class FileParser:
     """
@@ -193,6 +198,25 @@ def BFSParent(G, s):
                 parent[neighbor] = parent[n]
                 q.append(neighbor)
     return parent
+
+
+def bfs_leaves(G, s):
+    leaves = []
+    q = deque()
+    q.append(s)
+    visited = {}
+    for n in G:
+        visited[n] = False
+
+    while len(q) > 0:
+        n = q.popleft()
+        visited[n] = True
+        if len(G[n]) == 1:
+            leaves.append(n)
+        for neighbor in G[n]:
+            if not visited[neighbor]:
+                q.append(neighbor)
+    return leaves
 
 
 def read_dsv(filename):
