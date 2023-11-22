@@ -63,7 +63,7 @@ def parse_rocketfuel_bb(in_dir, out_dir):
                     edges.add((tokens[0], tokens[1]))
 
         out_fn = os.path.join(
-            out_dir, 'rocketfuel-bb.AS-{}.{}-nodes.{}-edges.txt'.format(
+            out_dir, 'rocketfuel-bb-AS-{}.{}-nodes.{}-edges.txt'.format(
                 asn, len(nodes), len(edges)))
         with open(out_fn, 'w') as f:
             for edge in edges:
@@ -107,7 +107,7 @@ def parse_rocketfuel_cch(in_dir, out_dir):
                         edges.add((uid, nuid))
 
         out_fn = os.path.join(
-            out_dir, 'rocketfuel-cch.AS-{}.{}-nodes.{}-edges.txt'.format(
+            out_dir, 'rocketfuel-cch-AS-{}.{}-nodes.{}-edges.txt'.format(
                 asn, len(nodes), len(edges)))
         with open(out_fn, 'w') as f:
             for edge in edges:
