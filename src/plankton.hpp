@@ -18,12 +18,13 @@ extern "C" int spin_main(int argc, const char *argv[]);
 class Plankton {
 private:
     // System-wide configuration
-    static bool _all_ecs;     // Verify all ECs
-    size_t _max_jobs;         // Max number of parallel tasks
-    size_t _max_emu;          // Max number of emulations
-    std::string _drop_method; // Drop detection method
-    std::string _in_file;     // Input TOML file
-    std::string _out_dir;     // Output directory
+    static bool _all_ecs;       // Verify all ECs
+    static bool _parallel_invs; // Allow verifying invariants in parallel
+    size_t _max_jobs;           // Max number of parallel tasks
+    size_t _max_emu;            // Max number of emulations
+    std::string _drop_method;   // Drop detection method
+    std::string _in_file;       // Input TOML file
+    std::string _out_dir;       // Output directory
 
     // System states
     Network _network; // Network information (inc. data plane)
@@ -68,6 +69,7 @@ public:
     const decltype(_invs) &invariants() const { return _invs; }
 
     void init(bool all_ecs,
+              bool parallel_invs,
               size_t max_jobs,
               size_t max_emu,
               const std::string &drop_method,

@@ -49,9 +49,11 @@ run() {
     drop="$3"
     infile="$4"
     outdir="$RESULTS_DIR/$name"
+    shift 4
+    args=("$@")
 
     msg "Verifying $name"
-    sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir"
+    sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}"
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
 

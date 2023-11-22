@@ -16,6 +16,10 @@ int main(int argc, char **argv) {
     desc.add_options()("help,h", "Show help message");
     desc.add_options()("all,a", "Verify all ECs after violation");
     desc.add_options()("force,f", "Remove output dir if exists");
+    desc.add_options()(
+        "parallel-invs,p",
+        "Allow verifying invariants in parallel (default: disabled). This is "
+        "mostly used for narrow invariants who only have one EC to check.");
     desc.add_options()("jobs,j", po::value<size_t>()->default_value(1),
                        "Max number of parallel tasks [default: 1]");
     desc.add_options()("emulations,e", po::value<size_t>()->default_value(0),
@@ -43,6 +47,7 @@ int main(int argc, char **argv) {
 
     bool all_ecs = vm.count("all");
     bool rm_out_dir = vm.count("force");
+    bool parallel_invs = vm.count("parallel-invs");
     size_t max_jobs = vm.at("jobs").as<size_t>();
     size_t max_emu = vm.at("emulations").as<size_t>();
     string drop = vm.at("drop").as<string>();
@@ -74,6 +79,7 @@ int main(int argc, char **argv) {
     }
 
     Plankton &plankton = Plankton::get();
-    plankton.init(all_ecs, max_jobs, max_emu, drop, input_file, output_dir);
+    plankton.init(all_ecs, parallel_invs, max_jobs, max_emu, drop, input_file,
+                  output_dir);
     return plankton.run();
 }
