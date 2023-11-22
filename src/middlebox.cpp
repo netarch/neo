@@ -13,7 +13,9 @@
 using namespace std;
 
 void Middlebox::rewind(NodePacketHistory *nph) {
+    _STATS_START(Stats::Op::LAUNCH_OR_GET_EMU);
     _emulation = EmulationMgr::get().get_emulation(this, nph);
+    _STATS_STOP(Stats::Op::LAUNCH_OR_GET_EMU);
     _STATS_START(Stats::Op::REWIND);
     int rewind_injections = _emulation->rewind(nph);
     _STATS_STOP(Stats::Op::REWIND);

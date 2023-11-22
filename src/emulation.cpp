@@ -277,12 +277,15 @@ void Emulation::init(Middlebox *mb, bool log_pkts) {
 int Emulation::rewind(NodePacketHistory *nph) {
     if (_nph == nph) {
         logger.info(_mb->get_name() + " up to date, no need to rewind");
+        _STATS_ZERO_LAT(Stats::Op::RESET_EMU);
+        _STATS_ZERO_LAT(Stats::Op::REPLAY);
         return -1;
     }
 
     logger.info("Rewinding " + _mb->get_name() + "...");
 
     // Reset the emulation state
+    _STATS_START(Stats::Op::RESET_EMU);
     if (!nph || !nph->contains(_nph)) {
         lock_guard<mutex> lck(_mtx);
         reset_offsets();
@@ -297,9 +300,11 @@ int Emulation::rewind(NodePacketHistory *nph) {
         _drop_ts = 0;
         logger.info("Reset " + _mb->get_name());
     }
+    _STATS_STOP(Stats::Op::RESET_EMU);
 
     // Replay history
     int rewind_injections = 0;
+    _STATS_START(Stats::Op::REPLAY);
 
     if (nph) {
         list<Packet *> pkts = nph->get_packets_since(_nph);
@@ -313,6 +318,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
         }
     }
 
+    _STATS_STOP(Stats::Op::REPLAY);
     logger.info(to_string(rewind_injections) + " rewind injections");
     return rewind_injections;
 }

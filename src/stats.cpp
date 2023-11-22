@@ -1,6 +1,7 @@
 #include "stats.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <fstream>
 #include <string>
 #include <sys/resource.h>
@@ -88,28 +89,25 @@ void Stats::stop(Op op) {
     _start_ts.erase(it);
 
     if (op < Op::__OP_TYPE_DIVIDER__) {
-        long maxrss, currrss;
-        tie(maxrss, currrss) = this->get_rss();
+        auto [maxrss, currrss] = this->get_rss();
         _time.at(op) = std::move(duration);
         _max_rss.at(op) = maxrss;
         _curr_rss.at(op) = currrss;
     } else if (op > Op::__OP_TYPE_DIVIDER__ && op < Op::TIMEOUT) {
         _latencies.at(op).emplace_back(std::move(duration));
-
-        if (op == Op::PKT_LAT) {
-            _start_ts.erase(Op::DROP_LAT);
-            _latencies.at(Op::DROP_LAT).emplace_back(microseconds(0));
-            _latencies.at(Op::TIMEOUT)
-                .emplace_back(DropTimeout::get().timeout());
-        } else if (op == Op::DROP_LAT) {
-            _start_ts.erase(Op::PKT_LAT);
-            _latencies.at(Op::PKT_LAT).emplace_back(microseconds(0));
+        if (op == Op::PKT_LAT || op == Op::DROP_LAT) {
+            set_zero_latency(op == Op::PKT_LAT ? Op::DROP_LAT : Op::PKT_LAT);
             _latencies.at(Op::TIMEOUT)
                 .emplace_back(DropTimeout::get().timeout());
         }
     } else {
         logger.error("Invalid op: " + to_string(static_cast<int>(op)));
     }
+}
+
+void Stats::set_zero_latency(Op op) {
+    _start_ts.erase(op);
+    _latencies.at(op).emplace_back(microseconds(0));
 }
 
 void Stats::set_rewind_injection_count(int n) {
@@ -158,12 +156,6 @@ void Stats::log_results(Op op) const {
         ofs << "Time (usec), Peak memory (KiB), Current memory (KiB)" << endl
             << time << ", " << max_rss << ", " << cur_rss << endl;
     } else if (op == Op::CHECK_EC) {
-        auto num_injections = _latencies.at(Op::FWD_INJECT_PKT).size();
-        for (const auto &[op, vec] : _latencies) {
-            assert(vec.size() == num_injections);
-        }
-        assert(_rewind_injection_count.size() == num_injections);
-
         const string filename = to_string(getpid()) + ".stats.csv";
         ofstream ofs(filename);
         if (!ofs) {
@@ -172,20 +164,55 @@ void Stats::log_results(Op op) const {
 
         ofs << "Time (usec), Peak memory (KiB), Current memory (KiB)" << endl
             << time << ", " << max_rss << ", " << cur_rss << endl;
-
-        ofs << "Overall latency (usec), "
-            << "Rewind latency (usec), "
+        ofs << "Overall concretization (usec), "
+            << "Emulation startup (usec), "
+            << "Rewind (usec), "
+            << "Emulation reset (usec), "
+            << "Replay packets (usec), "
             << "Rewind injection count, "
             << "Packet latency (usec), "
             << "Drop latency (usec), "
             << "Timeout value (usec)" << endl;
-        for (size_t i = 0; i < num_injections; ++i) {
-            ofs << _latencies.at(Op::FWD_INJECT_PKT)[i].count() << ", "
-                << _latencies.at(Op::REWIND)[i].count() << ", "
-                << _rewind_injection_count[i] << ", "
-                << _latencies.at(Op::PKT_LAT)[i].count() << ", "
-                << _latencies.at(Op::DROP_LAT)[i].count() << ", "
-                << _latencies.at(Op::TIMEOUT)[i].count() << endl;
+
+        auto num_pkts = _latencies.at(Op::PKT_LAT).size();
+
+        for (size_t i = 0; i < num_pkts; ++i) {
+            if (i < _latencies.at(Op::FWD_INJECT_PKT).size()) {
+                ofs << _latencies.at(Op::FWD_INJECT_PKT).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::LAUNCH_OR_GET_EMU).size()) {
+                ofs << _latencies.at(Op::LAUNCH_OR_GET_EMU).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::REWIND).size()) {
+                ofs << _latencies.at(Op::REWIND).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::RESET_EMU).size()) {
+                ofs << _latencies.at(Op::RESET_EMU).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::REPLAY).size()) {
+                ofs << _latencies.at(Op::REPLAY).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _rewind_injection_count.size()) {
+                ofs << _rewind_injection_count.at(i);
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::PKT_LAT).size()) {
+                ofs << _latencies.at(Op::PKT_LAT).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::DROP_LAT).size()) {
+                ofs << _latencies.at(Op::DROP_LAT).at(i).count();
+            }
+            ofs << ", ";
+            if (i < _latencies.at(Op::TIMEOUT).size()) {
+                ofs << _latencies.at(Op::TIMEOUT).at(i).count();
+            }
+            ofs << endl;
         }
     } else {
         logger.error("Invalid op: " + to_string(static_cast<int>(op)));
