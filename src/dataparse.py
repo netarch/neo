@@ -94,7 +94,7 @@ class NetSynthesizer:
         subnet_to_parent = {}
         parent_to_subnet = {}
         for edge in self.subnets:
-            if edge[0] != src and edge[1] != src:
+            if edge[0] != src and edge[1] != src and not parent[edge[0]]==None:
                 subnet_to_parent[self.subnets[edge]] = parent[edge[0]]
         for subnet in subnet_to_parent:
             if subnet_to_parent[subnet] not in parent_to_subnet:
