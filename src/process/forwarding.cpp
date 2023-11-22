@@ -8,6 +8,7 @@
 #include "choices.hpp"
 #include "eqclassmgr.hpp"
 #include "fib.hpp"
+#include "injection-cache.hpp"
 #include "injection-result.hpp"
 #include "lib/net.hpp"
 #include "logger.hpp"
@@ -345,12 +346,28 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     new_pkt_hist.set_node_pkt_hist(mb, new_nph);
     model.set_pkt_hist(std::move(new_pkt_hist));
 
-    // Inject packet
-    logger.info("Injecting packet: " + new_pkt->to_string());
-    InjectionResults results = mb->send_pkt(*new_pkt);
-    model.set_choice_count(results.size());
-    model.set_injection_results(std::move(results));
-    model.set_fwd_mode(fwd_mode::CHOOSE_INJ_RES);
+    // Check if we have previous injection results cached.
+    InjectionResults *cached_results = injection_cache.get(mb, new_nph);
+
+    if (cached_results) {
+        logger.info("Found cached results from previous injection: " +
+                    to_string(cached_results->size()) +
+                    " distinct injection results");
+        model.set_choice_count(cached_results->size());
+        model.set_injection_results(cached_results);
+        model.set_fwd_mode(fwd_mode::CHOOSE_INJ_RES);
+    } else {
+        // Inject packet
+        logger.info("Injecting packet: " + new_pkt->to_string());
+        InjectionResults results = mb->send_pkt(*new_pkt);
+        model.set_choice_count(results.size());
+        InjectionResults *results_ptr =
+            model.set_injection_results(std::move(results));
+        model.set_fwd_mode(fwd_mode::CHOOSE_INJ_RES);
+
+        // Save the injection results in cache for better performance.
+        injection_cache.insert(mb, new_nph, results_ptr);
+    }
 
     _STATS_STOP(Stats::Op::FWD_INJECT_PKT);
 }

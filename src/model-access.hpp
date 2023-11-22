@@ -87,6 +87,7 @@ public:
     Candidates *reset_candidates() const;
     InjectionResults *get_injection_results() const;
     InjectionResults *set_injection_results(InjectionResults &&) const;
+    InjectionResults *set_injection_results(InjectionResults *) const;
     InjectionResults *reset_injection_results() const;
     // per-flow data plane state
     FIB *get_fib() const;

@@ -278,6 +278,14 @@ Model::set_injection_results(InjectionResults &&results) const {
     return new_results;
 }
 
+InjectionResults *
+Model::set_injection_results(InjectionResults *results) const {
+    results = storage.store_injection_results(results);
+    memcpy(state->conn_state[state->conn].inj_results, &results,
+           sizeof(InjectionResults *));
+    return results;
+}
+
 InjectionResults *Model::reset_injection_results() const {
     memset(state->conn_state[state->conn].inj_results, 0,
            sizeof(InjectionResults *));
