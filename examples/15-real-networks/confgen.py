@@ -8,13 +8,13 @@ from config import *
 from dataparse import *
 
 
-def confgen(topo_file_name, emulated_nodes_percentage, leaf_tested_cap):
+def confgen(topo_file_name, emu_percentage, max_inv_endpoints):
     config = Config()
     ns = NetSynthesizer(topo_file_name)
-    node_count=len(ns.node_to_interfaces)
-    random.seed()
+    node_count = len(ns.node_to_interfaces)
+    random.seed(42)  # Fixed seed for reproducibility
     emulated = random.sample(range(node_count),
-                              k=int(node_count*emulated_nodes_percentage/100))
+                             k=int(node_count * emu_percentage / 100))
 
     for i, n in enumerate(ns.node_to_interfaces):
         if i not in emulated:
@@ -38,7 +38,7 @@ def confgen(topo_file_name, emulated_nodes_percentage, leaf_tested_cap):
         config.add_link(Link(l[0], l[1], l[2], l[3]))
 
     leaves = ns.leaves()
-    leaves=random.sample(leaves, k=min(len(leaves), leaf_tested_cap))
+    leaves = random.sample(leaves, k=min(len(leaves), max_inv_endpoints))
     for u in leaves:
         for v in leaves:
             if u != v:
@@ -57,7 +57,7 @@ def confgen(topo_file_name, emulated_nodes_percentage, leaf_tested_cap):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-t',
-                        '--topology',
+                        '--topo',
                         type=str,
                         help='Topology file name',
                         required=True)
@@ -66,13 +66,16 @@ def main():
                         type=int,
                         help='Percentage of emulated nodes',
                         required=True)
-    parser.add_argument('-c',
-                        '--cap',
+    parser.add_argument('-i',
+                        '--inv-endpoints',
                         type=int,
                         help='Maximum number of leaves to be tested',
                         required=True)
-    args = parser.parse_args()
-    confgen(args.topology, args.emulated, args.cap)
+    arg = parser.parse_args()
+
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    in_filename = os.path.join(base_dir, 'data', arg.topo)
+    confgen(in_filename, arg.emulated, arg.inv_endpoints)
 
 
 if __name__ == '__main__':
