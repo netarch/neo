@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/../common.sh"
-"${CONFGEN[@]}" --topology $1 --emulated $2 > "$CONF"
+"${CONFGEN[@]}" --topology $1 --emulated $2 --cap $3 > "$CONF"
 
 for procs in 1 4 8 16; do
   for drop in "${DROP_METHODS[@]}"; do

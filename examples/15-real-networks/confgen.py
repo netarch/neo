@@ -8,12 +8,13 @@ from config import *
 from dataparse import *
 
 
-def confgen(topo_file_name, emulated_nodes_count):
+def confgen(topo_file_name, emulated_nodes_percentage, leaf_tested_cap):
     config = Config()
     ns = NetSynthesizer(topo_file_name)
+    node_count=len(ns.node_to_interfaces)
     random.seed()
-    emulated = random.choices(range(len(ns.node_to_interfaces)),
-                              k=emulated_nodes_count)
+    emulated = random.sample(range(node_count),
+                              k=int(node_count*emulated_nodes_percentage/100))
 
     for i, n in enumerate(ns.node_to_interfaces):
         if i not in emulated:
@@ -37,6 +38,7 @@ def confgen(topo_file_name, emulated_nodes_count):
         config.add_link(Link(l[0], l[1], l[2], l[3]))
 
     leaves = ns.leaves()
+    leaves=random.sample(leaves, k=min(len(leaves), leaf_tested_cap))
     for u in leaves:
         for v in leaves:
             if u != v:
@@ -57,13 +59,20 @@ def main():
     parser.add_argument('-t',
                         '--topology',
                         type=str,
-                        help='Topology file name')
+                        help='Topology file name',
+                        required=True)
     parser.add_argument('-e',
                         '--emulated',
                         type=int,
-                        help='Number of emulated nodes')
+                        help='Percentage of emulated nodes',
+                        required=True)
+    parser.add_argument('-c',
+                        '--cap',
+                        type=int,
+                        help='Maximum number of leaves to be tested',
+                        required=True)
     args = parser.parse_args()
-    confgen(args.topology, args.emulated)
+    confgen(args.topology, args.emulated, args.cap)
 
 
 if __name__ == '__main__':
