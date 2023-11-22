@@ -120,7 +120,7 @@ class NetSynthesizer:
                 return di
 
     def leaves(self):
-        return bfs_leaves(self.G, list(self.G)[0][0])
+        return bfs_leaves(self.G, list(self.G)[0])
 
 
 class FileParser:
