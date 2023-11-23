@@ -39,18 +39,21 @@ def confgen(topo_file_name, emu_percentage, max_invs):
 
     num_invs = 0
     leaves = ns.leaves()
+    random.shuffle(leaves)
     for u in leaves:
         for v in leaves:
             if u == v:
                 continue
+            if not bfs_is_connected(ns.G, u, v):
+                continue
+
             dst = str(ns.node_to_interfaces[v][0][1])
             config.add_invariant(
                 Reachability(target_node=v,
-                                reachable=True,
-                                protocol='tcp',
-                                src_node=u,
-                                dst_ip=dst,
-                                dst_port=[80]))
+                             reachable=True,
+                             protocol='icmp-echo',
+                             src_node=u,
+                             dst_ip=dst))
             num_invs += 1
             if num_invs >= max_invs:
                 break

@@ -33,8 +33,8 @@ class NetSynthesizer:
             self.G[link[0]].add(link[1])
             self.G[link[1]].add(link[0])
 
-            if (link[0], link[1]) not in self.subnets and (
-                    link[1], link[0]) not in self.subnets:
+            if ((link[0], link[1]) not in self.subnets
+                    and (link[1], link[0]) not in self.subnets):
                 subnet_str = str(ipaddress.IPv4Address(subnet))
                 ip_1 = ipaddress.IPv4Address(subnet + 1)
                 ip_2 = ipaddress.IPv4Address(subnet + 2)
@@ -94,8 +94,8 @@ class NetSynthesizer:
         subnet_to_parent = {}
         parent_to_subnet = {}
         for edge in self.subnets:
-            if edge[0] != src and edge[1] != src and not parent[
-                    edge[0]] == None:
+            if (edge[0] != src and edge[1] != src
+                    and not parent[edge[0]] == None):
                 subnet_to_parent[self.subnets[edge]] = parent[edge[0]]
         for subnet in subnet_to_parent:
             if subnet_to_parent[subnet] not in parent_to_subnet:
@@ -113,7 +113,6 @@ class NetSynthesizer:
         return rules
 
     def get_dst_interface(self, src, dst):
-
         for i in self.node_to_interfaces[src]:
             di = self.interface_links[i[1]]
             dn = self.interface_to_node[di]
@@ -218,6 +217,25 @@ def bfs_leaves(G, s):
             if not visited[neighbor]:
                 q.append(neighbor)
     return leaves
+
+
+def bfs_is_connected(G, src, dst) -> bool:
+    q = deque()
+    q.append(src)
+    visited = dict()
+    for n in G:
+        visited[n] = False
+
+    while len(q) > 0:
+        n = q.popleft()
+        if n == dst:
+            return True
+        visited[n] = True
+        for neighbor in G[n]:
+            if not visited[neighbor]:
+                q.append(neighbor)
+
+    return False
 
 
 def read_dsv(filename):
