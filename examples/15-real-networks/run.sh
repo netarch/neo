@@ -16,17 +16,14 @@ networks=(
 )
 
 # # Test
-# # network=as-733.103-nodes.239-edges.txt
-# # network=rocketfuel-bb-AS-1221.108-nodes.153-edges.txt
-# # network=rocketfuel-bb-AS-1239.315-nodes.972-edges.txt
 # for network in "${networks[@]}"; do
 #     network_name="${network%.*}"
 #     emu_pct=10
-#     inv_eps=4
-#     "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$inv_eps" >"$CONF"
+#     invs=10
+#     "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$invs" >"$CONF"
 #     procs=8
 #     drop=timeout
-#     name="output.$network_name.$emu_pct-emulated.$inv_eps-endpoints.$procs-procs.$drop"
+#     name="output.$network_name.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
 #     run "$name" "$procs" "$drop" "$CONF" --parallel-invs
 #     rm "$CONF"
 # done
@@ -34,11 +31,11 @@ networks=(
 for network in "${networks[@]}"; do
     network_name="${network%.*}"
     for emu_pct in 4 8 12 16; do
-        for inv_eps in 2 3 4; do
-            "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$inv_eps" >"$CONF"
+        for invs in 2 3 4; do
+            "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$invs" >"$CONF"
             for procs in 1 4 8 12 16; do
                 for drop in "${DROP_METHODS[@]}"; do
-                    name="output.$network_name.$emu_pct-emulated.$inv_eps-endpoints.$procs-procs.$drop"
+                    name="output.$network_name.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
                     run "$name" "$procs" "$drop" "$CONF" --parallel-invs
                 done
             done

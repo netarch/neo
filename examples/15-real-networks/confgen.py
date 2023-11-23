@@ -8,7 +8,7 @@ from config import *
 from dataparse import *
 
 
-def confgen(topo_file_name, emu_percentage, max_inv_endpoints):
+def confgen(topo_file_name, emu_percentage, max_invs):
     config = Config()
     ns = NetSynthesizer(topo_file_name)
     node_count = len(ns.node_to_interfaces)
@@ -37,19 +37,25 @@ def confgen(topo_file_name, emu_percentage, max_inv_endpoints):
     for l in ns.links:
         config.add_link(Link(l[0], l[1], l[2], l[3]))
 
+    num_invs = 0
     leaves = ns.leaves()
-    leaves = random.sample(leaves, k=min(len(leaves), max_inv_endpoints))
     for u in leaves:
         for v in leaves:
-            if u != v:
-                dst = str(ns.node_to_interfaces[v][0][1])
-                config.add_invariant(
-                    Reachability(target_node=v,
-                                 reachable=True,
-                                 protocol='tcp',
-                                 src_node=u,
-                                 dst_ip=dst,
-                                 dst_port=[80]))
+            if u == v:
+                continue
+            dst = str(ns.node_to_interfaces[v][0][1])
+            config.add_invariant(
+                Reachability(target_node=v,
+                                reachable=True,
+                                protocol='tcp',
+                                src_node=u,
+                                dst_ip=dst,
+                                dst_port=[80]))
+            num_invs += 1
+            if num_invs >= max_invs:
+                break
+        if num_invs >= max_invs:
+            break
 
     config.output_toml()
 
@@ -67,15 +73,15 @@ def main():
                         help='Percentage of emulated nodes',
                         required=True)
     parser.add_argument('-i',
-                        '--inv-endpoints',
+                        '--invs',
                         type=int,
-                        help='Maximum number of leaves to be tested',
+                        help='Maximum number of invariants',
                         required=True)
     arg = parser.parse_args()
 
     base_dir = os.path.abspath(os.path.dirname(__file__))
     in_filename = os.path.join(base_dir, 'data', arg.topo)
-    confgen(in_filename, arg.emulated, arg.inv_endpoints)
+    confgen(in_filename, arg.emulated, arg.invs)
 
 
 if __name__ == '__main__':
