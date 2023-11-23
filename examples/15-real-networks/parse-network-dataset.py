@@ -48,7 +48,7 @@ def parse_rocketfuel_bb(in_dir, out_dir):
 
         asn = int(entry.name)
         weight_fn = os.path.join(entry.path, 'weights.intra')
-        nodes = set()
+        nodes = dict()
         edges = set()
         logging.info("Processing %s", weight_fn)
 
@@ -57,8 +57,9 @@ def parse_rocketfuel_bb(in_dir, out_dir):
                 tokens = line.split()
                 if tokens[0] == tokens[1]:  # self-to-self link
                     continue
-                nodes.add(tokens[0])
-                nodes.add(tokens[1])
+                for i in [0, 1]:
+                    if tokens[i] not in nodes:
+                        nodes[tokens[i]] = str(len(nodes))
                 if (tokens[1], tokens[0]) not in edges:
                     edges.add((tokens[0], tokens[1]))
 
@@ -67,7 +68,7 @@ def parse_rocketfuel_bb(in_dir, out_dir):
                 asn, len(nodes), len(edges)))
         with open(out_fn, 'w') as f:
             for edge in edges:
-                f.write(edge[0] + ' ' + edge[1] + '\n')
+                f.write(nodes[edge[0]] + ' ' + nodes[edge[1]] + '\n')
 
 
 def parse_rocketfuel_cch(in_dir, out_dir):
