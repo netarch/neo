@@ -30,11 +30,11 @@ networks=(
 
 for network in "${networks[@]}"; do
     network_name="${network%.*}"
-    for emu_pct in 4 8 12 16; do
-        for invs in 2 3 4; do
+    for emu_pct in 4 8 12 16 20; do
+        for invs in 1 4 8 12 16; do
             "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$invs" >"$CONF"
             for procs in 1 4 8 12 16; do
-                for drop in "${DROP_METHODS[@]}"; do
+                for drop in "timeout"; do
                     name="output.$network_name.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
                     run "$name" "$procs" "$drop" "$CONF" --parallel-invs
                 done

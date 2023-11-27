@@ -29,7 +29,8 @@ if [ -z "${SCRIPT_DIR+x}" ]; then
     die '"SCRIPT_DIR" is unset'
 fi
 
-NEO="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../build/neo)"
+PROJECT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)"
+NEO="$PROJECT_DIR/build/neo"
 CONF="$SCRIPT_DIR/network.toml"
 CONFGEN=("python3" "$SCRIPT_DIR/confgen.py")
 DROP_METHODS=("timeout" "dropmon" "ebpf")
@@ -54,7 +55,7 @@ run() {
     err=0
 
     msg "Verifying $name"
-    sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}"
+    sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
 
@@ -95,6 +96,11 @@ load_vfio_pci_module() {
 
 _main() {
     mkdir -p "$RESULTS_DIR"
+
+    # Activate Python venv for confgen scripts.
+    # shellcheck source=/dev/null
+    source "$PROJECT_DIR/scripts/bootstrap.sh"
+    activate_python_venv
 
     while :; do
         case "${1-}" in

@@ -46,6 +46,8 @@ def confgen(topo_file_name, emu_percentage, max_invs):
                 continue
             if not bfs_is_connected(ns.G, u, v):
                 continue
+            if u in emulated or v in emulated:
+                continue
 
             dst = str(ns.node_to_interfaces[v][0][1])
             config.add_invariant(
