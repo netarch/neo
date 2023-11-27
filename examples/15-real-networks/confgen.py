@@ -15,11 +15,13 @@ def confgen(topo_file_name, emu_percentage, max_invs):
     random.seed(42)  # Fixed seed for reproducibility
     emulated = random.sample(range(node_count),
                              k=int(node_count * emu_percentage / 100))
+    emulated_node_names = set()
 
     for i, n in enumerate(ns.node_to_interfaces):
         if i not in emulated:
             newnode = Node(n, type="model")
         else:
+            emulated_node_names.add(n)
             newnode = DockerNode(n,
                                  image="kyechou/linux-router:latest",
                                  working_dir='/',
@@ -46,7 +48,7 @@ def confgen(topo_file_name, emu_percentage, max_invs):
                 continue
             if not bfs_is_connected(ns.G, u, v):
                 continue
-            if u in emulated or v in emulated:
+            if u in emulated_node_names or v in emulated_node_names:
                 continue
 
             dst = str(ns.node_to_interfaces[v][0][1])
