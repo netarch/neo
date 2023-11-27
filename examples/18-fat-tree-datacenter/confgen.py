@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import sys
 import argparse
@@ -5,19 +7,20 @@ import argparse
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
 from config import *
 
+
 def confgen(k, servers, model_only=False):
     config = Config()
 
     fw_rules = """
-    *filter
-    :INPUT DROP [0:0]
-    :FORWARD DROP [0:0]
-    :OUTPUT ACCEPT [0:0]
-    -A FORWARD -i eth0 -d 10.0.0.0/8 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    -A FORWARD -i eth1 -s 10.0.0.0/8 -j ACCEPT
-    COMMIT
-    """
-    #internet and gateway
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -i eth0 -d 10.0.0.0/8 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -i eth1 -s 10.0.0.0/8 -j ACCEPT
+COMMIT
+"""
+    # internet and gateway
     internet = Node('internet')
     internet.add_interface(Interface('eth0', '8.1.0.2/16'))
     internet.add_static_route(Route('8.0.0.0/8', '8.1.0.1'))
@@ -29,28 +32,29 @@ def confgen(k, servers, model_only=False):
     gateway.add_interface(Interface('eth1', '8.1.0.1/16'))
     config.add_node(gateway)
 
-    #add fat tree switches
-    for s in range(1, 1 + (k // 2) ** 2 + k ** 2):
+    # add fat tree switches
+    for s in range(1, 1 + (k // 2)**2 + k**2):
         switch = Node('sw' + str(s))
         for i in range(k):
-            switch.add_interface(Interface('eth'+str(i)))
+            switch.add_interface(Interface('eth' + str(i)))
         config.add_node(switch)
     index = 1
-    core_switches = range(index, index + (k // 2) ** 2)
+    core_switches = range(index, index + (k // 2)**2)
     index += len(core_switches)
-    aggr_switches = range(index, index + k ** 2 // 2)
+    aggr_switches = range(index, index + k**2 // 2)
     index += len(aggr_switches)
-    edge_switches = range(index, index + k ** 2 // 2)
+    edge_switches = range(index, index + k**2 // 2)
     index += len(edge_switches)
     del index
 
-    #add links for internet, gataway, switches
+    # add links for internet, gataway, switches
 
     config.add_link(Link('internet', 'eth0', 'gateway', 'eth1'))
-    config.add_link(Link('sw'+str(edge_switches[0]), 'eth2', 'gateway', 'eth0'))
+    config.add_link(
+        Link('sw' + str(edge_switches[0]), 'eth2', 'gateway', 'eth0'))
 
-    #add tenant networks
-    tenants=range(1, k**3 // 4)
+    # add tenant networks
+    tenants = range(1, k**3 // 4)
     for tenant_id in tenants:
         X = tenant_id // 256
         Y = tenant_id % 256
@@ -100,7 +104,8 @@ def confgen(k, servers, model_only=False):
 
         ## connect to the edge switch and add routes at the gateway
 
-        gateway.add_static_route(Route('10.%d.%d.0/24' % (X, Y), '8.0.%d.%d' % (X_2, Y_2)))
+        gateway.add_static_route(
+            Route('10.%d.%d.0/24' % (X, Y), '8.0.%d.%d' % (X_2, Y_2)))
 
         ## add private servers connecting to r2
         tenant_sw = Node('t%dsw' % tenant_id)
@@ -118,26 +123,31 @@ def confgen(k, servers, model_only=False):
                 Link(server.name, 'eth0', tenant_sw.name,
                      'eth%d' % (server_id + 1)))
 
-
     ## Core-Aggr links
     for i, core in enumerate(core_switches):
         for j in range(0, k):
             aggr = aggr_switches[j * (k // 2) + i // (k // 2)]
-            config.add_link(Link('sw'+str(core), 'eth'+str(j), 'sw'+str(aggr), 'eth'+str(i % (k // 2))))
+            config.add_link(
+                Link('sw' + str(core), 'eth' + str(j), 'sw' + str(aggr),
+                     'eth' + str(i % (k // 2))))
 
     ## Aggr-Edge links
     for i, aggr in enumerate(aggr_switches):
         for j in range(0, k // 2):
             edge = edge_switches[(i - i % (k // 2)) + j]
-            config.add_link(Link('sw'+str(aggr), 'eth'+str(j + k // 2), 'sw'+str(edge), 'eth'+str(i % (k // 2))))
+            config.add_link(
+                Link('sw' + str(aggr), 'eth' + str(j + k // 2),
+                     'sw' + str(edge), 'eth' + str(i % (k // 2))))
 
     ## Edge-Host links
     for i, edge in enumerate(edge_switches):
         for j in range(0, k // 2):
             host = i * (k // 2) + j
-            if host==0:
+            if host == 0:
                 continue
-            config.add_link(Link('sw'+str(edge), 'eth'+str(j + k // 2), 'r'+str(host)+'.1', 'eth0'))
+            config.add_link(
+                Link('sw' + str(edge), 'eth' + str(j + k // 2),
+                     'r' + str(host) + '.1', 'eth0'))
 
     ## add invariants
     # private servers can initiate connections to the outside world and the
@@ -161,22 +171,33 @@ def confgen(k, servers, model_only=False):
                      owned_dst_only=True))
 
     config.output_toml()
+
+
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='18-fat-tree-datacenter')
     parser.add_argument('-k',
                         '--arity',
                         type=int,
-                        help='Fat tree arity',
-                        required=True)
+                        required=True,
+                        help='Fat-tree arity')
     parser.add_argument('-s',
                         '--servers',
                         type=int,
+                        required=True,
                         help='Number of servers within each tenant')
+    parser.add_argument('-m',
+                        '--model',
+                        action='store_true',
+                        default=False,
+                        help='Use only models without emulations')
     arg = parser.parse_args()
 
+    if not arg.arity or arg.arity % 2 != 0:
+        sys.exit('Invalid fat-tree arity: ' + str(arg.arity))
     if not arg.servers or arg.servers > 253:
         sys.exit('Invalid number of servers per tenant: ' + str(arg.servers))
-    confgen(arg.arity, arg.servers)
+
+    confgen(arg.arity, arg.servers, arg.model)
 
 
 if __name__ == '__main__':

@@ -4,16 +4,14 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/../common.sh"
 
 for arity in 4; do
-    for servers in 1; do
-        "${CONFGEN[@]}" -k "$arity" -s "$servers">"$CONF"
-        for procs in 1 4 8 16; do
-            for drop in "${DROP_METHODS[@]}"; do
-                name="output.$arity-ary.$servers-servers.$procs-procs.$drop"
-                run "$name" "$procs" "$drop" "$CONF"
-            done
+    "${CONFGEN[@]}" -k "$arity" -s 1 >"$CONF"
+    for procs in 1 4 8 16; do
+        for drop in "${DROP_METHODS[@]}"; do
+            name="output.$arity-ary.$procs-procs.$drop"
+            run "$name" "$procs" "$drop" "$CONF"
         done
-        rm "$CONF"
     done
+    rm "$CONF"
 done
 
 msg "Done"
