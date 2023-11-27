@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,6 +12,7 @@ class Consistency;
 class DockerNode;
 class Interface;
 class Link;
+class Loop;
 class LoadBalance;
 class Middlebox;
 class Network;
@@ -73,6 +73,8 @@ private:
     void parse_waypoint(std::shared_ptr<Waypoint> &,
                         const toml::table &,
                         const Network &);
+    void
+    parse_loop(std::shared_ptr<Loop> &, const toml::table &, const Network &);
     // Multi-connection invariants
     void parse_onerequest(std::shared_ptr<OneRequest> &,
                           const toml::table &,

@@ -6,6 +6,7 @@
 #include "choices.hpp"
 #include "fib.hpp"
 #include "injection-result.hpp"
+#include "invariant/loop.hpp"
 #include "packet.hpp"
 #include "pkt-hist.hpp"
 #include "process/openflow.hpp"
@@ -41,6 +42,8 @@ private:
                        InjectionResultsHash,
                        InjectionResultsEq>
         injection_results_store;
+    std::unordered_set<VisitedHops *, VisitedHopsHash, VisitedHopsEq>
+        visited_hops_store;
 
 public:
     // Disable the copy constructor and the copy assignment operator
@@ -60,6 +63,7 @@ public:
     ReachCounts *store_reach_counts(ReachCounts *);
     InjectionResult *store_injection_result(InjectionResult *);
     InjectionResults *store_injection_results(InjectionResults *);
+    VisitedHops *store_visited_hops(VisitedHops *);
 };
 
 extern UniqueStorage &storage;

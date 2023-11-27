@@ -81,6 +81,7 @@
 #   - reachability (flow will reach the target(s))
 #   - reply-reachability (<reachability> and reply flow will come back)
 #   - waypoint (flow will pass through the target(s) (don't have to be accepted))
+#   - loop (there is no forwarding loop)
 #
 [[invariants]]
     type = "reachability"
@@ -103,6 +104,10 @@
     type = "waypoint"
     target_node = "<node name regex>"
     pass_through = true
+    [[invariants.connections]]
+    # < connection spec >
+[[invariants]]
+    type = "loop"
     [[invariants.connections]]
     # < connection spec >
 

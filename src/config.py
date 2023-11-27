@@ -109,18 +109,16 @@ class DockerNode(Middlebox):
 
         self.daemon: Optional[str] = daemon
         self.container: dict[str, Any] = dict()
-        self.container['image']: str = image
-        self.container['working_dir']: str = working_dir
-        self.container['dpdk']: Optional[bool] = dpdk
-        self.container['command']: Optional[list[str]] = command
-        self.container['args']: Optional[list[str]] = args
-        self.container['config_files']: Optional[list[str]] = config_files
-        self.container['ports']: list[dict[str, str | int]] = list()
-        self.container['env']: list[dict[str, str]] = list()
-        self.container['volume_mounts']: list[dict[str,
-                                                   Optional[str
-                                                            | bool]]] = list()
-        self.container['sysctls']: list[dict[str, str]] = list()
+        self.container['image'] = image
+        self.container['working_dir'] = working_dir
+        self.container['dpdk'] = dpdk
+        self.container['command'] = command
+        self.container['args'] = args
+        self.container['config_files'] = config_files
+        self.container['ports'] = list()
+        self.container['env'] = list()
+        self.container['volume_mounts'] = list()
+        self.container['sysctls'] = list()
 
     def add_port(self, port_no: int, proto: str):
         self.container['ports'].append({'port': port_no, 'protocol': proto})
@@ -322,6 +320,21 @@ class Waypoint(Invariant):
         super().__init__('waypoint')
         self.target_node: str = target_node
         self.pass_through: bool = pass_through
+        self.add_connection(
+            Connection(protocol, src_node, dst_ip, src_port, dst_port,
+                       owned_dst_only))
+
+
+class Loop(Invariant):
+
+    def __init__(self,
+                 protocol: str,
+                 src_node: str,
+                 dst_ip: str,
+                 src_port: Optional[int] = None,
+                 dst_port: Optional[list[int]] = None,
+                 owned_dst_only: Optional[bool] = None):
+        super().__init__('loop')
         self.add_connection(
             Connection(protocol, src_node, dst_ip, src_port, dst_port,
                        owned_dst_only))

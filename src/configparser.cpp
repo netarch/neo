@@ -19,6 +19,7 @@
 #include "invariant/consistency.hpp"
 #include "invariant/invariant.hpp"
 #include "invariant/loadbalance.hpp"
+#include "invariant/loop.hpp"
 #include "invariant/one-request.hpp"
 #include "invariant/reachability.hpp"
 #include "invariant/reply-reachability.hpp"
@@ -642,6 +643,10 @@ void ConfigParser::parse_inv_array(vector<shared_ptr<Invariant>> &invariants,
             auto inv = shared_ptr<Waypoint>(new Waypoint(correlated));
             this->parse_waypoint(inv, tbl, network);
             invariant = inv;
+        } else if (*type == "loop") {
+            auto inv = shared_ptr<Loop>(new Loop(correlated));
+            this->parse_loop(inv, tbl, network);
+            invariant = inv;
         } else if (!correlated && *type == "one-request") {
             auto inv = shared_ptr<OneRequest>(new OneRequest());
             this->parse_onerequest(inv, tbl, network);
@@ -732,6 +737,13 @@ void ConfigParser::parse_waypoint(shared_ptr<Waypoint> &inv,
         }
     }
     inv->pass_through = **pass_through;
+    this->parse_connections(inv, config, network);
+    assert(inv->_conn_specs.size() == 1);
+}
+
+void ConfigParser::parse_loop(shared_ptr<Loop> &inv,
+                              const toml::table &config,
+                              const Network &network) {
     this->parse_connections(inv, config, network);
     assert(inv->_conn_specs.size() == 1);
 }

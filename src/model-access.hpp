@@ -15,6 +15,7 @@ class OpenflowUpdateState;
 class PacketHistory;
 class Payload;
 class ReachCounts;
+class VisitedHops;
 struct State;
 
 class Model {
@@ -95,6 +96,9 @@ public:
     void update_fib() const; // update FIB according to the current EC
     Choices *get_path_choices() const;
     Choices *set_path_choices(Choices &&) const;
+    // loop invariant
+    VisitedHops *get_visited_hops() const;
+    VisitedHops *set_visited_hops(VisitedHops &&) const;
 
     /**
      * non-connection specific, system-wide state variables

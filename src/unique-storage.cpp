@@ -155,3 +155,12 @@ UniqueStorage::store_injection_results(InjectionResults *results) {
     }
     return results;
 }
+
+VisitedHops *UniqueStorage::store_visited_hops(VisitedHops *hops) {
+    auto res = storage.visited_hops_store.insert(hops);
+    if (!res.second && hops != *(res.first)) {
+        delete hops;
+        hops = *(res.first);
+    }
+    return hops;
+}

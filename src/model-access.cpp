@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <unordered_set>
 #include <utility>
 
 #include "candidates.hpp"
@@ -12,6 +11,7 @@
 #include "injection-result.hpp"
 #include "interface.hpp"
 #include "invariant/loadbalance.hpp"
+#include "invariant/loop.hpp"
 #include "logger.hpp"
 #include "network.hpp"
 #include "node.hpp"
@@ -336,6 +336,21 @@ Choices *Model::set_path_choices(Choices &&path_choices) const {
     memcpy(state->conn_state[state->conn].path_choices, &new_path_choices,
            sizeof(Choices *));
     return new_path_choices;
+}
+
+VisitedHops *Model::get_visited_hops() const {
+    VisitedHops *hops;
+    memcpy(&hops, state->conn_state[state->conn].visited_hops,
+           sizeof(VisitedHops *));
+    return hops;
+}
+
+VisitedHops *Model::set_visited_hops(VisitedHops &&hops) const {
+    VisitedHops *new_hops = new VisitedHops(std::move(hops));
+    new_hops = storage.store_visited_hops(new_hops);
+    memcpy(state->conn_state[state->conn].visited_hops, &hops,
+           sizeof(VisitedHops *));
+    return new_hops;
 }
 
 int Model::get_process_id() const {

@@ -45,6 +45,9 @@ typedef conn_state_t {
     /* per-flow data plane state */
     int fib[SIZEOF_VOID_P / SIZEOF_INT];            /* (FIB *) */
     int path_choices[SIZEOF_VOID_P / SIZEOF_INT];   /* (Choices *), multipath choices for stateful connections */
+
+    /* This is used only for and by the loop invariant. */
+    int visited_hops[SIZEOF_VOID_P / SIZEOF_INT];   /* (VisitedHops *) */
 };
 
 /* connection state */
