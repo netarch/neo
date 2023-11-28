@@ -3,7 +3,7 @@
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/../common.sh"
 
-for arity in 4 6 8 10 12; do
+for arity in 4 6 8 10 12 14 16; do
     "${CONFGEN[@]}" -k "$arity" -s 1 >"$CONF"
     for procs in 1 4 8 12 16; do
         for drop in "${DROP_METHODS[@]}"; do
