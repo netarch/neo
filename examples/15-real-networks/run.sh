@@ -34,7 +34,7 @@ for network in "${networks[@]}"; do
         for invs in 1 4 8 12 16; do
             "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$invs" >"$CONF"
             for procs in 1 4 8 12 16; do
-                for drop in "timeout"; do
+                for drop in "${DROP_METHODS[@]}"; do
                     name="output.$network_name.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
                     run "$name" "$procs" "$drop" "$CONF" --parallel-invs
                 done
