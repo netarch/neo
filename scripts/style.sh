@@ -75,14 +75,16 @@ main() {
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec $CLANG_FORMAT --Werror --dry-run {} +
         # Python: yapf
-        $YAPF -p -r -d "${TARGET_DIRS[@]}"
+        find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
+            -exec $YAPF -p -r -d {} +
         msg "Coding style is compliant"
     else
         # C++: clang-format
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec $CLANG_FORMAT --Werror -i {} +
         # Python: yapf
-        $YAPF -p -r -i "${TARGET_DIRS[@]}"
+        find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
+            -exec $YAPF -p -r -i {} +
     fi
 }
 
