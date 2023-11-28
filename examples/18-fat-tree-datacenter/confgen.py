@@ -176,7 +176,7 @@ COMMIT
     for update in range(num_updates):
         # Note that the sampling of tenants that get updated should not affect
         # the overall performance.
-        tenant_id = update
+        tenant_id = update + 1  # "Tenant 0" is used as a gateway router
         X = tenant_id // 256
         Y = tenant_id % 256
         r1_name = 'r%d.1' % tenant_id
