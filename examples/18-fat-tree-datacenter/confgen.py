@@ -157,23 +157,21 @@ COMMIT
     config.add_invariant(
         ReplyReachability(target_node='internet',
                           reachable=True,
-                          protocol='tcp',
+                          protocol='icmp-echo',
                           src_node='server.*\..*',
                           dst_ip='7.0.0.2',
-                          dst_port=80,
                           owned_dst_only=True))
     # private servers can't accept connections from the outside world
     config.add_invariant(
         Reachability(target_node='(server.*\..*)|r.*\.2',
                      reachable=False,
-                     protocol='tcp',
+                     protocol='icmp-echo',
                      src_node='internet',
                      dst_ip='10.0.0.0/8',
-                     dst_port=80,
                      owned_dst_only=True))
 
     # Add route updates
-    num_tenants = k**3 // 4 - 1 # 0-th host is used as a gateway router
+    num_tenants = k**3 // 4 - 1  # 0-th host is used as a gateway router
     num_updates = num_tenants * update_percentage // 100
     for update in range(num_updates):
         # Note that the sampling of tenants that get updated should not affect
