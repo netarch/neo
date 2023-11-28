@@ -348,7 +348,7 @@ VisitedHops *Model::get_visited_hops() const {
 VisitedHops *Model::set_visited_hops(VisitedHops &&hops) const {
     VisitedHops *new_hops = new VisitedHops(std::move(hops));
     new_hops = storage.store_visited_hops(new_hops);
-    memcpy(state->conn_state[state->conn].visited_hops, &hops,
+    memcpy(state->conn_state[state->conn].visited_hops, &new_hops,
            sizeof(VisitedHops *));
     return new_hops;
 }
