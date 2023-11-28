@@ -23,20 +23,18 @@ COMMIT
     # internet and gateway
     internet = Node('internet')
     internet.add_interface(Interface('eth0', '8.1.0.2/16'))
-    internet.add_static_route(Route('8.0.0.0/8', '8.1.0.1'))
-    internet.add_static_route(Route('9.0.0.0/8', '8.1.0.1'))
-    internet.add_static_route(Route('10.0.0.0/8', '8.1.0.1'))
+    internet.add_static_route(Route('0.0.0.0/0', '8.1.0.1'))
     config.add_node(internet)
     gateway = Node('gateway')
-    gateway.add_interface(Interface('eth0', '8.0.0.1/16'))
-    gateway.add_interface(Interface('eth1', '8.1.0.1/16'))
+    gateway.add_interface(Interface('eth0', '8.0.0.1/16'))  # internal
+    gateway.add_interface(Interface('eth1', '8.1.0.1/16'))  # external
     config.add_node(gateway)
 
     # add fat tree switches
     for s in range(1, 1 + (k // 2)**2 + k**2):
-        switch = Node('sw' + str(s))
+        switch = Node('sw{}'.format(s))
         for i in range(k):
-            switch.add_interface(Interface('eth' + str(i)))
+            switch.add_interface(Interface('eth{}'.format(i)))
         config.add_node(switch)
     index = 1
     core_switches = range(index, index + (k // 2)**2)
@@ -48,10 +46,9 @@ COMMIT
     del index
 
     # add links for internet, gataway, switches
-
     config.add_link(Link('internet', 'eth0', 'gateway', 'eth1'))
     config.add_link(
-        Link('sw' + str(edge_switches[0]), 'eth2', 'gateway', 'eth0'))
+        Link('sw{}'.format(edge_switches[0]), 'eth2', 'gateway', 'eth0'))
 
     # add tenant networks
     tenants = range(1, k**3 // 4)
@@ -62,6 +59,7 @@ COMMIT
         Y_2 = (tenant_id + 2) % 256
         if X > 255:
             raise Exception("tenantgen:too many tenants")
+
         r1 = Node('r%d.1' % tenant_id)
         r2 = Node('r%d.2' % tenant_id)
         if model_only:
@@ -102,8 +100,7 @@ COMMIT
         config.add_link(Link(r1.name, 'eth2', fw.name, 'eth0'))
         config.add_link(Link(r2.name, 'eth1', fw.name, 'eth1'))
 
-        ## connect to the edge switch and add routes at the gateway
-
+        ## add routes to the tenant at the gateway
         gateway.add_static_route(
             Route('10.%d.%d.0/24' % (X, Y), '8.0.%d.%d' % (X_2, Y_2)))
 
