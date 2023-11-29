@@ -30,7 +30,7 @@ def confgen(lbs, servers, algorithm):
             'lb%d' % lb,
             image='kyechou/ipvs:latest',
             working_dir='/',
-            reset_wait_time=3000,  # usec
+            reset_delay=1000,  # usec
             command=['/start.sh'])
         load_balancer.add_interface(Interface('eth0', '8.0.%d.2/24' % lb))
         load_balancer.add_interface(Interface('eth1', '9.%d.0.1/16' % lb))
@@ -40,7 +40,7 @@ def confgen(lbs, servers, algorithm):
         load_balancer.add_volume('/lib/modules', '/lib/modules')
         load_balancer.add_sysctl('net.ipv4.vs.expire_nodest_conn', '1')
         lb_config = ''
-        lb_config += '-A -t 8.0.%d.2:80 -s %s' % (lb, algorithm)
+        lb_config += '-A -u 8.0.%d.2:80 -s %s' % (lb, algorithm)
         if algorithm == 'sh':
             lb_config += ' -b sh-port'  # add source port into hash computation
         lb_config += '\n'
@@ -58,7 +58,7 @@ def confgen(lbs, servers, algorithm):
             server.add_interface(
                 Interface('eth0', '9.%d.%d.%d/24' % (lb, third, last)))
             server.add_static_route(Route('0.0.0.0/0', '9.%d.0.1' % lb))
-            lb_config += '-a -t 8.0.%d.2:80 -r 9.%d.%d.%d:80 -m\n' % (
+            lb_config += '-a -u 8.0.%d.2:80 -r 9.%d.%d.%d:80 -m\n' % (
                 lb, lb, third, last)
             config.add_node(server)
             config.add_link(Link(sw.name, 'eth%d' % srv, server.name, 'eth0'))
@@ -68,10 +68,10 @@ def confgen(lbs, servers, algorithm):
     for lb in range(1, 2):
         inv = LoadBalance(target_node='server%d\.[0-9]+' % lb,
                           max_dispersion_index=2.5)
-        num_conns = int(lbs * 1.5)
+        num_conns = int(servers * 2)
         for repeat in range(num_conns):
             inv.add_connection(
-                Connection(protocol='tcp',
+                Connection(protocol='udp',
                            src_node=internet_node.name,
                            dst_ip='8.0.%d.2' % lb,
                            src_port=50000 + repeat,
@@ -94,8 +94,8 @@ def main():
                         help='Number of servers behind each LB')
     parser.add_argument('-a',
                         '--algorithm',
-                        choices=['rr', 'sh', 'dh'],
-                        help='Load balancing algorithm')
+                        choices=['rr', 'sh', 'dh', 'mh', 'lc'],
+                        help='Load-balancing algorithm')
     arg = parser.parse_args()
 
     if not arg.lbs or arg.lbs > 255:

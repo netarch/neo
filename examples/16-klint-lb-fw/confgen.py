@@ -44,7 +44,7 @@ COMMIT
         lb = DockerNode('lb',
                         image='kyechou/ipvs:latest',
                         working_dir='/',
-                        reset_wait_time=1000,
+                        reset_delay=1000,
                         command=['/start.sh'])
         ipvs_config = '-A -t 10.0.0.2:80 -s mh\n'
         ipvs_config += '-A -u 10.0.0.2:80 -s mh\n'

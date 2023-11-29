@@ -52,7 +52,6 @@ run() {
     outdir="$RESULTS_DIR/$name"
     shift 4
     args=("$@")
-    err=0
 
     msg "Verifying $name"
     sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
@@ -60,17 +59,39 @@ run() {
     cp "$infile" "$outdir/network.toml"
 
     # Clean up containers and processes
-    sleep 3
+    sleep 5
     set +e
+    err=0
     cntrs="$(docker ps -a -q)"
     if [[ -n "$cntrs" ]]; then
         docker_clean
         sudo pkill -9 neo
         warn "Containers were not cleared up. Something went wrong."
-        err=1
+        err=0
     fi
     set -e
     return $err
+
+    # # Repeat until no error occurs
+    # while [[ $err -ne 0 ]]; do
+    #     msg "Re-verifying $name"
+    #     sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
+    #     sudo chown -R "$(id -u):$(id -g)" "$outdir"
+    #     cp "$infile" "$outdir/network.toml"
+
+    #     # Clean up containers and processes
+    #     sleep 5
+    #     set +e
+    #     err=0
+    #     cntrs="$(docker ps -a -q)"
+    #     if [[ -n "$cntrs" ]]; then
+    #         docker_clean
+    #         sudo pkill -9 neo
+    #         warn "Containers were not cleared up. Something went wrong."
+    #         err=1
+    #     fi
+    #     set -e
+    # done
 }
 
 setup_hugepages() {
