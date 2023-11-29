@@ -12,9 +12,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-# MAX_CONNS 12 => VECTORSZ > 1500
-set(MAX_CONNS 12 CACHE STRING "Maximum number of communications")
-set(VECTORSZ 1512 CACHE STRING "Memory allocation for spin state vector")
+# MAX_CONNS 32 => VECTORSZ > 3900
+set(MAX_CONNS 32 CACHE STRING "Maximum number of communications")
+set(VECTORSZ 4000 CACHE STRING "Memory allocation for spin state vector")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror -O2)
