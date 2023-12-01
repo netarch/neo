@@ -16,6 +16,8 @@ def parse_main_log(output_dir, settings):
     settings['invariant'] = []
     settings['independent_cec'] = []
     settings['violated'] = []
+    settings['total_time'] = None
+    settings['total_mem'] = None
 
     mainlogFn = os.path.join(output_dir, 'main.log')
     with open(mainlogFn) as mainlog:
@@ -41,13 +43,19 @@ def parse_main_log(output_dir, settings):
                 inv_id = int(m.group(1))
                 settings['invariant'].append(inv_id)
                 settings['violated'].append(False)
-                assert (len(settings['invariant']) == inv_id)
+                # assert (len(settings['invariant']) == inv_id)
             elif 'Connection ECs:' in line:
                 m = re.search('Connection ECs: (\d+)', line)
                 settings['independent_cec'].append(int(m.group(1)))
-                assert (len(settings['independent_cec']) == inv_id)
+                # assert (len(settings['independent_cec']) == inv_id)
             elif 'Invariant violated' in line:
                 settings['violated'][inv_id - 1] = True
+            elif 'Time:' in line:
+                m = re.search('Time: (\d+) usec', line)
+                settings['total_time'] = int(m.group(1))
+            elif 'Peak memory:' in line:
+                m = re.search('Peak memory: (\d+) KiB', line)
+                settings['total_mem'] = int(m.group(1))
 
 
 def parse_02_settings(output_dir):
@@ -110,6 +118,45 @@ def parse_06_settings(output_dir):
     return settings
 
 
+def parse_15_settings(output_dir):
+    settings = {
+        'network': '',
+        'emulated_pct': 0,
+        'invariants': 0,
+        'procs': 0,
+        'drop_method': '',
+    }
+    dirname = os.path.basename(output_dir)
+    m = re.search(
+        'output\.([^\.]+)\.\d+-nodes\.\d+-edges\.(\d+)-emulated\.(\d+)-invariants\.(\d+)-procs\.([a-z]+)',
+        dirname)
+    settings['network'] = m.group(1)
+    settings['emulated_pct'] = int(m.group(2))
+    settings['invariants'] = int(m.group(3))
+    settings['procs'] = int(m.group(4))
+    settings['drop_method'] = m.group(5)
+    parse_main_log(output_dir, settings)
+    return settings
+
+
+def parse_18_settings(output_dir):
+    settings = {
+        'arity': 0,
+        'update_pct': 0,
+        'procs': 0,
+        'drop_method': '',
+    }
+    dirname = os.path.basename(output_dir)
+    m = re.search('output\.(\d+)-ary\.(\d+)-update-pct\.(\d+)-procs\.([a-z]+)',
+                  dirname)
+    settings['arity'] = int(m.group(1))
+    settings['update_pct'] = int(m.group(2))
+    settings['procs'] = int(m.group(3))
+    settings['drop_method'] = m.group(4)
+    parse_main_log(output_dir, settings)
+    return settings
+
+
 def parse_stats(inv_dir, settings, stats):
     invStatsFn = os.path.join(inv_dir, 'invariant.stats.csv')
     with open(invStatsFn) as inv_stats:
@@ -135,15 +182,27 @@ def parse_latencies(inv_dir, settings, latencies):
                 or entry.name.startswith('invariant')):
             continue
 
+        ec_time = None
+        ec_mem = None
+        with open(entry.path) as ec_lat_file:
+            tokens = next(islice(ec_lat_file, 1, 2)).strip().split(',')
+            ec_time = int(tokens[0])
+            ec_mem = int(tokens[1])
+
         with open(entry.path) as ec_lat_file:
             for line in islice(ec_lat_file, 3, None):
                 tokens = line.split(',')
+                latencies['ec_time'].append(ec_time)
+                latencies['ec_mem'].append(ec_mem)
                 latencies['overall_lat'].append(int(tokens[0]))
-                latencies['rewind_lat'].append(int(tokens[1]))
-                latencies['rewind_injections'].append(int(tokens[2]))
-                latencies['pkt_lat'].append(int(tokens[3]))
-                latencies['drop_lat'].append(int(tokens[4]))
-                latencies['timeout'].append(int(tokens[5]))
+                latencies['emu_startup'].append(int(tokens[1]))
+                latencies['rewind'].append(int(tokens[2]))
+                latencies['emu_reset'].append(int(tokens[3]))
+                latencies['replay'].append(int(tokens[4]))
+                latencies['rewind_injections'].append(int(tokens[5]))
+                latencies['pkt_lat'].append(int(tokens[6]))
+                latencies['drop_lat'].append(int(tokens[7]))
+                latencies['timeout'].append(int(tokens[8]))
                 num_injections += 1
 
     inv_id = int(os.path.basename(inv_dir))
@@ -163,22 +222,27 @@ def parse(base_dir):
         'inv_memory': [],  # KiB
     }
     latencies = {
-        # usec
-        'overall_lat': [],
-        'rewind_lat': [],
+        'ec_time': [],  # usec
+        'ec_mem': [],  # KiB
+        'overall_lat': [],  # usec
+        'emu_startup': [],  # usec
+        'rewind': [],  # usec
+        'emu_reset': [],  # usec
+        'replay': [],  # usec
         'rewind_injections': [],
-        'pkt_lat': [],
-        'drop_lat': [],
-        'timeout': [],
+        'pkt_lat': [],  # usec
+        'drop_lat': [],  # usec
+        'timeout': [],  # usec
     }
-    exp_id = os.path.basename(base_dir)[:2]
+    exp_name = os.path.basename(base_dir)
+    exp_id = exp_name[:2]
     results_dir = os.path.join(base_dir, 'results')
 
     for entry in os.scandir(results_dir):
         if not entry.is_dir():
             continue
 
-        logging.info("Processing %s", entry.name)
+        logging.info("Processing %s -- %s", exp_name, entry.name)
         output_dir = entry.path
 
         if exp_id == '02':
@@ -187,6 +251,10 @@ def parse(base_dir):
             settings = parse_03_settings(output_dir)
         elif exp_id == '06':
             settings = parse_06_settings(output_dir)
+        elif exp_id == '15':
+            settings = parse_15_settings(output_dir)
+        elif exp_id == '18':
+            settings = parse_18_settings(output_dir)
         else:
             raise Exception("Parser not implemented for experiment " + exp_id)
 
@@ -286,7 +354,7 @@ def main():
             raise Exception("'" + target_dir + "' is not a directory")
 
         exp_id = os.path.basename(target_dir)[:2]
-        if exp_id in ['02', '03', '06']:
+        if exp_id in ['02', '03', '06', '15', '18']:
             parse(target_dir)
         else:
             raise Exception("Parser not implemented for experiment " + exp_id)

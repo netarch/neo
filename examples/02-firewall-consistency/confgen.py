@@ -275,17 +275,17 @@ def confgen(apps, hosts, fault):
                              dst_port=[80],
                              owned_dst_only=True)
             ]))
-        # Hosts of an application cannot reach hosts of other applications
-        config.add_invariant(
-            Consistency([
-                Reachability(target_node=hosts_other_apps,
-                             reachable=False,
-                             protocol='udp',
-                             src_node='app%d-host[0-9]+' % app,
-                             dst_ip='10.0.0.0/7',
-                             dst_port=[80],
-                             owned_dst_only=True)
-            ]))
+        # # Hosts of an application cannot reach hosts of other applications
+        # config.add_invariant(
+        #     Consistency([
+        #         Reachability(target_node=hosts_other_apps,
+        #                      reachable=False,
+        #                      protocol='udp',
+        #                      src_node='app%d-host[0-9]+' % app,
+        #                      dst_ip='10.0.0.0/7',
+        #                      dst_port=[80],
+        #                      owned_dst_only=True)
+        #     ]))
         break
 
     ## output as TOML
