@@ -9,7 +9,7 @@ if ! lsmod | grep ip_vs >/dev/null; then
     sudo modprobe ip_vs
 fi
 
-for lbs in 2 4 6 8; do
+for lbs in 2 4 6; do
     srvs=$lbs
     # IPVS scheduling algorithms
     # https://keepalived-pqa.readthedocs.io/en/latest/scheduling_algorithms.html

@@ -68,7 +68,7 @@ def confgen(lbs, servers, algorithm):
     for lb in range(1, 2):
         inv = LoadBalance(target_node='server%d\.[0-9]+' % lb,
                           max_dispersion_index=2.5)
-        num_conns = int(servers * 2)
+        num_conns = servers
         for repeat in range(num_conns):
             inv.add_connection(
                 Connection(protocol='udp',
