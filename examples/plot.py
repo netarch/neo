@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import re
 import logging
 import numpy as np
 import pandas as pd
@@ -14,6 +13,59 @@ colors = [
     '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
     '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
 ]
+
+
+def values_compare(series):
+    ids = {
+        # networks
+        'ST-2': 2,
+        'ST-1': 3,
+        'ISP-6': 4,
+        'ISP-5': 5,
+        'ISP-4': 6,
+        'ISP-3': 7,
+        'ISP-2': 8,
+        'ISP-1': 9,
+        # drop methods
+        'timeout': 11,
+        'dropmon': 12,
+        'ebpf': 13,
+        # LB algorithms
+        'lbs': 20,  # not an algorithm column
+        'rr': 21,
+        'mh': 22,
+        'dh': 23,
+        'sh': 24,
+        'lc': 25,
+    }
+    if isinstance(series, str):
+        return ids[series]
+    return series.apply(lambda m: -m if isinstance(m, int) else ids[m])
+
+
+def rewrite_values(df):
+    # ISP-1 (AS 3967)                      & 79    & 147   & 441
+    # ISP-2 (AS 1755)                      & 87    & 161   & 483
+    # ISP-3 (AS 1221)                      & 108   & 153   & 459
+    # ISP-4 (AS 6461)                      & 141   & 374   & 1122
+    # ISP-5 (AS 3257)                      & 161   & 328   & 984
+    # ISP-6 (AS 1239)                      & 315   & 972   & 2916
+    # ST-1 (Stanford AS-level)             & 103   & 239   & 717
+    # ST-2 (Stanford AS-level)             & 1470  & 3131  & 9393
+
+    # networks
+    df = (df.replace('rocketfuel-bb-AS-3967', 'ISP-1').replace(
+        'rocketfuel-bb-AS-1755',
+        'ISP-2').replace('rocketfuel-bb-AS-1221', 'ISP-3').replace(
+            'rocketfuel-bb-AS-6461',
+            'ISP-4').replace('rocketfuel-bb-AS-3257',
+                             'ISP-5').replace('rocketfuel-bb-AS-1239',
+                                              'ISP-6'))
+    df.loc[(df['network'] == 'as-733') & (df['num_nodes'] == 103),
+           'network'] = 'ST-1'
+    df.loc[(df['network'] == 'as-733') & (df['num_nodes'] == 1470),
+           'network'] = 'ST-2'
+    return df
 
 
 def plot_02_perf_vs_apps_hosts(df, outDir):
@@ -237,33 +289,42 @@ def plot_03_stats(invDir, outDir):
     df = df[df.procs == 1]
     df = df[df.drop_method == 'timeout']
     df = df[df.invariant == 1]
+    df = df[df.optimization == True].drop(['optimization'], axis=1)
     # Filter columns
     df = df.drop([
         'servers', 'procs', 'drop_method', 'num_nodes', 'num_links',
-        'num_updates', 'total_conn', 'invariant', 'independent_cec', 'violated'
+        'num_updates', 'total_conn', 'invariant', 'independent_cec',
+        'violated', 'total_time', 'total_mem'
     ],
                  axis=1)
     # Sorting
-    df = df.sort_values(by=['lbs', 'algorithm'])
+    df = df.sort_values(by=['lbs', 'algorithm'], key=values_compare)
     # Change units
     df['inv_time'] /= 1e6  # usec -> sec
     df['inv_memory'] /= 1024  # KiB -> MiB
+    df = df.reset_index().drop(['index'], axis=1)
 
     time_df = df.pivot(index='lbs', columns='algorithm',
                        values='inv_time').reset_index()
+    time_df = time_df.sort_values(by='algorithm', key=values_compare, axis=1)
     time_df = time_df.rename(
         columns={
             'rr': 'Time (round-robin)',
-            'dh': 'Time (dest-hashing)',
-            'sh': 'Time (source-hashing)',
+            'mh': 'Time (Maglev)',
+            'dh': 'Time (dst-hashing)',
+            'sh': 'Time (src-hashing)',
+            'lc': 'Time (least-conn.)',
         })
     mem_df = df.pivot(index='lbs', columns='algorithm',
                       values='inv_memory').reset_index()
+    mem_df = mem_df.sort_values(by='algorithm', key=values_compare, axis=1)
     mem_df = mem_df.rename(
         columns={
             'rr': 'Memory (round-robin)',
-            'dh': 'Memory (dest-hashing)',
-            'sh': 'Memory (source-hashing)',
+            'mh': 'Memory (Maglev)',
+            'dh': 'Memory (dst-hashing)',
+            'sh': 'Memory (src-hashing)',
+            'lc': 'Memory (least-conn.)',
         })
     merged_df = pd.merge(time_df, mem_df, on=['lbs'])
 
@@ -271,8 +332,11 @@ def plot_03_stats(invDir, outDir):
     ax = merged_df.plot(
         x='lbs',
         y=[
-            'Time (round-robin)', 'Time (dest-hashing)',
-            'Time (source-hashing)'
+            'Time (round-robin)',
+            'Time (Maglev)',
+            'Time (dst-hashing)',
+            'Time (src-hashing)',
+            'Time (least-conn.)',
         ],
         kind='bar',
         legend=False,
@@ -284,8 +348,11 @@ def plot_03_stats(invDir, outDir):
     ax = merged_df.plot(
         x='lbs',
         secondary_y=[
-            'Memory (round-robin)', 'Memory (dest-hashing)',
-            'Memory (source-hashing)'
+            'Memory (round-robin)',
+            'Memory (Maglev)',
+            'Memory (dst-hashing)',
+            'Memory (src-hashing)',
+            'Memory (least-conn.)',
         ],
         mark_right=False,
         kind='bar',
@@ -337,7 +404,8 @@ def plot_03_compare_unopt(invDir):
     # Filter columns
     df = df.drop([
         'inv_memory', 'procs', 'drop_method', 'num_nodes', 'num_links',
-        'num_updates', 'total_conn', 'invariant', 'independent_cec', 'violated'
+        'num_updates', 'total_conn', 'invariant', 'independent_cec',
+        'violated', 'total_time', 'total_mem'
     ],
                  axis=1)
     # Sorting
@@ -666,9 +734,679 @@ def plot_06_stats(invDir, outDir):
     plot_06_model_comparison(df, outDir)
 
 
+def plot_15_perf_vs_networks(df, outDir):
+
+    def _plot(df, outDir, emu_pct, num_invs, nproc, drop):
+        # Sorting
+        df = df.sort_values(by=['network'])
+        # Change units
+        df['total_time'] /= 1e6  # usec -> sec
+        df['total_mem'] /= 1024  # KiB -> MiB
+
+        # Plot time
+        ax = df.plot(
+            x='network',
+            y='total_time',
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=-30,
+        )
+        ax.grid(axis='y')
+        # ax.legend(bbox_to_anchor=(0.41, 1.4),
+        #           ncol=2,
+        #           fontsize=34,
+        #           columnspacing=0.5)
+        # ax.set_yscale('log')
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.time-v-network.emu_pct-' + str(emu_pct) + '.' +
+                           str(num_invs) + '-invs.' + str(nproc) + '-procs.' +
+                           drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+
+        # Plot memory
+        ax = df.plot(
+            x='network',
+            y='total_mem',
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=-30,
+        )
+        ax.grid(axis='y')
+        # mem_start_val = (floor(df.total_mem.min()) - 1) // 10 * 10
+        # ax.set_ylim(bottom=mem_start_val)
+        ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.memory-v-network.emu_pct-' + str(emu_pct) +
+                           '.' + str(num_invs) + '-invs.' + str(nproc) +
+                           '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    for emu_pct in df.emulated_pct.unique():
+        emu_df = df[df.emulated_pct == emu_pct].drop(['emulated_pct'], axis=1)
+
+        for num_invs in emu_df.invariants.unique():
+            ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
+                ['invariants'], axis=1)
+
+            for nproc in ninvs_df.procs.unique():
+                nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(['procs'],
+                                                                  axis=1)
+
+                for drop in nproc_df.drop_method.unique():
+                    d_df = nproc_df[nproc_df.drop_method == drop].drop(
+                        ['drop_method'], axis=1)
+
+                    _plot(d_df, outDir, emu_pct, num_invs, nproc, drop)
+
+
+def plot_15_perf_vs_emulated_pct(df, outDir):
+
+    def _plot(df, outDir, net, num_invs, nproc, drop):
+        # Sorting
+        df = df.sort_values(by=['emulated_pct'])
+        # Change units
+        df['total_time'] /= 1e6  # usec -> sec
+        df['total_mem'] /= 1024  # KiB -> MiB
+        # Rename columns
+        df = df.rename(columns={
+            'total_time': 'Time',
+            'total_mem': 'Memory',
+        })
+
+        # Plot time/memory
+        ax = df.plot(
+            x='emulated_pct',
+            y='Time',
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax = df.plot(
+            x='emulated_pct',
+            secondary_y=['Memory'],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  bbox_to_anchor=(1.0, 1.2),
+                  ncol=2,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Percentage of emulated nodes (%)', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        # ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.perf-emu_pct.' + net + '.' + str(num_invs) +
+                           '-invs.' + str(nproc) + '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    for net in df.network.unique():
+        net_df = df[df.network == net].drop(['network'], axis=1)
+
+        for num_invs in net_df.invariants.unique():
+            ninvs_df = net_df[net_df.invariants == num_invs].drop(
+                ['invariants'], axis=1)
+
+            for nproc in ninvs_df.procs.unique():
+                nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(['procs'],
+                                                                  axis=1)
+
+                for drop in nproc_df.drop_method.unique():
+                    d_df = nproc_df[nproc_df.drop_method == drop].drop(
+                        ['drop_method'], axis=1)
+
+                    _plot(d_df, outDir, net, num_invs, nproc, drop)
+
+
+def plot_15_perf_vs_invariants(df, outDir):
+
+    def _plot(df, outDir, net, emu_pct, nproc, drop):
+        # Sorting
+        df = df.sort_values(by=['invariants'])
+        # Change units
+        df['total_time'] /= 1e6  # usec -> sec
+        df['total_mem'] /= 1024  # KiB -> MiB
+        # Rename columns
+        df = df.rename(columns={
+            'total_time': 'Time',
+            'total_mem': 'Memory',
+        })
+
+        # Plot time/memory
+        ax = df.plot(
+            x='invariants',
+            y='Time',
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax = df.plot(
+            x='invariants',
+            secondary_y=['Memory'],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  bbox_to_anchor=(1.0, 1.2),
+                  ncol=2,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Number of invariants', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        # ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.perf-invs.' + net + '.emu_pct-' + str(emu_pct) +
+                           '.' + str(nproc) + '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    for net in df.network.unique():
+        net_df = df[df.network == net].drop(['network'], axis=1)
+
+        for emu_pct in net_df.emulated_pct.unique():
+            emu_df = net_df[net_df.emulated_pct == emu_pct].drop(
+                ['emulated_pct'], axis=1)
+
+            for nproc in emu_df.procs.unique():
+                nproc_df = emu_df[emu_df.procs == nproc].drop(['procs'],
+                                                              axis=1)
+
+                for drop in nproc_df.drop_method.unique():
+                    d_df = nproc_df[nproc_df.drop_method == drop].drop(
+                        ['drop_method'], axis=1)
+
+                    _plot(d_df, outDir, net, emu_pct, nproc, drop)
+
+
+def plot_15_perf_vs_nprocs(df, outDir):
+
+    def _plot(df, outDir, net, emu_pct, num_invs, drop):
+        # Sorting
+        df = df.sort_values(by=['procs'])
+        # Change units
+        df['total_time'] /= 1e6  # usec -> sec
+        df['total_mem'] /= 1024  # KiB -> MiB
+        # Rename columns
+        df = df.rename(columns={
+            'total_time': 'Time',
+            'total_mem': 'Memory',
+        })
+
+        # Plot time/memory
+        ax = df.plot(
+            x='procs',
+            y='Time',
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax = df.plot(
+            x='procs',
+            secondary_y=['Memory'],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  bbox_to_anchor=(1.0, 1.2),
+                  ncol=2,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Parallel processes', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        # ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('15.perf-nprocs.' + net + '.emu_pct-' + str(emu_pct) +
+                     '.' + str(num_invs) + '-invs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    for net in df.network.unique():
+        net_df = df[df.network == net].drop(['network'], axis=1)
+
+        for emu_pct in net_df.emulated_pct.unique():
+            emu_df = net_df[net_df.emulated_pct == emu_pct].drop(
+                ['emulated_pct'], axis=1)
+
+            for num_invs in emu_df.invariants.unique():
+                ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
+                    ['invariants'], axis=1)
+
+                for drop in ninvs_df.drop_method.unique():
+                    d_df = ninvs_df[ninvs_df.drop_method == drop].drop(
+                        ['drop_method'], axis=1)
+
+                    _plot(d_df, outDir, net, emu_pct, num_invs, drop)
+
+
+def plot_15_perf_vs_drop_methods(df, outDir):
+
+    def _plot(df, outDir, net, emu_pct, num_invs, nproc):
+        # Sorting
+        df = df.sort_values(by=['drop_method'], key=values_compare)
+        # Change units
+        df['total_time'] /= 1e6  # usec -> sec
+        df['total_mem'] /= 1024  # KiB -> MiB
+        # Rename columns
+        df = df.rename(columns={
+            'total_time': 'Time',
+            'total_mem': 'Memory',
+        })
+
+        # Plot time/memory
+        ax = df.plot(
+            x='drop_method',
+            y='Time',
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax = df.plot(
+            x='drop_method',
+            secondary_y=['Memory'],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  bbox_to_anchor=(1.0, 1.2),
+                  ncol=2,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Drop detection', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        # ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir,
+            ('15.perf-drop_methods.' + net + '.emu_pct-' + str(emu_pct) + '.' +
+             str(num_invs) + '-invs.' + str(nproc) + '-procs.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+        exit(0)
+
+    for net in df.network.unique():
+        net_df = df[df.network == net].drop(['network'], axis=1)
+
+        for emu_pct in net_df.emulated_pct.unique():
+            emu_df = net_df[net_df.emulated_pct == emu_pct].drop(
+                ['emulated_pct'], axis=1)
+
+            for num_invs in emu_df.invariants.unique():
+                ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
+                    ['invariants'], axis=1)
+
+                for nproc in ninvs_df.procs.unique():
+                    nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(
+                        ['procs'], axis=1)
+                    _plot(nproc_df, outDir, net, emu_pct, num_invs, nproc)
+
+
+def plot_15_stats(invDir, outDir):
+    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+    df = rewrite_values(df)
+    # Filter columns
+    df = df.drop([
+        'inv_time', 'inv_memory', 'num_nodes', 'num_links', 'num_updates',
+        'total_conn', 'invariant', 'independent_cec', 'violated'
+    ],
+                 axis=1)
+    df.drop_duplicates(inplace=True)
+    # Filter rows
+    # df = df[df.optimization == True].drop(['optimization'], axis=1)
+
+    plot_15_perf_vs_networks(df, outDir)
+    plot_15_perf_vs_emulated_pct(df, outDir)
+    plot_15_perf_vs_invariants(df, outDir)
+    plot_15_perf_vs_nprocs(df, outDir)
+    plot_15_perf_vs_drop_methods(df, outDir)
+
+
+def plot_18_perf_vs_arity(df, outDir):
+
+    def _plot(df, outDir, nproc, drop, inv):
+        # Filter columns
+        df = df.drop([
+            'num_nodes', 'num_links', 'num_updates', 'independent_cec',
+            'violated'
+        ],
+                     axis=1)
+        # Sorting
+        df = df.sort_values(by=['arity', 'update_pct'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        df['inv_memory'] /= 1024  # KiB -> MiB
+
+        time_df = df.pivot(index='arity',
+                           columns='update_pct',
+                           values='inv_time').reset_index()
+        time_df = time_df.rename(
+            columns={
+                'None': 'Time (none)',
+                'Half-tenant': 'Time (half-tenant)',
+                'All-tenant': 'Time (all-tenant)',
+            })
+        mem_df = df.pivot(index='arity',
+                          columns='update_pct',
+                          values='inv_memory').reset_index()
+        mem_df = mem_df.rename(
+            columns={
+                'None': 'Memory (none)',
+                'Half-tenant': 'Memory (half-tenant)',
+                'All-tenant': 'Memory (all-tenant)',
+            })
+        merged_df = pd.merge(time_df, mem_df, on=['arity'])
+
+        # Plot time/memory
+        ax = merged_df.plot(
+            x='arity',
+            y=['Time (none)', 'Time (half-tenant)', 'Time (all-tenant)'],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax = merged_df.plot(
+            x='arity',
+            secondary_y=[
+                'Memory (none)', 'Memory (half-tenant)', 'Memory (all-tenant)'
+            ],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  ncol=1,
+                  fontsize=14,
+                  frameon=False,
+                  fancybox=False)
+
+        ax.grid(axis='y')
+        ax.set_yscale('log')
+        ax.set_xlabel('Fat-tree arity (k)', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=18)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir, ('18.perf-arity.inv-' + str(inv) + '.' +
+                                   str(nproc) + '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close('all')
+
+    for nproc in df.procs.unique():
+        nproc_df = df[df.procs == nproc].drop(['procs'], axis=1)
+
+        for drop in nproc_df.drop_method.unique():
+            d_df = nproc_df[nproc_df.drop_method == drop].drop(['drop_method'],
+                                                               axis=1)
+
+            for inv in d_df.invariant.unique():
+                inv_df = d_df[d_df.invariant == inv].drop(['invariant'],
+                                                          axis=1)
+                _plot(inv_df, outDir, nproc, drop, inv)
+
+
+def plot_18_perf_vs_nprocs(df, outDir):
+
+    def _plot(df, outDir, drop, inv):
+        # Filter columns
+        df = df.drop([
+            'inv_memory', 'num_nodes', 'num_links', 'num_updates',
+            'independent_cec', 'violated', 'update_pct'
+        ],
+                     axis=1)
+        # Sorting
+        df = df.sort_values(by=['procs', 'arity'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        # Rename values
+        df['arity'] = df['arity'].astype(str) + '-ary'
+
+        df = df.pivot(index='procs', columns='arity',
+                      values='inv_time').reset_index()
+
+        # Plot time vs nprocs
+        ax = df.plot(
+            x='procs',
+            y=['4-ary', '6-ary', '8-ary', '10-ary', '12-ary'],
+            kind='line',
+            style=['^-', 'o-', 'D-', 's-', 'x-'],
+            legend=False,
+            xlabel='',
+            ylabel='',
+            rot=0,
+            lw=LINE_WIDTH,
+        )
+        ax.legend(ncol=2, fontsize=14, frameon=False, fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Parallel processes', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('18.perf-nproc.inv-' + str(inv) + '.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    # Filter rows
+    # df = df[df.model_only == False]
+    df = df[df.update_pct == 'None']
+
+    for drop in df.drop_method.unique():
+        d_df = df[df.drop_method == drop].drop(['drop_method'], axis=1)
+
+        for inv in d_df.invariant.unique():
+            inv_df = d_df[d_df.invariant == inv].drop(['invariant'], axis=1)
+            _plot(inv_df, outDir, drop, inv)
+
+
+def plot_18_perf_vs_drop_methods(df, outDir):
+
+    def _plot(df, outDir, updates, nproc, inv):
+        # Filter columns
+        df = df.drop([
+            'inv_memory', 'num_nodes', 'num_links', 'num_updates',
+            'independent_cec', 'violated'
+        ],
+                     axis=1)
+        # Sorting
+        df = df.sort_values(by=['arity', 'drop_method'])
+        # Change units
+        df['inv_time'] /= 1e6  # usec -> sec
+        # Rename values
+        df = (df.replace('dropmon', 'drop_mon'))
+
+        df = df.pivot(index='arity', columns='drop_method',
+                      values='inv_time').reset_index()
+
+        # Plot time w. drop methods
+        ax = df.plot(
+            x='arity',
+            y=['timeout', 'ebpf', 'drop_mon'],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.1, 1.18),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=20,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Fat-tree arity (k)', fontsize=22)
+        ax.set_ylabel('Time (seconds)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('18.perf-drop.inv-' + str(inv) + '.' + updates.lower() +
+                     '-updates.' + str(nproc) + '-procs.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+    # Filter rows
+    # df = df[df.model_only == False]
+
+    for updates in df.update_pct.unique():
+        upd_df = df[df.update_pct == updates].drop(['update_pct'], axis=1)
+
+        for nproc in upd_df.procs.unique():
+            nproc_df = upd_df[upd_df.procs == nproc].drop(['procs'], axis=1)
+
+            for inv in nproc_df.invariant.unique():
+                inv_df = nproc_df[nproc_df.invariant == inv].drop(
+                    ['invariant'], axis=1)
+                _plot(inv_df, outDir, updates, nproc, inv)
+
+
+def plot_18_stats(invDir, outDir):
+    df = pd.read_csv(os.path.join(invDir, 'stats.csv'))
+    # Rename values
+    df.loc[df['update_pct'] == 0, 'update_pct'] = 'None'
+    df.loc[df['update_pct'] == 50, 'update_pct'] = 'Half-tenant'
+    df.loc[df['update_pct'] == 100, 'update_pct'] = 'All-tenant'
+    # Filter rows
+    # df = df[df.optimization == True].drop(['optimization'], axis=1)
+
+    plot_18_perf_vs_arity(df, outDir)
+    plot_18_perf_vs_nprocs(df, outDir)
+    plot_18_perf_vs_drop_methods(df, outDir)
+
+
 def plot_latency(df, outFn, sample_limit=None):
     # Filter columns
-    df = df.drop(['rewind_lat', 'pkt_lat', 'drop_lat'], axis=1)
+    df = df.drop(['rewind', 'pkt_lat', 'drop_lat'], axis=1)
 
     df = df.pivot(columns='drop_method', values=['latency', 'timeout'])
     df.columns = ['_'.join(col) for col in df.columns.values]
@@ -725,10 +1463,10 @@ def plot_latency_cdf(df,
                      exp_id,
                      logscale_for_reset=False,
                      logscale_for_no_reset=False):
-    df.loc[:, 'latency_with_reset'] = df['latency'] + df['rewind_lat']
+    df.loc[:, 'latency_with_reset'] = df['latency'] + df['rewind']
 
     # Filter columns
-    df = df.drop(['rewind_lat', 'pkt_lat', 'drop_lat', 'timeout'], axis=1)
+    df = df.drop(['rewind', 'pkt_lat', 'drop_lat', 'timeout'], axis=1)
 
     df = df.pivot(columns='drop_method',
                   values=['latency', 'latency_with_reset'])
@@ -796,7 +1534,7 @@ def plot_latency_cdf(df,
             xlabel='',
             ylabel='',
             rot=0,
-            lw=LINE_WIDTH,
+            lw=LINE_WIDTH + 1,
         )
         ax.legend(bbox_to_anchor=(1.1, 1.2),
                   columnspacing=0.8,
@@ -817,7 +1555,7 @@ def plot_latency_cdf(df,
             ax.axvline(peak_lat,
                        ymax=0.95,
                        linestyle='--',
-                       linewidth=LINE_WIDTH - 1,
+                       linewidth=LINE_WIDTH,
                        color=colors[i])
             i += 1
         fig = ax.get_figure()
@@ -826,6 +1564,126 @@ def plot_latency_cdf(df,
                      ('.with-reset' if with_reset else '') + '.pdf')),
                     bbox_inches='tight')
         plt.close(fig)
+
+
+def plot_emulation_overhead(df, outDir, exp_id):
+
+    def _get_cdf_df(df, col):
+        df = df[col].to_frame().dropna()
+        df = df.sort_values(by=[col]).reset_index().rename(
+            columns={col: 'time'})
+        df[col] = df.index + 1
+        df = df[df.columns.drop(list(df.filter(regex='index')))]
+        return df
+
+    def _plot(df, outDir, exp_id, drop, inv):
+        # Filter columns
+        df = df.drop(['emu_reset', 'replay', 'pkt_lat', 'drop_lat', 'timeout'],
+                     axis=1)
+        # Change units
+        df /= 1e3  # usec -> msec
+
+        cdf_df = pd.DataFrame()
+        peak_latencies = []
+
+        for col in df.columns:
+            df1 = _get_cdf_df(df, col)
+            peak_latencies.append(df1.time.iloc[-1])
+            if cdf_df.empty:
+                cdf_df = df1
+            else:
+                cdf_df = pd.merge(cdf_df, df1, how='outer', on='time')
+            del df1
+
+        df = cdf_df.sort_values(by='time').interpolate(
+            limit_area='inside').rename(
+                columns={
+                    'ec_time': 'Total check time',
+                    'overall_lat': 'Emulation overhead',
+                    'emu_startup': 'Emulation startup',
+                    'rewind': 'State rewind',
+                    'latency': 'Packet latency',
+                })
+        del cdf_df
+
+        for col in df.columns:
+            if col == 'time':
+                continue
+            df[col] /= df[col].max()
+
+        ax = df.plot(
+            x='time',
+            y=[
+                'Total check time',
+                'Emulation overhead',
+                'Emulation startup',
+                'State rewind',
+                'Packet latency',
+            ],
+            kind='line',
+            legend=False,
+            xlabel='',
+            ylabel='',
+            rot=0,
+            lw=LINE_WIDTH + 1,
+        )
+        ax.legend(bbox_to_anchor=(1.2, 1.45),
+                  columnspacing=0.8,
+                  ncol=2,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='both')
+        # ax.set_xscale('log')
+        ax.set_xlabel('Time (milliseconds)', fontsize=24)
+        ax.set_ylabel('CDF', fontsize=24)
+        ax.tick_params(axis='both', which='both', labelsize=24)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        i = 0
+        for peak_lat in peak_latencies:
+            ax.axvline(peak_lat,
+                       ymax=0.95,
+                       linestyle='--',
+                       linewidth=LINE_WIDTH,
+                       color=colors[i])
+            i += 1
+        fig = ax.get_figure()
+        fig.savefig(os.path.join(outDir, (exp_id + '.emu-overhead-cdf.inv-' +
+                                          str(inv) + '.' + drop + '.pdf')),
+                    bbox_inches='tight')
+        plt.close(fig)
+
+    # Group by each EC
+    # Also group by: 'optimization'
+    ec_common_attrs = [
+        'ec_time', 'ec_mem', 'drop_method', 'invariant', 'independent_cec',
+        'violated', 'total_time', 'total_mem'
+    ]
+    summed_attrs = [
+        'overall_lat', 'emu_startup', 'rewind', 'emu_reset', 'replay',
+        'pkt_lat', 'drop_lat', 'latency', 'timeout'
+    ]
+    grouped = df.groupby(by=ec_common_attrs, as_index=False)
+    for col in summed_attrs:
+        df = df.merge(grouped[col].agg(np.sum),
+                      how='inner',
+                      on=ec_common_attrs,
+                      sort=False)
+        df = df.rename(columns={col + '_y': col})
+        df = df.drop(col + '_x', axis=1)
+    df.drop_duplicates(inplace=True)
+
+    # Filter columns
+    df = df.drop(
+        ['ec_mem', 'independent_cec', 'violated', 'total_time', 'total_mem'],
+        axis=1)
+
+    for drop in df.drop_method.unique():
+        d_df = df[df.drop_method == drop].drop(['drop_method'], axis=1)
+
+        for inv in d_df.invariant.unique():
+            inv_df = d_df[d_df.invariant == inv].drop(['invariant'], axis=1)
+            _plot(inv_df, outDir, exp_id, drop, inv)
 
 
 def plot_02_latency(invDir, outDir):
@@ -866,11 +1724,12 @@ def plot_03_latency(invDir, outDir):
     df = df[df.procs == 1]
     df = df[df.drop_method == 'timeout']
     df = df[df.invariant == 1]
+    df = df[df.optimization == True]
     # Filter columns
     df = df.drop([
         'overall_lat', 'servers', 'algorithm', 'procs', 'drop_method',
         'num_nodes', 'num_links', 'num_updates', 'total_conn', 'invariant',
-        'independent_cec', 'violated'
+        'independent_cec', 'violated', 'optimization'
     ],
                  axis=1)
     df = df.reset_index().drop(['index'], axis=1)
@@ -878,7 +1737,7 @@ def plot_03_latency(invDir, outDir):
     def _plot_latency(df, outFn):
         # Filter columns
         df = df.drop(
-            ['rewind_lat', 'rewind_injections', 'pkt_lat', 'drop_lat', 'lbs'],
+            ['rewind', 'rewind_injections', 'pkt_lat', 'drop_lat', 'lbs'],
             axis=1)
         # Rename column titles
         df = df.rename(columns={
@@ -916,11 +1775,12 @@ def plot_03_latency(invDir, outDir):
         plt.close(fig)
 
     def _plot_latency_cdf(df, outFn):
-        df.loc[:, 'latency_w_reset'] = df['latency'] + df['rewind_lat']
+        df.loc[:, 'latency_w_reset'] = df['latency'] + df['rewind']
         # Filter columns
         df = df.drop([
-            'rewind_lat', 'rewind_injections', 'pkt_lat', 'drop_lat',
-            'timeout', 'lbs'
+            'ec_time', 'ec_mem', 'emu_startup', 'rewind', 'emu_reset',
+            'replay', 'rewind_injections', 'pkt_lat', 'drop_lat', 'timeout',
+            'lbs', 'total_time', 'total_mem'
         ],
                      axis=1)
         # Rename column titles
@@ -952,9 +1812,9 @@ def plot_03_latency(invDir, outDir):
         df = cdf_df.sort_values(by='latency').interpolate(limit_area='inside')
         del cdf_df
 
-        # # Change units
-        # df['latency'] /= 1e6  # usec -> sec
-        # peak_latencies = [l / 1e6 for l in peak_latencies]
+        # Change units
+        df['latency'] /= 1e3  # usec -> sec
+        peak_latencies = [l / 1e3 for l in peak_latencies]
 
         ax = df.plot(
             x='latency',
@@ -964,7 +1824,7 @@ def plot_03_latency(invDir, outDir):
             xlabel='',
             ylabel='',
             rot=0,
-            lw=LINE_WIDTH,
+            lw=LINE_WIDTH + 1,
         )
         ax.legend(bbox_to_anchor=(1.07, 1.2),
                   columnspacing=0.8,
@@ -974,7 +1834,7 @@ def plot_03_latency(invDir, outDir):
                   fancybox=False)
         ax.grid(axis='both')
         ax.set_xscale('log')
-        ax.set_xlabel('Latency (seconds)', fontsize=24)
+        ax.set_xlabel('Latency (milliseconds)', fontsize=24)
         ax.set_ylabel('Packet injections', fontsize=24)
         ax.tick_params(axis='both', which='both', labelsize=24)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
@@ -983,7 +1843,7 @@ def plot_03_latency(invDir, outDir):
             ax.axvline(peak_lat,
                        ymax=0.95,
                        linestyle='--',
-                       linewidth=LINE_WIDTH - 1,
+                       linewidth=LINE_WIDTH,
                        color=colors[i])
             i += 1
         fig = ax.get_figure()
@@ -1007,7 +1867,10 @@ def plot_03_latency(invDir, outDir):
     # latency CDF
     _plot_latency_cdf(df, os.path.join(outDir, '03.latency-cdf.pdf'))
 
-    print(pd.DataFrame(tbl))
+    reset_stats_df = pd.DataFrame(tbl)
+    reset_stats_df.sort_values(by='lbs', axis=1, inplace=True)
+    with open(os.path.join(invDir, 'reset_stats.txt'), 'w') as f:
+        f.write(reset_stats_df.to_string())
 
 
 def plot_06_latency(invDir, outDir):
@@ -1116,6 +1979,79 @@ def plot_06_compare_unopt(invDir, outDir):
             _plot(inv_df, outDir, drop, inv)
 
 
+def plot_15_latency(invDir, outDir):
+    df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
+    # Merge latency values
+    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
+    # # Rename values
+    # df.loc[df['update_pct'] == 0, 'update_pct'] = 'None'
+    # df.loc[df['update_pct'] == 50, 'update_pct'] = 'Half-tenant'
+    # df.loc[df['update_pct'] == 100, 'update_pct'] = 'All-tenant'
+    # Filter rows
+    df = df[df.procs == 1]
+    # df = df[df.optimization == True]
+    # Filter columns
+    df = df.drop([
+        'rewind_injections', 'procs', 'num_nodes', 'num_links', 'num_updates',
+        'total_conn'
+    ],
+                 axis=1)
+    df = df.reset_index().drop(['index'], axis=1)
+
+    # latency line charts
+    plot_latency(df[df.pkt_lat > 0],
+                 os.path.join(outDir, '15.latency.recv.pdf'),
+                 sample_limit=400)
+    # No packet drops for 15
+    # plot_latency(df[df.drop_lat > 0],
+    #              os.path.join(outDir, '15.latency.drop.pdf'))
+
+    # latency CDF
+    plot_latency_cdf(df,
+                     outDir,
+                     os.path.basename(invDir)[:2],
+                     logscale_for_reset=True)
+
+    # Per-CEC emulation overhead
+    plot_emulation_overhead(df, outDir, '15')
+
+
+def plot_18_latency(invDir, outDir):
+    df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
+    # Merge latency values
+    df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
+    # Rename values
+    df.loc[df['update_pct'] == 0, 'update_pct'] = 'None'
+    df.loc[df['update_pct'] == 50, 'update_pct'] = 'Half-tenant'
+    df.loc[df['update_pct'] == 100, 'update_pct'] = 'All-tenant'
+    # Filter rows
+    df = df[df.procs == 1]
+    # df = df[df.optimization == True]
+    # Filter columns
+    df = df.drop([
+        'rewind_injections', 'arity', 'update_pct', 'procs', 'num_nodes',
+        'num_links', 'num_updates', 'total_conn'
+    ],
+                 axis=1)
+    df = df.reset_index().drop(['index'], axis=1)
+
+    # latency line charts
+    plot_latency(df[df.pkt_lat > 0],
+                 os.path.join(outDir, '18.latency.recv.pdf'),
+                 sample_limit=300)
+    plot_latency(df[df.drop_lat > 0],
+                 os.path.join(outDir, '18.latency.drop.pdf'))
+
+    # latency CDF
+    plot_latency_cdf(df,
+                     outDir,
+                     os.path.basename(invDir)[:2],
+                     logscale_for_reset=True)
+
+    # Per-CEC emulation overhead
+    plot_emulation_overhead(df, outDir, '18')
+
+
 def main():
     parser = argparse.ArgumentParser(description='Plotting for Neo')
     parser.add_argument('-t',
@@ -1144,10 +2080,18 @@ def main():
         plot_03_stats(targetDir, outDir)
         plot_03_latency(targetDir, outDir)
         plot_03_compare_unopt(targetDir)
-    elif exp_id == '06':
+    elif exp_id == '06':  # Old, replaced by 18
         plot_06_stats(targetDir, outDir)
         plot_06_latency(targetDir, outDir)
         plot_06_compare_unopt(targetDir, outDir)
+    elif exp_id == '15':
+        plot_15_stats(targetDir, outDir)
+        plot_15_latency(targetDir, outDir)
+        # plot_15_compare_unopt(targetDir, outDir)
+    elif exp_id == '18':
+        plot_18_stats(targetDir, outDir)
+        plot_18_latency(targetDir, outDir)
+        # plot_18_compare_unopt(targetDir, outDir)
     else:
         raise Exception("Parser not implemented for experiment " + exp_id)
 
