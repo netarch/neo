@@ -172,7 +172,6 @@ def plot_02_perf_vs_nprocs(df, outDir):
 
         df = df.pivot(index='procs', columns='apps',
                       values='inv_time').reset_index()
-        df.at[3, '4 apps/hosts'] = np.nan
 
         # Plot time vs nprocs
         ax = df.plot(
