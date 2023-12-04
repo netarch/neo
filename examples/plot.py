@@ -415,6 +415,8 @@ def plot_03_compare_unopt(invDir):
     df = df.pivot(index='lbs',
                   columns=['algorithm', 'optimization'],
                   values='inv_time').reset_index()
+    for alg in df.columns.get_level_values('algorithm').unique().drop(['lbs']):
+        df.loc[:, (alg, 'improve')] = df[alg]['Unopt.'] / df[alg]['Opt.']
     with open(os.path.join(invDir, 'compare-unopt.txt'), 'w') as f:
         f.write(df.to_string())
 
