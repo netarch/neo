@@ -377,7 +377,7 @@ def plot_03_stats(invDir, outDir):
 
     ax.grid(axis='y')
     ax.set_yscale('log')
-    ax.set_xlabel('LBs and servers/LB', fontsize=22)
+    ax.set_xlabel('Number of servers/LB', fontsize=22)
     ax.set_ylabel('Time (seconds)', fontsize=22)
     ax.tick_params(axis='both', which='both', labelsize=22)
     ax.tick_params(axis='x', which='both', top=False, bottom=False)
@@ -742,56 +742,64 @@ def plot_15_perf_vs_networks(df, outDir):
         # Change units
         df['total_time'] /= 1e6  # usec -> sec
         df['total_mem'] /= 1024  # KiB -> MiB
+        # Rename columns
+        df = df.rename(columns={
+            'total_time': 'Time',
+            'total_mem': 'Memory',
+        })
 
-        # Plot time
+        # Plot time/memory
         ax = df.plot(
             x='network',
-            y='total_time',
+            y='Time',
             kind='bar',
             legend=False,
             width=0.8,
             xlabel='',
             ylabel='',
+            # rot=0,
             rot=-30,
         )
+        ax = df.plot(
+            x='network',
+            secondary_y=['Memory'],
+            mark_right=False,
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            # rot=0,
+            rot=-30,
+        )
+
+        # Merge legends
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax.right_ax.get_legend_handles_labels()
+        ax.legend(h1 + h2,
+                  l1 + l2,
+                  bbox_to_anchor=(1.0, 1.2),
+                  ncol=2,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+
         ax.grid(axis='y')
-        # ax.legend(bbox_to_anchor=(0.41, 1.4),
-        #           ncol=2,
-        #           fontsize=34,
-        #           columnspacing=0.5)
         # ax.set_yscale('log')
+        # ax.set_xlabel('Network', fontsize=22)
         ax.set_ylabel('Time (seconds)', fontsize=22)
         ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        ax.right_ax.grid(axis='y')
+        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
+        # ax.right_ax.set_ylim(bottom=mem_start_val)
+        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
         fig = ax.get_figure()
-        fn = os.path.join(outDir,
-                          ('15.time-v-network.emu_pct-' + str(emu_pct) + '.' +
-                           str(num_invs) + '-invs.' + str(nproc) + '-procs.' +
-                           drop + '.pdf'))
-        fig.savefig(fn, bbox_inches='tight')
-
-        # Plot memory
-        ax = df.plot(
-            x='network',
-            y='total_mem',
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=-30,
-        )
-        ax.grid(axis='y')
-        # mem_start_val = (floor(df.total_mem.min()) - 1) // 10 * 10
-        # ax.set_ylim(bottom=mem_start_val)
-        ax.set_ylabel('Memory (MiB)', fontsize=22)
-        ax.tick_params(axis='both', which='both', labelsize=22)
-        ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        fig = ax.get_figure()
-        fn = os.path.join(outDir,
-                          ('15.memory-v-network.emu_pct-' + str(emu_pct) +
-                           '.' + str(num_invs) + '-invs.' + str(nproc) +
-                           '-procs.' + drop + '.pdf'))
+        fn = os.path.join(
+            outDir,
+            ('15.perf-network.emu_pct-' + str(emu_pct) + '.' + str(num_invs) +
+             '-invs.' + str(nproc) + '-procs.' + drop + '.pdf'))
         fig.savefig(fn, bbox_inches='tight')
         plt.close('all')
 
@@ -815,7 +823,7 @@ def plot_15_perf_vs_networks(df, outDir):
 
 def plot_15_perf_vs_emulated_pct(df, outDir):
 
-    def _plot(df, outDir, net, num_invs, nproc, drop):
+    def _plot(df, outDir, num_invs, nproc, drop):
         # Sorting
         df = df.sort_values(by=['emulated_pct'])
         # Change units
@@ -827,10 +835,16 @@ def plot_15_perf_vs_emulated_pct(df, outDir):
             'total_mem': 'Memory',
         })
 
-        # Plot time/memory
-        ax = df.plot(
+        # Plot time
+        time_df = df.pivot(index='emulated_pct',
+                           columns='network',
+                           values='Time').reset_index()
+        ax = time_df.plot(
             x='emulated_pct',
-            y='Time',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
             kind='bar',
             legend=False,
             width=0.8,
@@ -838,68 +852,78 @@ def plot_15_perf_vs_emulated_pct(df, outDir):
             ylabel='',
             rot=0,
         )
-        ax = df.plot(
-            x='emulated_pct',
-            secondary_y=['Memory'],
-            mark_right=False,
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=0,
-        )
-
-        # Merge legends
-        h1, l1 = ax.get_legend_handles_labels()
-        h2, l2 = ax.right_ax.get_legend_handles_labels()
-        ax.legend(h1 + h2,
-                  l1 + l2,
-                  bbox_to_anchor=(1.0, 1.2),
-                  ncol=2,
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
                   fontsize=22,
                   frameon=False,
                   fancybox=False)
-
         ax.grid(axis='y')
         # ax.set_yscale('log')
         ax.set_xlabel('Percentage of emulated nodes (%)', fontsize=22)
         ax.set_ylabel('Time (seconds)', fontsize=22)
         ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        ax.right_ax.grid(axis='y')
-        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
-        # ax.right_ax.set_ylim(bottom=mem_start_val)
-        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
-        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
         fig = ax.get_figure()
         fn = os.path.join(outDir,
-                          ('15.perf-emu_pct.' + net + '.' + str(num_invs) +
-                           '-invs.' + str(nproc) + '-procs.' + drop + '.pdf'))
+                          ('15.time-emu_pct.' + str(num_invs) + '-invs.' +
+                           str(nproc) + '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+        # Plot memory
+        mem_df = df.pivot(index='emulated_pct',
+                          columns='network',
+                          values='Memory').reset_index()
+        ax = mem_df.plot(
+            x='emulated_pct',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Percentage of emulated nodes (%)', fontsize=22)
+        ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.memory-emu_pct.' + str(num_invs) + '-invs.' +
+                           str(nproc) + '-procs.' + drop + '.pdf'))
         fig.savefig(fn, bbox_inches='tight')
         plt.close('all')
 
-    for net in df.network.unique():
-        net_df = df[df.network == net].drop(['network'], axis=1)
+    for num_invs in df.invariants.unique():
+        ninvs_df = df[df.invariants == num_invs].drop(['invariants'], axis=1)
 
-        for num_invs in net_df.invariants.unique():
-            ninvs_df = net_df[net_df.invariants == num_invs].drop(
-                ['invariants'], axis=1)
+        for nproc in ninvs_df.procs.unique():
+            nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(['procs'],
+                                                              axis=1)
 
-            for nproc in ninvs_df.procs.unique():
-                nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(['procs'],
-                                                                  axis=1)
+            for drop in nproc_df.drop_method.unique():
+                d_df = nproc_df[nproc_df.drop_method == drop].drop(
+                    ['drop_method'], axis=1)
 
-                for drop in nproc_df.drop_method.unique():
-                    d_df = nproc_df[nproc_df.drop_method == drop].drop(
-                        ['drop_method'], axis=1)
-
-                    _plot(d_df, outDir, net, num_invs, nproc, drop)
+                _plot(d_df, outDir, num_invs, nproc, drop)
 
 
 def plot_15_perf_vs_invariants(df, outDir):
 
-    def _plot(df, outDir, net, emu_pct, nproc, drop):
+    def _plot(df, outDir, emu_pct, nproc, drop):
         # Sorting
         df = df.sort_values(by=['invariants'])
         # Change units
@@ -911,10 +935,16 @@ def plot_15_perf_vs_invariants(df, outDir):
             'total_mem': 'Memory',
         })
 
-        # Plot time/memory
-        ax = df.plot(
+        # Plot time
+        time_df = df.pivot(index='invariants',
+                           columns='network',
+                           values='Time').reset_index()
+        ax = time_df.plot(
             x='invariants',
-            y='Time',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
             kind='bar',
             legend=False,
             width=0.8,
@@ -922,68 +952,77 @@ def plot_15_perf_vs_invariants(df, outDir):
             ylabel='',
             rot=0,
         )
-        ax = df.plot(
-            x='invariants',
-            secondary_y=['Memory'],
-            mark_right=False,
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=0,
-        )
-
-        # Merge legends
-        h1, l1 = ax.get_legend_handles_labels()
-        h2, l2 = ax.right_ax.get_legend_handles_labels()
-        ax.legend(h1 + h2,
-                  l1 + l2,
-                  bbox_to_anchor=(1.0, 1.2),
-                  ncol=2,
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
                   fontsize=22,
                   frameon=False,
                   fancybox=False)
-
         ax.grid(axis='y')
         # ax.set_yscale('log')
         ax.set_xlabel('Number of invariants', fontsize=22)
         ax.set_ylabel('Time (seconds)', fontsize=22)
         ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        ax.right_ax.grid(axis='y')
-        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
-        # ax.right_ax.set_ylim(bottom=mem_start_val)
-        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
-        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
         fig = ax.get_figure()
         fn = os.path.join(outDir,
-                          ('15.perf-invs.' + net + '.emu_pct-' + str(emu_pct) +
-                           '.' + str(nproc) + '-procs.' + drop + '.pdf'))
+                          ('15.time-invs.emu_pct-' + str(emu_pct) + '.' +
+                           str(nproc) + '-procs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+        # Plot memory
+        mem_df = df.pivot(index='invariants',
+                          columns='network',
+                          values='Memory').reset_index()
+        ax = mem_df.plot(
+            x='invariants',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Number of invariants', fontsize=22)
+        ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.memory-invs.emu_pct-' + str(emu_pct) + '.' +
+                           str(nproc) + '-procs.' + drop + '.pdf'))
         fig.savefig(fn, bbox_inches='tight')
         plt.close('all')
 
-    for net in df.network.unique():
-        net_df = df[df.network == net].drop(['network'], axis=1)
+    for emu_pct in df.emulated_pct.unique():
+        emu_df = df[df.emulated_pct == emu_pct].drop(['emulated_pct'], axis=1)
 
-        for emu_pct in net_df.emulated_pct.unique():
-            emu_df = net_df[net_df.emulated_pct == emu_pct].drop(
-                ['emulated_pct'], axis=1)
+        for nproc in emu_df.procs.unique():
+            nproc_df = emu_df[emu_df.procs == nproc].drop(['procs'], axis=1)
 
-            for nproc in emu_df.procs.unique():
-                nproc_df = emu_df[emu_df.procs == nproc].drop(['procs'],
-                                                              axis=1)
+            for drop in nproc_df.drop_method.unique():
+                d_df = nproc_df[nproc_df.drop_method == drop].drop(
+                    ['drop_method'], axis=1)
 
-                for drop in nproc_df.drop_method.unique():
-                    d_df = nproc_df[nproc_df.drop_method == drop].drop(
-                        ['drop_method'], axis=1)
-
-                    _plot(d_df, outDir, net, emu_pct, nproc, drop)
+                _plot(d_df, outDir, emu_pct, nproc, drop)
 
 
 def plot_15_perf_vs_nprocs(df, outDir):
 
-    def _plot(df, outDir, net, emu_pct, num_invs, drop):
+    def _plot(df, outDir, emu_pct, num_invs, drop):
         # Sorting
         df = df.sort_values(by=['procs'])
         # Change units
@@ -995,79 +1034,94 @@ def plot_15_perf_vs_nprocs(df, outDir):
             'total_mem': 'Memory',
         })
 
-        # Plot time/memory
-        ax = df.plot(
+        # Plot time
+        time_df = df.pivot(index='procs', columns='network',
+                           values='Time').reset_index()
+        ax = time_df.plot(
             x='procs',
-            y='Time',
-            kind='bar',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
+            kind='line',
+            style=['^-', 'o-', 'D-', 's-', 'x-', 'v-', 'd-', 'X-'],
             legend=False,
-            width=0.8,
             xlabel='',
             ylabel='',
             rot=0,
+            lw=LINE_WIDTH,
         )
-        ax = df.plot(
-            x='procs',
-            secondary_y=['Memory'],
-            mark_right=False,
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=0,
-        )
-
-        # Merge legends
-        h1, l1 = ax.get_legend_handles_labels()
-        h2, l2 = ax.right_ax.get_legend_handles_labels()
-        ax.legend(h1 + h2,
-                  l1 + l2,
-                  bbox_to_anchor=(1.0, 1.2),
-                  ncol=2,
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
                   fontsize=22,
                   frameon=False,
                   fancybox=False)
-
         ax.grid(axis='y')
         # ax.set_yscale('log')
         ax.set_xlabel('Parallel processes', fontsize=22)
         ax.set_ylabel('Time (seconds)', fontsize=22)
         ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        ax.right_ax.grid(axis='y')
-        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
-        # ax.right_ax.set_ylim(bottom=mem_start_val)
-        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
-        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
         fig = ax.get_figure()
-        fn = os.path.join(
-            outDir, ('15.perf-nprocs.' + net + '.emu_pct-' + str(emu_pct) +
-                     '.' + str(num_invs) + '-invs.' + drop + '.pdf'))
+        fn = os.path.join(outDir,
+                          ('15.time-nprocs.emu_pct-' + str(emu_pct) + '.' +
+                           str(num_invs) + '-invs.' + drop + '.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+        # Plot memory
+        mem_df = df.pivot(index='procs', columns='network',
+                          values='Memory').reset_index()
+        ax = mem_df.plot(
+            x='procs',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Parallel processes', fontsize=22)
+        ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(outDir,
+                          ('15.memory-nprocs.emu_pct-' + str(emu_pct) + '.' +
+                           str(num_invs) + '-invs.' + drop + '.pdf'))
         fig.savefig(fn, bbox_inches='tight')
         plt.close('all')
 
-    for net in df.network.unique():
-        net_df = df[df.network == net].drop(['network'], axis=1)
+    for emu_pct in df.emulated_pct.unique():
+        emu_df = df[df.emulated_pct == emu_pct].drop(['emulated_pct'], axis=1)
 
-        for emu_pct in net_df.emulated_pct.unique():
-            emu_df = net_df[net_df.emulated_pct == emu_pct].drop(
-                ['emulated_pct'], axis=1)
+        for num_invs in emu_df.invariants.unique():
+            ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
+                ['invariants'], axis=1)
 
-            for num_invs in emu_df.invariants.unique():
-                ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
-                    ['invariants'], axis=1)
+            for drop in ninvs_df.drop_method.unique():
+                d_df = ninvs_df[ninvs_df.drop_method == drop].drop(
+                    ['drop_method'], axis=1)
 
-                for drop in ninvs_df.drop_method.unique():
-                    d_df = ninvs_df[ninvs_df.drop_method == drop].drop(
-                        ['drop_method'], axis=1)
-
-                    _plot(d_df, outDir, net, emu_pct, num_invs, drop)
+                _plot(d_df, outDir, emu_pct, num_invs, drop)
 
 
 def plot_15_perf_vs_drop_methods(df, outDir):
 
-    def _plot(df, outDir, net, emu_pct, num_invs, nproc):
+    def _plot(df, outDir, emu_pct, num_invs, nproc):
         # Sorting
         df = df.sort_values(by=['drop_method'], key=values_compare)
         # Change units
@@ -1079,10 +1133,16 @@ def plot_15_perf_vs_drop_methods(df, outDir):
             'total_mem': 'Memory',
         })
 
-        # Plot time/memory
-        ax = df.plot(
+        # Plot time
+        time_df = df.pivot(index='drop_method',
+                           columns='network',
+                           values='Time').reset_index()
+        ax = time_df.plot(
             x='drop_method',
-            y='Time',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
             kind='bar',
             legend=False,
             width=0.8,
@@ -1090,64 +1150,72 @@ def plot_15_perf_vs_drop_methods(df, outDir):
             ylabel='',
             rot=0,
         )
-        ax = df.plot(
-            x='drop_method',
-            secondary_y=['Memory'],
-            mark_right=False,
-            kind='bar',
-            legend=False,
-            width=0.8,
-            xlabel='',
-            ylabel='',
-            rot=0,
-        )
-
-        # Merge legends
-        h1, l1 = ax.get_legend_handles_labels()
-        h2, l2 = ax.right_ax.get_legend_handles_labels()
-        ax.legend(h1 + h2,
-                  l1 + l2,
-                  bbox_to_anchor=(1.0, 1.2),
-                  ncol=2,
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
                   fontsize=22,
                   frameon=False,
                   fancybox=False)
-
         ax.grid(axis='y')
         # ax.set_yscale('log')
         ax.set_xlabel('Drop detection', fontsize=22)
         ax.set_ylabel('Time (seconds)', fontsize=22)
         ax.tick_params(axis='both', which='both', labelsize=22)
         ax.tick_params(axis='x', which='both', top=False, bottom=False)
-        ax.right_ax.grid(axis='y')
-        # mem_start_val = (floor(df.inv_memory.min()) - 1) // 10 * 10
-        # ax.right_ax.set_ylim(bottom=mem_start_val)
-        ax.right_ax.set_ylabel('Memory (MiB)', fontsize=22)
-        ax.right_ax.tick_params(axis='both', which='both', labelsize=22)
         fig = ax.get_figure()
         fn = os.path.join(
-            outDir,
-            ('15.perf-drop_methods.' + net + '.emu_pct-' + str(emu_pct) + '.' +
-             str(num_invs) + '-invs.' + str(nproc) + '-procs.pdf'))
+            outDir, ('15.time-drop_methods.emu_pct-' + str(emu_pct) + '.' +
+                     str(num_invs) + '-invs.' + str(nproc) + '-procs.pdf'))
+        fig.savefig(fn, bbox_inches='tight')
+        plt.close(fig)
+
+        # Plot memory
+        mem_df = df.pivot(index='drop_method',
+                          columns='network',
+                          values='Memory').reset_index()
+        ax = mem_df.plot(
+            x='drop_method',
+            y=[
+                'ISP-1', 'ISP-2', 'ISP-3', 'ISP-4', 'ISP-5', 'ISP-6', 'ST-1',
+                'ST-2'
+            ],
+            kind='bar',
+            legend=False,
+            width=0.8,
+            xlabel='',
+            ylabel='',
+            rot=0,
+        )
+        ax.legend(bbox_to_anchor=(1.05, 1.46),
+                  columnspacing=0.7,
+                  ncol=3,
+                  fontsize=22,
+                  frameon=False,
+                  fancybox=False)
+        ax.grid(axis='y')
+        # ax.set_yscale('log')
+        ax.set_xlabel('Drop detection', fontsize=22)
+        ax.set_ylabel('Memory (MiB)', fontsize=22)
+        ax.tick_params(axis='both', which='both', labelsize=22)
+        ax.tick_params(axis='x', which='both', top=False, bottom=False)
+        fig = ax.get_figure()
+        fn = os.path.join(
+            outDir, ('15.memory-drop_methods.emu_pct-' + str(emu_pct) + '.' +
+                     str(num_invs) + '-invs.' + str(nproc) + '-procs.pdf'))
         fig.savefig(fn, bbox_inches='tight')
         plt.close('all')
-        exit(0)
 
-    for net in df.network.unique():
-        net_df = df[df.network == net].drop(['network'], axis=1)
+    for emu_pct in df.emulated_pct.unique():
+        emu_df = df[df.emulated_pct == emu_pct].drop(['emulated_pct'], axis=1)
 
-        for emu_pct in net_df.emulated_pct.unique():
-            emu_df = net_df[net_df.emulated_pct == emu_pct].drop(
-                ['emulated_pct'], axis=1)
+        for num_invs in emu_df.invariants.unique():
+            ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
+                ['invariants'], axis=1)
 
-            for num_invs in emu_df.invariants.unique():
-                ninvs_df = emu_df[emu_df.invariants == num_invs].drop(
-                    ['invariants'], axis=1)
-
-                for nproc in ninvs_df.procs.unique():
-                    nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(
-                        ['procs'], axis=1)
-                    _plot(nproc_df, outDir, net, emu_pct, num_invs, nproc)
+            for nproc in ninvs_df.procs.unique():
+                nproc_df = ninvs_df[ninvs_df.procs == nproc].drop(['procs'],
+                                                                  axis=1)
+                _plot(nproc_df, outDir, emu_pct, num_invs, nproc)
 
 
 def plot_15_stats(invDir, outDir):
