@@ -1733,7 +1733,7 @@ def plot_emulation_overhead(df, outDir, exp_id):
     ]
     grouped = df.groupby(by=ec_common_attrs, as_index=False)
     for col in summed_attrs:
-        df = df.merge(grouped[col].agg(np.sum),
+        df = df.merge(grouped[col].agg("sum"),
                       how='inner',
                       on=ec_common_attrs,
                       sort=False)
@@ -2051,23 +2051,19 @@ def plot_15_latency(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, 'lat.csv'))
     # Merge latency values
     df.loc[:, 'latency'] = df['pkt_lat'] + df['drop_lat']
-    # # Rename values
-    # df.loc[df['update_pct'] == 0, 'update_pct'] = 'None'
-    # df.loc[df['update_pct'] == 50, 'update_pct'] = 'Half-tenant'
-    # df.loc[df['update_pct'] == 100, 'update_pct'] = 'All-tenant'
     # Filter rows
     df = df[df.procs == 1]
     # df = df[df.optimization == True]
     # Filter columns
     df = df.drop([
-        'rewind_injections', 'procs', 'num_nodes', 'num_links', 'num_updates',
-        'total_conn'
+        'rewind_injections', 'network', 'emulated_pct', 'invariants', 'procs',
+        'num_nodes', 'num_links', 'num_updates', 'total_conn'
     ],
                  axis=1)
     df = df.reset_index().drop(['index'], axis=1)
 
     # latency line charts
-    plot_latency(df[df.pkt_lat > 0],
+    plot_latency(df[df.pkt_lat > 0].copy(),
                  os.path.join(outDir, '15.latency.recv.pdf'),
                  sample_limit=400)
     # No packet drops for 15
@@ -2075,13 +2071,13 @@ def plot_15_latency(invDir, outDir):
     #              os.path.join(outDir, '15.latency.drop.pdf'))
 
     # latency CDF
-    plot_latency_cdf(df,
+    plot_latency_cdf(df.copy(),
                      outDir,
                      os.path.basename(invDir)[:2],
                      logscale_for_reset=True)
 
     # Per-CEC emulation overhead
-    plot_emulation_overhead(df, outDir, '15')
+    plot_emulation_overhead(df.copy(), outDir, '15')
 
 
 def plot_18_latency(invDir, outDir):
@@ -2104,20 +2100,20 @@ def plot_18_latency(invDir, outDir):
     df = df.reset_index().drop(['index'], axis=1)
 
     # latency line charts
-    plot_latency(df[df.pkt_lat > 0],
+    plot_latency(df[df.pkt_lat > 0].copy(),
                  os.path.join(outDir, '18.latency.recv.pdf'),
                  sample_limit=300)
-    plot_latency(df[df.drop_lat > 0],
+    plot_latency(df[df.drop_lat > 0].copy(),
                  os.path.join(outDir, '18.latency.drop.pdf'))
 
     # latency CDF
-    plot_latency_cdf(df,
+    plot_latency_cdf(df.copy(),
                      outDir,
                      os.path.basename(invDir)[:2],
                      logscale_for_reset=True)
 
     # Per-CEC emulation overhead
-    plot_emulation_overhead(df, outDir, '18')
+    plot_emulation_overhead(df.copy(), outDir, '18')
 
 
 def main():
