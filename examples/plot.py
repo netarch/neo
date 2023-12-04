@@ -368,10 +368,10 @@ def plot_03_stats(invDir, outDir):
     h2, l2 = ax.right_ax.get_legend_handles_labels()
     ax.legend(h1 + h2,
               l1 + l2,
-              bbox_to_anchor=(1.12, 1.28),
+              bbox_to_anchor=(1.19, 1.58),
               columnspacing=0.8,
               ncol=2,
-              fontsize=14,
+              fontsize=18,
               frameon=False,
               fancybox=False)
 
