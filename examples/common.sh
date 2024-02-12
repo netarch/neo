@@ -30,6 +30,7 @@ if [ -z "${SCRIPT_DIR+x}" ]; then
 fi
 
 PROJECT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)"
+VENV_DIR="$PROJECT_DIR/.venv"
 NEO="$PROJECT_DIR/build/neo"
 CONF="$SCRIPT_DIR/network.toml"
 CONFGEN=("python3" "$SCRIPT_DIR/confgen.py")
@@ -120,8 +121,7 @@ _main() {
 
     # Activate Python venv for confgen scripts.
     # shellcheck source=/dev/null
-    source "$PROJECT_DIR/scripts/bootstrap.sh"
-    activate_python_venv
+    source "$VENV_DIR/bin/activate"
 
     while :; do
         case "${1-}" in
