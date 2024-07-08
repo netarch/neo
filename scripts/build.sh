@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -44,12 +44,7 @@ parse_args() {
 }
 
 main() {
-    # Parse script arguments
     parse_args "$@"
-    # Activate the conan environment
-    source "$SCRIPT_DIR/bootstrap.sh"
-    activate_conan_env
-    # Build
     cmake --build "$BUILD_DIR" -j "$NUM_TASKS"
 }
 

@@ -30,7 +30,6 @@ find_program(Spin_EXECUTABLE NAMES spin REQUIRED)
 execute_process(COMMAND /bin/sh -c "${Spin_EXECUTABLE} -V | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'"
                 OUTPUT_VARIABLE Spin_VERSION
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
-set(Spin_VERSION_STRING ${Spin_VERSION})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Spin

@@ -20,10 +20,13 @@ __pycache__
 
 # Development environment files
 *.code-workspace
-.vscode/**/*
-!.vscode/launch.json
+.vscode/
 .cache/
 .venv/
 
+# Trashed files
+.Trash*/
+
 # Packages
 *.tar.*
+*.deb

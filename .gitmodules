@@ -6,3 +6,9 @@
 	path = third_party/libbpf/libbpf
 	url = https://github.com/libbpf/libbpf.git
 	ignore = dirty
+[submodule "vcpkg"]
+	path = depends/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
+[submodule "libnet"]
+	path = third_party/libnet/libnet
+	url = https://github.com/libnet/libnet.git

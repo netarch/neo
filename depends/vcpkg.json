@@ -1,0 +1,50 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "neo",
+    "version": "0.0.1",
+    "homepage": "https://github.com/netarch/neo",
+    "dependencies": [
+        "vcpkg-cmake",
+        "vcpkg-tool-ninja",
+        "vcpkg-pkgconfig-get-modules",
+        "boost-program-options",
+        "boost-stacktrace",
+        {
+            "name": "curl",
+            "features": [
+                "brotli",
+                "c-ares",
+                "gssapi",
+                "http2",
+                "idn",
+                "idn2",
+                "ldap",
+                "openssl",
+                "psl",
+                "ssh",
+                "ssl",
+                "zstd"
+            ]
+        },
+        "pcapplusplus",
+        "rapidjson",
+        "spdlog",
+        "tomlplusplus",
+        {
+            "name": "xxhash",
+            "features": [
+                "xxhsum"
+            ]
+        },
+        "zlib"
+    ],
+    "features": {
+        "tests": {
+            "description": "Unit tests",
+            "dependencies": [
+                "catch2",
+                "gtest"
+            ]
+        }
+    }
+}

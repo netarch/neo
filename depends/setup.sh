@@ -64,18 +64,6 @@ get_docker() {
 }
 
 #
-# Set up LLVM 17 quick and dirty (for Ubuntu)
-# Ref:
-# - https://github.com/actions/runner-images/issues/8659
-# - https://github.com/wheremyfoodat/Panda3DS/blob/master/.github/workflows/Linux_Build.yml
-#
-get_llvm_17() {
-    wget https://apt.llvm.org/llvm.sh
-    sudo bash ./llvm.sh 17 all
-    rm -f ./llvm.sh
-}
-
-#
 # Build and install the package with PKGBUILD
 #
 makepkg_arch() {
@@ -196,45 +184,49 @@ main() {
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
 
-        script_deps=(base-devel git)
-        build_deps=(clang)
+        script_deps=(base-devel curl git)
         style_deps=(clang yapf)
-        bpf_deps=(libelf zlib binutils libcap clang llvm lib32-glibc)
+        bpf_deps=(elfutils libelf zlib binutils libcap clang llvm glibc lib32-glibc)
         dpdk_deps=(python meson ninja python-pyelftools numactl)
-        depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-            "${bpf_deps[@]}" "${dpdk_deps[@]}" glibc libnl spin-git docker)
+        experiment_deps=(python-matplotlib python-numpy python-pandas python-toml python-networkx)
+        depends=("${script_deps[@]}" "${style_deps[@]}" "${bpf_deps[@]}"
+            "${dpdk_deps[@]}" "${experiment_deps[@]}"
+            gcc clang flex bison cmake ninja python-jinja pkgconf autoconf
+            automake libtool
+            linux-headers # openssl
+            glibc         # libpthread
+            gcc gcc-libs  # libstdc++
+            libnl
+            docker spin-git)
 
-        paru -S --asdeps --needed --noconfirm --removemake "${depends[@]}" "$@"
-        makepkg_arch neo-dev -srcfi --asdeps --noconfirm "$@"
+        paru -Sy --asdeps --noconfirm --removemake "${depends[@]}"
+        makepkg_arch neo-dev -srcfi --asdeps --noconfirm
 
     elif [ "$DISTRO" = "ubuntu" ]; then
         script_deps=(build-essential curl git)
-        build_deps=(clang bison python3-venv cmake pkgconf)
         style_deps=(clang-format yapf3)
-        bpf_deps=(libelf-dev zlib1g-dev libc6-dev libc6-dev-i386 binutils-dev
-            libcap-dev clang llvm)
+        bpf_deps=(elfutils libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm libc6-dev libc6-dev-i386)
         dpdk_deps=(python3 meson ninja-build python3-pyelftools libnuma-dev)
-        depends=("${script_deps[@]}" "${build_deps[@]}" "${style_deps[@]}"
-            "${bpf_deps[@]}" "${dpdk_deps[@]}" libpthread-stubs0-dev
-            libstdc++-12-dev libnl-3-200 libnl-3-dev libnl-genl-3-200
-            libnl-genl-3-dev)
-        aur_pkgs=(spin-git)
+        experiment_deps=(python3-matplotlib python3-numpy python3-pandas python3-toml python3-networkx)
+        depends=("${script_deps[@]}" "${style_deps[@]}" "${bpf_deps[@]}"
+            "${dpdk_deps[@]}" "${experiment_deps[@]}"
+            gcc g++ clang flex bison libbison-dev cmake ninja-build
+            python3-jinja2 pkgconf autoconf automake libtool
+            linux-libc-dev # openssl
+            libpthread-stubs0-dev
+            libstdc++-12-dev # TODO: Try 13.
+            libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
 
         sudo apt update -y -qq
         sudo apt install -y -qq "${depends[@]}"
-        for pkg in "${aur_pkgs[@]}"; do
-            if [[ "$pkg" == "spin-git" ]] && command -v spin >/dev/null 2>&1; then
-                continue
-            fi
-            aur_install "$pkg"
-        done
 
         if ! command -v docker >/dev/null 2>&1; then
             get_docker
         fi
-        if ! command -v clang-17 >/dev/null 2>&1; then
-            get_llvm_17
+        if ! command -v spin >/dev/null 2>&1; then
+            aur_install spin-git
         fi
+
     else
         die "Unsupported distribution: $DISTRO"
     fi

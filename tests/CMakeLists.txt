@@ -1,8 +1,16 @@
 include(CTest)
 
-FILE(GLOB_RECURSE TEST_SRC_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+#
+# Get required testing libraries
+#
+find_package(Catch2 REQUIRED)
+# find_package(GTest CONFIG REQUIRED)
 
-add_executable(neotests $<TARGET_OBJECTS:libneo> ${TEST_SRC_FILES})
+#
+# Build neotests
+#
+FILE(GLOB_RECURSE TEST_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+add_executable(neotests $<TARGET_OBJECTS:libneo> ${TEST_SRCS})
 target_link_libraries(neotests PRIVATE
     CURL::libcurl
     Catch2::Catch2
@@ -12,7 +20,7 @@ target_link_libraries(neotests PRIVATE
     tomlplusplus::tomlplusplus
 )
 
-#add_custom_target(neotests-setcap ALL
+# add_custom_target(neotests-setcap ALL
 #    sudo setcap "cap_sys_admin+pe cap_net_admin+pe cap_net_raw+pe cap_sys_ptrace+pe" neotests
 #    DEPENDS neotests)
 

@@ -3,7 +3,6 @@ ExternalProject_Add(libbpf
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
     CONFIGURE_COMMAND ""
     BUILD_COMMAND make -s
-        V=1
         BUILD_STATIC_ONLY=1
         OBJDIR=${CMAKE_CURRENT_BINARY_DIR}
         DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/install

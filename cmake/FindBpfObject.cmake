@@ -39,13 +39,11 @@ Example Usage:
 # Find clang and check clang version
 #
 find_program(CLANG_EXE NAMES clang REQUIRED)
-
 execute_process(COMMAND ${CLANG_EXE} --version
     OUTPUT_VARIABLE CLANG_version_output
     ERROR_VARIABLE CLANG_version_error
     RESULT_VARIABLE CLANG_version_result
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 if (${CLANG_version_result} EQUAL 0)
     if ("${CLANG_version_output}" MATCHES "clang version ([^\n]+)\n")
         # Transform X.Y.Z into X;Y;Z which can then be interpreted as a list

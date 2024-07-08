@@ -5,8 +5,15 @@ pkgdesc="meta package for neo development"
 arch=('any')
 url="https://github.com/netarch/neo"
 license=()
-depends=(clang yapf libelf zlib binutils libcap llvm lib32-glibc python meson
-         ninja python-pyelftools numactl glibc libnl spin-git docker)
+depends=(base-devel curl git clang yapf elfutils libelf zlib binutils libcap
+         llvm glibc lib32-glibc python meson ninja python-pyelftools numactl
+         python-matplotlib python-numpy python-pandas python-toml
+         python-networkx gcc clang flex bison cmake ninja python-jinja pkgconf
+         autoconf automake libtool
+         linux-headers # openssl
+         glibc        # libpthread
+         gcc gcc-libs # libstdc++
+         libnl docker spin-git)
 makedepends=()
 checkdepends=()
 optdepends=()
