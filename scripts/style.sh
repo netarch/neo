@@ -62,7 +62,7 @@ main() {
         CLANG_FORMAT=clang-format
     fi
 
-    check_depends clang-format "$YAPF"
+    check_depends "$CLANG_FORMAT" "$YAPF"
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"

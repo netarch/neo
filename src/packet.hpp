@@ -15,8 +15,7 @@ class Payload;
  * It is used for all modelled interfaces and for identification of relevant
  * packets.
  */
-#define ID_ETH_ADDR                                                            \
-    { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }
+#define ID_ETH_ADDR {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 
 /**
  * A located abstract representative packet.

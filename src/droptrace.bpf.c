@@ -8,8 +8,7 @@
 #include "droptrace.h"
 
 // packet.hpp
-#define ID_ETH_ADDR                                                            \
-    { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF }
+#define ID_ETH_ADDR {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 
 char LICENSE[] SEC("license") = "Dual MIT/GPL";
 

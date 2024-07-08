@@ -28,7 +28,7 @@ std::string IPv4Address::to_string() const {
     return std::to_string((value >> 24) & 255) + "." +
            std::to_string((value >> 16) & 255) + "." +
            std::to_string((value >> 8) & 255) + "." +
-           std::to_string((value)&255);
+           std::to_string((value) & 255);
 }
 
 size_t IPv4Address::length() const {
