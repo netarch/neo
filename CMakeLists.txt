@@ -155,14 +155,16 @@ target_compile_definitions(libneo PRIVATE
     MAX_CONNS=${MAX_CONNS}
 )
 target_include_directories(libneo PUBLIC ${SRC_DIR} ${libnet_INCLUDE_DIRS})
-target_link_libraries(libneo PUBLIC stacktrace_config)
+target_link_libraries(libneo PUBLIC
+    stacktrace_config
+    Threads::Threads
+    Libnl::Libnl
+)
 target_link_libraries(libneo PRIVATE
     Boost::program_options
     CURL::libcurl
     ${libnet_LIBRARIES}
-    Libnl::Libnl
     PCAP::PCAP PcapPlusPlus::Pcap++ PcapPlusPlus::Common++ PcapPlusPlus::Packet++
-    Threads::Threads
     rapidjson
     spdlog::spdlog
     spin_model
@@ -177,7 +179,7 @@ FILE(GLOB_RECURSE BPF_SRC_FILES CONFIGURE_DEPENDS ${SRC_DIR}/*.bpf.c)
 foreach(BPF_SRC_FILE ${BPF_SRC_FILES})
     get_filename_component(BPF_STEM ${BPF_SRC_FILE} NAME_WE)
     bpf_object(${BPF_STEM} ${BPF_STEM}.bpf.c)
-    target_link_libraries(libneo PRIVATE ${BPF_STEM}_skel)
+    target_link_libraries(libneo PUBLIC ${BPF_STEM}_skel)
 endforeach()
 
 #
