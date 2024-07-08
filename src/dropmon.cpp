@@ -15,7 +15,36 @@ using namespace std;
 
 DropMon::DropMon()
     : DropDetection(), _family(0), _dm_sock(nullptr), _stop_dm_thread(false),
-      _drop_ts(0) {}
+      _drop_ts(0) {
+    _net_dm_policy[NET_DM_ATTR_UNSPEC] = {NLA_UNSPEC, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_ALERT_MODE] = {NLA_U8, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PC] = {NLA_U64, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_SYMBOL] = {NLA_STRING, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_IN_PORT] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_TIMESTAMP] = {NLA_U64, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PROTO] = {NLA_U16, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PAYLOAD] = {NLA_UNSPEC, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PAD] = {NLA_UNSPEC, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_TRUNC_LEN] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_ORIG_LEN] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_QUEUE_LEN] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_STATS] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_STATS] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_ORIGIN] = {NLA_U16, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_TRAP_GROUP_NAME] = {NLA_STRING, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_TRAP_NAME] = {NLA_STRING, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_ENTRIES] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_ENTRY] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_TRAP_COUNT] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_SW_DROPS] = {NLA_FLAG, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_DROPS] = {NLA_FLAG, 0, 0};
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
+    _net_dm_policy[NET_DM_ATTR_FLOW_ACTION_COOKIE] = {NLA_UNSPEC, 0, 0};
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+    _net_dm_policy[NET_DM_ATTR_REASON] = {NLA_STRING, 0, 0};
+#endif
+#endif
+}
 
 DropMon::~DropMon() {
     teardown();
@@ -269,37 +298,6 @@ void DropMon::send_msg_async(struct nl_sock *sock, struct nl_msg *msg) const {
     }
 }
 
-static struct nla_policy net_dm_policy[NET_DM_ATTR_MAX + 1] = {
-    [NET_DM_ATTR_UNSPEC] = {NLA_UNSPEC, 0, 0},
-    [NET_DM_ATTR_ALERT_MODE] = {NLA_U8,     0, 0},
-    [NET_DM_ATTR_PC] = {NLA_U64,    0, 0},
-    [NET_DM_ATTR_SYMBOL] = {NLA_STRING, 0, 0},
-    [NET_DM_ATTR_IN_PORT] = {NLA_NESTED, 0, 0},
-    [NET_DM_ATTR_TIMESTAMP] = {NLA_U64,    0, 0},
-    [NET_DM_ATTR_PROTO] = {NLA_U16,    0, 0},
-    [NET_DM_ATTR_PAYLOAD] = {NLA_UNSPEC, 0, 0},
-    [NET_DM_ATTR_PAD] = {NLA_UNSPEC, 0, 0},
-    [NET_DM_ATTR_TRUNC_LEN] = {NLA_U32,    0, 0},
-    [NET_DM_ATTR_ORIG_LEN] = {NLA_U32,    0, 0},
-    [NET_DM_ATTR_QUEUE_LEN] = {NLA_U32,    0, 0},
-    [NET_DM_ATTR_STATS] = {NLA_NESTED, 0, 0},
-    [NET_DM_ATTR_HW_STATS] = {NLA_NESTED, 0, 0},
-    [NET_DM_ATTR_ORIGIN] = {NLA_U16,    0, 0},
-    [NET_DM_ATTR_HW_TRAP_GROUP_NAME] = {NLA_STRING, 0, 0},
-    [NET_DM_ATTR_HW_TRAP_NAME] = {NLA_STRING, 0, 0},
-    [NET_DM_ATTR_HW_ENTRIES] = {NLA_NESTED, 0, 0},
-    [NET_DM_ATTR_HW_ENTRY] = {NLA_NESTED, 0, 0},
-    [NET_DM_ATTR_HW_TRAP_COUNT] = {NLA_U32,    0, 0},
-    [NET_DM_ATTR_SW_DROPS] = {NLA_FLAG,   0, 0},
-    [NET_DM_ATTR_HW_DROPS] = {NLA_FLAG,   0, 0},
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
-    [NET_DM_ATTR_FLOW_ACTION_COOKIE] = {NLA_UNSPEC, 0, 0},
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
-    [NET_DM_ATTR_REASON] = {NLA_STRING, 0, 0},
-#endif
-#endif
-};
-
 Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
     int nbytes, err, payloadlen;
     struct sockaddr_nl addr; // message source address
@@ -326,7 +324,7 @@ Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
     }
 
     // parse genetlink message attributes
-    err = genlmsg_parse(nlh, 0, attrs, NET_DM_ATTR_MAX, net_dm_policy);
+    err = genlmsg_parse(nlh, 0, attrs, NET_DM_ATTR_MAX, _net_dm_policy);
     if (err < 0) {
         logger.warn("genlmsg_parse: " + string(nl_geterror(err)));
         goto out_free;

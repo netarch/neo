@@ -35,11 +35,11 @@ protected:
 
 public:
     Node(const Node &) = delete;
-    Node(Node &&) = default;
+    Node(Node &&) = delete;
     virtual ~Node();
 
     virtual Node &operator=(const Node &) = delete;
-    virtual Node &operator=(Node &&) = default;
+    virtual Node &operator=(Node &&) = delete;
 
     virtual std::string to_string() const;
     virtual std::string get_name() const;

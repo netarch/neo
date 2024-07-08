@@ -32,6 +32,7 @@ protected:
 protected:
     friend class ConfigParser;
     Middlebox() = default;
+    using Node::operator=;
 
 public:
     Middlebox(const Middlebox &) = delete;

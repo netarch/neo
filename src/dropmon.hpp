@@ -4,8 +4,10 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <linux/net_dropmon.h>
 #include <memory>
 #include <mutex>
+#include <netlink/attr.h>
 #include <thread>
 
 #include "driver/driver.hpp"
@@ -26,6 +28,8 @@ private:
     uint64_t _drop_ts;           // kernel drop timestamp (race)
     std::mutex _mtx;             // lock for _target_pkt and _drop_ts
     std::condition_variable _cv; // for reading _drop_ts
+
+    struct nla_policy _net_dm_policy[NET_DM_ATTR_MAX + 1];
 
     DropMon();
     void listen_msgs();

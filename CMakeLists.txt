@@ -40,10 +40,6 @@ check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
 add_compile_options(-Wall -Wextra -Werror)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Wno-c99-designator) # dropmon
-endif()
-
 #
 # release/debug compile flags
 #

@@ -29,6 +29,8 @@ private:
 private:
     friend class ConfigParser;
     DockerNode() = default;
+    using Node::operator=;
+    using Middlebox::operator=;
 
 public:
     const decltype(_daemon) &daemon() const { return _daemon; }
