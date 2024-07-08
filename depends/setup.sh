@@ -211,7 +211,7 @@ main() {
         experiment_deps=(python3-matplotlib python3-numpy python3-pandas python3-toml python3-networkx)
         depends=("${script_deps[@]}" "${style_deps[@]}" "${bpf_deps[@]}"
             "${dpdk_deps[@]}" "${experiment_deps[@]}"
-            gcc g++ clang flex bison libbison-dev cmake ninja-build
+            gcc g++ clang clang-tools flex bison libbison-dev cmake ninja-build
             python3-jinja2 pkgconf autoconf automake libtool
             zip unzip      # utils required by vcpkg
             linux-libc-dev # openssl
