@@ -10,6 +10,7 @@ depends=(base-devel curl git clang yapf elfutils libelf zlib binutils libcap
          python-matplotlib python-numpy python-pandas python-toml
          python-networkx gcc clang flex bison cmake ninja python-jinja pkgconf
          autoconf automake libtool
+         zip unzip     # utils required by vcpkg
          linux-headers # openssl
          glibc        # libpthread
          gcc gcc-libs # libstdc++

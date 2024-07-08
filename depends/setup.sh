@@ -193,13 +193,14 @@ main() {
             "${dpdk_deps[@]}" "${experiment_deps[@]}"
             gcc clang flex bison cmake ninja python-jinja pkgconf autoconf
             automake libtool
+            zip unzip     # utils required by vcpkg
             linux-headers # openssl
             glibc         # libpthread
             gcc gcc-libs  # libstdc++
             libnl
             docker spin-git)
 
-        paru -Sy --asdeps --noconfirm --removemake "${depends[@]}"
+        paru -Sy --asdeps --needed --noconfirm --removemake "${depends[@]}"
         makepkg_arch neo-dev -srcfi --asdeps --noconfirm
 
     elif [ "$DISTRO" = "ubuntu" ]; then
@@ -212,6 +213,7 @@ main() {
             "${dpdk_deps[@]}" "${experiment_deps[@]}"
             gcc g++ clang flex bison libbison-dev cmake ninja-build
             python3-jinja2 pkgconf autoconf automake libtool
+            zip unzip      # utils required by vcpkg
             linux-libc-dev # openssl
             libpthread-stubs0-dev
             libstdc++-12-dev # TODO: Try 13.
