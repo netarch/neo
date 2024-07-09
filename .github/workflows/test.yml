@@ -10,7 +10,7 @@ jobs:
   #     - run: ./scripts/style.sh
 
   tests:
-    needs: style-check
+    # needs: style-check
     runs-on: ubuntu-24.04
     strategy:
       matrix:
