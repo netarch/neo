@@ -37,13 +37,13 @@ private:
     void grow_and_set_l2_lan(Node *, Interface *);
 
 public:
-    Network() = default;
+    Network()                = default;
     Network(const Network &) = delete;
-    Network(Network &&) = delete;
+    Network(Network &&)      = delete;
     ~Network();
 
     Network &operator=(const Network &) = delete;
-    Network &operator=(Network &&) = delete;
+    Network &operator=(Network &&)      = delete;
 
     void reset();
     const decltype(_nodes) &nodes() const { return _nodes; }

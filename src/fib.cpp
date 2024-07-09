@@ -7,9 +7,11 @@
 FIB_IPNH::FIB_IPNH(Node *l3nh,
                    Interface *l3nh_intf,
                    Node *l2nh,
-                   Interface *l2nh_intf)
-    : _l3_node(l3nh), _l3_intf(l3nh_intf), _l2_node(l2nh), _l2_intf(l2nh_intf) {
-}
+                   Interface *l2nh_intf) :
+    _l3_node(l3nh),
+    _l3_intf(l3nh_intf),
+    _l2_node(l2nh),
+    _l2_intf(l2nh_intf) {}
 
 std::string FIB_IPNH::to_string() const {
     std::string ret;

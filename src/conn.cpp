@@ -12,15 +12,25 @@ Connection::Connection(int protocol,
                        Node *src_node,
                        EqClass *dst_ip_ec,
                        uint16_t src_port,
-                       uint16_t dst_port)
-    : protocol(protocol), src_node(src_node), dst_ip_ec(dst_ip_ec),
-      src_port(src_port), dst_port(dst_port), src_ip(0U), seq(0), ack(0) {}
+                       uint16_t dst_port) :
+    protocol(protocol),
+    src_node(src_node),
+    dst_ip_ec(dst_ip_ec),
+    src_port(src_port),
+    dst_port(dst_port),
+    src_ip(0U),
+    seq(0),
+    ack(0) {}
 
-Connection::Connection(const Packet &pkt, Node *src_node)
-    : protocol(PS_TO_PROTO(pkt.get_proto_state())), src_node(src_node),
-      dst_ip_ec(EqClassMgr::get().find_ec(pkt.get_dst_ip())),
-      src_port(pkt.get_src_port()), dst_port(pkt.get_dst_port()),
-      src_ip(pkt.get_src_ip()), seq(pkt.get_seq()), ack(pkt.get_ack()) {}
+Connection::Connection(const Packet &pkt, Node *src_node) :
+    protocol(PS_TO_PROTO(pkt.get_proto_state())),
+    src_node(src_node),
+    dst_ip_ec(EqClassMgr::get().find_ec(pkt.get_dst_ip())),
+    src_port(pkt.get_src_port()),
+    dst_port(pkt.get_dst_port()),
+    src_ip(pkt.get_src_ip()),
+    seq(pkt.get_seq()),
+    ack(pkt.get_ack()) {}
 
 std::string Connection::to_string() const {
     std::string ret = "[" + proto_str(protocol) + "] " + src_node->get_name() +

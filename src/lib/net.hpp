@@ -27,7 +27,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    Net(const Net &) = delete;
+    Net(const Net &)            = delete;
     Net &operator=(const Net &) = delete;
     ~Net();
 

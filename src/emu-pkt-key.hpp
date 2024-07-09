@@ -22,10 +22,11 @@ private:
     friend class EmuPktKeyHash;
 
 public:
-    EmuPktKey(const IPv4Address &addr, uint16_t port)
-        : _ip(addr), _port(port) {}
+    EmuPktKey(const IPv4Address &addr, uint16_t port) :
+        _ip(addr),
+        _port(port) {}
     EmuPktKey(const EmuPktKey &) = default;
-    EmuPktKey(EmuPktKey &&) = default;
+    EmuPktKey(EmuPktKey &&)      = default;
 
     bool operator==(const EmuPktKey &) const = default;
 

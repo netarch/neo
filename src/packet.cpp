@@ -16,13 +16,23 @@
 #include "process/process.hpp"
 #include "protocols.hpp"
 
-Packet::Packet()
-    : interface(nullptr), src_ip(0U), dst_ip(0U), src_port(0), dst_port(0),
-      seq(0), ack(0), proto_state(0), payload(nullptr), _conn(-1),
-      _is_new(false), _opposite_dir(false), _next_phase(false) {}
+Packet::Packet() :
+    interface(nullptr),
+    src_ip(0U),
+    dst_ip(0U),
+    src_port(0),
+    dst_port(0),
+    seq(0),
+    ack(0),
+    proto_state(0),
+    payload(nullptr),
+    _conn(-1),
+    _is_new(false),
+    _opposite_dir(false),
+    _next_phase(false) {}
 
-Packet::Packet(const Model &model)
-    : Packet() // make sure all members are initialized
+Packet::Packet(const Model &model) :
+    Packet() // make sure all members are initialized
 {
     this->interface = model.get_ingress_intf();
 
@@ -31,16 +41,16 @@ Packet::Packet(const Model &model)
 
     this->src_port = model.get_src_port();
     this->dst_port = model.get_dst_port();
-    this->seq = model.get_seq();
-    this->ack = model.get_ack();
+    this->seq      = model.get_seq();
+    this->ack      = model.get_ack();
 
     this->proto_state = model.get_proto_state();
-    this->payload = model.get_payload();
+    this->payload     = model.get_payload();
 
-    this->_conn = model.get_conn();
-    this->_is_new = PS_IS_FIRST(model.get_proto_state());
+    this->_conn         = model.get_conn();
+    this->_is_new       = PS_IS_FIRST(model.get_proto_state());
     this->_opposite_dir = false;
-    this->_next_phase = false;
+    this->_next_phase   = false;
 }
 
 Packet::Packet(Interface *intf,
@@ -50,11 +60,20 @@ Packet::Packet(Interface *intf,
                uint16_t dst_port,
                uint32_t seq,
                uint32_t ack,
-               uint16_t proto_state)
-    : interface(intf), src_ip(src_ip), dst_ip(dst_ip), src_port(src_port),
-      dst_port(dst_port), seq(seq), ack(ack), proto_state(proto_state),
-      payload(nullptr), _conn(-1), _is_new(false), _opposite_dir(false),
-      _next_phase(false) {}
+               uint16_t proto_state) :
+    interface(intf),
+    src_ip(src_ip),
+    dst_ip(dst_ip),
+    src_port(src_port),
+    dst_port(dst_port),
+    seq(seq),
+    ack(ack),
+    proto_state(proto_state),
+    payload(nullptr),
+    _conn(-1),
+    _is_new(false),
+    _opposite_dir(false),
+    _next_phase(false) {}
 
 std::string Packet::to_string() const {
     int proto_state = this->proto_state;
@@ -90,7 +109,7 @@ struct drop_data Packet::to_drop_data(Driver *driver) const {
 
     // L1
     if (driver && typeid(*driver) == typeid(Docker)) {
-        auto docker = static_cast<Docker *>(driver);
+        auto docker    = static_cast<Docker *>(driver);
         auto intf_name = this->interface->get_name();
         docker->enterns();
         data.ingress_ifindex = if_nametoindex(intf_name.c_str());
@@ -102,28 +121,28 @@ struct drop_data Packet::to_drop_data(Driver *driver) const {
     data.eth_proto = htons(ETH_P_IP);
 
     // L3
-    data.saddr = htonl(this->src_ip.get_value());
-    data.daddr = htonl(this->dst_ip.get_value());
+    data.saddr    = htonl(this->src_ip.get_value());
+    data.daddr    = htonl(this->dst_ip.get_value());
     auto ip_proto = PS_TO_PROTO(this->proto_state);
 
     // L4
     if (ip_proto == proto::tcp) {
-        data.ip_proto = IPPROTO_TCP;
+        data.ip_proto        = IPPROTO_TCP;
         data.transport.sport = htons(this->src_port);
         data.transport.dport = htons(this->dst_port);
-        data.transport.seq = htonl(this->seq);
-        data.transport.ack = htonl(this->ack);
+        data.transport.seq   = htonl(this->seq);
+        data.transport.ack   = htonl(this->ack);
     } else if (ip_proto == proto::udp) {
-        data.ip_proto = IPPROTO_UDP;
+        data.ip_proto        = IPPROTO_UDP;
         data.transport.sport = htons(this->src_port);
         data.transport.dport = htons(this->dst_port);
-        data.transport.seq = htons(0);
-        data.transport.ack = htons(0);
+        data.transport.seq   = htons(0);
+        data.transport.ack   = htons(0);
     } else if (ip_proto == proto::icmp_echo) {
         data.ip_proto = IPPROTO_ICMP;
         data.icmp.icmp_type =
             this->proto_state == PS_ICMP_ECHO_REQ ? ICMP_ECHO : ICMP_ECHOREPLY;
-        data.icmp.icmp_echo_id = htons(42);
+        data.icmp.icmp_echo_id  = htons(42);
         data.icmp.icmp_echo_seq = htons(0);
     } else {
         logger.error("Invalid protocol");
@@ -192,9 +211,9 @@ void Packet::clear() {
     interface = nullptr;
     src_ip = dst_ip = 0U;
     src_port = dst_port = 0;
-    seq = ack = 0;
+    seq = ack   = 0;
     proto_state = 0;
-    payload = nullptr;
+    payload     = nullptr;
 }
 
 bool Packet::empty() const {

@@ -15,10 +15,10 @@ private:
 
 public:
     Logger(const std::string &name = "");
-    Logger(const Logger &) = delete;
-    Logger(Logger &&) = delete;
+    Logger(const Logger &)            = delete;
+    Logger(Logger &&)                 = delete;
     Logger &operator=(const Logger &) = delete;
-    Logger &operator=(Logger &&) = delete;
+    Logger &operator=(Logger &&)      = delete;
 
     void enable_console_logging();
     void disable_console_logging();

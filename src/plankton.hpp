@@ -57,10 +57,10 @@ private:
 
 public:
     // Disable the copy/move constructors and the assignment operators
-    Plankton(const Plankton &) = delete;
-    Plankton(Plankton &&) = delete;
+    Plankton(const Plankton &)            = delete;
+    Plankton(Plankton &&)                 = delete;
     Plankton &operator=(const Plankton &) = delete;
-    Plankton &operator=(Plankton &&) = delete;
+    Plankton &operator=(Plankton &&)      = delete;
     ~Plankton();
 
     static Plankton &get();

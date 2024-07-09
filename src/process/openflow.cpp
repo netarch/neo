@@ -64,14 +64,14 @@ const decltype(OpenflowProcess::updates) &OpenflowProcess::get_updates() const {
 std::map<Node *, std::set<FIB_IPNH>>
 OpenflowProcess::get_installed_updates() const {
     std::map<Node *, std::set<FIB_IPNH>> installed_updates;
-    EqClass *ec = model.get_dst_ip_ec();
+    EqClass *ec                       = model.get_dst_ip_ec();
     OpenflowUpdateState *update_state = model.get_openflow_update_state();
 
     size_t node_order = 0;
     for (const auto &pair : this->updates) {
         size_t num_installed =
             update_state->num_of_installed_updates(node_order);
-        Node *node = pair.first;
+        Node *node          = pair.first;
         RoutingTable of_rib = node->get_rib();
 
         for (size_t i = 0; i < num_installed; ++i) {
@@ -80,7 +80,7 @@ OpenflowProcess::get_installed_updates() const {
             }
         }
 
-        IPv4Address addr = ec->representative_addr();
+        IPv4Address addr             = ec->representative_addr();
         std::set<FIB_IPNH> next_hops = node->get_ipnhs(addr, &of_rib);
         if (!next_hops.empty()) {
             installed_updates.emplace(node, std::move(next_hops));
@@ -100,7 +100,7 @@ bool OpenflowProcess::has_updates(Node *node) const {
     }
 
     OpenflowUpdateState *update_state = model.get_openflow_update_state();
-    int node_order = std::distance(this->updates.begin(), itr);
+    int node_order       = std::distance(this->updates.begin(), itr);
     size_t num_installed = update_state->num_of_installed_updates(node_order);
     size_t num_of_all_updates = itr->second.size();
 
@@ -142,7 +142,7 @@ void OpenflowProcess::install_update() {
     }
 
     Node *current_node = model.get_pkt_location();
-    auto itr = this->updates.find(current_node);
+    auto itr           = this->updates.find(current_node);
     assert(itr != this->updates.end());
     const std::vector<Route> &all_updates = itr->second;
     int node_order = std::distance(this->updates.begin(), itr);
@@ -172,7 +172,7 @@ void OpenflowProcess::install_update() {
 
     // check route precedence (longest prefix match)
     RoutingTable of_rib = current_node->get_rib();
-    EqClass *ec = model.get_dst_ip_ec();
+    EqClass *ec         = model.get_dst_ip_ec();
     for (size_t i = 0; i < num_installed; ++i) {
         if (all_updates[i].relevant_to_ec(*ec)) {
             of_rib.insert(all_updates[i]);
@@ -181,7 +181,7 @@ void OpenflowProcess::install_update() {
     of_rib.update(update);
 
     // get the next hops
-    IPv4Address addr = ec->representative_addr();
+    IPv4Address addr             = ec->representative_addr();
     std::set<FIB_IPNH> next_hops = current_node->get_ipnhs(addr, &of_rib);
 
     // construct the new FIB

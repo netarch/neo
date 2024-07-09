@@ -5,8 +5,11 @@
 Route::Route(const IPNetwork<IPv4Address> &net,
              const IPv4Address &nh,
              const std::string &ifn,
-             int adm_dist)
-    : network(net), next_hop(nh), egress_intf(ifn), adm_dist(adm_dist) {}
+             int adm_dist) :
+    network(net),
+    next_hop(nh),
+    egress_intf(ifn),
+    adm_dist(adm_dist) {}
 
 std::string Route::to_string() const {
     std::string ret = network.to_string() + " --> ";
@@ -61,7 +64,7 @@ bool Route::relevant_to_ec(const EqClass &ec) const {
         } else {
             // first loop
             fully_contained = this->network.contains(range);
-            has_been_set = true;
+            has_been_set    = true;
         }
     }
 

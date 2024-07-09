@@ -21,7 +21,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    EqClassMgr(const EqClassMgr &) = delete;
+    EqClassMgr(const EqClassMgr &)            = delete;
     EqClassMgr &operator=(const EqClassMgr &) = delete;
     ~EqClassMgr();
 

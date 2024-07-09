@@ -86,7 +86,7 @@ public:
     void leavens(bool mnt = false) const; // Return to the original namespaces
     ino_t netns_ino() const;
     void exec(const std::vector<std::string> &cmd);
-    void teardown(); // Reset the object
+    void teardown();       // Reset the object
 
     void init() override;  // (Re)Initialize a docker container
     void reset() override; // (Soft-)Reset the container for backtracking

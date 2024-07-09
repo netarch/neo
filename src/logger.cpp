@@ -101,7 +101,7 @@ void Logger::warn(const string &msg) {
 }
 
 void Logger::error(const string &msg) {
-    auto trace = st::stacktrace();
+    auto trace            = st::stacktrace();
     string msg_with_trace = msg;
 
     if (!trace.empty()) {
@@ -120,7 +120,7 @@ void Logger::error(const string &msg) {
 
 void Logger::error(const string &msg, int err_num) {
     locale_t locale = newlocale(LC_ALL_MASK, "", 0);
-    string err_str = strerror_l(err_num, locale);
+    string err_str  = strerror_l(err_num, locale);
     freelocale(locale);
     error(msg + ": " + err_str);
 }

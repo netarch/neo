@@ -34,7 +34,7 @@ int Consistency::check_violation() {
         // verification result
         if (unset) {
             result = model.get_violated();
-            unset = false;
+            unset  = false;
         }
 
         // check for consistency

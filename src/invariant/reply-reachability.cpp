@@ -39,7 +39,7 @@ static inline bool other_executable_conns_exist(const Model &model) {
 }
 
 int ReplyReachability::check_violation() {
-    int mode = model.get_fwd_mode();
+    int mode        = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 
     if ((PS_IS_TCP(proto_state) && proto_state < PS_TCP_L7_REP) ||

@@ -204,7 +204,7 @@ Node::get_ipnh(const std::string &egress_intf_name, const IPv4Address &dst) {
             return FIB_IPNH(l2nh.first, l2nh.second, l2nh.first, l2nh.second);
         } else {
             L2_LAN *l2_lan = l2nh.first->get_l2lan(l2nh.second);
-            auto l3nh = l2_lan->find_l3_endpoint(dst);
+            auto l3nh      = l2_lan->find_l3_endpoint(dst);
             if (l3nh.first) {
                 return FIB_IPNH(l3nh.first, l3nh.second, l2nh.first,
                                 l2nh.second);

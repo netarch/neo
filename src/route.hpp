@@ -37,11 +37,11 @@ private:
 
 public:
     Route(const Route &) = default;
-    Route(Route &&) = default;
+    Route(Route &&)      = default;
     Route(const IPNetwork<IPv4Address> &net,
-          const IPv4Address &nh = IPv4Address(),
+          const IPv4Address &nh  = IPv4Address(),
           const std::string &ifn = "",
-          int adm_dist = 255);
+          int adm_dist           = 255);
 
     std::string to_string() const;
     const IPNetwork<IPv4Address> &get_network() const;
@@ -52,7 +52,7 @@ public:
     bool relevant_to_ec(const EqClass &) const;
 
     Route &operator=(const Route &) = default;
-    Route &operator=(Route &&) = default;
+    Route &operator=(Route &&)      = default;
 };
 
 /*
@@ -60,9 +60,9 @@ public:
  * network (longest prefix)
  * network (network.addr())
  */
-bool operator<(const Route &, const Route &); // this precede other
+bool operator<(const Route &, const Route &);  // this precede other
 bool operator<=(const Route &, const Route &);
-bool operator>(const Route &, const Route &); // other precede this
+bool operator>(const Route &, const Route &);  // other precede this
 bool operator>=(const Route &, const Route &);
 bool operator==(const Route &, const Route &); // same network (destination)
 bool operator!=(const Route &, const Route &);

@@ -40,7 +40,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    PayloadMgr(const PayloadMgr &) = delete;
+    PayloadMgr(const PayloadMgr &)            = delete;
     PayloadMgr &operator=(const PayloadMgr &) = delete;
     ~PayloadMgr();
 

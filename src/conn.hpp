@@ -33,7 +33,7 @@ public:
                uint16_t dst_port);
     Connection(const Packet &, Node *src_node);
     Connection(const Connection &) = default;
-    Connection(Connection &&) = default;
+    Connection(Connection &&)      = default;
 
     std::string to_string() const;
     void init(size_t conn_idx) const;

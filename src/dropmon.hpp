@@ -42,10 +42,10 @@ private:
 
 public:
     // Disable the copy/move constructors and the assignment operators
-    DropMon(const DropMon &) = delete;
-    DropMon(DropMon &&) = delete;
+    DropMon(const DropMon &)            = delete;
+    DropMon(DropMon &&)                 = delete;
     DropMon &operator=(const DropMon &) = delete;
-    DropMon &operator=(DropMon &&) = delete;
+    DropMon &operator=(DropMon &&)      = delete;
     ~DropMon() override;
 
     static DropMon &get();

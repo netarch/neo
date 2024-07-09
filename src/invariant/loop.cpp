@@ -24,9 +24,9 @@ void Loop::init() {
 
 int Loop::check_violation() {
     EqClass *dst_ip_ec = model.get_dst_ip_ec();
-    uint16_t dst_port = model.get_dst_port();
+    uint16_t dst_port  = model.get_dst_port();
     Node *current_node = model.get_pkt_location();
-    auto current_hop = make_tuple(dst_ip_ec, dst_port, current_node);
+    auto current_hop   = make_tuple(dst_ip_ec, dst_port, current_node);
     const VisitedHops *const visited_hops = model.get_visited_hops();
 
     if (visited_hops->visited(current_hop)) {

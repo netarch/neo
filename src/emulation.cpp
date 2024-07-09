@@ -20,9 +20,13 @@
 
 using namespace std;
 
-Emulation::Emulation()
-    : _mb(nullptr), _nph(nullptr), _dropmon(false), _stop_recv(false),
-      _stop_drop(false), _drop_ts(0) {}
+Emulation::Emulation() :
+    _mb(nullptr),
+    _nph(nullptr),
+    _dropmon(false),
+    _stop_recv(false),
+    _stop_drop(false),
+    _drop_ts(0) {}
 
 Emulation::~Emulation() {
     teardown();
@@ -32,7 +36,7 @@ void Emulation::teardown() {
     stop_recv_thread();
     stop_drop_thread();
 
-    _mb = nullptr;
+    _mb  = nullptr;
     _nph = nullptr;
     _driver.reset();
     _seq_offsets.clear();
@@ -168,7 +172,7 @@ void Emulation::apply_offsets(Packet &pkt) const {
 
     // Apply seq offset to the ack number
     uint32_t seq_offset = 0;
-    auto i = this->_seq_offsets.find(key);
+    auto i              = this->_seq_offsets.find(key);
     if (i != this->_seq_offsets.end()) {
         seq_offset = i->second;
     }
@@ -176,7 +180,7 @@ void Emulation::apply_offsets(Packet &pkt) const {
 
     // Apply port offset to the dst port number
     uint16_t port_offset = 0;
-    auto j = this->_port_offsets.find(key);
+    auto j               = this->_port_offsets.find(key);
     if (j != this->_port_offsets.end()) {
         port_offset = j->second;
     }
@@ -204,7 +208,7 @@ void Emulation::update_offsets(list<Packet> &pkts) {
             pkt.set_seq(0);
         } else {
             uint32_t offset = 0;
-            auto i = this->_seq_offsets.find(key);
+            auto i          = this->_seq_offsets.find(key);
             if (i != this->_seq_offsets.end()) {
                 offset = i->second;
             }
@@ -219,7 +223,7 @@ void Emulation::update_offsets(list<Packet> &pkts) {
             }
         } else {
             uint16_t offset = 0;
-            auto i = this->_port_offsets.find(key);
+            auto i          = this->_port_offsets.find(key);
             if (i != this->_port_offsets.end()) {
                 offset = i->second;
             }
@@ -305,7 +309,7 @@ int Emulation::rewind(NodePacketHistory *nph) {
 
     if (nph) {
         list<Packet *> pkts = nph->get_packets_since(_nph);
-        rewind_injections = pkts.size();
+        rewind_injections   = pkts.size();
         for (Packet *packet : pkts) {
             send_pkt(*packet);
 
@@ -384,7 +388,7 @@ InjectionResult Emulation::send_pkt(const Packet &send_pkt) {
         _STATS_STOP(Stats::Op::DROP_LAT); // Packet dropped
     } else if (_recv_pkts.empty()) {
         if (drop) {
-            _STATS_STOP(Stats::Op::PKT_LAT); // Packet accepted in silence
+            _STATS_STOP(Stats::Op::PKT_LAT);  // Packet accepted in silence
         } else {
             _STATS_STOP(Stats::Op::DROP_LAT); // May be dropped or accepted
         }

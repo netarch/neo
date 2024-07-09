@@ -13,10 +13,10 @@ private:
 public:
     PktBuffer(Interface *);
     PktBuffer(const PktBuffer &) = default;
-    PktBuffer(PktBuffer &&) = default;
+    PktBuffer(PktBuffer &&)      = default;
 
     PktBuffer &operator=(const PktBuffer &) = default;
-    PktBuffer &operator=(PktBuffer &&) = default;
+    PktBuffer &operator=(PktBuffer &&)      = default;
 
     Interface *get_intf() const;
     uint8_t *get_buffer();

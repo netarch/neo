@@ -28,19 +28,19 @@ static inline std::string proto_str_lower(int n) {
 // TODO: Make this an enum class
 // Note that for TCP four-way termination handshake, we assume that the second
 // (ACK) and third (FIN) steps are always set within the same packet.
-#define PS_INVALID 0
-#define PS_TCP_INIT_1 1     // TCP 3-way handshake SYN
-#define PS_TCP_INIT_2 2     // TCP 3-way handshake SYN/ACK
-#define PS_TCP_INIT_3 3     // TCP 3-way handshake ACK
-#define PS_TCP_L7_REQ 4     // TCP L7 request
-#define PS_TCP_L7_REQ_A 5   // TCP L7 request ACK
-#define PS_TCP_L7_REP 6     // TCP L7 reply
-#define PS_TCP_L7_REP_A 7   // TCP L7 reply ACK
-#define PS_TCP_TERM_1 8     // TCP termination FIN/ACK
-#define PS_TCP_TERM_2 9     // TCP termination FIN/ACK
-#define PS_TCP_TERM_3 10    // TCP termination ACK
-#define PS_UDP_REQ 11       // UDP request
-#define PS_UDP_REP 12       // UDP reply
+#define PS_INVALID       0
+#define PS_TCP_INIT_1    1  // TCP 3-way handshake SYN
+#define PS_TCP_INIT_2    2  // TCP 3-way handshake SYN/ACK
+#define PS_TCP_INIT_3    3  // TCP 3-way handshake ACK
+#define PS_TCP_L7_REQ    4  // TCP L7 request
+#define PS_TCP_L7_REQ_A  5  // TCP L7 request ACK
+#define PS_TCP_L7_REP    6  // TCP L7 reply
+#define PS_TCP_L7_REP_A  7  // TCP L7 reply ACK
+#define PS_TCP_TERM_1    8  // TCP termination FIN/ACK
+#define PS_TCP_TERM_2    9  // TCP termination FIN/ACK
+#define PS_TCP_TERM_3    10 // TCP termination ACK
+#define PS_UDP_REQ       11 // UDP request
+#define PS_UDP_REP       12 // UDP reply
 #define PS_ICMP_ECHO_REQ 13 // ICMP echo request
 #define PS_ICMP_ECHO_REP 14 // ICMP echo reply
 
@@ -61,10 +61,10 @@ static inline std::string proto_str_lower(int n) {
     ((x) == PS_TCP_TERM_3 || (x) == PS_UDP_REP || (x) == PS_ICMP_ECHO_REP)
 #define PS_IS_TCP(x)                                                           \
     (((x) >= PS_TCP_INIT_1 && (x) <= PS_TCP_TERM_3) || ((x) & 0x800U))
-#define PS_IS_UDP(x) ((x) >= PS_UDP_REQ && (x) <= PS_UDP_REP)
+#define PS_IS_UDP(x)       ((x) >= PS_UDP_REQ && (x) <= PS_UDP_REP)
 #define PS_IS_ICMP_ECHO(x) ((x) >= PS_ICMP_ECHO_REQ && (x) <= PS_ICMP_ECHO_REP)
-#define PS_HAS_SYN(x) ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
-#define PS_HAS_FIN(x) ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
+#define PS_HAS_SYN(x)      ((x) == PS_TCP_INIT_1 || (x) == PS_TCP_INIT_2)
+#define PS_HAS_FIN(x)      ((x) == PS_TCP_TERM_1 || (x) == PS_TCP_TERM_2)
 #define PS_SAME_PROTO(x, y)                                                    \
     ((PS_IS_TCP(x) && PS_IS_TCP(y)) || (PS_IS_UDP(x) && PS_IS_UDP(y)) ||       \
      (PS_IS_ICMP_ECHO(x) && PS_IS_ICMP_ECHO(y)))

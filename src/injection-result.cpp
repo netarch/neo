@@ -11,8 +11,8 @@
 #include "lib/hash.hpp"
 
 InjectionResult::InjectionResult(std::list<Packet> &&recv_pkts,
-                                 bool explicit_drop)
-    : _explicit_drop(explicit_drop) {
+                                 bool explicit_drop) :
+    _explicit_drop(explicit_drop) {
     std::move(recv_pkts.begin(), recv_pkts.end(),
               std::back_inserter(_recv_pkts));
     sort(_recv_pkts.begin(), _recv_pkts.end());

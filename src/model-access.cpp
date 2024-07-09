@@ -42,13 +42,13 @@ void Model::set_state(State *state) {
 }
 
 void Model::init(Network *network, OpenflowProcess *openflow) {
-    this->network = network;
+    this->network  = network;
     this->openflow = openflow;
 }
 
 void Model::reset() {
-    state = nullptr;
-    network = nullptr;
+    state    = nullptr;
+    network  = nullptr;
     openflow = nullptr;
 }
 
@@ -251,7 +251,7 @@ Candidates *Model::get_candidates() const {
 
 Candidates *Model::set_candidates(Candidates &&candidates) const {
     Candidates *new_candidates = new Candidates(std::move(candidates));
-    new_candidates = storage.store_candidates(new_candidates);
+    new_candidates             = storage.store_candidates(new_candidates);
     memcpy(state->conn_state[state->conn].candidates, &new_candidates,
            sizeof(Candidates *));
     return new_candidates;
@@ -300,14 +300,14 @@ FIB *Model::get_fib() const {
 
 FIB *Model::set_fib(FIB &&fib) const {
     FIB *new_fib = new FIB(std::move(fib));
-    new_fib = storage.store_fib(new_fib);
+    new_fib      = storage.store_fib(new_fib);
     memcpy(state->conn_state[state->conn].fib, &new_fib, sizeof(FIB *));
     return new_fib;
 }
 
 void Model::update_fib() const {
     FIB fib;
-    EqClass *ec = model.get_dst_ip_ec();
+    EqClass *ec      = model.get_dst_ip_ec();
     IPv4Address addr = ec->representative_addr();
 
     // collect IP next hops from routing tables
@@ -332,7 +332,7 @@ Choices *Model::get_path_choices() const {
 
 Choices *Model::set_path_choices(Choices &&path_choices) const {
     Choices *new_path_choices = new Choices(std::move(path_choices));
-    new_path_choices = storage.store_choices(new_path_choices);
+    new_path_choices          = storage.store_choices(new_path_choices);
     memcpy(state->conn_state[state->conn].path_choices, &new_path_choices,
            sizeof(Choices *));
     return new_path_choices;
@@ -347,7 +347,7 @@ VisitedHops *Model::get_visited_hops() const {
 
 VisitedHops *Model::set_visited_hops(VisitedHops &&hops) const {
     VisitedHops *new_hops = new VisitedHops(std::move(hops));
-    new_hops = storage.store_visited_hops(new_hops);
+    new_hops              = storage.store_visited_hops(new_hops);
     memcpy(state->conn_state[state->conn].visited_hops, &new_hops,
            sizeof(VisitedHops *));
     return new_hops;
@@ -401,7 +401,7 @@ PacketHistory *Model::get_pkt_hist() const {
 
 PacketHistory *Model::set_pkt_hist(PacketHistory &&pkt_hist) const {
     PacketHistory *new_pkt_hist = new PacketHistory(std::move(pkt_hist));
-    new_pkt_hist = storage.store_pkt_hist(new_pkt_hist);
+    new_pkt_hist                = storage.store_pkt_hist(new_pkt_hist);
     memcpy(state->pkt_hist, &new_pkt_hist, sizeof(PacketHistory *));
     return new_pkt_hist;
 }

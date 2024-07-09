@@ -6,12 +6,12 @@
 #include <unordered_map>
 #include <vector>
 
-#define _STATS_START(op) Stats::get().start(op)
-#define _STATS_STOP(op) Stats::get().stop(op)
-#define _STATS_ZERO_LAT(op) Stats::get().set_zero_latency(op)
+#define _STATS_START(op)           Stats::get().start(op)
+#define _STATS_STOP(op)            Stats::get().stop(op)
+#define _STATS_ZERO_LAT(op)        Stats::get().set_zero_latency(op)
 #define _STATS_REWIND_INJECTION(n) Stats::get().set_rewind_injection_count(n)
-#define _STATS_RESET() Stats::get().reset()
-#define _STATS_LOGRESULTS(op) Stats::get().log_results(op)
+#define _STATS_RESET()             Stats::get().reset()
+#define _STATS_LOGRESULTS(op)      Stats::get().log_results(op)
 
 class Invariant;
 
@@ -102,10 +102,10 @@ private:
     std::pair<long, long> get_rss() const;
 
 public:
-    Stats(const Stats &) = delete;
-    Stats(Stats &&) = delete;
+    Stats(const Stats &)            = delete;
+    Stats(Stats &&)                 = delete;
     Stats &operator=(const Stats &) = delete;
-    Stats &operator=(Stats &&) = delete;
+    Stats &operator=(Stats &&)      = delete;
 
     static Stats &get();
     const std::vector<std::chrono::microseconds> &get_pkt_latencies() const;

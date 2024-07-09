@@ -51,7 +51,7 @@ InjectionResults Middlebox::send_pkt(const Packet &pkt) {
     InjectionResults results;
     for (int i = 0; i < _packets_per_injection; ++i) {
         InjectionResult *ir = new InjectionResult(_emulation->send_pkt(pkt));
-        ir = storage.store_injection_result(ir);
+        ir                  = storage.store_injection_result(ir);
         results.add(ir);
     }
 

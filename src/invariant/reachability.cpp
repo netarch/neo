@@ -44,7 +44,7 @@ static inline bool other_executable_conns_exist(const Model &model) {
 
 int Reachability::check_violation() {
     bool reached;
-    int mode = model.get_fwd_mode();
+    int mode        = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 
     if (request_is_accepted(mode, proto_state) &&

@@ -171,7 +171,7 @@ TEST_CASE("droptrace") {
         REQUIRE_NOTHROW(dt.start());
 
         atomic<bool> stop_dt = false; // loop control flag
-        uint64_t drop_ts = 0;         // kernel drop timestamp (race)
+        uint64_t drop_ts     = 0;     // kernel drop timestamp (race)
         mutex mtx;                    // lock for drop_ts
         condition_variable cv;        // for reading drop_ts
         unique_lock<mutex> lck(mtx);

@@ -8,8 +8,10 @@
 
 using namespace std;
 
-DropTimeout::DropTimeout()
-    : _has_initial_estimate(false), _nprocs(0), _mdev_scalar(0) {}
+DropTimeout::DropTimeout() :
+    _has_initial_estimate(false),
+    _nprocs(0),
+    _mdev_scalar(0) {}
 
 DropTimeout &DropTimeout::get() {
     static DropTimeout instance;
@@ -50,12 +52,12 @@ void DropTimeout::init() {
 }
 
 void DropTimeout::reset() {
-    _lat_avg = chrono::microseconds();
-    _lat_mdev = chrono::microseconds();
-    _timeout = chrono::microseconds();
+    _lat_avg              = chrono::microseconds();
+    _lat_mdev             = chrono::microseconds();
+    _timeout              = chrono::microseconds();
     _has_initial_estimate = false;
-    _nprocs = 0;
-    _mdev_scalar = 0;
+    _nprocs               = 0;
+    _mdev_scalar          = 0;
 }
 
 /**
@@ -65,11 +67,11 @@ void DropTimeout::reset() {
  * @param nprocs the number of parallel processes for the current invariant
  */
 void DropTimeout::adjust_latency_estimate_by_nprocs(int nprocs) {
-    _nprocs = nprocs;
+    _nprocs                      = nprocs;
     static const int total_cores = thread::hardware_concurrency();
-    double load = double(_nprocs) / total_cores;
-    _mdev_scalar = max(5.0, ceil(sqrt(_nprocs) * 2 * load));
-    _timeout = _lat_avg + _lat_mdev * _mdev_scalar;
+    double load                  = double(_nprocs) / total_cores;
+    _mdev_scalar                 = max(5.0, ceil(sqrt(_nprocs) * 2 * load));
+    _timeout                     = _lat_avg + _lat_mdev * _mdev_scalar;
 }
 
 /**

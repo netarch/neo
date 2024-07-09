@@ -72,7 +72,7 @@ void EqClassMgr::split_intersected_ec(EqClass *ec,
 
 void EqClassMgr::add_non_overlapped_ec(const ECRange &range, bool owned) {
     EqClass *new_ec = new EqClass();
-    IPv4Address lb = range.get_lb();
+    IPv4Address lb  = range.get_lb();
     set<ECRange>::const_iterator it;
 
     for (it = _allranges.begin(); it != _allranges.end() && *it != range; ++it)

@@ -1,13 +1,16 @@
 #include "ecrange.hpp"
 
-ECRange::ECRange(const IPv4Address &lb, const IPv4Address &ub)
-    : IPRange<IPv4Address>(lb, ub), ec(nullptr) {}
+ECRange::ECRange(const IPv4Address &lb, const IPv4Address &ub) :
+    IPRange<IPv4Address>(lb, ub),
+    ec(nullptr) {}
 
-ECRange::ECRange(const IPNetwork<IPv4Address> &net)
-    : IPRange<IPv4Address>(net), ec(nullptr) {}
+ECRange::ECRange(const IPNetwork<IPv4Address> &net) :
+    IPRange<IPv4Address>(net),
+    ec(nullptr) {}
 
-ECRange::ECRange(const IPRange<IPv4Address> &range)
-    : IPRange<IPv4Address>(range), ec(nullptr) {}
+ECRange::ECRange(const IPRange<IPv4Address> &range) :
+    IPRange<IPv4Address>(range),
+    ec(nullptr) {}
 
 void ECRange::set_ec(EqClass *ec) {
     this->ec = ec;

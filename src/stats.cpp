@@ -24,7 +24,7 @@ long Stats::get_peak_rss() const {
 }
 
 long Stats::get_current_rss() const {
-    static const string fn = "/proc/self/statm";
+    static const string fn      = "/proc/self/statm";
     static const long page_size = getpagesize() / 1024; // KiB per page
     ifstream ifs(fn);
 
@@ -89,9 +89,9 @@ void Stats::stop(Op op) {
 
     if (op < Op::__OP_TYPE_DIVIDER__) {
         auto [maxrss, currrss] = this->get_rss();
-        _time.at(op) = std::move(duration);
-        _max_rss.at(op) = maxrss;
-        _curr_rss.at(op) = currrss;
+        _time.at(op)           = std::move(duration);
+        _max_rss.at(op)        = maxrss;
+        _curr_rss.at(op)       = currrss;
     } else if (op > Op::__OP_TYPE_DIVIDER__ && op < Op::TIMEOUT) {
         _latencies.at(op).emplace_back(std::move(duration));
         if (op == Op::PKT_LAT || op == Op::DROP_LAT) {
@@ -124,8 +124,8 @@ void Stats::reset() {
 
     for (const Op &op : _all_ops) {
         if (op < Op::__OP_TYPE_DIVIDER__) {
-            _time.at(op) = microseconds{};
-            _max_rss.at(op) = 0;
+            _time.at(op)     = microseconds{};
+            _max_rss.at(op)  = 0;
             _curr_rss.at(op) = 0;
         } else if (op > Op::__OP_TYPE_DIVIDER__) {
             _latencies.at(op).clear();
@@ -136,7 +136,7 @@ void Stats::reset() {
 }
 
 void Stats::log_results(Op op) const {
-    const auto &time = _time.at(op).count();
+    const auto &time    = _time.at(op).count();
     const auto &max_rss = _max_rss.at(op);
     const auto &cur_rss = _curr_rss.at(op);
 

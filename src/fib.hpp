@@ -31,7 +31,7 @@ public:
              Node *l2nh,
              Interface *l2nh_intf);
     FIB_IPNH(const FIB_IPNH &) = default;
-    FIB_IPNH(FIB_IPNH &&) = default;
+    FIB_IPNH(FIB_IPNH &&)      = default;
 
     FIB_IPNH &operator=(FIB_IPNH &&) = default;
 

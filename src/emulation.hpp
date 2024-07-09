@@ -64,10 +64,10 @@ private:
 public:
     Emulation();
     Emulation(const Emulation &) = delete;
-    Emulation(Emulation &&) = delete;
+    Emulation(Emulation &&)      = delete;
     ~Emulation();
     Emulation &operator=(const Emulation &) = delete;
-    Emulation &operator=(Emulation &&) = delete;
+    Emulation &operator=(Emulation &&)      = delete;
 
     decltype(_mb) mb() const { return _mb; }
     decltype(_nph) node_pkt_hist() const { return _nph; }

@@ -143,7 +143,7 @@ TEST_CASE("dropmon") {
         REQUIRE_NOTHROW(dm.start());
 
         atomic<bool> stop_dm = false; // loop control flag
-        uint64_t drop_ts = 0;         // kernel drop timestamp (race)
+        uint64_t drop_ts     = 0;     // kernel drop timestamp (race)
         mutex mtx;                    // lock for drop_ts
         condition_variable cv;        // for reading drop_ts
         unique_lock<mutex> lck(mtx);

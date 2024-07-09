@@ -17,11 +17,11 @@ public:
     typedef std::multiset<Route>::reverse_iterator reverse_iterator;
     typedef std::multiset<Route>::const_reverse_iterator const_reverse_iterator;
 
-    RoutingTable() = default;
-    RoutingTable(const RoutingTable &) = default;
-    RoutingTable(RoutingTable &&) = default;
+    RoutingTable()                                = default;
+    RoutingTable(const RoutingTable &)            = default;
+    RoutingTable(RoutingTable &&)                 = default;
     RoutingTable &operator=(const RoutingTable &) = default;
-    RoutingTable &operator=(RoutingTable &&) = default;
+    RoutingTable &operator=(RoutingTable &&)      = default;
 
     std::string to_string() const;
 

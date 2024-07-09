@@ -25,10 +25,10 @@ private:
 
 public:
     // Disable the copy/move constructors and the assignment operators
-    DropTrace(const DropTrace &) = delete;
-    DropTrace(DropTrace &&) = delete;
+    DropTrace(const DropTrace &)            = delete;
+    DropTrace(DropTrace &&)                 = delete;
     DropTrace &operator=(const DropTrace &) = delete;
-    DropTrace &operator=(DropTrace &&) = delete;
+    DropTrace &operator=(DropTrace &&)      = delete;
     ~DropTrace() override;
 
     static DropTrace &get();
