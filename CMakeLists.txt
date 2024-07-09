@@ -101,7 +101,7 @@ add_library(spin_model STATIC ${CMAKE_CURRENT_BINARY_DIR}/model.c
 target_include_directories(spin_model PRIVATE ${SRC_DIR})
 target_include_directories(spin_model INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
 # compile-time options: https://spinroot.com/spin/Man/Pan.html#B
-target_compile_definitions(spin_model PRIVATE
+target_compile_definitions(spin_model PUBLIC
     NIBIS
     NOBOUNDCHECK
     NOCOMP
