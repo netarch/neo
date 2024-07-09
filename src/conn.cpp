@@ -6,7 +6,6 @@
 #include "packet.hpp"
 #include "payloadmgr.hpp"
 #include "process/forwarding.hpp"
-#include "process/process.hpp"
 #include "protocols.hpp"
 
 Connection::Connection(int protocol,

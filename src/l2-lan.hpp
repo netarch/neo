@@ -7,6 +7,7 @@
 
 #include "lib/hash.hpp"
 #include "lib/ip.hpp"
+
 class Node;
 class Interface;
 

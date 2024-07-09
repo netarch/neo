@@ -5,7 +5,6 @@
 #include <fstream>
 #include <string>
 #include <sys/resource.h>
-#include <tuple>
 #include <unistd.h>
 
 #include "droptimeout.hpp"
@@ -164,14 +163,10 @@ void Stats::log_results(Op op) const {
 
         ofs << "Time (usec), Peak memory (KiB), Current memory (KiB)" << endl
             << time << ", " << max_rss << ", " << cur_rss << endl;
-        ofs << "Overall concretization (usec), "
-            << "Emulation startup (usec), "
-            << "Rewind (usec), "
-            << "Emulation reset (usec), "
-            << "Replay packets (usec), "
-            << "Rewind injection count, "
-            << "Packet latency (usec), "
-            << "Drop latency (usec), "
+        ofs << "Overall concretization (usec), " << "Emulation startup (usec), "
+            << "Rewind (usec), " << "Emulation reset (usec), "
+            << "Replay packets (usec), " << "Rewind injection count, "
+            << "Packet latency (usec), " << "Drop latency (usec), "
             << "Timeout value (usec)" << endl;
 
         auto num_pkts = _latencies.at(Op::PKT_LAT).size();

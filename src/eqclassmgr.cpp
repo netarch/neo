@@ -3,7 +3,6 @@
 #include <cassert>
 #include <iterator>
 #include <random>
-#include <string>
 
 #include "logger.hpp"
 #include "middlebox.hpp"

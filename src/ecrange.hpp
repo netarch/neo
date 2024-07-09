@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include "lib/ip.hpp"
 class ECRange;
 #include "eqclass.hpp"

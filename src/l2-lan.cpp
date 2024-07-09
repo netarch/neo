@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include "logger.hpp"
 #include "node.hpp"
 
 void L2_LAN::collect_intfs(Node *node, [[maybe_unused]] Interface *interface) {

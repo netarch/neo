@@ -337,9 +337,8 @@ void Plankton::verify_conn() {
     // Run SPIN verifier
     const string trail_suffix = "-t" + to_string(getpid()) + ".trail";
     const char *spin_args[] = {
-        // See http://spinroot.com/spin/Man/Pan.html
+        // Run-time options: https://spinroot.com/spin/Man/Pan.html#A
         "neo",
-        "-b", // consider it error to exceed the depth limit
         "-E", // suppress invalid end state errors
         "-n", // suppress report for unreached states
         trail_suffix.c_str(),

@@ -4,7 +4,6 @@
 #include <functional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #define _STATS_START(op) Stats::get().start(op)

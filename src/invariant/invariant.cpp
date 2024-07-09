@@ -4,12 +4,6 @@
 #include <csignal>
 #include <unistd.h>
 
-#include "invariant/conditional.hpp"
-#include "invariant/consistency.hpp"
-#include "invariant/loadbalance.hpp"
-#include "invariant/reachability.hpp"
-#include "invariant/reply-reachability.hpp"
-#include "invariant/waypoint.hpp"
 #include "logger.hpp"
 #include "model-access.hpp"
 

@@ -4,6 +4,7 @@
 
 #include "eqclass.hpp"
 #include "node.hpp"
+
 class Packet;
 
 /*

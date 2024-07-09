@@ -6,7 +6,6 @@
 #include <cstring>
 #include <functional>
 #include <iterator>
-#include <utility>
 #include <vector>
 
 #include "lib/hash.hpp"

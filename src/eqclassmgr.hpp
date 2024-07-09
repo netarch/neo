@@ -4,6 +4,7 @@
 
 #include "eqclass.hpp"
 #include "lib/ip.hpp"
+
 class Network;
 class OpenflowProcess;
 

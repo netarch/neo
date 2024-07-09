@@ -13,7 +13,6 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <utility>
 
 #include "driver/driver.hpp"
 #include "emu-pkt-key.hpp"

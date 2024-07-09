@@ -3,7 +3,6 @@
 #include <set>
 
 #include "conn.hpp"
-#include "eqclass.hpp"
 #include "lib/ip.hpp"
 #include "node.hpp"
 
