@@ -56,13 +56,7 @@ main() {
         YAPF=yapf
     fi
 
-    if command -v clang-format-17 >/dev/null 2>&1; then
-        CLANG_FORMAT=clang-format-17
-    else
-        CLANG_FORMAT=clang-format
-    fi
-
-    check_depends "$CLANG_FORMAT" "$YAPF"
+    check_depends clang-format "$YAPF"
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
@@ -73,7 +67,7 @@ main() {
     if [[ $OVERWRITE -eq 0 ]]; then
         # C++: clang-format
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
-            -exec $CLANG_FORMAT --Werror --dry-run {} +
+            -exec clang-format --Werror --dry-run {} +
         # Python: yapf
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
             -exec $YAPF -p -r -d {} +
@@ -81,7 +75,7 @@ main() {
     else
         # C++: clang-format
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
-            -exec $CLANG_FORMAT --Werror -i {} +
+            -exec clang-format --Werror -i {} +
         # Python: yapf
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
             -exec $YAPF -p -r -i {} +
