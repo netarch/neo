@@ -1,7 +1,5 @@
 #!/bin/bash
-#
-# Common shell utilities for experiment scripts
-#
+
 set -euo pipefail
 
 msg() {
@@ -30,7 +28,6 @@ if [ -z "${SCRIPT_DIR+x}" ]; then
 fi
 
 PROJECT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)"
-VENV_DIR="$PROJECT_DIR/.venv"
 NEO="$PROJECT_DIR/build/neo"
 CONF="$SCRIPT_DIR/network.toml"
 CONFGEN=("python3" "$SCRIPT_DIR/confgen.py")
@@ -68,7 +65,7 @@ run() {
         docker_clean
         sudo pkill -9 neo
         warn "Containers were not cleared up. Something went wrong."
-        err=0
+        err=1
     fi
     set -e
     return $err
@@ -118,10 +115,6 @@ load_vfio_pci_module() {
 
 _main() {
     mkdir -p "$RESULTS_DIR"
-
-    # Activate Python venv for confgen scripts.
-    # shellcheck source=/dev/null
-    source "$VENV_DIR/bin/activate"
 
     while :; do
         case "${1-}" in
