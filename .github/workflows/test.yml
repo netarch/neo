@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
 
   style-check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt install clang-format yapf3
@@ -11,7 +11,7 @@ jobs:
 
   tests:
     needs: style-check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         cc: [gcc, clang]
@@ -25,12 +25,11 @@ jobs:
         with:
           submodules: 'recursive'
       - run: ./depends/setup.sh
-      - run: ./scripts/configure.sh -d -t -c --${{ matrix.cc }}
+      - run: ./scripts/configure.sh -d -t --${{ matrix.cc }}
       - run: ./scripts/build.sh
-      - run: source ../scripts/bootstrap.sh && activate_conan_env && ctest --progress --output-on-failure
-        working-directory: ./build
-      - if: matrix.cc == 'gcc'
-        uses: codecov/codecov-action@v3
-        with:
-          gcov: true
-          gcov_args: '-l'
+      - run: ./scripts/test.sh
+      # - if: matrix.cc == 'gcc'
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     gcov: true
+      #     gcov_args: '-l'
