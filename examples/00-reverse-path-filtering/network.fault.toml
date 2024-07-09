@@ -1,102 +1,102 @@
 [[nodes]]
-    name = "h1"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.0.1/24"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.0.254"
+name = "h1"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.1/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
 [[nodes]]
-    name = "h2"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.0.2/24"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.0.254"
+name = "h2"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.2/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
 [[nodes]]
-    name = "h3"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.0.3/24"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.0.254"
+name = "h3"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.3/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
 [[nodes]]
-    name = "s1"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    [[nodes.interfaces]]
-    name = "eth1"
-    [[nodes.interfaces]]
-    name = "eth2"
-    [[nodes.interfaces]]
-    name = "eth3"
+name = "s1"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+[[nodes.interfaces]]
+name = "eth1"
+[[nodes.interfaces]]
+name = "eth2"
+[[nodes.interfaces]]
+name = "eth3"
 [[nodes]]
-    name = "r1"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.1.2/25"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.1.129/25"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "192.168.1.130"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.1.1"
+name = "r1"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.1.2/25"
+[[nodes.interfaces]]
+name = "eth1"
+ipv4 = "192.168.1.129/25"
+[[nodes.static_routes]]
+network = "192.168.0.0/22"
+next_hop = "192.168.1.130"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.1.1"
 [[nodes]]
-    name = "r2"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.2.2/25"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.2.129/25"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "192.168.2.130"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.2.1"
+name = "r2"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.2.2/25"
+[[nodes.interfaces]]
+name = "eth1"
+ipv4 = "192.168.2.129/25"
+[[nodes.static_routes]]
+network = "192.168.0.0/22"
+next_hop = "192.168.2.130"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.2.1"
 [[nodes]]
-    name = "r3"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "192.168.0.254/24"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.1.130/25"
-    [[nodes.interfaces]]
-    name = "eth2"
-    ipv4 = "192.168.2.130/25"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.1.129"
-    [[nodes.static_routes]]
-    network = "0.0.0.0/0"
-    next_hop = "192.168.2.129"
+name = "r3"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.254/24"
+[[nodes.interfaces]]
+name = "eth1"
+ipv4 = "192.168.1.130/25"
+[[nodes.interfaces]]
+name = "eth2"
+ipv4 = "192.168.2.130/25"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.1.129"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.2.129"
 [[nodes]]
-    name = "fw"
-    type = "emulation"
-    driver = "docker"
-    daemon = "/var/run/docker.sock"
-    [nodes.container]
-    image = "kyechou/iptables:latest"
-    working_dir = "/"
-    command = ["/start.sh"]
-    config_files = ["/start.sh"]
-    [[nodes.container.env]]
-    name = "RULES"
-    value = """
+name = "fw"
+type = "emulation"
+driver = "docker"
+daemon = "/var/run/docker.sock"
+[nodes.container]
+image = "kyechou/iptables:latest"
+working_dir = "/"
+command = ["/start.sh"]
+config_files = ["/start.sh"]
+[[nodes.container.env]]
+name = "RULES"
+value = """
 *filter
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
@@ -109,84 +109,84 @@
 -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 COMMIT
 """
-    [[nodes.container.sysctls]]
-    key = "net.ipv4.conf.all.forwarding"
-    value = "1"
-    [[nodes.container.sysctls]]
-    # The max value from conf/{all,interface}/rp_filter is used when doing
-    # source validation on the {interface}.
-    key = "net.ipv4.conf.all.rp_filter"
-    value = "1"     # misconfiguration, should be 0 or 2
-    [[nodes.container.sysctls]]
-    key = "net.ipv4.conf.default.rp_filter"
-    value = "1"     # misconfiguration, should be 0 or 2
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "10.0.0.2/24"
-    [[nodes.interfaces]]
-    name = "eth1"
-    ipv4 = "192.168.1.1/25"
-    [[nodes.interfaces]]
-    name = "eth2"
-    ipv4 = "192.168.2.1/25"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "192.168.1.2"
+[[nodes.container.sysctls]]
+key = "net.ipv4.conf.all.forwarding"
+value = "1"
+[[nodes.container.sysctls]]
+# The max value from conf/{all,interface}/rp_filter is used when doing
+# source validation on the {interface}.
+key = "net.ipv4.conf.all.rp_filter"
+value = "1"                         # misconfiguration, should be 0 or 2
+[[nodes.container.sysctls]]
+key = "net.ipv4.conf.default.rp_filter"
+value = "1"                             # misconfiguration, should be 0 or 2
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "10.0.0.2/24"
+[[nodes.interfaces]]
+name = "eth1"
+ipv4 = "192.168.1.1/25"
+[[nodes.interfaces]]
+name = "eth2"
+ipv4 = "192.168.2.1/25"
+[[nodes.static_routes]]
+network = "192.168.0.0/22"
+next_hop = "192.168.1.2"
 [[nodes]]
-    name = "server"
-    type = "model"
-    [[nodes.interfaces]]
-    name = "eth0"
-    ipv4 = "10.0.0.1/24"
-    [[nodes.static_routes]]
-    network = "192.168.0.0/22"
-    next_hop = "10.0.0.2"
+name = "server"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "10.0.0.1/24"
+[[nodes.static_routes]]
+network = "192.168.0.0/22"
+next_hop = "10.0.0.2"
 
 [[links]]
-    node1 = "server"
-    intf1 = "eth0"
-    node2 = "fw"
-    intf2 = "eth0"
+node1 = "server"
+intf1 = "eth0"
+node2 = "fw"
+intf2 = "eth0"
 [[links]]
-    node1 = "fw"
-    intf1 = "eth1"
-    node2 = "r1"
-    intf2 = "eth0"
+node1 = "fw"
+intf1 = "eth1"
+node2 = "r1"
+intf2 = "eth0"
 [[links]]
-    node1 = "fw"
-    intf1 = "eth2"
-    node2 = "r2"
-    intf2 = "eth0"
+node1 = "fw"
+intf1 = "eth2"
+node2 = "r2"
+intf2 = "eth0"
 [[links]]
-    node1 = "r1"
-    intf1 = "eth1"
-    node2 = "r3"
-    intf2 = "eth1"
+node1 = "r1"
+intf1 = "eth1"
+node2 = "r3"
+intf2 = "eth1"
 [[links]]
-    node1 = "r2"
-    intf1 = "eth1"
-    node2 = "r3"
-    intf2 = "eth2"
+node1 = "r2"
+intf1 = "eth1"
+node2 = "r3"
+intf2 = "eth2"
 [[links]]
-    node1 = "r3"
-    intf1 = "eth0"
-    node2 = "s1"
-    intf2 = "eth0"
+node1 = "r3"
+intf1 = "eth0"
+node2 = "s1"
+intf2 = "eth0"
 [[links]]
-    node1 = "s1"
-    intf1 = "eth1"
-    node2 = "h1"
-    intf2 = "eth0"
+node1 = "s1"
+intf1 = "eth1"
+node2 = "h1"
+intf2 = "eth0"
 [[links]]
-    node1 = "s1"
-    intf1 = "eth2"
-    node2 = "h2"
-    intf2 = "eth0"
+node1 = "s1"
+intf1 = "eth2"
+node2 = "h2"
+intf2 = "eth0"
 [[links]]
-    node1 = "s1"
-    intf1 = "eth3"
-    node2 = "h3"
-    intf2 = "eth0"
+node1 = "s1"
+intf1 = "eth3"
+node2 = "h3"
+intf2 = "eth0"
 
 # Invariants:
 #   1. Outgoing packets are always allowed. (This should fail due to the
@@ -196,30 +196,32 @@ COMMIT
 #      policy 1 fails.)
 
 [[invariants]]
-    type = "reachability"
-    target_node = "server"
-    reachable = true
-    [[invariants.connections]]
-    protocol = "tcp"
-    src_node = "h[123]"
-    dst_ip = "10.0.0.1"
-    dst_port = [80]
+type = "reachability"
+target_node = "server"
+reachable = true
+[[invariants.connections]]
+protocol = "tcp"
+src_node = "h[123]"
+dst_ip = "10.0.0.1"
+dst_port = [80]
+
 [[invariants]]
-    type = "reachability"
-    target_node = "h[123]|s1|r[123]|fw"
-    reachable = false
-    [[invariants.connections]]
-    protocol = "tcp"
-    src_node = "server"
-    dst_ip = "192.168.0.0/22"
-    dst_port = [80]
-    owned_dst_only = true
+type = "reachability"
+target_node = "h[123]|s1|r[123]|fw"
+reachable = false
+[[invariants.connections]]
+protocol = "tcp"
+src_node = "server"
+dst_ip = "192.168.0.0/22"
+dst_port = [80]
+owned_dst_only = true
+
 [[invariants]]
-    type = "reply-reachability"
-    target_node = "server"
-    reachable = true
-    [[invariants.connections]]
-    protocol = "tcp"
-    src_node = "h[123]"
-    dst_ip = "10.0.0.1"
-    dst_port = [80]
+type = "reply-reachability"
+target_node = "server"
+reachable = true
+[[invariants.connections]]
+protocol = "tcp"
+src_node = "h[123]"
+dst_ip = "10.0.0.1"
+dst_port = [80]
