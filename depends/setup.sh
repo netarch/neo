@@ -61,6 +61,11 @@ get_docker() {
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo sh ./get-docker.sh
     rm -f ./get-docker.sh
+
+    # Add the current user to group `docker` if they aren't in it already.
+    if ! getent group docker | grep -qw "$USER"; then
+        sudo gpasswd -a "$USER" docker
+    fi
 }
 
 #
