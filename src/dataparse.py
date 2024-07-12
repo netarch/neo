@@ -121,7 +121,24 @@ class NetSynthesizer:
 
     def leaves(self):
         return bfs_leaves(self.G, list(self.G)[0])
-
+    
+    def get_firewall(self, n):
+        ret = []
+        leaves = self.leaves()
+        if n not in leaves:
+            return -1
+        return list(self.G[n])[0]
+    
+    def get_itf_to_leaf(self, n):
+        leaves = self.leaves()
+        for i in self.node_to_interfaces[n]:
+            di = self.interface_links[i[1]]
+            dn = self.interface_to_node[di]
+            if dn in leaves:
+                return i[0]
+        
+            
+        
 
 class FileParser:
     """
