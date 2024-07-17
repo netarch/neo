@@ -50,17 +50,18 @@ Ubuntu 20.04. Otherwise newer kernel versions will need to be manually
 installed.
 
 ## Build and install Neo
-
+To build Neo(excluding the tests), run:
 ```sh
 cd neo
 ./scripts/configure.sh
 ./scripts/build.sh
 ```
-
 The executable will be at `build/neo`.
 
-Optionally you can install Neo to system
-paths if desired.
+If you want to build unit tests together with the debug info, replace `./scripts/configure.sh` with `./scripts/configure.sh -t -d`. 
+
+After building Neo, you can install Neo to system
+paths if desired, with the following command.
 
 ```sh
 sudo DESTDIR=/ ./scripts/install.sh --prefix /usr
