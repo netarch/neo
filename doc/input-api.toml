@@ -129,11 +129,6 @@
     max_dispersion_index = 1.0      # optional, default: 1.0
     [[invariants.connections]]
     # < connection spec >
-# TODO: "tcp-handshake" is not implemented yet.
-[[invariants]]
-    type = "tcp-handshake"
-    [[invariants.connections]]
-    # < connection spec >
 
 #
 # invariants with multiple correlated sub-invariants
