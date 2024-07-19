@@ -12,18 +12,14 @@
         {
             "name": "curl",
             "features": [
-                "brotli",
                 "c-ares",
-                "gssapi",
                 "http2",
                 "idn",
                 "idn2",
-                "ldap",
                 "openssl",
                 "psl",
                 "ssh",
-                "ssl",
-                "zstd"
+                "ssl"
             ]
         },
         "pcapplusplus",

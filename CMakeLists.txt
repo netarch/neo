@@ -63,7 +63,7 @@ add_subdirectory(third_party/bpftool EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/libbpf EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/libnet EXCLUDE_FROM_ALL)
 find_package(boost_program_options CONFIG REQUIRED)
-find_package(boost_stacktrace_addr2line CONFIG REQUIRED)
+find_package(boost_stacktrace_backtrace CONFIG REQUIRED)
 find_package(boost_stacktrace_basic CONFIG REQUIRED)
 find_package(boost_stacktrace_noop CONFIG REQUIRED)
 find_package(BpfObject REQUIRED)
@@ -80,10 +80,14 @@ find_package(ZLIB REQUIRED) # required by `FindBpfObject.cmake`
 
 #
 # stacktrace
+# https://www.boost.org/doc/libs/master/doc/html/stacktrace/configuration_and_build.html
 #
 add_library(stacktrace_config INTERFACE)
+target_compile_definitions(stacktrace_config INTERFACE BOOST_STACKTRACE_LINK)
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    target_link_libraries(stacktrace_config INTERFACE Boost::stacktrace_addr2line dl)
+    # libbacktrace is already linked statically with Boost::stacktrace_backtrace
+    # through our patched vcpkg, so `-lbacktrace` is not needed.
+    target_link_libraries(stacktrace_config INTERFACE Boost::stacktrace_backtrace dl)
 else()
     target_link_libraries(stacktrace_config INTERFACE Boost::stacktrace_noop)
 endif()

@@ -81,10 +81,20 @@ reset_files() {
     git -C "$PROJECT_DIR" submodule update --init --recursive
     for submod in "${in_tree_submods[@]}"; do
         msg "Cleaning $submod"
+        git -C "$submod" restore .
         git -C "$submod" clean -xdf
     done
+
     msg "Removing $BUILD_DIR"
     rm -rf "$BUILD_DIR"
+
+    msg "Patching vcpkg"
+    git -C "$PROJECT_DIR/depends/vcpkg" restore .
+    local out
+    out="$(patch -d "$PROJECT_DIR/depends/vcpkg" -Np1 \
+        -i "$PROJECT_DIR/depends/vcpkg.patch")" ||
+        echo "$out" | grep -q 'Skipping patch' ||
+        die "$out"
 
     if [[ $CLEAN -ne 0 ]]; then
         exit 0
