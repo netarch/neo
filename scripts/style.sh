@@ -57,6 +57,8 @@ main() {
     fi
 
     check_depends clang-format "$YAPF"
+    msg "clang-format version: $(clang-format --version)"
+    msg "yapf version: $("$YAPF" --version)"
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
