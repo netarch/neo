@@ -12,8 +12,8 @@
 using namespace std;
 
 PayloadKey::PayloadKey(const Model &model) {
-    this->dst_ip_ec   = model.get_dst_ip_ec();
-    this->dst_port    = model.get_dst_port();
+    this->dst_ip_ec = model.get_dst_ip_ec();
+    this->dst_port = model.get_dst_port();
     this->proto_state = model.get_proto_state();
 }
 
@@ -79,10 +79,10 @@ Payload *PayloadMgr::get_payload_from_model() {
                            "<head><title>Reply</title></head>"
                            "<body>Reply</body>"
                            "</html>\r\n";
-        pl_content       = "HTTP/1.1 200 OK\r\n"
-                           "Server: plankton\r\n"
-                           "Content-Type: text/html\r\n"
-                           "Content-Length: " +
+        pl_content = "HTTP/1.1 200 OK\r\n"
+                     "Server: plankton\r\n"
+                     "Content-Type: text/html\r\n"
+                     "Content-Length: " +
                      std::to_string(http.size()) +
                      "\r\n"
                      "\r\n";
@@ -91,7 +91,7 @@ Payload *PayloadMgr::get_payload_from_model() {
     }
 
     Payload *payload = new Payload(pl_content);
-    auto res         = this->all_payloads.insert(payload);
+    auto res = this->all_payloads.insert(payload);
     if (!res.second) {
         delete payload;
         payload = *(res.first);
@@ -106,7 +106,7 @@ Payload *PayloadMgr::get_payload(uint8_t *data, size_t len) {
     }
 
     Payload *payload = new Payload(data, len);
-    auto res         = this->all_payloads.insert(payload);
+    auto res = this->all_payloads.insert(payload);
     if (!res.second) {
         delete payload;
         payload = *(res.first);
@@ -117,7 +117,7 @@ Payload *PayloadMgr::get_payload(uint8_t *data, size_t len) {
 Payload *PayloadMgr::get_payload(const Packet &a, const Packet &b) {
     // Concatenate the payloads of two packets
     Payload *payload = new Payload(a.get_payload(), b.get_payload());
-    auto res         = this->all_payloads.insert(payload);
+    auto res = this->all_payloads.insert(payload);
     if (!res.second) {
         delete payload;
         payload = *(res.first);

@@ -17,7 +17,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    InjectionCache(const InjectionCache &)            = delete;
+    InjectionCache(const InjectionCache &) = delete;
     InjectionCache &operator=(const InjectionCache &) = delete;
 
     static InjectionCache &_get();

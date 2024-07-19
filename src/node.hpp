@@ -35,11 +35,11 @@ protected:
 
 public:
     Node(const Node &) = delete;
-    Node(Node &&)      = delete;
+    Node(Node &&) = delete;
     virtual ~Node();
 
     virtual Node &operator=(const Node &) = delete;
-    virtual Node &operator=(Node &&)      = delete;
+    virtual Node &operator=(Node &&) = delete;
 
     virtual std::string to_string() const;
     virtual std::string get_name() const;
@@ -71,7 +71,7 @@ public:
      */
     virtual std::set<FIB_IPNH>
     get_ipnhs(const IPv4Address &,
-              const RoutingTable *rib                        = nullptr,
+              const RoutingTable *rib = nullptr,
               std::unordered_set<IPv4Address> *looked_up_ips = nullptr);
 
     /**

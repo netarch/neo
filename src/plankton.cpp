@@ -24,10 +24,10 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-bool Plankton::_all_ecs       = false;
+bool Plankton::_all_ecs = false;
 bool Plankton::_parallel_invs = false;
-bool Plankton::_violated      = false;
-bool Plankton::_terminate     = false;
+bool Plankton::_violated = false;
+bool Plankton::_terminate = false;
 unordered_set<pid_t> Plankton::_tasks;
 const int Plankton::sigs[] = {SIGCHLD, SIGUSR1, SIGHUP,
                               SIGINT,  SIGQUIT, SIGTERM};
@@ -51,10 +51,10 @@ void Plankton::init(bool all_ecs,
                     const string &input_file,
                     const string &output_dir) {
     // Initialize system-wide configuration
-    this->_all_ecs       = all_ecs;
+    this->_all_ecs = all_ecs;
     this->_parallel_invs = parallel_invs;
-    this->_max_jobs    = min(max_jobs, size_t(thread::hardware_concurrency()));
-    this->_max_emu     = max_emu;
+    this->_max_jobs = min(max_jobs, size_t(thread::hardware_concurrency()));
+    this->_max_emu = max_emu;
     this->_drop_method = drop_method;
     fs::create_directories(output_dir);
     this->_in_file = fs::canonical(input_file);
@@ -94,9 +94,9 @@ void Plankton::init(bool all_ecs,
 
 // Reset to as if it was just constructed
 void Plankton::reset(bool destruct) {
-    this->_all_ecs  = false;
+    this->_all_ecs = false;
     this->_max_jobs = 0;
-    this->_max_emu  = 0;
+    this->_max_emu = 0;
     this->_in_file.clear();
     this->_out_dir.clear();
     this->_network.reset();
@@ -105,7 +105,7 @@ void Plankton::reset(bool destruct) {
     this->_forwarding.reset();
     this->_openflow.reset();
     this->_inv.reset();
-    this->_violated  = false;
+    this->_violated = false;
     this->_terminate = false;
     this->kill_all_tasks(SIGKILL);
     this->_tasks.clear();
@@ -336,7 +336,7 @@ void Plankton::verify_conn() {
 
     // Run SPIN verifier
     const string trail_suffix = "-t" + to_string(getpid()) + ".trail";
-    const char *spin_args[]   = {
+    const char *spin_args[] = {
         // Run-time options: https://spinroot.com/spin/Man/Pan.html#A
         "neo",
         "-E", // suppress invalid end state errors
@@ -468,8 +468,8 @@ void Plankton::check_to_switch_process() const {
         return;
     }
 
-    int process_id     = model.get_process_id();
-    int fwd_mode       = model.get_fwd_mode();
+    int process_id = model.get_process_id();
+    int fwd_mode = model.get_fwd_mode();
     Node *current_node = model.get_pkt_location();
 
     switch (process_id) {

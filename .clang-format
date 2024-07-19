@@ -4,7 +4,7 @@ BasedOnStyle: Google
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
-AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveAssignments: None
 AlignConsecutiveBitFields: Consecutive
 AlignConsecutiveDeclarations: None
 AlignConsecutiveMacros: AcrossEmptyLines

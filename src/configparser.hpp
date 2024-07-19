@@ -99,11 +99,11 @@ private:
     void parse_conn_spec(ConnSpec &, const toml::table &, const Network &);
 
 public:
-    ConfigParser()                                = default;
-    ConfigParser(const ConfigParser &)            = delete;
-    ConfigParser(ConfigParser &&)                 = delete;
+    ConfigParser() = default;
+    ConfigParser(const ConfigParser &) = delete;
+    ConfigParser(ConfigParser &&) = delete;
     ConfigParser &operator=(const ConfigParser &) = delete;
-    ConfigParser &operator=(ConfigParser &&)      = delete;
+    ConfigParser &operator=(ConfigParser &&) = delete;
 
     void parse(const std::string &filename, Plankton &plankton);
     void estimate_pkt_lat(int num_injections);

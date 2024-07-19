@@ -64,7 +64,7 @@ bool Route::relevant_to_ec(const EqClass &ec) const {
         } else {
             // first loop
             fully_contained = this->network.contains(range);
-            has_been_set    = true;
+            has_been_set = true;
         }
     }
 

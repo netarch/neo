@@ -58,10 +58,10 @@ public:
            uint32_t ack,
            uint16_t proto_state);
     Packet(const Packet &) = default;
-    Packet(Packet &&)      = default;
+    Packet(Packet &&) = default;
 
     Packet &operator=(const Packet &) = default;
-    Packet &operator=(Packet &&)      = default;
+    Packet &operator=(Packet &&) = default;
 
     std::string to_string() const;
     struct drop_data to_drop_data(Driver *driver = nullptr) const;

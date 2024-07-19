@@ -59,11 +59,11 @@ public:
     typedef std::vector<Invariant *>::const_reverse_iterator
         const_reverse_iterator;
 
-    Invariants()                              = default;
-    Invariants(const Invariants &)            = delete;
-    Invariants(Invariants &&)                 = delete;
+    Invariants() = default;
+    Invariants(const Invariants &) = delete;
+    Invariants(Invariants &&) = delete;
     Invariants &operator=(const Invariants &) = delete;
-    Invariants &operator=(Invariants &&)      = default;
+    Invariants &operator=(Invariants &&) = default;
 
     ~Invariants() {
         for (Invariant *inv : _invs) {

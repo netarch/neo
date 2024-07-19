@@ -26,7 +26,7 @@ private:
 public:
     OpenflowUpdateState(size_t num_nodes) : update_vector(num_nodes, 0) {}
     OpenflowUpdateState(const OpenflowUpdateState &) = default;
-    OpenflowUpdateState(OpenflowUpdateState &&)      = default;
+    OpenflowUpdateState(OpenflowUpdateState &&) = default;
 
     size_t num_of_installed_updates(int node_order) const;
     void install_update_at(int node_order);

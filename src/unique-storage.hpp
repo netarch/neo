@@ -47,7 +47,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    UniqueStorage(const UniqueStorage &)            = delete;
+    UniqueStorage(const UniqueStorage &) = delete;
     UniqueStorage &operator=(const UniqueStorage &) = delete;
     ~UniqueStorage() { reset(); }
 

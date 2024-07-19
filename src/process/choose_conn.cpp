@@ -12,8 +12,8 @@ static inline std::vector<std::vector<int>> get_conn_map() {
     std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
 
     for (int conn = 0; conn < model.get_num_conns(); ++conn) {
-        int exec        = model.get_executable_for_conn(conn);
-        int mode        = model.get_fwd_mode_for_conn(conn);
+        int exec = model.get_executable_for_conn(conn);
+        int mode = model.get_fwd_mode_for_conn(conn);
         int proto_state = model.get_proto_state_for_conn(conn);
 
         if ((exec == 0 && mode == fwd_mode::DROPPED) ||
@@ -50,7 +50,7 @@ void ChooseConnProcess::update_choice_count() const {
 }
 
 void ChooseConnProcess::exec_step() {
-    int choice                             = model.get_choice();
+    int choice = model.get_choice();
     std::vector<std::vector<int>> conn_map = get_conn_map();
     /**
      * 2: executable, not entering a middlebox
@@ -71,7 +71,7 @@ void ChooseConnProcess::exec_step() {
         // drop it
         assert(choice == 0);
         model.set_conn(conn_map[0][0]);
-        int mode        = model.get_fwd_mode();
+        int mode = model.get_fwd_mode();
         int proto_state = model.get_proto_state();
         if (!(mode == fwd_mode::DROPPED) &&
             !(mode == fwd_mode::ACCEPTED && PS_IS_LAST(proto_state))) {

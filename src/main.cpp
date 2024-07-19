@@ -45,14 +45,14 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    bool all_ecs       = vm.count("all");
-    bool rm_out_dir    = vm.count("force");
+    bool all_ecs = vm.count("all");
+    bool rm_out_dir = vm.count("force");
     bool parallel_invs = vm.count("parallel-invs");
-    size_t max_jobs    = vm.at("jobs").as<size_t>();
-    size_t max_emu     = vm.at("emulations").as<size_t>();
-    string drop        = vm.at("drop").as<string>();
-    string input_file  = vm.at("input").as<string>();
-    string output_dir  = vm.at("output").as<string>();
+    size_t max_jobs = vm.at("jobs").as<size_t>();
+    size_t max_emu = vm.at("emulations").as<size_t>();
+    string drop = vm.at("drop").as<string>();
+    string input_file = vm.at("input").as<string>();
+    string output_dir = vm.at("output").as<string>();
 
     if (max_jobs < 1) {
         cerr << "Invalid number of parallel tasks" << endl;

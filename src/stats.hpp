@@ -102,10 +102,10 @@ private:
     std::pair<long, long> get_rss() const;
 
 public:
-    Stats(const Stats &)            = delete;
-    Stats(Stats &&)                 = delete;
+    Stats(const Stats &) = delete;
+    Stats(Stats &&) = delete;
     Stats &operator=(const Stats &) = delete;
-    Stats &operator=(Stats &&)      = delete;
+    Stats &operator=(Stats &&) = delete;
 
     static Stats &get();
     const std::vector<std::chrono::microseconds> &get_pkt_latencies() const;

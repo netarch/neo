@@ -39,8 +39,8 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
         } else {
             // get an existing emulation of another middlebox
             assert(!_emus.empty());
-            Emulation *emu             = *_emus.begin(); // TODO: LRU?
-            Middlebox *old_mb          = emu->mb();
+            Emulation *emu = *_emus.begin(); // TODO: LRU?
+            Middlebox *old_mb = emu->mb();
             NodePacketHistory *old_nph = emu->node_pkt_hist();
 
             assert(_mb_emu_map[old_mb][old_nph].erase(emu) == 1);
@@ -76,7 +76,7 @@ Emulation *EmulationMgr::get_emulation(Middlebox *mb, NodePacketHistory *nph) {
 
 void EmulationMgr::update_node_pkt_hist(Emulation *emu,
                                         NodePacketHistory *nph) {
-    Middlebox *mb              = emu->mb();
+    Middlebox *mb = emu->mb();
     NodePacketHistory *old_nph = emu->node_pkt_hist();
 
     assert(_mb_emu_map[mb][old_nph].erase(emu) == 1);

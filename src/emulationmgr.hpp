@@ -36,7 +36,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    EmulationMgr(const EmulationMgr &)            = delete;
+    EmulationMgr(const EmulationMgr &) = delete;
     EmulationMgr &operator=(const EmulationMgr &) = delete;
     ~EmulationMgr();
 
