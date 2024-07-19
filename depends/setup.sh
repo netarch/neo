@@ -177,7 +177,8 @@ add_llvm_repo_for_ubuntu() {
     local llvm_version=18
     local code_name="${UBUNTU_CODENAME:-}"
     local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
-    local repo="deb http://apt.llvm.org/$code_name/  llvm-toolchain-$code_name-$llvm_version main"
+    export llvm_release_name="llvm-toolchain-$code_name-$llvm_version"
+    local repo="deb http://apt.llvm.org/$code_name/ $llvm_release_name main"
 
     # check distribution
     if [[ "${DISTRO:-}" != "ubuntu" ]]; then
@@ -197,7 +198,7 @@ add_llvm_repo_for_ubuntu() {
         wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee "$signature"
     fi
 
-    sudo add-apt-repository -y "$repo"
+    sudo add-apt-repository -y --sourceslist "$repo"
     sudo apt-get update -y -qq
 }
 
@@ -273,7 +274,7 @@ main() {
 
         add_llvm_repo_for_ubuntu
         sudo apt update -y -qq
-        sudo apt install -y -qq "${depends[@]}"
+        sudo apt install -y -qq -t "$llvm_release_name" "${depends[@]}"
         get_docker
         get_spin
 
