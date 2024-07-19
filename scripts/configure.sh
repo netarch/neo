@@ -85,16 +85,17 @@ reset_files() {
         git -C "$submod" clean -xdf
     done
 
-    msg "Removing $BUILD_DIR"
-    rm -rf "$BUILD_DIR"
-
-    msg "Patching vcpkg"
-    git -C "$PROJECT_DIR/depends/vcpkg" restore .
+    local vcpkg_dir="$PROJECT_DIR/depends/vcpkg"
+    msg "Patching $vcpkg_dir"
+    git -C "$vcpkg_dir" restore .
+    # git -C "$vcpkg_dir" clean -xdf # This will delete the build cache.
     local out
-    out="$(patch -d "$PROJECT_DIR/depends/vcpkg" -Np1 \
-        -i "$PROJECT_DIR/depends/vcpkg.patch")" ||
+    out="$(patch -d "$vcpkg_dir" -Np1 -i "$PROJECT_DIR/depends/vcpkg.patch")" ||
         echo "$out" | grep -q 'Skipping patch' ||
         die "$out"
+
+    msg "Removing $BUILD_DIR"
+    rm -rf "$BUILD_DIR"
 
     if [[ $CLEAN -ne 0 ]]; then
         exit 0
