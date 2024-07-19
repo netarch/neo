@@ -2,15 +2,7 @@ name: test
 on: [push, pull_request]
 jobs:
 
-  style-check:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo apt install clang-format yapf3
-      - run: ./scripts/style.sh
-
   tests:
-    needs: style-check
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -25,6 +17,7 @@ jobs:
         with:
           submodules: 'recursive'
       - run: ./depends/setup.sh
+      - run: ./scripts/style.sh
       - run: ./scripts/configure.sh -d -t --${{ matrix.cc }}
       - run: ./scripts/build.sh
       - run: ./scripts/test.sh
