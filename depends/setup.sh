@@ -59,51 +59,6 @@ get_distro() {
 }
 
 #
-# Set up docker engine quick and dirty
-#
-get_docker() {
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh ./get-docker.sh
-    rm -f ./get-docker.sh
-
-    # Add the current user to group `docker` if they aren't in it already.
-    if ! getent group docker | grep -qw "$USER"; then
-        sudo gpasswd -a "$USER" docker
-    fi
-}
-
-#
-# Set up LLVM apt repository for Ubuntu
-#
-add_llvm_repo_for_ubuntu() {
-    local llvm_version=18
-    local code_name="${UBUNTU_CODENAME:-}"
-    local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
-    local repo="deb http://apt.llvm.org/$code_name/  llvm-toolchain-$code_name-$llvm_version main"
-
-    # check distribution
-    if [[ "${DISTRO:-}" != "ubuntu" ]]; then
-        die "The Linux distribution is not ubuntu: ${DISTRO:-}"
-    fi
-    if [[ -z "$code_name" ]]; then
-        die "Unrecognizable ubuntu code name: $code_name"
-    fi
-
-    # check if the repo exists
-    if ! wget -q --method=HEAD "http://apt.llvm.org/$code_name" &>/dev/null; then
-        die "Failed to connect to http://apt.llvm.org/$code_name"
-    fi
-
-    # download GPG key once
-    if [[ ! -f "$signature" ]]; then
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee "$signature"
-    fi
-
-    sudo add-apt-repository -y "$repo"
-    sudo apt-get update -y -qq
-}
-
-#
 # Build and install the package with PKGBUILD
 #
 makepkg_arch() {
@@ -215,6 +170,64 @@ aur_install() {
     rm -rf "$TARGET"
 }
 
+#
+# Set up LLVM apt repository for Ubuntu
+#
+add_llvm_repo_for_ubuntu() {
+    local llvm_version=18
+    local code_name="${UBUNTU_CODENAME:-}"
+    local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
+    local repo="deb http://apt.llvm.org/$code_name/  llvm-toolchain-$code_name-$llvm_version main"
+
+    # check distribution
+    if [[ "${DISTRO:-}" != "ubuntu" ]]; then
+        die "The Linux distribution is not ubuntu: ${DISTRO:-}"
+    fi
+    if [[ -z "$code_name" ]]; then
+        die "Unrecognizable ubuntu code name: $code_name"
+    fi
+
+    # check if the repo exists
+    if ! wget -q --method=HEAD "http://apt.llvm.org/$code_name" &>/dev/null; then
+        die "Failed to connect to http://apt.llvm.org/$code_name"
+    fi
+
+    # download GPG key once
+    if [[ ! -f "$signature" ]]; then
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee "$signature"
+    fi
+
+    sudo add-apt-repository -y "$repo"
+    sudo apt-get update -y -qq
+}
+
+#
+# Set up docker engine quick and dirty
+#
+get_docker() {
+    if command -v docker >/dev/null 2>&1; then
+        return
+    fi
+
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh ./get-docker.sh
+    rm -f ./get-docker.sh
+
+    # Add the current user to group `docker` if they aren't in it already.
+    if ! getent group docker | grep -qw "$USER"; then
+        sudo gpasswd -a "$USER" docker
+    fi
+}
+
+#
+# Install spin-git from the AUR
+#
+get_spin() {
+    if ! command -v spin >/dev/null 2>&1; then
+        aur_install spin-git
+    fi
+}
+
 main() {
     get_distro
 
@@ -261,13 +274,8 @@ main() {
         add_llvm_repo_for_ubuntu
         sudo apt update -y -qq
         sudo apt install -y -qq "${depends[@]}"
-
-        if ! command -v docker >/dev/null 2>&1; then
-            get_docker
-        fi
-        if ! command -v spin >/dev/null 2>&1; then
-            aur_install spin-git
-        fi
+        get_docker
+        get_spin
 
     else
         die "Unsupported distribution: $DISTRO"
