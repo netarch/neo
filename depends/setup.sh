@@ -24,7 +24,7 @@ die() {
 #
 get_distro() {
     if test -f /etc/os-release; then # freedesktop.org and systemd
-        . /etc/os-release
+        source /etc/os-release
         echo "$NAME" | cut -f 1 -d ' ' | tr '[:upper:]' '[:lower:]'
     elif type lsb_release >/dev/null 2>&1; then # linuxbase.org
         lsb_release -si | tr '[:upper:]' '[:lower:]'
@@ -66,6 +66,37 @@ get_docker() {
     if ! getent group docker | grep -qw "$USER"; then
         sudo gpasswd -a "$USER" docker
     fi
+}
+
+#
+# Set up LLVM apt repository for Ubuntu
+#
+add_llvm_repo_for_ubuntu() {
+    local llvm_version=18
+    local code_name="${UBUNTU_CODENAME:-}"
+    local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
+    local repo="deb http://apt.llvm.org/$code_name/  llvm-toolchain-$code_name-$llvm_version main"
+
+    # check distribution
+    if [[ "${DISTRO:-}" != "ubuntu" ]]; then
+        die "The Linux distribution is not ubuntu: ${DISTRO:-}"
+    fi
+    if [[ -z "$code_name" ]]; then
+        die "Unrecognizable ubuntu code name: $code_name"
+    fi
+
+    # check if the repo exists
+    if ! wget -q --method=HEAD "http://apt.llvm.org/$code_name" &>/dev/null; then
+        die "Failed to connect to http://apt.llvm.org/$code_name"
+    fi
+
+    # download GPG key once
+    if [[ ! -f "$signature" ]]; then
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee "$signature"
+    fi
+
+    sudo add-apt-repository -y "$repo"
+    sudo apt-get update -y -qq
 }
 
 #
@@ -184,7 +215,7 @@ aur_install() {
 main() {
     DISTRO="$(get_distro)"
 
-    if [ "$DISTRO" = "arch" ]; then
+    if [[ "$DISTRO" == "arch" ]]; then
         if ! pacman -Q paru >/dev/null 2>&1; then
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
@@ -208,7 +239,7 @@ main() {
         paru -Sy --asdeps --needed --noconfirm --removemake "${depends[@]}"
         makepkg_arch neo-dev -srcfi --asdeps --noconfirm
 
-    elif [ "$DISTRO" = "ubuntu" ]; then
+    elif [[ "$DISTRO" == "ubuntu" ]]; then
         script_deps=(build-essential curl git)
         style_deps=(clang-format yapf3)
         bpf_deps=(elfutils libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm libc6-dev libc6-dev-i386)
@@ -224,6 +255,7 @@ main() {
             libstdc++-12-dev # TODO: Try 13.
             libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
 
+        add_llvm_repo_for_ubuntu
         sudo apt update -y -qq
         sudo apt install -y -qq "${depends[@]}"
 
