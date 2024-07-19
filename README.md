@@ -34,7 +34,7 @@ After cloning the repository, enter the directory and run:
 $ ./depends/setup.sh
 
 # ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: 1 min 19.20 sec
+# elapsed time: 1 min 45.73 sec
 # peak memory:  47 MiB
 ```
 
