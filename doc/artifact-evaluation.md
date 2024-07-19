@@ -4,9 +4,7 @@
 - [Artifact Evaluation](#artifact-evaluation)
 <!--toc:end-->
 
-Welcome, weary travelers. To start the journey of artifact evaluation, please
-prepare a machine (physical or virtual) with a brand new Ubuntu 24.04 live
-server installation.
-
-<!-- https://releases.ubuntu.com/noble/ -->
+Welcome. To start artifact evaluation, please prepare a machine (physical or
+virtual) with a brand new [Ubuntu 24.04](https://releases.ubuntu.com/noble/)
+live server installation.
 
