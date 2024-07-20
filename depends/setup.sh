@@ -271,7 +271,7 @@ main() {
             zip unzip      # utils required by vcpkg
             linux-libc-dev # openssl
             libpthread-stubs0-dev
-            libstdc++-12-dev # TODO: Try 13.
+            libstdc++-13-dev
             libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
 
         add_llvm_repo_for_ubuntu
