@@ -174,10 +174,11 @@ aur_install() {
 # Set up LLVM repository for Ubuntu
 #
 add_llvm_repo_for_ubuntu() {
+    local llvm_version=18
     local code_name="${UBUNTU_CODENAME:-}"
     local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
     local sources_list="/etc/apt/sources.list.d/llvm.list"
-    export llvm_release_name="llvm-toolchain-$code_name"
+    export llvm_release_name="llvm-toolchain-$code_name-$llvm_version"
 
     # check distribution
     if [[ "${DISTRO:-}" != "ubuntu" ]]; then
