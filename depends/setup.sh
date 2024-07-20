@@ -171,14 +171,13 @@ aur_install() {
 }
 
 #
-# Set up LLVM apt repository for Ubuntu
+# Set up LLVM repository for Ubuntu
 #
 add_llvm_repo_for_ubuntu() {
-    local llvm_version=18
     local code_name="${UBUNTU_CODENAME:-}"
     local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
-    export llvm_release_name="llvm-toolchain-$code_name-$llvm_version"
-    local repo="deb http://apt.llvm.org/$code_name/ $llvm_release_name main"
+    local sources_list="/etc/apt/sources.list.d/llvm.list"
+    export llvm_release_name="llvm-toolchain-$code_name"
 
     # check distribution
     if [[ "${DISTRO:-}" != "ubuntu" ]]; then
@@ -198,7 +197,10 @@ add_llvm_repo_for_ubuntu() {
         wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee "$signature"
     fi
 
-    sudo add-apt-repository -y --sourceslist "$repo"
+    cat <<EOF | sudo tee "$sources_list"
+deb     http://apt.llvm.org/$code_name/ $llvm_release_name main
+deb-src http://apt.llvm.org/$code_name/ $llvm_release_name main
+EOF
     sudo apt-get update -y -qq
 }
 
@@ -273,8 +275,8 @@ main() {
             libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
 
         add_llvm_repo_for_ubuntu
-        sudo apt update -y -qq
-        sudo apt install -y -qq -t "$llvm_release_name" "${depends[@]}"
+        sudo apt-get update -y -qq
+        sudo apt-get install -y -qq -t "$llvm_release_name" "${depends[@]}"
         get_docker
         get_spin
 
