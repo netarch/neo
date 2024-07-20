@@ -174,10 +174,11 @@ aur_install() {
 # Set up LLVM repository for Ubuntu
 #
 add_llvm_repo_for_ubuntu() {
+    local llvm_version="$1"
     local code_name="${UBUNTU_CODENAME:-}"
     local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
     local sources_list="/etc/apt/sources.list.d/llvm.list"
-    export llvm_release_name="llvm-toolchain-$code_name"
+    export llvm_release_name="llvm-toolchain-$code_name-$llvm_version"
 
     # check distribution
     if [[ "${DISTRO:-}" != "ubuntu" ]]; then
@@ -259,6 +260,7 @@ main() {
         makepkg_arch neo-dev -srcfi --asdeps --noconfirm
 
     elif [[ "$DISTRO" == "ubuntu" ]]; then
+        llvm_version=18
         script_deps=(build-essential curl git)
         style_deps=(clang-format yapf3)
         bpf_deps=(elfutils libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm libc6-dev libc6-dev-i386)
@@ -273,10 +275,16 @@ main() {
             libpthread-stubs0-dev
             libstdc++-13-dev
             libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
+        llvm_pkgs=("clang-$llvm_version" "lld-$llvm_version"
+            "clang-tools-$llvm_version" "clang-format-$llvm_version"
+            "clang-tidy-$llvm_version" "llvm-$llvm_version-dev"
+            "llvm-$llvm_version-tools" "libc++-$llvm_version-dev"
+            "libc++abi-$llvm_version-dev")
 
-        add_llvm_repo_for_ubuntu
+        add_llvm_repo_for_ubuntu "$llvm_version"
         sudo apt-get update -y -qq
-        sudo apt-get install -y -qq -t "$llvm_release_name" "${depends[@]}"
+        sudo apt-get install -y -qq "${depends[@]}"
+        sudo apt-get install -y -qq -t "$llvm_release_name" "${llvm_pkgs[@]}"
         get_docker
         get_spin
 
