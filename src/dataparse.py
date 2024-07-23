@@ -6,7 +6,6 @@ from pathlib import Path
 
 
 class NetSynthesizer:
-
     def __init__(self, linkfile):
         self.G = dict()
         self.subnets = dict()
@@ -33,16 +32,18 @@ class NetSynthesizer:
             self.G[link[0]].add(link[1])
             self.G[link[1]].add(link[0])
 
-            if ((link[0], link[1]) not in self.subnets
-                    and (link[1], link[0]) not in self.subnets):
+            if (link[0], link[1]) not in self.subnets and (
+                link[1],
+                link[0],
+            ) not in self.subnets:
                 subnet_str = str(ipaddress.IPv4Address(subnet))
                 ip_1 = ipaddress.IPv4Address(subnet + 1)
                 ip_2 = ipaddress.IPv4Address(subnet + 2)
                 if1 = "eth" + str((len(self.node_to_interfaces[link[0]])))
                 if2 = "eth" + str((len(self.node_to_interfaces[link[1]])))
-                self.subnets[(link[0],
-                              link[1])] = ipaddress.ip_network(subnet_str +
-                                                               "/30")
+                self.subnets[(link[0], link[1])] = ipaddress.ip_network(
+                    subnet_str + "/30"
+                )
                 self.node_to_interfaces[link[0]].append((if1, ip_1))
                 self.interface_to_node[ip_1] = link[0]
                 self.node_to_interfaces[link[1]].append((if2, ip_2))
@@ -72,30 +73,25 @@ class NetSynthesizer:
 
         pos = nx.spring_layout(G)
         nx.draw_networkx(G, pos)
-        head_labels = nx.get_edge_attributes(G, 'headlabel')
-        tail_labels = nx.get_edge_attributes(G, 'taillabel')
+        head_labels = nx.get_edge_attributes(G, "headlabel")
+        tail_labels = nx.get_edge_attributes(G, "taillabel")
 
-        nx.draw_networkx_edge_labels(G,
-                                     pos,
-                                     label_pos=0.25,
-                                     edge_labels=head_labels,
-                                     rotate=False)
-        nx.draw_networkx_edge_labels(G,
-                                     pos,
-                                     label_pos=0.75,
-                                     edge_labels=tail_labels,
-                                     rotate=False)
+        nx.draw_networkx_edge_labels(
+            G, pos, label_pos=0.25, edge_labels=head_labels, rotate=False
+        )
+        nx.draw_networkx_edge_labels(
+            G, pos, label_pos=0.75, edge_labels=tail_labels, rotate=False
+        )
 
-        plt.axis('off')
-        plt.savefig(self.topo_name + '.png')
+        plt.axis("off")
+        plt.savefig(self.topo_name + ".png")
 
     def synthesize_rules(self, src):
         parent = BFSParent(self.G, src)
         subnet_to_parent = {}
         parent_to_subnet = {}
         for edge in self.subnets:
-            if (edge[0] != src and edge[1] != src
-                    and not parent[edge[0]] == None):
+            if edge[0] != src and edge[1] != src and not parent[edge[0]] == None:
                 subnet_to_parent[self.subnets[edge]] = parent[edge[0]]
         for subnet in subnet_to_parent:
             if subnet_to_parent[subnet] not in parent_to_subnet:
@@ -103,7 +99,8 @@ class NetSynthesizer:
             parent_to_subnet[subnet_to_parent[subnet]].append(subnet)
         for p in parent_to_subnet:
             parent_to_subnet[p] = list(
-                ipaddress.collapse_addresses(parent_to_subnet[p]))
+                ipaddress.collapse_addresses(parent_to_subnet[p])
+            )
 
         rules = []
         for p in parent_to_subnet:
@@ -156,22 +153,18 @@ class FileParser:
         pos = nx.spring_layout(G)
 
         nx.draw_networkx(G, pos)
-        head_labels = nx.get_edge_attributes(G, 'headlabel')
-        tail_labels = nx.get_edge_attributes(G, 'taillabel')
+        head_labels = nx.get_edge_attributes(G, "headlabel")
+        tail_labels = nx.get_edge_attributes(G, "taillabel")
 
-        nx.draw_networkx_edge_labels(G,
-                                     pos,
-                                     label_pos=0.25,
-                                     edge_labels=head_labels,
-                                     rotate=False)
-        nx.draw_networkx_edge_labels(G,
-                                     pos,
-                                     label_pos=0.75,
-                                     edge_labels=tail_labels,
-                                     rotate=False)
+        nx.draw_networkx_edge_labels(
+            G, pos, label_pos=0.25, edge_labels=head_labels, rotate=False
+        )
+        nx.draw_networkx_edge_labels(
+            G, pos, label_pos=0.75, edge_labels=tail_labels, rotate=False
+        )
 
-        plt.axis('off')
-        plt.savefig('topo.png')
+        plt.axis("off")
+        plt.savefig("topo.png")
 
     def findMatchingInterface(self, node, subnet):
         for interface in self.ntoidict[node]:
@@ -241,7 +234,7 @@ def bfs_is_connected(G, src, dst) -> bool:
 def read_dsv(filename):
     if filename == None:
         return []
-    f = open(filename, 'r')
+    f = open(filename, "r")
     lines = f.readlines()
     f.close()
     lines = split_lines(lines)
@@ -251,7 +244,7 @@ def read_dsv(filename):
 def remove_comments(lines):
     ret = []
     for line in lines:
-        if line[0] != '#':
+        if line[0] != "#":
             ret.append(line)
     return ret
 

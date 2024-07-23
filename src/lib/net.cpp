@@ -69,9 +69,9 @@ void Net::build_tcp(const Packet &pkt,
         break;
     }
 
-    Payload *pl            = pkt.get_payload();
+    Payload *pl = pkt.get_payload();
     const uint8_t *payload = pl ? pl->get() : nullptr;
-    uint32_t payload_size  = pl ? pl->get_size() : 0;
+    uint32_t payload_size = pl ? pl->get_size() : 0;
 
     tag = libnet_build_tcp(pkt.get_src_port(), // source port
                            pkt.get_dst_port(), // destination port
@@ -127,9 +127,9 @@ void Net::build_udp(const Packet &pkt,
                     const uint8_t *src_mac,
                     const uint8_t *dst_mac) const {
     libnet_ptag_t tag;
-    Payload *pl            = pkt.get_payload();
+    Payload *pl = pkt.get_payload();
     const uint8_t *payload = pl ? pl->get() : nullptr;
-    uint32_t payload_size  = pl ? pl->get_size() : 0;
+    uint32_t payload_size = pl ? pl->get_size() : 0;
 
     tag = libnet_build_udp(pkt.get_src_port(),          // source port
                            pkt.get_dst_port(),          // destination port
@@ -270,7 +270,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
     // filter out irrelevant frames
     const uint8_t *dst_mac = buffer;
     const uint8_t *src_mac = buffer + 6;
-    uint8_t id_mac[6]      = ID_ETH_ADDR;
+    uint8_t id_mac[6] = ID_ETH_ADDR;
     if (memcmp(dst_mac, id_mac, 6) != 0 && memcmp(src_mac, id_mac, 6) != 0) {
         goto bad_packet;
     }
@@ -330,7 +330,7 @@ void Net::deserialize(Packet &pkt, const uint8_t *buffer, size_t buflen) const {
              * flags.
              */
             // Payload
-            int dataoff    = 34 + int(offset) * 4;
+            int dataoff = 34 + int(offset) * 4;
             size_t datalen = buflen - dataoff;
             if (datalen == 0) {
                 pkt.set_payload(nullptr);
@@ -416,7 +416,7 @@ void Net::convert_proto_state(Packet &pkt, uint16_t old_proto_state) const {
     // the highest bit (0x800U) is used to indicate unconverted TCP flags
     if (pkt.get_proto_state() & 0x800U) {
         uint16_t proto_state = 0;
-        uint16_t flags       = pkt.get_proto_state() & (~0x800U);
+        uint16_t flags = pkt.get_proto_state() & (~0x800U);
         size_t payloadlen =
             pkt.get_payload() ? pkt.get_payload()->get_size() : 0;
 
@@ -570,11 +570,11 @@ packet_belongs_to_connection(const Packet &packet,
                              int conn) {
     int orig_conn = model.get_conn();
     model.set_conn(conn);
-    uint32_t src_ip    = model.get_src_ip();
+    uint32_t src_ip = model.get_src_ip();
     EqClass *dst_ip_ec = model.get_dst_ip_ec();
-    uint16_t src_port  = model.get_src_port();
-    uint16_t dst_port  = model.get_dst_port();
-    int conn_protocol  = PS_TO_PROTO(model.get_proto_state());
+    uint16_t src_port = model.get_src_port();
+    uint16_t dst_port = model.get_dst_port();
+    int conn_protocol = PS_TO_PROTO(model.get_proto_state());
     model.set_conn(orig_conn);
 
     /**
@@ -681,10 +681,10 @@ void Net::check_seq_ack(Packet &pkt) const {
         assert(pkt.get_seq() == 0);
         assert(pkt.get_ack() == 0);
     } else if (pkt.next_phase()) { // old connection; next phase
-        uint8_t old_proto_state   = model.get_proto_state();
-        uint32_t old_seq          = model.get_seq();
-        uint32_t old_ack          = model.get_ack();
-        Payload *pl               = model.get_payload();
+        uint8_t old_proto_state = model.get_proto_state();
+        uint32_t old_seq = model.get_seq();
+        uint32_t old_ack = model.get_ack();
+        Payload *pl = model.get_payload();
         uint32_t old_payload_size = pl ? pl->get_size() : 0;
         if (old_payload_size > 0) {
             old_seq += old_payload_size;

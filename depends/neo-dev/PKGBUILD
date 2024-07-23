@@ -12,8 +12,8 @@ depends=(base-devel curl git clang yapf elfutils libelf zlib binutils libcap
          autoconf automake libtool
          zip unzip     # utils required by vcpkg
          linux-headers # openssl
-         glibc        # libpthread
-         gcc gcc-libs # libstdc++
+         glibc         # libpthread
+         gcc gcc-libs  # libstdc++
          libnl docker spin-git)
 makedepends=()
 checkdepends=()

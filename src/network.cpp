@@ -19,8 +19,8 @@ void Network::add_link(Link *link) {
     }
 
     // Add the new peer to the respective node structures
-    Node *node1      = link->get_node1();
-    Node *node2      = link->get_node2();
+    Node *node1 = link->get_node1();
+    Node *node2 = link->get_node2();
     Interface *intf1 = link->get_intf1();
     Interface *intf2 = link->get_intf2();
     node1->add_peer(intf1->get_name(), node2, intf2);
@@ -36,7 +36,7 @@ void Network::add_middlebox(Middlebox *mb) {
 
 void Network::grow_and_set_l2_lan(Node *node, Interface *interface) {
     L2_LAN *l2_lan = new L2_LAN(node, interface);
-    auto res       = l2_lans.insert(l2_lan);
+    auto res = l2_lans.insert(l2_lan);
     if (!res.second) {
         delete l2_lan;
         l2_lan = *(res.first);

@@ -24,7 +24,7 @@ void OneRequest::init() {
 }
 
 int OneRequest::check_violation() {
-    int mode        = model.get_fwd_mode();
+    int mode = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 
     if (mode == fwd_mode::ACCEPTED && PS_IS_REQUEST(proto_state)) {

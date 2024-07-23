@@ -22,9 +22,9 @@ private:
     friend bool operator!=(const ECRange &, const ECRange &);
 
 public:
-    ECRange()                = delete;
+    ECRange() = delete;
     ECRange(const ECRange &) = default;
-    ECRange(ECRange &&)      = default;
+    ECRange(ECRange &&) = default;
     ECRange(const IPv4Address &lb, const IPv4Address &ub);
     ECRange(const IPNetwork<IPv4Address> &);
     ECRange(const IPRange<IPv4Address> &);
@@ -37,7 +37,7 @@ public:
     bool contains(const EqClass &) const;
 
     ECRange &operator=(const ECRange &) = default;
-    ECRange &operator=(ECRange &&)      = default;
+    ECRange &operator=(ECRange &&) = default;
 };
 
 bool operator<(const ECRange &, const ECRange &);

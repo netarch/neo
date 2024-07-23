@@ -6,7 +6,6 @@ import toml
 
 
 class Interface:
-
     def __init__(self, name: str, ipv4: Optional[str] = None):
         self.name: str = name
         self.ipv4: Optional[str] = ipv4
@@ -16,11 +15,7 @@ class Interface:
 
 
 class Route:
-
-    def __init__(self,
-                 network: str,
-                 next_hop: str,
-                 adm_dist: Optional[int] = None):
+    def __init__(self, network: str, next_hop: str, adm_dist: Optional[int] = None):
         self.network: str = network
         self.next_hop: str = next_hop
         self.adm_dist: Optional[int] = adm_dist
@@ -30,7 +25,6 @@ class Route:
 
 
 class Node:
-
     def __init__(self, name: str, type: Optional[str] = None):
         self.name: str = name
         self.type: Optional[str] = type
@@ -50,34 +44,33 @@ class Node:
     def to_dict(self):
         data = self.__dict__
         if self.interfaces:
-            data['interfaces'] = [intf.to_dict() for intf in self.interfaces]
+            data["interfaces"] = [intf.to_dict() for intf in self.interfaces]
         else:
-            data.pop('interfaces')
+            data.pop("interfaces")
         if self.static_routes:
-            data['static_routes'] = [
-                route.to_dict() for route in self.static_routes
-            ]
+            data["static_routes"] = [route.to_dict() for route in self.static_routes]
         else:
-            data.pop('static_routes')
+            data.pop("static_routes")
         if self.installed_routes:
-            data['installed_routes'] = [
+            data["installed_routes"] = [
                 route.to_dict() for route in self.installed_routes
             ]
         else:
-            data.pop('installed_routes')
+            data.pop("installed_routes")
         return data
 
 
 class Middlebox(Node):
-
-    def __init__(self,
-                 name: str,
-                 driver: Optional[str] = None,
-                 start_delay: Optional[int] = None,
-                 reset_delay: Optional[int] = None,
-                 replay_delay: Optional[int] = None,
-                 packets_per_injection: Optional[int] = None):
-        super().__init__(name, 'emulation')
+    def __init__(
+        self,
+        name: str,
+        driver: Optional[str] = None,
+        start_delay: Optional[int] = None,
+        reset_delay: Optional[int] = None,
+        replay_delay: Optional[int] = None,
+        packets_per_injection: Optional[int] = None,
+    ):
+        super().__init__(name, "emulation")
         self.driver: Optional[str] = driver
         self.start_delay: Optional[int] = start_delay
         self.reset_delay: Optional[int] = reset_delay
@@ -86,82 +79,88 @@ class Middlebox(Node):
 
 
 class DockerNode(Middlebox):
-
-    def __init__(self,
-                 name: str,
-                 image: str,
-                 working_dir: str,
-                 start_delay: Optional[int] = None,
-                 reset_delay: Optional[int] = None,
-                 replay_delay: Optional[int] = None,
-                 packets_per_injection: Optional[int] = None,
-                 dpdk: Optional[bool] = None,
-                 daemon: Optional[str] = None,
-                 command: Optional[list[str]] = None,
-                 args: Optional[list[str]] = None,
-                 config_files: Optional[list[str]] = None):
-        super().__init__(name,
-                         driver='docker',
-                         start_delay=start_delay,
-                         reset_delay=reset_delay,
-                         replay_delay=replay_delay,
-                         packets_per_injection=packets_per_injection)
+    def __init__(
+        self,
+        name: str,
+        image: str,
+        working_dir: str,
+        start_delay: Optional[int] = None,
+        reset_delay: Optional[int] = None,
+        replay_delay: Optional[int] = None,
+        packets_per_injection: Optional[int] = None,
+        dpdk: Optional[bool] = None,
+        daemon: Optional[str] = None,
+        command: Optional[list[str]] = None,
+        args: Optional[list[str]] = None,
+        config_files: Optional[list[str]] = None,
+    ):
+        super().__init__(
+            name,
+            driver="docker",
+            start_delay=start_delay,
+            reset_delay=reset_delay,
+            replay_delay=replay_delay,
+            packets_per_injection=packets_per_injection,
+        )
 
         self.daemon: Optional[str] = daemon
         self.container: dict[str, Any] = dict()
-        self.container['image'] = image
-        self.container['working_dir'] = working_dir
-        self.container['dpdk'] = dpdk
-        self.container['command'] = command
-        self.container['args'] = args
-        self.container['config_files'] = config_files
-        self.container['ports'] = list()
-        self.container['env'] = list()
-        self.container['volume_mounts'] = list()
-        self.container['sysctls'] = list()
+        self.container["image"] = image
+        self.container["working_dir"] = working_dir
+        self.container["dpdk"] = dpdk
+        self.container["command"] = command
+        self.container["args"] = args
+        self.container["config_files"] = config_files
+        self.container["ports"] = list()
+        self.container["env"] = list()
+        self.container["volume_mounts"] = list()
+        self.container["sysctls"] = list()
 
     def add_port(self, port_no: int, proto: str):
-        self.container['ports'].append({'port': port_no, 'protocol': proto})
+        self.container["ports"].append({"port": port_no, "protocol": proto})
 
     def add_env_var(self, name: str, value: str):
-        self.container['env'].append({'name': name, 'value': value})
+        self.container["env"].append({"name": name, "value": value})
 
-    def add_volume(self,
-                   mount_path: str,
-                   host_path: str,
-                   driver: Optional[str] = None,
-                   read_only: Optional[bool] = None):
-        self.container['volume_mounts'].append({
-            'mount_path': mount_path,
-            'host_path': host_path,
-            'driver': driver,
-            'read_only': read_only
-        })
+    def add_volume(
+        self,
+        mount_path: str,
+        host_path: str,
+        driver: Optional[str] = None,
+        read_only: Optional[bool] = None,
+    ):
+        self.container["volume_mounts"].append(
+            {
+                "mount_path": mount_path,
+                "host_path": host_path,
+                "driver": driver,
+                "read_only": read_only,
+            }
+        )
 
     def add_sysctl(self, key: str, value: str):
-        self.container['sysctls'].append({'key': key, 'value': value})
+        self.container["sysctls"].append({"key": key, "value": value})
 
     def to_dict(self):
         data = super().to_dict()
-        if not self.container['command']:
-            data['container'].pop('command')
-        if not self.container['args']:
-            data['container'].pop('args')
-        if not self.container['config_files']:
-            data['container'].pop('config_files')
-        if not self.container['ports']:
-            data['container'].pop('ports')
-        if not self.container['env']:
-            data['container'].pop('env')
-        if not self.container['volume_mounts']:
-            data['container'].pop('volume_mounts')
-        if not self.container['sysctls']:
-            data['container'].pop('sysctls')
+        if not self.container["command"]:
+            data["container"].pop("command")
+        if not self.container["args"]:
+            data["container"].pop("args")
+        if not self.container["config_files"]:
+            data["container"].pop("config_files")
+        if not self.container["ports"]:
+            data["container"].pop("ports")
+        if not self.container["env"]:
+            data["container"].pop("env")
+        if not self.container["volume_mounts"]:
+            data["container"].pop("volume_mounts")
+        if not self.container["sysctls"]:
+            data["container"].pop("sysctls")
         return data
 
 
 class Link:
-
     def __init__(self, node1: str, intf1: str, node2: str, intf2: str):
         self.node1: str = node1
         self.intf1: str = intf1
@@ -173,7 +172,6 @@ class Link:
 
 
 class Network:
-
     def __init__(self):
         self.nodes: list[Node] = list()
         self.links: list[Link] = list()
@@ -190,14 +188,13 @@ class Network:
     def to_dict(self):
         data = {}
         if self.nodes:
-            data['nodes'] = [node.to_dict() for node in self.nodes]
+            data["nodes"] = [node.to_dict() for node in self.nodes]
         if self.links:
-            data['links'] = [link.to_dict() for link in self.links]
+            data["links"] = [link.to_dict() for link in self.links]
         return data
 
 
 class OpenflowUpdate:
-
     def __init__(self, node_name: str, network: str, outport: str):
         self.node: str = node_name
         self.network: str = network
@@ -208,7 +205,6 @@ class OpenflowUpdate:
 
 
 class Openflow:
-
     def __init__(self):
         self.updates: list[OpenflowUpdate] = list()
 
@@ -221,21 +217,22 @@ class Openflow:
     def to_dict(self):
         data = {}
         if self.updates:
-            data['openflow'] = {
-                'updates': [update.to_dict() for update in self.updates]
+            data["openflow"] = {
+                "updates": [update.to_dict() for update in self.updates]
             }
         return data
 
 
 class Connection:
-
-    def __init__(self,
-                 protocol: str,
-                 src_node: str,
-                 dst_ip: str,
-                 src_port: Optional[int] = None,
-                 dst_port: Optional[list[int]] = None,
-                 owned_dst_only: Optional[bool] = None):
+    def __init__(
+        self,
+        protocol: str,
+        src_node: str,
+        dst_ip: str,
+        src_port: Optional[int] = None,
+        dst_port: Optional[list[int]] = None,
+        owned_dst_only: Optional[bool] = None,
+    ):
         self.protocol: str = protocol
         self.src_node: str = src_node
         self.dst_ip: str = dst_ip
@@ -248,7 +245,6 @@ class Connection:
 
 
 class Invariant:
-
     def __init__(self, type: str):
         self.type: str = type
         self.connections: list[Connection] = list()
@@ -259,7 +255,7 @@ class Invariant:
     def to_dict(self):
         data = self.__dict__
         if self.connections:
-            data['connections'] = [conn.to_dict() for conn in self.connections]
+            data["connections"] = [conn.to_dict() for conn in self.connections]
         return data
 
 
@@ -269,75 +265,79 @@ class Invariant:
 
 
 class Reachability(Invariant):
-
-    def __init__(self,
-                 target_node: str,
-                 reachable: bool,
-                 protocol: str,
-                 src_node: str,
-                 dst_ip: str,
-                 src_port: Optional[int] = None,
-                 dst_port: Optional[list[int]] = None,
-                 owned_dst_only: Optional[bool] = None):
-        super().__init__('reachability')
+    def __init__(
+        self,
+        target_node: str,
+        reachable: bool,
+        protocol: str,
+        src_node: str,
+        dst_ip: str,
+        src_port: Optional[int] = None,
+        dst_port: Optional[list[int]] = None,
+        owned_dst_only: Optional[bool] = None,
+    ):
+        super().__init__("reachability")
         self.target_node: str = target_node
         self.reachable: bool = reachable
         self.add_connection(
-            Connection(protocol, src_node, dst_ip, src_port, dst_port,
-                       owned_dst_only))
+            Connection(protocol, src_node, dst_ip, src_port, dst_port, owned_dst_only)
+        )
 
 
 class ReplyReachability(Invariant):
-
-    def __init__(self,
-                 target_node: str,
-                 reachable: bool,
-                 protocol: str,
-                 src_node: str,
-                 dst_ip: str,
-                 src_port: Optional[int] = None,
-                 dst_port: Optional[list[int]] = None,
-                 owned_dst_only: Optional[bool] = None):
-        super().__init__('reply-reachability')
+    def __init__(
+        self,
+        target_node: str,
+        reachable: bool,
+        protocol: str,
+        src_node: str,
+        dst_ip: str,
+        src_port: Optional[int] = None,
+        dst_port: Optional[list[int]] = None,
+        owned_dst_only: Optional[bool] = None,
+    ):
+        super().__init__("reply-reachability")
         self.target_node: str = target_node
         self.reachable: bool = reachable
         self.add_connection(
-            Connection(protocol, src_node, dst_ip, src_port, dst_port,
-                       owned_dst_only))
+            Connection(protocol, src_node, dst_ip, src_port, dst_port, owned_dst_only)
+        )
 
 
 class Waypoint(Invariant):
-
-    def __init__(self,
-                 target_node: str,
-                 pass_through: bool,
-                 protocol: str,
-                 src_node: str,
-                 dst_ip: str,
-                 src_port: Optional[int] = None,
-                 dst_port: Optional[list[int]] = None,
-                 owned_dst_only: Optional[bool] = None):
-        super().__init__('waypoint')
+    def __init__(
+        self,
+        target_node: str,
+        pass_through: bool,
+        protocol: str,
+        src_node: str,
+        dst_ip: str,
+        src_port: Optional[int] = None,
+        dst_port: Optional[list[int]] = None,
+        owned_dst_only: Optional[bool] = None,
+    ):
+        super().__init__("waypoint")
         self.target_node: str = target_node
         self.pass_through: bool = pass_through
         self.add_connection(
-            Connection(protocol, src_node, dst_ip, src_port, dst_port,
-                       owned_dst_only))
+            Connection(protocol, src_node, dst_ip, src_port, dst_port, owned_dst_only)
+        )
 
 
 class Loop(Invariant):
-
-    def __init__(self,
-                 protocol: str,
-                 src_node: str,
-                 dst_ip: str,
-                 src_port: Optional[int] = None,
-                 dst_port: Optional[list[int]] = None,
-                 owned_dst_only: Optional[bool] = None):
-        super().__init__('loop')
+    def __init__(
+        self,
+        protocol: str,
+        src_node: str,
+        dst_ip: str,
+        src_port: Optional[int] = None,
+        dst_port: Optional[list[int]] = None,
+        owned_dst_only: Optional[bool] = None,
+    ):
+        super().__init__("loop")
         self.add_connection(
-            Connection(protocol, src_node, dst_ip, src_port, dst_port,
-                       owned_dst_only))
+            Connection(protocol, src_node, dst_ip, src_port, dst_port, owned_dst_only)
+        )
 
 
 ##
@@ -346,18 +346,14 @@ class Loop(Invariant):
 
 
 class OneRequest(Invariant):
-
     def __init__(self, target_node: str):
-        super().__init__('one-request')
+        super().__init__("one-request")
         self.target_node: str = target_node
 
 
 class LoadBalance(Invariant):
-
-    def __init__(self,
-                 target_node: str,
-                 max_dispersion_index: Optional[float] = None):
-        super().__init__('loadbalance')
+    def __init__(self, target_node: str, max_dispersion_index: Optional[float] = None):
+        super().__init__("loadbalance")
         self.target_node: str = target_node
         self.max_dispersion_index: Optional[float] = max_dispersion_index
 
@@ -368,41 +364,38 @@ class LoadBalance(Invariant):
 
 
 class Conditional(Invariant):
-
     def __init__(self, correlated_invs: list[Invariant]):
-        super().__init__('conditional')
+        super().__init__("conditional")
         self.correlated_invs: list[Invariant] = correlated_invs
 
     def to_dict(self):
         data = super().to_dict()
         if self.correlated_invs:
-            data['correlated_invariants'] = [
+            data["correlated_invariants"] = [
                 inv.to_dict() for inv in self.correlated_invs
             ]
-        data.pop('connections')
-        data.pop('correlated_invs')
+        data.pop("connections")
+        data.pop("correlated_invs")
         return data
 
 
 class Consistency(Invariant):
-
     def __init__(self, correlated_invs: list[Invariant]):
-        super().__init__('consistency')
+        super().__init__("consistency")
         self.correlated_invs: list[Invariant] = correlated_invs
 
     def to_dict(self):
         data = super().to_dict()
         if self.correlated_invs:
-            data['correlated_invariants'] = [
+            data["correlated_invariants"] = [
                 inv.to_dict() for inv in self.correlated_invs
             ]
-        data.pop('connections')
-        data.pop('correlated_invs')
+        data.pop("connections")
+        data.pop("correlated_invs")
         return data
 
 
 class Invariants:
-
     def __init__(self):
         self.invs: list[Invariant] = list()
 
@@ -414,13 +407,12 @@ class Invariants:
 
     def to_dict(self):
         if self.invs:
-            return {'invariants': [inv.to_dict() for inv in self.invs]}
+            return {"invariants": [inv.to_dict() for inv in self.invs]}
         else:
             return {}
 
 
 class Config:
-
     def __init__(self):
         self.network = Network()
         self.openflow = Openflow()

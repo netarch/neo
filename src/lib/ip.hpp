@@ -19,9 +19,9 @@ protected:
     friend bool operator!=(const IPv4Address &, const IPv4Address &);
 
 public:
-    IPv4Address()                    = default;
+    IPv4Address() = default;
     IPv4Address(const IPv4Address &) = default;
-    IPv4Address(IPv4Address &&)      = default;
+    IPv4Address(IPv4Address &&) = default;
     IPv4Address(const std::string &);
     IPv4Address(const char *);
     IPv4Address(uint32_t);
@@ -30,7 +30,7 @@ public:
     size_t length() const;
     uint32_t get_value() const;
     IPv4Address &operator=(const IPv4Address &) = default;
-    IPv4Address &operator=(IPv4Address &&)      = default;
+    IPv4Address &operator=(IPv4Address &&) = default;
     IPv4Address &operator+=(const IPv4Address &);
     IPv4Address &operator-=(const IPv4Address &);
     IPv4Address &operator&=(const IPv4Address &);
@@ -62,9 +62,9 @@ protected:
     friend bool operator<(const IPInterface<T> &, const IPInterface<T> &);
 
 public:
-    IPInterface()                    = default;
+    IPInterface() = default;
     IPInterface(const IPInterface &) = default;
-    IPInterface(IPInterface &&)      = default;
+    IPInterface(IPInterface &&) = default;
     IPInterface(const Addr &, int);
     IPInterface(const std::string &);
     IPInterface(const char *);
@@ -77,7 +77,7 @@ public:
     bool operator==(const IPInterface<Addr> &) const;
     bool operator!=(const IPInterface<Addr> &) const;
     IPInterface<Addr> &operator=(const IPInterface<Addr> &) = default;
-    IPInterface<Addr> &operator=(IPInterface<Addr> &&)      = default;
+    IPInterface<Addr> &operator=(IPInterface<Addr> &&) = default;
 };
 
 template <class Addr>
@@ -92,9 +92,9 @@ private:
     bool is_network() const; // check if it's the network address
 
 public:
-    IPNetwork()                  = default;
+    IPNetwork() = default;
     IPNetwork(const IPNetwork &) = default;
-    IPNetwork(IPNetwork &&)      = default;
+    IPNetwork(IPNetwork &&) = default;
     IPNetwork(const Addr &, int);
     IPNetwork(const std::string &);
     IPNetwork(const char *);
@@ -108,7 +108,7 @@ public:
     bool operator==(const IPNetwork<Addr> &) const;
     bool operator!=(const IPNetwork<Addr> &) const;
     IPNetwork<Addr> &operator=(const IPNetwork<Addr> &) = default;
-    IPNetwork<Addr> &operator=(IPNetwork<Addr> &&)      = default;
+    IPNetwork<Addr> &operator=(IPNetwork<Addr> &&) = default;
 };
 
 template <class Addr>
@@ -118,9 +118,9 @@ protected:
     Addr ub;
 
 public:
-    IPRange()                = default;
+    IPRange() = default;
     IPRange(const IPRange &) = default;
-    IPRange(IPRange &&)      = default;
+    IPRange(IPRange &&) = default;
     IPRange(const Addr &lb, const Addr &ub);
     IPRange(const IPNetwork<Addr> &);
     IPRange(const std::string &);
@@ -140,7 +140,7 @@ public:
     bool operator==(const IPRange<Addr> &) const;
     bool operator!=(const IPRange<Addr> &) const;
     IPRange<Addr> &operator=(const IPRange<Addr> &) = default;
-    IPRange<Addr> &operator=(IPRange<Addr> &&)      = default;
+    IPRange<Addr> &operator=(IPRange<Addr> &&) = default;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -263,7 +263,7 @@ IPNetwork<Addr>::IPNetwork(const IPRange<Addr> &range) {
         logger.error("Invalid network: " + range.to_string());
     }
 
-    IPInterface<Addr>::value  = range.get_lb().get_value();
+    IPInterface<Addr>::value = range.get_lb().get_value();
     IPInterface<Addr>::prefix = IPInterface<Addr>::length() - (int)log2(size);
 }
 

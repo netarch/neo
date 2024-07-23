@@ -70,7 +70,7 @@ void ForwardingProcess::first_forward() {
     if (PS_IS_FIRST(model.get_proto_state()) && model.get_src_ip() == 0) {
         // update the source IP address according to the egress interface
         Candidates *candidates = model.get_candidates();
-        FIB_IPNH next_hop      = candidates->at(model.get_choice());
+        FIB_IPNH next_hop = candidates->at(model.get_choice());
         if (next_hop.l2_intf()) {
             const Interface *egress_intf =
                 next_hop.l2_node()
@@ -114,8 +114,8 @@ void ForwardingProcess::collect_next_hops() {
     }
 
     Candidates candidates;
-    EqClass *ec               = model.get_dst_ip_ec();
-    Choices *choices          = model.get_path_choices();
+    EqClass *ec = model.get_dst_ip_ec();
+    Choices *choices = model.get_path_choices();
     optional<FIB_IPNH> choice = choices->get_choice(ec, current_node);
 
     // in case of multipath, use the past choice if it's been made
@@ -133,14 +133,14 @@ void ForwardingProcess::collect_next_hops() {
 }
 
 void ForwardingProcess::choose_injection_results() {
-    Node *current_node        = model.get_pkt_location();
+    Node *current_node = model.get_pkt_location();
     InjectionResults *results = model.get_injection_results();
     update_model_from_injection_result(static_cast<Middlebox *>(current_node),
                                        results->at(model.get_choice()));
 }
 
 void ForwardingProcess::forward_packet() {
-    Node *current_node     = model.get_pkt_location();
+    Node *current_node = model.get_pkt_location();
     Candidates *candidates = model.get_candidates();
 
     // in case of multipath, remember the path choice
@@ -151,16 +151,16 @@ void ForwardingProcess::forward_packet() {
         model.set_path_choices(std::move(new_choices));
     }
 
-    Node *next_hop          = candidates->at(model.get_choice()).l3_node();
+    Node *next_hop = candidates->at(model.get_choice()).l3_node();
     Interface *ingress_intf = candidates->at(model.get_choice()).l3_intf();
 
     // When the packet is delivered at its destination
     if (next_hop == current_node) {
         // check if the endpoints remain consistent
-        int proto_state    = model.get_proto_state();
+        int proto_state = model.get_proto_state();
         Node *current_node = model.get_pkt_location();
-        Node *tx_node      = model.get_tx_node();
-        Node *rx_node      = model.get_rx_node();
+        Node *tx_node = model.get_tx_node();
+        Node *rx_node = model.get_rx_node();
         if (PS_IS_FIRST(proto_state)) {
             // store the original receiving endpoint of the connection
             model.set_rx_node(current_node);
@@ -202,7 +202,7 @@ void ForwardingProcess::forward_packet() {
 
 void ForwardingProcess::accepted() {
     int proto_state = model.get_proto_state();
-    Node &pkt_loc   = *model.get_pkt_location();
+    Node &pkt_loc = *model.get_pkt_location();
 
     switch (proto_state) {
     case PS_TCP_INIT_1:
@@ -273,9 +273,9 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
 
     // compute seq and ack numbers
     if (PS_IS_TCP(old_proto_state)) {
-        uint32_t seq          = model.get_seq();
-        uint32_t ack          = model.get_ack();
-        Payload *pl           = model.get_payload();
+        uint32_t seq = model.get_seq();
+        uint32_t ack = model.get_ack();
+        Payload *pl = model.get_payload();
         uint32_t payload_size = pl ? pl->get_size() : 0;
         if (payload_size > 0) {
             seq += payload_size;
@@ -293,7 +293,7 @@ void ForwardingProcess::phase_transition(uint8_t next_proto_state,
 
     // update src/dst IP, src node, src/dst ports, FIB, and pkt loc
     if (change_direction) {
-        uint32_t src_ip    = model.get_src_ip();
+        uint32_t src_ip = model.get_src_ip();
         EqClass *dst_ip_ec = model.get_dst_ip_ec();
         // the next src IP
         model.set_src_ip(dst_ip_ec->representative_addr().get_value());
@@ -327,7 +327,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
     _STATS_START(Stats::Op::FWD_INJECT_PKT);
 
     // Check out current packet history at mb
-    PacketHistory *pkt_hist        = model.get_pkt_hist();
+    PacketHistory *pkt_hist = model.get_pkt_hist();
     NodePacketHistory *current_nph = pkt_hist->get_node_pkt_hist(mb);
 
     // Rewind the middlebox state if needed
@@ -338,7 +338,7 @@ void ForwardingProcess::inject_packet(Middlebox *mb) {
 
     // Update node_pkt_hist with this new packet
     NodePacketHistory *new_nph = new NodePacketHistory(new_pkt, current_nph);
-    new_nph                    = storage.store_node_pkt_hist(new_nph);
+    new_nph = storage.store_node_pkt_hist(new_nph);
     mb->set_node_pkt_hist(new_nph);
 
     // Update pkt_hist with this new node_pkt_hist
@@ -379,15 +379,15 @@ void ForwardingProcess::update_model_from_injection_result(
     Middlebox *mb,
     const InjectionResult &result) const {
     vector<Packet> recv_pkts = result.recv_pkts();
-    bool explicit_drop       = result.explicit_drop();
+    bool explicit_drop = result.explicit_drop();
 
     if (explicit_drop && !recv_pkts.empty()) {
         logger.error("Sent packet dropped but still received packets");
     }
 
-    int orig_conn             = model.get_conn();
+    int orig_conn = model.get_conn();
     bool current_conn_updated = false;
-    bool other_conns_updated  = false;
+    bool other_conns_updated = false;
     logger.debug("Processing injection result " + result.to_string());
 
     // Process each received packet and update the model state based on the

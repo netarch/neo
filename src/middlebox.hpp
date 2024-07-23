@@ -16,8 +16,8 @@
 
 class Middlebox : public Node {
 protected:
-    useconds_t _start_delay  = 0;
-    useconds_t _reset_delay  = 0;
+    useconds_t _start_delay = 0;
+    useconds_t _reset_delay = 0;
     useconds_t _replay_delay = 0;
     // Number of the packets to send per injection.
     int _packets_per_injection = 0;
@@ -35,10 +35,10 @@ protected:
     using Node::operator=;
 
 public:
-    Middlebox(const Middlebox &)            = delete;
-    Middlebox(Middlebox &&)                 = delete;
+    Middlebox(const Middlebox &) = delete;
+    Middlebox(Middlebox &&) = delete;
     Middlebox &operator=(const Middlebox &) = delete;
-    Middlebox &operator=(Middlebox &&)      = delete;
+    Middlebox &operator=(Middlebox &&) = delete;
 
     decltype(_start_delay) start_delay() const { return _start_delay; }
     decltype(_reset_delay) reset_delay() const { return _reset_delay; }

@@ -47,7 +47,7 @@ compute_dispersion_index(const unordered_set<Node *> &target_nodes,
 }
 
 int LoadBalance::check_violation() {
-    int mode        = model.get_fwd_mode();
+    int mode = model.get_fwd_mode();
     int proto_state = model.get_proto_state();
 
     if (mode == fwd_mode::ACCEPTED && PS_IS_FIRST(proto_state)) {

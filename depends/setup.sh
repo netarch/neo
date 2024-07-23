@@ -17,54 +17,44 @@ die() {
     exit 1
 }
 
-[ $UID -eq 0 ] && die 'Please run this script without root privilege'
+if [[ $UID -eq 0 ]]; then
+    die 'Please run this script without root privilege'
+fi
 
 #
-# Output a short name of the Linux distribution
+# Output a short name (v:DISTRO) of the Linux distribution
 #
 get_distro() {
+    export DISTRO
+
     if test -f /etc/os-release; then # freedesktop.org and systemd
-        . /etc/os-release
-        echo "$NAME" | cut -f 1 -d ' ' | tr '[:upper:]' '[:lower:]'
+        source /etc/os-release
+        DISTRO="$(echo "$NAME" | cut -f 1 -d ' ' | tr '[:upper:]' '[:lower:]')"
     elif type lsb_release >/dev/null 2>&1; then # linuxbase.org
-        lsb_release -si | tr '[:upper:]' '[:lower:]'
+        DISTRO="$(lsb_release -si | tr '[:upper:]' '[:lower:]')"
     elif test -f /etc/lsb-release; then
         # shellcheck source=/dev/null
         source /etc/lsb-release
-        echo "$DISTRIB_ID" | tr '[:upper:]' '[:lower:]'
+        DISTRO="$(echo "$DISTRIB_ID" | tr '[:upper:]' '[:lower:]')"
     elif test -f /etc/arch-release; then
-        echo "arch"
+        DISTRO="arch"
     elif test -f /etc/debian_version; then
         # Older Debian, Ubuntu
-        echo "debian"
+        DISTRO="debian"
     elif test -f /etc/SuSe-release; then
         # Older SuSE
-        echo "opensuse"
+        DISTRO="opensuse"
     elif test -f /etc/fedora-release; then
         # Older Fedora
-        echo "fedora"
+        DISTRO="fedora"
     elif test -f /etc/redhat-release; then
         # Older Red Hat, CentOS
-        echo "centos"
+        DISTRO="centos"
     elif type uname >/dev/null 2>&1; then
         # Fall back to uname
-        uname -s
+        DISTRO="$(uname -s)"
     else
         die 'Unable to determine the distribution'
-    fi
-}
-
-#
-# Set up docker engine quick and dirty
-#
-get_docker() {
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh ./get-docker.sh
-    rm -f ./get-docker.sh
-
-    # Add the current user to group `docker` if they aren't in it already.
-    if ! getent group docker | grep -qw "$USER"; then
-        sudo gpasswd -a "$USER" docker
     fi
 }
 
@@ -172,8 +162,7 @@ aur_install() {
         git clone "https://aur.archlinux.org/$TARGET.git"
     fi
 
-    DISTRO="$(get_distro)"
-    if [ "$DISTRO" = "arch" ]; then
+    if [[ "$DISTRO" == "arch" ]]; then
         (makepkg_arch "$TARGET" "$@")
     else
         (makepkg_manual "$TARGET" "$@")
@@ -181,10 +170,72 @@ aur_install() {
     rm -rf "$TARGET"
 }
 
-main() {
-    DISTRO="$(get_distro)"
+#
+# Set up LLVM repository for Ubuntu
+#
+add_llvm_repo_for_ubuntu() {
+    local llvm_version="$1"
+    local code_name="${UBUNTU_CODENAME:-}"
+    local signature="/etc/apt/trusted.gpg.d/apt.llvm.org.asc"
+    local sources_list="/etc/apt/sources.list.d/llvm.list"
+    export llvm_release_name="llvm-toolchain-$code_name-$llvm_version"
 
-    if [ "$DISTRO" = "arch" ]; then
+    # check distribution
+    if [[ "${DISTRO:-}" != "ubuntu" ]]; then
+        die "The Linux distribution is not ubuntu: ${DISTRO:-}"
+    fi
+    if [[ -z "$code_name" ]]; then
+        die "Unrecognizable ubuntu code name: $code_name"
+    fi
+
+    # check if the repo exists
+    if ! wget -q --method=HEAD "http://apt.llvm.org/$code_name" &>/dev/null; then
+        die "Failed to connect to http://apt.llvm.org/$code_name"
+    fi
+
+    # download GPG key once
+    if [[ ! -f "$signature" ]]; then
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee "$signature"
+    fi
+
+    cat <<EOF | sudo tee "$sources_list"
+deb     http://apt.llvm.org/$code_name/ $llvm_release_name main
+deb-src http://apt.llvm.org/$code_name/ $llvm_release_name main
+EOF
+    sudo apt-get update -y -qq
+}
+
+#
+# Set up docker engine quick and dirty
+#
+get_docker() {
+    if command -v docker >/dev/null 2>&1; then
+        return
+    fi
+
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh ./get-docker.sh
+    rm -f ./get-docker.sh
+
+    # Add the current user to group `docker` if they aren't in it already.
+    if ! getent group docker | grep -qw "$USER"; then
+        sudo gpasswd -a "$USER" docker
+    fi
+}
+
+#
+# Install spin-git from the AUR
+#
+get_spin() {
+    if ! command -v spin >/dev/null 2>&1; then
+        aur_install spin-git
+    fi
+}
+
+main() {
+    get_distro
+
+    if [[ "$DISTRO" == "arch" ]]; then
         if ! pacman -Q paru >/dev/null 2>&1; then
             aur_install paru --asdeps --needed --noconfirm --removemake
         fi
@@ -208,7 +259,8 @@ main() {
         paru -Sy --asdeps --needed --noconfirm --removemake "${depends[@]}"
         makepkg_arch neo-dev -srcfi --asdeps --noconfirm
 
-    elif [ "$DISTRO" = "ubuntu" ]; then
+    elif [[ "$DISTRO" == "ubuntu" ]]; then
+        llvm_version=18
         script_deps=(build-essential curl git)
         style_deps=(clang-format yapf3)
         bpf_deps=(elfutils libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm libc6-dev libc6-dev-i386)
@@ -221,18 +273,20 @@ main() {
             zip unzip      # utils required by vcpkg
             linux-libc-dev # openssl
             libpthread-stubs0-dev
-            libstdc++-12-dev # TODO: Try 13.
+            libstdc++-13-dev
             libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
+        llvm_pkgs=("clang-$llvm_version" "lld-$llvm_version"
+            "clang-tools-$llvm_version" "clang-format-$llvm_version"
+            "clang-tidy-$llvm_version" "llvm-$llvm_version-dev"
+            "llvm-$llvm_version-tools" "libc++-$llvm_version-dev"
+            "libc++abi-$llvm_version-dev")
 
-        sudo apt update -y -qq
-        sudo apt install -y -qq "${depends[@]}"
-
-        if ! command -v docker >/dev/null 2>&1; then
-            get_docker
-        fi
-        if ! command -v spin >/dev/null 2>&1; then
-            aur_install spin-git
-        fi
+        add_llvm_repo_for_ubuntu "$llvm_version"
+        sudo apt-get update -y -qq
+        sudo apt-get install -y -qq "${depends[@]}"
+        sudo apt-get install -y -qq -t "$llvm_release_name" "${llvm_pkgs[@]}"
+        get_docker
+        get_spin
 
     else
         die "Unsupported distribution: $DISTRO"

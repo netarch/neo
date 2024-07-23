@@ -1,7 +1,5 @@
 #include "../build/vmlinux.h"
 
-#include <linux/string.h>
-
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
 
@@ -145,7 +143,7 @@ static inline struct net *skb_net(const struct sk_buff *skb) {
 
 static inline unsigned int skb_netns_ino(const struct sk_buff *skb) {
     unsigned int ino = 0;
-    struct net *net  = skb_net(skb);
+    struct net *net = skb_net(skb);
 
     if (net) {
         BPF_CORE_READ_INTO(&ino, net, ns.inum);
@@ -172,7 +170,7 @@ static inline int my_memcmp(const void *s1, const void *s2, size_t n) {
 SEC("tracepoint/skb/kfree_skb")
 int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
     struct drop_data *target_pkt = NULL;
-    u32 target_pkt_key           = 0;
+    u32 target_pkt_key = 0;
     target_pkt = (struct drop_data *)bpf_map_lookup_elem(&target_packet,
                                                          &target_pkt_key);
 
@@ -182,7 +180,7 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
     }
 
     // Get sk_buff and skip event if the sk_buff is empty
-    struct sk_buff *skb  = NULL;
+    struct sk_buff *skb = NULL;
     unsigned int skb_len = 0;
     BPF_CORE_READ_INTO(&skb, args, skbaddr);
     BPF_CORE_READ_INTO(&skb_len, skb, len);
@@ -193,8 +191,8 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
 
     // Reserve drop data for this event
     struct drop_data *data = NULL;
-    data                   = (struct drop_data *)bpf_ringbuf_reserve(&events,
-                                                                     sizeof(struct drop_data), 0);
+    data = (struct drop_data *)bpf_ringbuf_reserve(&events,
+                                                   sizeof(struct drop_data), 0);
     if (!data) {
         return 0;
     }
@@ -222,7 +220,7 @@ int tracepoint__kfree_skb(struct trace_event_raw_kfree_skb *args) {
 
     // L2
     if (skb_mac_header_was_set(skb)) {
-        uint8_t id_mac[6]  = ID_ETH_ADDR;
+        uint8_t id_mac[6] = ID_ETH_ADDR;
         struct ethhdr *eth = eth_hdr(skb);
         BPF_CORE_READ_INTO(&data->eth_dst_addr, eth, h_dest);
         BPF_CORE_READ_INTO(&data->eth_src_addr, eth, h_source);

@@ -15,7 +15,6 @@
 #define LOG_PATTERN "[%E.%f] [%P] [%^%L%L%$] %v"
 
 using namespace std;
-namespace st = boost::stacktrace;
 
 Logger logger; // global logger
 
@@ -101,11 +100,11 @@ void Logger::warn(const string &msg) {
 }
 
 void Logger::error(const string &msg) {
-    auto trace            = st::stacktrace();
+    auto trace = boost::stacktrace::stacktrace();
     string msg_with_trace = msg;
 
     if (!trace.empty()) {
-        msg_with_trace += "\n" + st::to_string(trace);
+        msg_with_trace += "\n" + boost::stacktrace::to_string(trace);
     }
 
     if (this->_stdout_logger) {
@@ -120,7 +119,7 @@ void Logger::error(const string &msg) {
 
 void Logger::error(const string &msg, int err_num) {
     locale_t locale = newlocale(LC_ALL_MASK, "", 0);
-    string err_str  = strerror_l(err_num, locale);
+    string err_str = strerror_l(err_num, locale);
     freelocale(locale);
     error(msg + ": " + err_str);
 }

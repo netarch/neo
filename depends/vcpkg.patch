@@ -1,0 +1,72 @@
+diff --git a/ports/boost-stacktrace/features.cmake b/ports/boost-stacktrace/features.cmake
+index 3491066c4..9d4e1c242 100644
+--- a/ports/boost-stacktrace/features.cmake
++++ b/ports/boost-stacktrace/features.cmake
+@@ -23,7 +23,7 @@
+     # When ON, builds the boost_stacktrace_windbg_cached library variant. Defaults to ON under Windows when WinDbg support is autodetected and when thread_local is supported, otherwise OFF.
+ 
+ list(APPEND FEATURE_OPTIONS 
+-  -DBOOST_STACKTRACE_ENABLE_BACKTRACE=OFF 
++  -DBOOST_STACKTRACE_ENABLE_BACKTRACE=ON 
+   )
+ 
+ if(VCPKG_TARGET_IS_WINDOWS)
+@@ -34,4 +34,4 @@ else()
+   list(APPEND FEATURE_OPTIONS 
+    -DBOOST_STACKTRACE_ENABLE_WINDBG=OFF
+   )
+-endif()
+\ No newline at end of file
++endif()
+diff --git a/ports/boost-stacktrace/fix_backtrace.diff b/ports/boost-stacktrace/fix_backtrace.diff
+new file mode 100644
+index 000000000..cb73ddb23
+--- /dev/null
++++ b/ports/boost-stacktrace/fix_backtrace.diff
+@@ -0,0 +1,22 @@
++diff --git a/CMakeLists.txt b/CMakeLists.txt
++index 4638618..6825856 100644
++--- a/CMakeLists.txt
+++++ b/CMakeLists.txt
++@@ -61,7 +61,7 @@ function(stacktrace_check var source incs libs defs)
++ 
++ endfunction()
++ 
++-stacktrace_check(BOOST_STACKTRACE_HAS_BACKTRACE has_backtrace.cpp "" "backtrace" "")
+++stacktrace_check(BOOST_STACKTRACE_HAS_BACKTRACE has_backtrace.cpp "" "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/libbacktrace.a" "")
++ 
++ set(_default_addr2line ON)
++ if(WIN32 AND NOT CMAKE_CXX_PLATFORM_ID MATCHES "Cygwin")
++@@ -90,7 +90,7 @@ message(STATUS "Boost.Stacktrace: "
++ )
++ 
++ stacktrace_add_library(noop ${BOOST_STACKTRACE_ENABLE_NOOP} "" "")
++-stacktrace_add_library(backtrace ${BOOST_STACKTRACE_ENABLE_BACKTRACE} "backtrace" "")
+++stacktrace_add_library(backtrace ${BOOST_STACKTRACE_ENABLE_BACKTRACE} "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/libbacktrace.a" "")
++ stacktrace_add_library(addr2line ${BOOST_STACKTRACE_ENABLE_ADDR2LINE} "" "")
++ stacktrace_add_library(basic ${BOOST_STACKTRACE_ENABLE_BASIC} "" "")
++ stacktrace_add_library(windbg ${BOOST_STACKTRACE_ENABLE_WINDBG} "dbgeng;ole32" "_GNU_SOURCE=1")
+diff --git a/ports/boost-stacktrace/portfile.cmake b/ports/boost-stacktrace/portfile.cmake
+index cd2a782af..ccd630570 100644
+--- a/ports/boost-stacktrace/portfile.cmake
++++ b/ports/boost-stacktrace/portfile.cmake
+@@ -8,6 +8,7 @@ vcpkg_from_github(
+     HEAD_REF master
+     PATCHES
+         fix_config-check.diff
++        fix_backtrace.diff
+ )
+ 
+ set(FEATURE_OPTIONS "")
+diff --git a/ports/boost-stacktrace/vcpkg.json b/ports/boost-stacktrace/vcpkg.json
+index e734e9917..e9533afbc 100644
+--- a/ports/boost-stacktrace/vcpkg.json
++++ b/ports/boost-stacktrace/vcpkg.json
+@@ -8,6 +8,7 @@
+   "license": "BSL-1.0",
+   "supports": "!uwp",
+   "dependencies": [
++    "libbacktrace",
+     {
+       "name": "boost-assert",
+       "version>=": "1.85.0"

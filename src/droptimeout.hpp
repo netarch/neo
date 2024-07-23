@@ -17,10 +17,10 @@ private:
 
 public:
     // Disable the copy/move constructors and the assignment operators
-    DropTimeout(const DropTimeout &)            = delete;
-    DropTimeout(DropTimeout &&)                 = delete;
+    DropTimeout(const DropTimeout &) = delete;
+    DropTimeout(DropTimeout &&) = delete;
     DropTimeout &operator=(const DropTimeout &) = delete;
-    DropTimeout &operator=(DropTimeout &&)      = delete;
+    DropTimeout &operator=(DropTimeout &&) = delete;
 
     static DropTimeout &get();
 

@@ -26,7 +26,7 @@ public:
         _ip(addr),
         _port(port) {}
     EmuPktKey(const EmuPktKey &) = default;
-    EmuPktKey(EmuPktKey &&)      = default;
+    EmuPktKey(EmuPktKey &&) = default;
 
     bool operator==(const EmuPktKey &) const = default;
 

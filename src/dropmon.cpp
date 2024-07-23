@@ -19,28 +19,28 @@ DropMon::DropMon() :
     _dm_sock(nullptr),
     _stop_dm_thread(false),
     _drop_ts(0) {
-    _net_dm_policy[NET_DM_ATTR_UNSPEC]             = {NLA_UNSPEC, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_ALERT_MODE]         = {NLA_U8, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_PC]                 = {NLA_U64, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_SYMBOL]             = {NLA_STRING, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_IN_PORT]            = {NLA_NESTED, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_TIMESTAMP]          = {NLA_U64, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_PROTO]              = {NLA_U16, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_PAYLOAD]            = {NLA_UNSPEC, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_PAD]                = {NLA_UNSPEC, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_TRUNC_LEN]          = {NLA_U32, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_ORIG_LEN]           = {NLA_U32, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_QUEUE_LEN]          = {NLA_U32, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_STATS]              = {NLA_NESTED, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_HW_STATS]           = {NLA_NESTED, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_ORIGIN]             = {NLA_U16, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_UNSPEC] = {NLA_UNSPEC, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_ALERT_MODE] = {NLA_U8, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PC] = {NLA_U64, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_SYMBOL] = {NLA_STRING, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_IN_PORT] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_TIMESTAMP] = {NLA_U64, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PROTO] = {NLA_U16, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PAYLOAD] = {NLA_UNSPEC, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_PAD] = {NLA_UNSPEC, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_TRUNC_LEN] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_ORIG_LEN] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_QUEUE_LEN] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_STATS] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_STATS] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_ORIGIN] = {NLA_U16, 0, 0};
     _net_dm_policy[NET_DM_ATTR_HW_TRAP_GROUP_NAME] = {NLA_STRING, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_HW_TRAP_NAME]       = {NLA_STRING, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_HW_ENTRIES]         = {NLA_NESTED, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_HW_ENTRY]           = {NLA_NESTED, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_HW_TRAP_COUNT]      = {NLA_U32, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_SW_DROPS]           = {NLA_FLAG, 0, 0};
-    _net_dm_policy[NET_DM_ATTR_HW_DROPS]           = {NLA_FLAG, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_TRAP_NAME] = {NLA_STRING, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_ENTRIES] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_ENTRY] = {NLA_NESTED, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_TRAP_COUNT] = {NLA_U32, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_SW_DROPS] = {NLA_FLAG, 0, 0};
+    _net_dm_policy[NET_DM_ATTR_HW_DROPS] = {NLA_FLAG, 0, 0};
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
     _net_dm_policy[NET_DM_ATTR_FLOW_ACTION_COOKIE] = {NLA_UNSPEC, 0, 0};
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
@@ -158,7 +158,7 @@ void DropMon::start_listening_for(const Packet &pkt,
     // Reset dropmon variables
     unique_lock<mutex> lck(_mtx);
     _target_pkt = pkt;
-    _drop_ts    = 0;
+    _drop_ts = 0;
     lck.unlock();
 
     // Set up the drop listener thread (block all signals)
@@ -337,7 +337,7 @@ Packet DropMon::recv_msg(struct nl_sock *sock, uint64_t &ts) const {
         goto out_free;
     }
     // deserialize packet
-    payload    = nla_data(attrs[NET_DM_ATTR_PAYLOAD]);
+    payload = nla_data(attrs[NET_DM_ATTR_PAYLOAD]);
     payloadlen = nla_len(attrs[NET_DM_ATTR_PAYLOAD]);
     Net::get().deserialize(pkt, (const uint8_t *)payload, payloadlen);
 

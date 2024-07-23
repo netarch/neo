@@ -81,8 +81,19 @@ reset_files() {
     git -C "$PROJECT_DIR" submodule update --init --recursive
     for submod in "${in_tree_submods[@]}"; do
         msg "Cleaning $submod"
+        git -C "$submod" restore .
         git -C "$submod" clean -xdf
     done
+
+    local vcpkg_dir="$PROJECT_DIR/depends/vcpkg"
+    msg "Patching $vcpkg_dir"
+    git -C "$vcpkg_dir" restore .
+    # git -C "$vcpkg_dir" clean -xdf # This will delete the build cache.
+    local out
+    out="$(patch -d "$vcpkg_dir" -Np1 -i "$PROJECT_DIR/depends/vcpkg.patch")" ||
+        echo "$out" | grep -q 'Skipping patch' ||
+        die "$out"
+
     msg "Removing $BUILD_DIR"
     rm -rf "$BUILD_DIR"
 

@@ -36,7 +36,7 @@ private:
 
 public:
     // Disable the copy constructor and the copy assignment operator
-    Model(const Model &)            = delete;
+    Model(const Model &) = delete;
     Model &operator=(const Model &) = delete;
 
     static Model &get();

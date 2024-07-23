@@ -3,7 +3,7 @@ ExternalProject_Add(libbpf
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libbpf/src
     CONFIGURE_COMMAND ""
     BUILD_COMMAND make -s
-        BUILD_STATIC_ONLY=1
+        BUILD_STATIC_ONLY=y
         OBJDIR=${CMAKE_CURRENT_BINARY_DIR}
         DESTDIR=${CMAKE_CURRENT_BINARY_DIR}/install
         INCLUDEDIR=
@@ -16,6 +16,6 @@ ExternalProject_Add(libbpf
     STEP_TARGETS build
 )
 
-set(libbpf_VERSION "1.2.2" PARENT_SCOPE)
+set(libbpf_VERSION "1.4.0" PARENT_SCOPE)
 set(libbpf_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/install PARENT_SCOPE)
 set(libbpf_LIBRARIES ${CMAKE_CURRENT_BINARY_DIR}/install/libbpf.a PARENT_SCOPE)

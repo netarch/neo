@@ -15,21 +15,15 @@ usage() {
 
     Options:
     -h, --help          Print this message and exit
-    -v, --verbose       Enable verbose test output
 EOF
 }
 
 parse_args() {
-    VERBOSE=0
-
     while :; do
         case "${1-}" in
         -h | --help)
             usage
             exit
-            ;;
-        -v | --verbose)
-            VERBOSE=1
             ;;
         -?*) die "Unknown option: $1\n$(usage)" ;;
         *) break ;;
@@ -46,18 +40,10 @@ main() {
     # Parse script arguments
     parse_args "$@"
 
-    # Prepare test parameters
-    local ctest_flags=(
-        --progress
-        --output-on-failure
-    )
-    if [[ $VERBOSE -eq 1 ]]; then
-        ctest_flags+=(--extra-verbose)
-    fi
-
     # Run the tests
-    cd "$BUILD_DIR"
-    ctest "${ctest_flags[@]}"
+    sudo "$BUILD_DIR/tests/neotests" \
+        --test-data-dir "$PROJECT_DIR/tests/networks" \
+        --durations yes
 }
 
 main "$@"

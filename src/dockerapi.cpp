@@ -17,7 +17,7 @@ DockerAPI_GLOBAL::~DockerAPI_GLOBAL() {
     curl_global_cleanup();
 }
 
-const string DockerAPI::_api_version  = "v1.42";
+const string DockerAPI::_api_version = "v1.42";
 const Document DockerAPI::_empty_json = {};
 const DockerAPI_GLOBAL DockerAPI::_global_raii;
 
@@ -26,7 +26,7 @@ Document DockerAPI::send_curl_request(method method,
                                       const Document &request_body) {
 
     // curl: set request URL and method
-    string url        = this->_uri_prefix + path;
+    string url = this->_uri_prefix + path;
     string method_str = method_to_str(method);
     curl_easy_setopt(_curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(_curl, CURLOPT_CUSTOMREQUEST, method_str.c_str());
@@ -271,7 +271,7 @@ Document DockerAPI::inspect_img(const string &img_name) {
 }
 
 Document DockerAPI::rm_img(const string &img_name) {
-    string path = "/images/" + img_name;
+    string path = "/images/" + img_name + "?force=true";
     return this->send_curl_request(method::DELETE, path);
 }
 

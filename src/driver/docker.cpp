@@ -113,7 +113,7 @@ void Docker::wait_for_dpdk_interfaces() const {
     // Abort if some interfaces are not created after some time.
     if (!if_names.empty()) {
         string remaining_intfs = *if_names.begin();
-        auto it                = if_names.begin();
+        auto it = if_names.begin();
         ++it;
         for (; it != if_names.end(); ++it) {
             remaining_intfs += ", " + *it;
@@ -152,10 +152,10 @@ int Docker::tap_open_dpdk(const string &if_name) const {
 
     struct sockaddr_ll saddr;
     memset(&saddr, 0, sizeof(saddr));
-    saddr.sll_family   = AF_PACKET;
+    saddr.sll_family = AF_PACKET;
     saddr.sll_protocol = htons(ETH_P_IP);
-    saddr.sll_ifindex  = ifr.ifr_ifindex;
-    saddr.sll_pkttype  = PACKET_HOST;
+    saddr.sll_ifindex = ifr.ifr_ifindex;
+    saddr.sll_pkttype = PACKET_HOST;
 
     if (bind(sock, (struct sockaddr *)&saddr, sizeof(saddr)) == -1) {
         close(sock);
@@ -343,10 +343,10 @@ void Docker::set_arp_cache() {
 
     // Set permanent arp cache entries
     struct arpreq arp;
-    arp.arp_pa        = {AF_INET, {0}};
-    arp.arp_ha        = {ARPHRD_ETHER, {0}};
-    arp.arp_flags     = ATF_COM | ATF_PERM;
-    arp.arp_netmask   = {AF_UNSPEC, {0}};
+    arp.arp_pa = {AF_INET, {0}};
+    arp.arp_ha = {ARPHRD_ETHER, {0}};
+    arp.arp_flags = ATF_COM | ATF_PERM;
+    arp.arp_netmask = {AF_UNSPEC, {0}};
     uint8_t id_mac[6] = ID_ETH_ADDR;
     memcpy(arp.arp_ha.sa_data, id_mac, 6);
 
@@ -376,7 +376,7 @@ void Docker::set_epoll_events() {
     struct epoll_event event;
 
     for (const auto &[intf, tapfd] : this->_tapfds) {
-        event.events   = EPOLLIN;
+        event.events = EPOLLIN;
         event.data.ptr = intf;
         if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, tapfd, &event) < 0) {
             logger.error("epoll_ctl", errno);
@@ -563,7 +563,7 @@ void Docker::init() {
                                         make_unique<pcpp::PcapFileWriterDevice>(
                                             pcapFn, pcpp::LINKTYPE_ETHERNET));
             auto &pcapLogger = this->_pcap_loggers.at(intf);
-            bool appendMode  = fs::exists(pcapFn);
+            bool appendMode = fs::exists(pcapFn);
             if (!pcapLogger->open(appendMode)) {
                 logger.error("Failed to open " + pcapFn);
             }
@@ -641,7 +641,7 @@ size_t Docker::inject_packet(const Packet &pkt) {
     Net::get().serialize(&buf, &len, pkt, src_mac, dst_mac);
 
     // Write to the tap device fd
-    int fd         = this->_tapfds.at(pkt.get_intf());
+    int fd = this->_tapfds.at(pkt.get_intf());
     ssize_t nwrite = write(fd, buf, len);
     if (nwrite < 0) {
         logger.error("Packet injection failed", errno);
@@ -681,7 +681,7 @@ list<Packet> Docker::read_packets() const {
     // Read from available tap fds
     for (int i = 0; i < nfds; ++i) {
         Interface *interface = static_cast<Interface *>(_events[i].data.ptr);
-        int tapfd            = this->_tapfds.at(interface);
+        int tapfd = this->_tapfds.at(interface);
         PktBuffer pktbuff(interface);
         ssize_t nread;
         if ((nread = read(tapfd, pktbuff.get_buffer(), pktbuff.get_len())) <

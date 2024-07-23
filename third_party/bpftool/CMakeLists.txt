@@ -8,5 +8,5 @@ ExternalProject_Add(bpftool
     STEP_TARGETS build
 )
 
-set(bpftool_VERSION "7.2.0" PARENT_SCOPE)
+set(bpftool_VERSION "7.4.0" PARENT_SCOPE)
 set(bpftool_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/bpftool PARENT_SCOPE)

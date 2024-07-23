@@ -39,8 +39,8 @@ int DropTrace::ringbuf_handler(void *ctx,
                                void *data,
                                [[maybe_unused]] size_t size) {
     struct drop_data *d = static_cast<struct drop_data *>(data);
-    DropTrace *this_dt  = static_cast<DropTrace *>(ctx);
-    this_dt->_drop_ts   = d->tstamp;
+    DropTrace *this_dt = static_cast<DropTrace *>(ctx);
+    this_dt->_drop_ts = d->tstamp;
 
 #ifdef ENABLE_DEBUG
     // Print out debugging messages
@@ -59,13 +59,13 @@ int DropTrace::ringbuf_handler(void *ctx,
         if (d->ip_proto == IPPROTO_TCP || d->ip_proto == IPPROTO_UDP) {
             u16 sport = ntohs(d->transport.sport);
             u16 dport = ntohs(d->transport.dport);
-            u32 seq   = ntohl(d->transport.seq);
-            u32 ack   = ntohl(d->transport.ack);
+            u32 seq = ntohl(d->transport.seq);
+            u32 ack = ntohl(d->transport.ack);
             snprintf(buffer + nwrites, buffer_sz - nwrites,
                      ", sport: %u, dport: %u, seq: %u, ack: %u", sport, dport,
                      seq, ack);
         } else if (d->ip_proto == IPPROTO_ICMP) {
-            u16 echo_id  = ntohs(d->icmp.icmp_echo_id);
+            u16 echo_id = ntohs(d->icmp.icmp_echo_id);
             u16 echo_seq = ntohs(d->icmp.icmp_echo_seq);
             snprintf(buffer + nwrites, buffer_sz - nwrites,
                      ", icmp_type: %u, echo_id: %u, echo_seq: %u",
@@ -105,9 +105,7 @@ void DropTrace::start() {
         logger.error("Another BPF progam is already loaded");
     }
 
-    _bpf = droptrace_bpf__open();
-
-    if (!_bpf) {
+    if (!(_bpf = droptrace_bpf__open())) {
         logger.error("Failed to open BPF program", errno);
     }
 
@@ -149,7 +147,7 @@ void DropTrace::start_listening_for(const Packet &pkt, Driver *driver) {
     }
 
     _target_pkt = pkt.to_drop_data(driver);
-    _drop_ts    = 0;
+    _drop_ts = 0;
 
     if (bpf_map__update_elem(_bpf->maps.target_packet, &_target_pkt_key,
                              sizeof(_target_pkt_key), &_target_pkt,
@@ -163,7 +161,6 @@ void DropTrace::start_listening_for(const Packet &pkt, Driver *driver) {
 
     _ringbuf = ring_buffer__new(bpf_map__fd(_bpf->maps.events),
                                 DropTrace::ringbuf_handler, this, nullptr);
-
     if (!_ringbuf) {
         logger.error("Failed to create ring buffer", errno);
     }
@@ -177,7 +174,7 @@ uint64_t DropTrace::get_drop_ts(chrono::microseconds timeout) {
     int timeout_ms = (timeout.count() < 0)
                          ? -1
                          : duration_cast<chrono::milliseconds>(timeout).count();
-    int res        = ring_buffer__poll(_ringbuf, timeout_ms);
+    int res = ring_buffer__poll(_ringbuf, timeout_ms);
 
     if (res < 0 && res != -EINTR) {
         logger.error("ring_buffer__poll", errno);

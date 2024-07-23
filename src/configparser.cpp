@@ -51,9 +51,9 @@ void ConfigParser::parse_network(Network &network) {
     if (nodes_config) {
         for (const auto &cfg : *nodes_config) {
             const toml::table &tbl = *cfg.as_table();
-            Node *node             = nullptr;
-            auto type              = tbl.get_as<string>("type");
-            auto driver            = tbl.get_as<string>("driver");
+            Node *node = nullptr;
+            auto type = tbl.get_as<string>("type");
+            auto driver = tbl.get_as<string>("driver");
 
             if (!type || **type == "model") {
                 node = new Node();
@@ -82,7 +82,7 @@ void ConfigParser::parse_network(Network &network) {
     if (links_config) {
         for (const auto &cfg : *links_config) {
             const toml::table &tbl = *cfg.as_table();
-            Link *link             = new Link();
+            Link *link = new Link();
             this->parse_link(*link, tbl, network.nodes());
             network.add_link(link);
         }
@@ -101,9 +101,9 @@ void ConfigParser::parse_network(Network &network) {
 }
 
 void ConfigParser::parse_node(Node &node, const toml::table &config) {
-    auto node_name        = config.get_as<string>("name");
-    auto interfaces       = config.get_as<toml::array>("interfaces");
-    auto static_routes    = config.get_as<toml::array>("static_routes");
+    auto node_name = config.get_as<string>("name");
+    auto interfaces = config.get_as<toml::array>("interfaces");
+    auto static_routes = config.get_as<toml::array>("static_routes");
     auto installed_routes = config.get_as<toml::array>("installed_routes");
 
     if (!node_name) {
@@ -152,7 +152,7 @@ void ConfigParser::parse_interface(Interface &interface,
     interface.name = **intf_name;
 
     if (ipv4_addr) {
-        interface.ipv4          = **ipv4_addr;
+        interface.ipv4 = **ipv4_addr;
         interface.is_switchport = false;
     } else {
         interface.is_switchport = true;
@@ -160,10 +160,10 @@ void ConfigParser::parse_interface(Interface &interface,
 }
 
 void ConfigParser::parse_route(Route &route, const toml::table &config) {
-    auto network   = config.get_as<string>("network");
-    auto next_hop  = config.get_as<string>("next_hop");
+    auto network = config.get_as<string>("network");
+    auto next_hop = config.get_as<string>("next_hop");
     auto interface = config.get_as<string>("interface");
-    auto adm_dist  = config.get_as<int64_t>("adm_dist");
+    auto adm_dist = config.get_as<int64_t>("adm_dist");
 
     if (!network) {
         logger.error("Missing network");
@@ -191,23 +191,23 @@ void ConfigParser::parse_route(Route &route, const toml::table &config) {
 void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     this->parse_middlebox(dn, config);
 
-    auto daemon   = config.get_as<string>("daemon");
+    auto daemon = config.get_as<string>("daemon");
     auto cntr_cfg = config.get_as<toml::table>("container");
 
     if (!cntr_cfg) {
         logger.error("Missing container configuration");
     }
 
-    auto image       = cntr_cfg->get_as<string>("image");
+    auto image = cntr_cfg->get_as<string>("image");
     auto working_dir = cntr_cfg->get_as<string>("working_dir");
-    auto dpdk        = cntr_cfg->get_as<bool>("dpdk");
-    auto command     = cntr_cfg->get_as<toml::array>("command");
-    auto args        = cntr_cfg->get_as<toml::array>("args");
-    auto cfg_files   = cntr_cfg->get_as<toml::array>("config_files");
-    auto ports       = cntr_cfg->get_as<toml::array>("ports");
-    auto env         = cntr_cfg->get_as<toml::array>("env");
-    auto mounts      = cntr_cfg->get_as<toml::array>("volume_mounts");
-    auto sysctls     = cntr_cfg->get_as<toml::array>("sysctls");
+    auto dpdk = cntr_cfg->get_as<bool>("dpdk");
+    auto command = cntr_cfg->get_as<toml::array>("command");
+    auto args = cntr_cfg->get_as<toml::array>("args");
+    auto cfg_files = cntr_cfg->get_as<toml::array>("config_files");
+    auto ports = cntr_cfg->get_as<toml::array>("ports");
+    auto env = cntr_cfg->get_as<toml::array>("env");
+    auto mounts = cntr_cfg->get_as<toml::array>("volume_mounts");
+    auto sysctls = cntr_cfg->get_as<toml::array>("sysctls");
 
     if (!daemon) {
         dn._daemon = "/var/run/docker.sock";
@@ -256,8 +256,8 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     if (ports) {
         for (const auto &port_config : *ports) {
             const auto &cfg = *port_config.as_table();
-            auto port       = cfg.get_as<int64_t>("port");
-            auto protocol   = cfg.get_as<string>("protocol");
+            auto port = cfg.get_as<int64_t>("port");
+            auto protocol = cfg.get_as<string>("protocol");
             proto proto_enum;
 
             if (!port) {
@@ -283,8 +283,8 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     if (env) {
         for (const auto &env_config : *env) {
             const auto &cfg = *env_config.as_table();
-            auto name       = cfg.get_as<string>("name");
-            auto value      = cfg.get_as<string>("value");
+            auto name = cfg.get_as<string>("name");
+            auto value = cfg.get_as<string>("value");
 
             if (!name) {
                 logger.error("Missing name");
@@ -302,9 +302,9 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
         for (const auto &mnt_config : *mounts) {
             const auto &cfg = *mnt_config.as_table();
             auto mount_path = cfg.get_as<string>("mount_path");
-            auto host_path  = cfg.get_as<string>("host_path");
-            auto driver     = cfg.get_as<string>("driver");
-            auto read_only  = cfg.get_as<bool>("read_only");
+            auto host_path = cfg.get_as<string>("host_path");
+            auto driver = cfg.get_as<string>("driver");
+            auto read_only = cfg.get_as<bool>("read_only");
 
             if (!mount_path) {
                 logger.error("Missing mount_path");
@@ -320,9 +320,9 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 
             struct DockerVolumeMount mount;
             mount.mount_path = **mount_path;
-            mount.host_path  = **host_path;
-            mount.driver     = driver ? **driver : "local";
-            mount.read_only  = read_only ? **read_only : false;
+            mount.host_path = **host_path;
+            mount.driver = driver ? **driver : "local";
+            mount.read_only = read_only ? **read_only : false;
             dn._mounts.emplace_back(std::move(mount));
         }
     }
@@ -330,8 +330,8 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     if (sysctls) {
         for (const auto &sysctl_config : *sysctls) {
             const auto &cfg = *sysctl_config.as_table();
-            auto key        = cfg.get_as<string>("key");
-            auto value      = cfg.get_as<string>("value");
+            auto key = cfg.get_as<string>("key");
+            auto value = cfg.get_as<string>("value");
 
             if (!key) {
                 logger.error("Missing key");
@@ -352,7 +352,7 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
     // If no command is specified, use the ENTRYPOINT and CMD from the image.
     if (dn._cmd.empty()) {
         auto &entrypoint = img_json["data"]["Config"]["Entrypoint"];
-        auto &cmd        = img_json["data"]["Config"]["Cmd"];
+        auto &cmd = img_json["data"]["Config"]["Cmd"];
 
         if (entrypoint.IsArray()) {
             for (const auto &arg : entrypoint.GetArray()) {
@@ -418,9 +418,9 @@ void ConfigParser::parse_dockernode(DockerNode &dn, const toml::table &config) {
 void ConfigParser::parse_middlebox(Middlebox &middlebox,
                                    const toml::table &config) {
     this->parse_node(middlebox, config);
-    auto start_delay        = config.get_as<int64_t>("start_delay");
-    auto reset_delay        = config.get_as<int64_t>("reset_delay");
-    auto replay_delay       = config.get_as<int64_t>("replay_delay");
+    auto start_delay = config.get_as<int64_t>("start_delay");
+    auto reset_delay = config.get_as<int64_t>("reset_delay");
+    auto replay_delay = config.get_as<int64_t>("replay_delay");
     auto pkts_per_injection = config.get_as<int64_t>("packets_per_injection");
 
     if (start_delay) {
@@ -520,7 +520,7 @@ void ConfigParser::parse_link(Link &link,
     if (node1_entry == nodes.end()) {
         logger.error("Unknown node: " + **node1_name);
     }
-    link.node1       = node1_entry->second;
+    link.node1 = node1_entry->second;
     auto node2_entry = nodes.find(**node2_name);
     if (node2_entry == nodes.end()) {
         logger.error("Unknown node: " + **node2_name);
@@ -571,9 +571,9 @@ void ConfigParser::parse_openflow_update(Node *&node,
                                          Route &route,
                                          const toml::table &config,
                                          const Network &network) {
-    auto node_name    = config.get_as<string>("node");
+    auto node_name = config.get_as<string>("node");
     auto network_cidr = config.get_as<string>("network");
-    auto outport      = config.get_as<string>("outport");
+    auto outport = config.get_as<string>("outport");
 
     if (!node_name) {
         logger.error("Missing node name");
@@ -596,7 +596,7 @@ void ConfigParser::parse_openflow_update(Node *&node,
         logger.error("Unsupported node type");
     }
 
-    route.network     = IPNetwork<IPv4Address>(**network_cidr);
+    route.network = IPNetwork<IPv4Address>(**network_cidr);
     route.egress_intf = string(**outport);
 }
 
@@ -676,7 +676,7 @@ void ConfigParser::parse_reachability(shared_ptr<Reachability> &inv,
                                       const toml::table &config,
                                       const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
-    auto reachable         = config.get_as<bool>("reachable");
+    auto reachable = config.get_as<bool>("reachable");
 
     if (!target_node_regex) {
         logger.error("Missing target_node");
@@ -699,7 +699,7 @@ void ConfigParser::parse_replyreachability(shared_ptr<ReplyReachability> &inv,
                                            const toml::table &config,
                                            const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
-    auto reachable         = config.get_as<bool>("reachable");
+    auto reachable = config.get_as<bool>("reachable");
 
     if (!target_node_regex) {
         logger.error("Missing target_node");
@@ -722,7 +722,7 @@ void ConfigParser::parse_waypoint(shared_ptr<Waypoint> &inv,
                                   const toml::table &config,
                                   const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
-    auto pass_through      = config.get_as<bool>("pass_through");
+    auto pass_through = config.get_as<bool>("pass_through");
 
     if (!target_node_regex) {
         logger.error("Missing target_node");
@@ -770,8 +770,8 @@ void ConfigParser::parse_loadbalance(shared_ptr<LoadBalance> &inv,
                                      const toml::table &config,
                                      const Network &network) {
     auto target_node_regex = config.get_as<string>("target_node");
-    auto max_vmr           = config.get_as<double>("max_dispersion_index");
-    auto max_vmr_int       = config.get_as<int64_t>("max_dispersion_index");
+    auto max_vmr = config.get_as<double>("max_dispersion_index");
+    auto max_vmr_int = config.get_as<int64_t>("max_dispersion_index");
 
     if (!target_node_regex) {
         logger.error("Missing target_node");
@@ -831,12 +831,12 @@ void ConfigParser::parse_connections(shared_ptr<Invariant> inv,
 void ConfigParser::parse_conn_spec(ConnSpec &conn_spec,
                                    const toml::table &config,
                                    const Network &network) {
-    auto proto_str      = config.get_as<string>("protocol");
+    auto proto_str = config.get_as<string>("protocol");
     auto src_node_regex = config.get_as<string>("src_node");
-    auto dst_ip_str     = config.get_as<string>("dst_ip");
-    auto src_port       = config.get_as<int64_t>("src_port");
-    auto dst_ports      = config.get_as<toml::array>("dst_port");
-    auto dport_int      = config.get_as<int64_t>("dst_port");
+    auto dst_ip_str = config.get_as<string>("dst_ip");
+    auto src_port = config.get_as<int64_t>("src_port");
+    auto dst_ports = config.get_as<toml::array>("dst_port");
+    auto dport_int = config.get_as<int64_t>("dst_port");
     auto owned_dst_only = config.get_as<bool>("owned_dst_only");
 
     if (!proto_str) {
@@ -898,22 +898,22 @@ void ConfigParser::estimate_pkt_lat(int num_injections) {
      */
 
     // Construct the docker node
-    auto fw                = new DockerNode();
-    fw->name               = "fw";
-    Interface *fw_eth0     = new Interface();
-    fw_eth0->name          = "eth0";
-    fw_eth0->ipv4          = "192.168.1.1/24";
+    auto fw = new DockerNode();
+    fw->name = "fw";
+    Interface *fw_eth0 = new Interface();
+    fw_eth0->name = "eth0";
+    fw_eth0->ipv4 = "192.168.1.1/24";
     fw_eth0->is_switchport = false;
-    Interface *fw_eth1     = new Interface();
-    fw_eth1->name          = "eth1";
-    fw_eth1->ipv4          = "192.168.2.1/24";
+    Interface *fw_eth1 = new Interface();
+    fw_eth1->name = "eth1";
+    fw_eth1->ipv4 = "192.168.2.1/24";
     fw_eth1->is_switchport = false;
     fw->add_interface(fw_eth0);
     fw->add_interface(fw_eth1);
-    fw->_daemon      = "/var/run/docker.sock";
-    fw->_image       = "kyechou/iptables:latest";
+    fw->_daemon = "/var/run/docker.sock";
+    fw->_image = "kyechou/iptables:latest";
     fw->_working_dir = "/";
-    fw->_cmd         = {"/start.sh"};
+    fw->_cmd = {"/start.sh"};
     fw->_env_vars.emplace("RULES", "*filter\n"
                                    ":INPUT ACCEPT [0:0]\n"
                                    ":FORWARD ACCEPT [0:0]\n"
@@ -927,32 +927,32 @@ void ConfigParser::estimate_pkt_lat(int num_injections) {
     }
 
     // Construct node1
-    auto node1                = new Node();
-    node1->name               = "node1";
-    Interface *node1_eth0     = new Interface();
-    node1_eth0->name          = "eth0";
-    node1_eth0->ipv4          = "192.168.1.2/24";
+    auto node1 = new Node();
+    node1->name = "node1";
+    Interface *node1_eth0 = new Interface();
+    node1_eth0->name = "eth0";
+    node1_eth0->ipv4 = "192.168.1.2/24";
     node1_eth0->is_switchport = false;
     node1->add_interface(node1_eth0);
     node1->rib.insert(Route("0.0.0.0/0", "192.168.1.1"));
 
     // Construct node2
-    auto node2                = new Node();
-    node2->name               = "node2";
-    Interface *node2_eth0     = new Interface();
-    node2_eth0->name          = "eth0";
-    node2_eth0->ipv4          = "192.168.2.2/24";
+    auto node2 = new Node();
+    node2->name = "node2";
+    Interface *node2_eth0 = new Interface();
+    node2_eth0->name = "eth0";
+    node2_eth0->ipv4 = "192.168.2.2/24";
     node2_eth0->is_switchport = false;
     node2->add_interface(node2_eth0);
     node2->rib.insert(Route("0.0.0.0/0", "192.168.2.1"));
 
     // Construct links
-    Link *link1  = new Link();
+    Link *link1 = new Link();
     link1->node1 = fw;
     link1->node2 = node1;
     link1->intf1 = fw_eth0;
     link1->intf2 = node1_eth0;
-    Link *link2  = new Link();
+    Link *link2 = new Link();
     link2->node1 = fw;
     link2->node2 = node2;
     link2->intf1 = fw_eth1;
@@ -976,8 +976,8 @@ void ConfigParser::estimate_pkt_lat(int num_injections) {
 
     // Set a temporary initial timeout
     DropTimeout::get()._timeout = chrono::microseconds{5000};
-    DropDetection *orig_drop    = drop;
-    drop                        = nullptr;
+    DropDetection *orig_drop = drop;
+    drop = nullptr;
 
     // Start an emulation
     Emulation emu;
@@ -996,7 +996,7 @@ void ConfigParser::estimate_pkt_lat(int num_injections) {
 
     // Reset the initial timeout
     DropTimeout::get()._timeout = chrono::microseconds{};
-    drop                        = orig_drop;
+    drop = orig_drop;
 
     // Reset signal handler
     sigaction(SIGUSR1, oldaction, nullptr);
