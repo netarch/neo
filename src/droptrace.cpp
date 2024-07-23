@@ -105,9 +105,7 @@ void DropTrace::start() {
         logger.error("Another BPF progam is already loaded");
     }
 
-    _bpf = droptrace_bpf__open();
-
-    if (!_bpf) {
+    if (!(_bpf = droptrace_bpf__open())) {
         logger.error("Failed to open BPF program", errno);
     }
 
@@ -163,7 +161,6 @@ void DropTrace::start_listening_for(const Packet &pkt, Driver *driver) {
 
     _ringbuf = ring_buffer__new(bpf_map__fd(_bpf->maps.events),
                                 DropTrace::ringbuf_handler, this, nullptr);
-
     if (!_ringbuf) {
         logger.error("Failed to create ring buffer", errno);
     }

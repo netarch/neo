@@ -1,7 +1,5 @@
 #include "../build/vmlinux.h"
 
-#include <linux/string.h>
-
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
 

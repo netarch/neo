@@ -38,7 +38,7 @@ set(VECTORSZ 4000 CACHE STRING "Memory allocation for spin state vector")
 include("CheckTypeSize")
 check_type_size("void *" SIZEOF_VOID_P)
 check_type_size("int" SIZEOF_INT)
-add_compile_options(-Wall -Wextra -Werror)
+add_compile_options(-Wall -Wextra -Werror -O2)
 
 #
 # release/debug compile flags

@@ -8,12 +8,11 @@
 
 #include "driver/docker.hpp"
 #include "driver/driver.hpp"
-#include "eqclassmgr.hpp"
+#include "eqclass.hpp"
 #include "interface.hpp"
 #include "lib/hash.hpp"
 #include "model-access.hpp"
 #include "payload.hpp"
-#include "process/process.hpp"
 #include "protocols.hpp"
 
 Packet::Packet() :

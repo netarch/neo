@@ -271,7 +271,7 @@ Document DockerAPI::inspect_img(const string &img_name) {
 }
 
 Document DockerAPI::rm_img(const string &img_name) {
-    string path = "/images/" + img_name;
+    string path = "/images/" + img_name + "?force=true";
     return this->send_curl_request(method::DELETE, path);
 }
 
