@@ -198,5 +198,4 @@ given networks with different combinations of parameters and the input
 configuration files.
 
 Please see [Artifact Evaluation](doc/artifact-evaluation.md) for a complete
-description of how to reproduce the experiments and interpret/process the
-results.
+description of how to reproduce the experiments and process the results.
