@@ -1,9 +1,5 @@
 # Neo
 
-> [!IMPORTANT]
-> For artifact evaluation, please start at
-> [Artifact Evaluation](/doc/artifact-evaluation.md).
-
 Neo is a network testing tool that implements concolic network execution. It
 combines symbolic model checking and container-based emulation techniques to
 achieve high-quality network-wide testing for networks that involve stateful
@@ -14,10 +10,8 @@ software components (e.g., software network functions, middleboxes).
   - [Dependencies](#dependencies)
   - [Build and install Neo](#build-and-install-neo)
   - [Basic usage](#basic-usage)
-    - [Running the examples](#running-the-examples)
-    - [Running through run.sh](#running-through-runsh)
-    - [Running Neo directly](#running-neo-directly)
   - [Understanding the output](#understanding-the-output)
+  - [Batch testing with run.sh](#batch-testing-with-runsh)
 <!--toc:end-->
 
 ## Dependencies
@@ -34,7 +28,7 @@ After cloning the repository, enter the directory and run:
 $ ./depends/setup.sh
 
 # ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: 1 min 45.73 sec
+# elapsed time: 2 min 20.32 sec
 # peak memory:  47 MiB
 ```
 
@@ -53,7 +47,7 @@ options.
 $ ./scripts/configure.sh -t
 
 # ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: 8 min 42.43 sec (for the first time)
+# elapsed time: 4 min 45.73 sec (for the first time)
 # peak memory:  413 MiB         (for the first time)
 ```
 
@@ -67,8 +61,8 @@ Once the configurationn succeeds, please run the following to build Neo.
 $ ./scripts/build.sh
 
 # ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: 22.80 sec
-# peak memory:  324 MiB
+# elapsed time: 23.75 sec
+# peak memory:  325 MiB
 ```
 
 When the build completes, the result will be a binary executable at
@@ -79,30 +73,51 @@ optionally run the tests with the following command.
 $ ./scripts/test.sh
 
 # ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: ??
-# peak memory:  ?? MiB
+# elapsed time: 26.01 sec
+# peak memory:  7 MiB
 ```
 
-Afterward, you can install Neo to the system paths by running the following
-command, or you could also just run the binary from the build directory. The
-example command below installs the binary at `/usr/bin/neo`.
+Afterward, you can install Neo to system paths by running the following command,
+or you could also run the binary from the build directory. The example command
+below installs the binary at `/usr/bin/neo`.
 
 ```sh
 $ sudo ./scripts/install.sh --prefix /usr
 
 # ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: 0.05 sec
+# elapsed time: 0.07 sec
+# peak memory:  7 MiB
+```
+
+## Basic usage
+
+Here we explain the basic usage of Neo with a simple example
+`00-reverse-path-filtering`, assuming the compiled program is located at
+`./build/neo`. To run the first example, please run the following commands:
+
+```sh
+$ sudo ./build/neo -fj8 -i examples/00-reverse-path-filtering/network.toml -o examples/00-reverse-path-filtering/output
+
+# ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
+# elapsed time: 4.04 sec
+# peak memory:  7 MiB
+
+$ sudo chown -R "$(id -u):$(id -g)" examples/00-reverse-path-filtering/output
+
+# ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
+# elapsed time: 0.01 sec
 # peak memory:  7 MiB
 ```
 
 > [!NOTE]
-> Note that root privilege is needed because the process needs to create virtual
+> Note that root privilege is needed because Neo needs to create virtual
 > interfaces, manipulate namespaces, and modify routing table entries within the
 > respective namespaces.
 
-## Basic usage
-
-TODO: asdf
+The `-i` and `-o` options specify the input configuration file and the output
+directory, respectively. The `-f` option forcefully removes the specified output
+directory if it already exists, and the `-j` option allows specifying the
+maximum number of parallel tasks. `-h` can be used to see all available options.
 
 ```
 $ ./build/neo -h
@@ -121,58 +136,67 @@ Neo options:
   -o [ --output ] arg          Output directory
 ```
 
-### Running the examples
-
-The examples can be found in `examples/` directory. You can test the examples by
-running `run.sh` included in the example directories, or optionally by feeding
-the configuration files directly to Neo.
-
-### Running through run.sh
-
-You can try the examples by running `run.sh` in each example directory. This may
-trigger Neo multiple times with different configurations. The output can be
-found in `result` directory inside the example directory. For instance, you can
-try `00-reverse-path-filtering` by executing:
-
-```sh
-examples/00-reverse-path-filtering/run.sh
-```
-
-The output can be found in `examples/00-reverse-path-filtering/results`.
-
-### Running Neo directly
-
-If you want to have more control on the execution, you can run the examples by
-directly feeding Neo the configuration files. Each example either contains TOML
-configuration files or contains a confgen.py file which generates a TOML file.
-For instance, `00-reverse-path-filtering` contains two different TOML files,
-`network.fault.toml` and `network.toml`. Each TOML file corresponds to a network
-configuration to be tested as well as the invariants of interest. To run Neo
-with `examples/00-reverse-path-filtering/network.toml` as the input, execute:
-
-```sh
-sudo neo -afj8 -i examples/00-reverse-path-filtering/network.toml -o output
-
-# ---[ Ubuntu 24.04 VM with 16 core vCPU and 32 GiB RAM ]---
-# elapsed time: 3.74 sec
-# peak memory:  7 MiB
-```
-
-If the example contains `confgen.py` instead, the TOML file must be generated
-using the python script before running Neo. Each `confgen.py` for different
-examples expects different parameters, such as the number of subnets, number of
-hosts in each subnet, etc. The expected parameters can be found by running
-`confgen.py` with `--help` flag. Once the TOML file is generated, you can run
-Neo with the generated TOML file. For instance, to run `01-subnet-isolation`
-with two subnets and two hosts per subnet, execute:
-
-```sh
-python3 examples/01-subnet-isolation/confgen.py -s 2 -H 2 > examples/01-subnet-isolation/network.toml
-sudo neo -afj8 -i examples/01-reverse-path-filtering/network.toml -o output
-```
-
-The output can be found in `output/` directory in the Neo home directory.
-
 ## Understanding the output
 
-## Other examples
+The command output of running the first example would look something similar to
+the following. It shows a summary of the invariants being tested, the number of
+connection ECs (CECs) specified within each invariant, and the end-to-end
+performance of testing all the specified invariants.
+
+```
+[1721770394.013361] [66929] [II] Parsing configuration file .../neo/examples/00-reverse-path-filtering/network.toml
+[1721770394.267384] [66929] [II] Loaded 9 nodes
+[1721770394.267445] [66929] [II] Loaded 9 links
+[1721770394.268731] [66929] [II] Loaded 3 invariants
+[1721770395.290439] [66929] [II] Initial ECs: 28
+[1721770395.290514] [66929] [II] Initial ports: 1
+[1721770395.291251] [67384] [II] ====================
+[1721770395.291323] [67384] [II] 1. Verifying invariant Reachability (O): [ server ]
+[1721770395.291331] [67384] [II] Connection ECs: 3
+[1721770396.101593] [68264] [II] ====================
+[1721770396.101648] [68264] [II] 2. Verifying invariant Reachability (X): [ h1 h2 h3 s1 r1 fw r2 r3 ]
+[1721770396.101655] [68264] [II] Connection ECs: 12
+[1721770397.029864] [69667] [II] ====================
+[1721770397.029926] [69667] [II] 3. Verifying invariant ReplyReachability (O): [ server ]
+[1721770397.029933] [69667] [II] Connection ECs: 3
+[1721770397.909497] [66929] [II] ====================
+[1721770397.909542] [66929] [II] Time: 2618897 usec
+[1721770397.909551] [66929] [II] Peak memory: 157148 KiB
+[1721770397.909559] [66929] [II] Current memory: 10496 KiB
+```
+
+The structure of the output directory looks like the following. Each `<pid>.log`
+within the invariant directories captures the entire depth-first traversal of
+the state space given the initial CEC and the network specification.
+
+```
+output/                         <-- output directory specified by `-o`
+  |
+  +-- main.log                  <-- top-level log, same as command output
+  |
+  +-- 1/                        <-- invariant #1
+  |   `-- <pid>.log             <-- Neo and SPIN testing output for each CEC
+  |   `-- <pid>.stats.csv       <-- perf stats for each CEC
+  |   `-- invariant.stats.csv   <-- invariant-level aggregated perf stats
+  |
+  +-- 2/                        <-- invariant #2
+  |   `-- <pid>.log             <-- Neo and SPIN testing output for each CEC
+  |   `-- <pid>.stats.csv       <-- perf stats for each CEC
+  |   `-- invariant.stats.csv   <-- invariant-level aggregated perf stats
+  |
+  `-- 3/                        <-- invariant #3
+      `-- <pid>.log             <-- Neo and SPIN testing output for each CEC
+      `-- <pid>.stats.csv       <-- perf stats for each CEC
+      `-- invariant.stats.csv   <-- invariant-level aggregated perf stats
+```
+
+## Batch testing with run.sh
+
+To automate testing and to reproduce the experiments from the paper, many
+examples in the `examples/` directory provide a `run.sh` script that tests the
+given networks with different combinations of parameters and the input
+configuration files.
+
+Please see [Artifact Evaluation](doc/artifact-evaluation.md) for a complete
+description of how to reproduce the experiments and interpret/process the
+results.
