@@ -4,24 +4,9 @@
     "version": "0.0.1",
     "homepage": "https://github.com/netarch/neo",
     "dependencies": [
-        "vcpkg-cmake",
-        "vcpkg-tool-ninja",
-        "vcpkg-pkgconfig-get-modules",
         "boost-program-options",
         "boost-stacktrace",
-        {
-            "name": "curl",
-            "features": [
-                "c-ares",
-                "http2",
-                "idn",
-                "idn2",
-                "openssl",
-                "psl",
-                "ssh",
-                "ssl"
-            ]
-        },
+        "curl",
         "pcapplusplus",
         "rapidjson",
         "spdlog",
@@ -31,8 +16,7 @@
             "features": [
                 "xxhsum"
             ]
-        },
-        "zlib"
+        }
     ],
     "features": {
         "tests": {
