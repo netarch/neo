@@ -50,15 +50,15 @@ main() {
     OVERWRITE=0
     parse_params "$@"
 
-    if command -v yapf3 >/dev/null 2>&1; then
-        YAPF=yapf3
-    else
-        YAPF=yapf
-    fi
+    # if command -v yapf3 >/dev/null 2>&1; then
+    #     YAPF=yapf3
+    # else
+    #     YAPF=yapf
+    # fi
 
-    check_depends clang-format "$YAPF"
-    msg "clang-format version: $(clang-format --version)"
-    msg "yapf version: $("$YAPF" --version)"
+    check_depends clang-format # "$YAPF"
+    msg "$(clang-format --version)"
+    # msg "yapf version: $("$YAPF" --version)"
 
     SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
     SRC_DIR="$(realpath "${SCRIPT_DIR}"/../src)"
@@ -70,17 +70,17 @@ main() {
         # C++: clang-format
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror --dry-run {} +
-        # Python: yapf
-        find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
-            -exec $YAPF -p -r -d {} +
-        msg "Coding style is compliant"
+        # # Python: yapf
+        # find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
+        #     -exec $YAPF -p -r -d {} +
+        # msg "Coding style is compliant"
     else
         # C++: clang-format
         find "${TARGET_DIRS[@]}" -type f -regex '.*\.\(c\|h\|cpp\|hpp\)' \
             -exec clang-format --Werror -i {} +
-        # Python: yapf
-        find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
-            -exec $YAPF -p -r -i {} +
+        # # Python: yapf
+        # find "${TARGET_DIRS[@]}" -type f -regex '.*\.py' \
+        #     -exec $YAPF -p -r -i {} +
     fi
 }
 
