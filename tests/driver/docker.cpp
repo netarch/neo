@@ -79,8 +79,8 @@ TEST_CASE("docker") {
         mutex mtx;             // lock for recv_pkts
         condition_variable cv; // for reading recv_pkts
         unique_lock<mutex> lck(mtx);
-        Interface *eth0;
-        Interface *eth1;
+        Interface *eth0 = nullptr;
+        Interface *eth1 = nullptr;
         REQUIRE_NOTHROW(eth0 = node->get_intfs().at("eth0"));
         REQUIRE_NOTHROW(eth1 = node->get_intfs().at("eth1"));
 

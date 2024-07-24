@@ -20,6 +20,12 @@ target_link_libraries(neotests PRIVATE
     tomlplusplus::tomlplusplus
 )
 
+# # NOTE: Add `-Wno-maybe-uninitialized` for g++ because g++ doesn't work well
+# # with Catch2 macros. Consider removing this if later switching to googletest.
+# if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#     target_compile_options(neotests PRIVATE -Wno-maybe-uninitialized)
+# endif()
+
 # target_link_libraries(main PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
 # add_custom_target(neotests-setcap ALL

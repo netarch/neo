@@ -25,11 +25,11 @@ TEST_CASE("droptrace") {
     const string inputfn = test_data_dir + "/docker-drop.toml";
     REQUIRE_NOTHROW(ConfigParser().parse(inputfn, plankton));
     const auto &network = plankton.network();
-    DockerNode *node;
+    DockerNode *node = nullptr;
     REQUIRE_NOTHROW(node = static_cast<DockerNode *>(network.nodes().at("fw")));
     REQUIRE(node);
-    Interface *eth0;
-    Interface *eth1;
+    Interface *eth0 = nullptr;
+    Interface *eth1 = nullptr;
     REQUIRE_NOTHROW(eth0 = node->get_intfs().at("eth0"));
     REQUIRE_NOTHROW(eth1 = node->get_intfs().at("eth1"));
     REQUIRE(eth0);
@@ -84,8 +84,8 @@ TEST_CASE("droptrace") {
         REQUIRE_NOTHROW(dt.start()); // Open and load the BPF program
 
         Packet pkt;
-        size_t nwrite;
-        uint64_t drop_ts;
+        size_t nwrite = 0;
+        uint64_t drop_ts = 0;
 
         // Ping request packet from node1 to node2
         pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,
@@ -207,7 +207,7 @@ TEST_CASE("droptrace") {
         };
 
         Packet pkt;
-        size_t nwrite;
+        size_t nwrite = 0;
 
         // Ping request packet from node1 to node2
         pkt = Packet(eth0, "192.168.1.2", "192.168.2.2", 0, 0, 0, 0,

@@ -24,11 +24,11 @@ TEST_CASE("dropmon") {
     const string inputfn = test_data_dir + "/docker-drop.toml";
     REQUIRE_NOTHROW(ConfigParser().parse(inputfn, plankton));
     const auto &network = plankton.network();
-    DockerNode *node;
+    DockerNode *node = nullptr;
     REQUIRE_NOTHROW(node = static_cast<DockerNode *>(network.nodes().at("fw")));
     REQUIRE(node);
-    Interface *eth0;
-    Interface *eth1;
+    Interface *eth0 = nullptr;
+    Interface *eth1 = nullptr;
     REQUIRE_NOTHROW(eth0 = node->get_intfs().at("eth0"));
     REQUIRE_NOTHROW(eth1 = node->get_intfs().at("eth1"));
     REQUIRE(eth0);
@@ -85,11 +85,11 @@ TEST_CASE("dropmon") {
         REQUIRE_NOTHROW(dm.start_listening_for(pkt, &docker));
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
-        size_t nwrite;
+        size_t nwrite = 0;
         REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
         CHECK(nwrite == 42);
         // Get the kernel drop timestamp (blocking)
-        uint64_t drop_ts;
+        uint64_t drop_ts = 0;
         REQUIRE_NOTHROW(drop_ts = dm.get_drop_ts(timeout));
         CHECK(drop_ts > 0);
         REQUIRE_NOTHROW(docker.pause());
@@ -186,7 +186,7 @@ TEST_CASE("dropmon") {
         REQUIRE_NOTHROW(start_dm_thread());
         // Send the ping packet
         REQUIRE_NOTHROW(docker.unpause());
-        size_t nwrite;
+        size_t nwrite = 0;
         REQUIRE_NOTHROW(nwrite = docker.inject_packet(pkt));
         CHECK(nwrite == 42);
         // Get the kernel drop timestamp (blocking)
