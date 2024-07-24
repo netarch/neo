@@ -41,6 +41,13 @@ check_type_size("int" SIZEOF_INT)
 # NOTE: This `-O2` is crucial for preventing eBPF program verification errors.
 add_compile_options(-Wall -Wextra -Werror -O2)
 
+# NOTE: Add `-Wno-maybe-uninitialized` for g++ due to some issue with the libraries
+# in the GitHub runner.
+# https://github.com/netarch/neo/actions/runs/10068822841/job/27834817300
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-maybe-uninitialized)
+endif()
+
 #
 # release/debug compile flags
 #
