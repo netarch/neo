@@ -68,8 +68,8 @@ class NetSynthesizer:
         G = nx.Graph()
         for n in self.node_to_interfaces:
             G.add_node(n)
-        for l in self.links:
-            G.add_edge(l[0], l[2], headlabel=l[1], taillabel=l[3])
+        for link in self.links:
+            G.add_edge(link[0], link[2], headlabel=link[1], taillabel=link[3])
 
         pos = nx.spring_layout(G)
         nx.draw_networkx(G, pos)
@@ -91,7 +91,7 @@ class NetSynthesizer:
         subnet_to_parent = {}
         parent_to_subnet = {}
         for edge in self.subnets:
-            if edge[0] != src and edge[1] != src and not parent[edge[0]] == None:
+            if edge[0] != src and edge[1] != src and parent[edge[0]] is not None:
                 subnet_to_parent[self.subnets[edge]] = parent[edge[0]]
         for subnet in subnet_to_parent:
             if subnet_to_parent[subnet] not in parent_to_subnet:
@@ -187,7 +187,7 @@ def BFSParent(G, s):
     while len(q) > 0:
         n = q.popleft()
         for neighbor in G[n]:
-            if parent[neighbor] == None:
+            if parent[neighbor] is None:
                 parent[neighbor] = parent[n]
                 q.append(neighbor)
     return parent
@@ -232,7 +232,7 @@ def bfs_is_connected(G, src, dst) -> bool:
 
 
 def read_dsv(filename):
-    if filename == None:
+    if filename is None:
         return []
     f = open(filename, "r")
     lines = f.readlines()

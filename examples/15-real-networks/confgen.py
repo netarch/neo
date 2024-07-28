@@ -1,11 +1,19 @@
-import os
-import sys
 import argparse
+import os
 import random
+import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../src'))
-from config import *
-from dataparse import *
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from src.config import (
+    Config,
+    DockerNode,
+    Interface,
+    Link,
+    Node,
+    Reachability,
+    Route,
+)
+from src.dataparse import NetSynthesizer, bfs_is_connected
 
 
 def confgen(topo_file_name, emu_percentage, max_invs):
@@ -13,8 +21,9 @@ def confgen(topo_file_name, emu_percentage, max_invs):
     ns = NetSynthesizer(topo_file_name)
     node_count = len(ns.node_to_interfaces)
     random.seed(42)  # Fixed seed for reproducibility
-    emulated = random.sample(range(node_count),
-                             k=int(node_count * emu_percentage / 100))
+    emulated = random.sample(
+        range(node_count), k=int(node_count * emu_percentage / 100)
+    )
     emulated_node_names = set()
 
     for i, n in enumerate(ns.node_to_interfaces):
@@ -22,13 +31,15 @@ def confgen(topo_file_name, emu_percentage, max_invs):
             newnode = Node(n, type="model")
         else:
             emulated_node_names.add(n)
-            newnode = DockerNode(n,
-                                 image="kyechou/linux-router:latest",
-                                 working_dir='/',
-                                 command=['/start.sh'])
-            newnode.add_sysctl('net.ipv4.conf.all.forwarding', '1')
-            newnode.add_sysctl('net.ipv4.conf.all.rp_filter', '0')
-            newnode.add_sysctl('net.ipv4.conf.default.rp_filter', '0')
+            newnode = DockerNode(
+                n,
+                image="kyechou/linux-router:latest",
+                working_dir="/",
+                command=["/start.sh"],
+            )
+            newnode.add_sysctl("net.ipv4.conf.all.forwarding", "1")
+            newnode.add_sysctl("net.ipv4.conf.all.rp_filter", "0")
+            newnode.add_sysctl("net.ipv4.conf.default.rp_filter", "0")
 
         for i in ns.node_to_interfaces[n]:
             newnode.add_interface(Interface(i[0], str(i[1]) + "/30"))
@@ -36,8 +47,8 @@ def confgen(topo_file_name, emu_percentage, max_invs):
             newnode.add_static_route(Route(str(r[0]), str(r[1])))
         config.add_node(newnode)
 
-    for l in ns.links:
-        config.add_link(Link(l[0], l[1], l[2], l[3]))
+    for link in ns.links:
+        config.add_link(Link(link[0], link[1], link[2], link[3]))
 
     num_invs = 0
     leaves = ns.leaves()
@@ -53,11 +64,14 @@ def confgen(topo_file_name, emu_percentage, max_invs):
 
             dst = str(ns.node_to_interfaces[v][0][1])
             config.add_invariant(
-                Reachability(target_node=v,
-                             reachable=True,
-                             protocol='icmp-echo',
-                             src_node=u,
-                             dst_ip=dst))
+                Reachability(
+                    target_node=v,
+                    reachable=True,
+                    protocol="icmp-echo",
+                    src_node=u,
+                    dst_ip=dst,
+                )
+            )
             num_invs += 1
             if num_invs >= max_invs:
                 break
@@ -69,27 +83,21 @@ def confgen(topo_file_name, emu_percentage, max_invs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t',
-                        '--topo',
-                        type=str,
-                        help='Topology file name',
-                        required=True)
-    parser.add_argument('-e',
-                        '--emulated',
-                        type=int,
-                        help='Percentage of emulated nodes',
-                        required=True)
-    parser.add_argument('-i',
-                        '--invs',
-                        type=int,
-                        help='Maximum number of invariants',
-                        required=True)
+    parser.add_argument(
+        "-t", "--topo", type=str, help="Topology file name", required=True
+    )
+    parser.add_argument(
+        "-e", "--emulated", type=int, help="Percentage of emulated nodes", required=True
+    )
+    parser.add_argument(
+        "-i", "--invs", type=int, help="Maximum number of invariants", required=True
+    )
     arg = parser.parse_args()
 
     base_dir = os.path.abspath(os.path.dirname(__file__))
-    in_filename = os.path.join(base_dir, 'data', arg.topo)
+    in_filename = os.path.join(base_dir, "data", arg.topo)
     confgen(in_filename, arg.emulated, arg.invs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
