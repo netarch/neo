@@ -5,6 +5,8 @@ import logging
 import os
 import re
 
+import pandas as pd
+
 
 def parse_snap(in_dir, out_dir):
     prefix = os.path.basename(in_dir)
@@ -117,6 +119,60 @@ def parse_rocketfuel_cch(in_dir, out_dir):
                 f.write(edge[0] + " " + edge[1] + "\n")
 
 
+def parse_firewall_data(in_dir, out_dir):
+    df = pd.read_csv(os.path.join(in_dir, "log2.csv"))
+    # Filter columns
+    df = df.drop(
+        [
+            "NAT Source Port",
+            "NAT Destination Port",
+            "Bytes",
+            "Bytes Sent",
+            "Bytes Received",
+            "Packets",
+            "Elapsed Time (sec)",
+            "pkts_sent",
+            "pkts_received",
+        ],
+        axis=1,
+    )
+    # Remove duplicate rows
+    df = df.drop_duplicates()
+    # Remove rows with both ports being 0
+    df = df[(df["Source Port"] != 0) & (df["Destination Port"] != 0)]
+    df = df[(df["Source Port"] < 1024) | (df["Destination Port"] < 1024)]
+    df = df[df["Action"] != "reset-both"]
+    assert type(df) is pd.DataFrame
+    # Rewrite all ephemeral ports to -1
+    df.loc[(df["Source Port"] >= 1024), "Source Port"] = -1
+    df.loc[(df["Destination Port"] >= 1024), "Destination Port"] = -1
+    # Count the number of repeated rows
+    df = df.groupby(df.columns.tolist(), as_index=False).size()
+    assert type(df) is pd.DataFrame
+    # Sort by the number of occurrences
+    df = df.sort_values(by=["size"], ascending=False)
+    # Pick the action with the most occurrences
+    df = df.groupby(by=["Source Port", "Destination Port"], as_index=False).first()
+    # Remove "size" column
+    df = df.drop(["size"], axis=1)
+    # Rename column titles
+    df = df.rename(
+        columns={
+            "Source Port": "sport",
+            "Destination Port": "dport",
+            "Action": "action",
+        }
+    )
+    # Sort by values
+    df = df.sort_values(by=["dport", "sport"])
+    # Output
+    df.to_csv(
+        os.path.join(out_dir, "firewall-data-aggregated.csv"),
+        encoding="utf-8",
+        index=False,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Parse network datasets")
     parser.add_argument(
@@ -133,7 +189,7 @@ def main():
         help="Dataset type",
         type=str,
         action="store",
-        choices=["stanford", "rocketfuel-bb", "rocketfuel-cch"],
+        choices=["stanford", "rocketfuel-bb", "rocketfuel-cch", "firewall"],
         required=True,
     )
     arg = parser.parse_args()
@@ -153,6 +209,8 @@ def main():
         parse_rocketfuel_bb(in_dir, out_dir)
     elif arg.type == "rocketfuel-cch":
         parse_rocketfuel_cch(in_dir, out_dir)
+    elif arg.type == "firewall":
+        parse_firewall_data(in_dir, out_dir)
     else:
         raise Exception("Unknown dataset type: " + arg.type)
 

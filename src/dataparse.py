@@ -126,13 +126,14 @@ class NetSynthesizer:
             return -1
         return list(self.G[n])[0]
 
-    def get_itf_to_leaf(self, n):
+    def get_itf_to_leaf(self, n) -> str | None:
         leaves = self.leaves()
         for i in self.node_to_interfaces[n]:
             di = self.interface_links[i[1]]
             dn = self.interface_to_node[di]
             if dn in leaves:
                 return i[0]
+        return None
 
 
 # class FileParser:

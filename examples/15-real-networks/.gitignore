@@ -2,3 +2,8 @@
 *.tar.*
 *.txt.gz
 data/
+rf-cch/
+rf-bb/
+as-733/
+firewall-data/
+oregon-1/

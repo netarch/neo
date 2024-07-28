@@ -58,6 +58,8 @@ download_and_extract() {
         tar xf "$filename"
     elif [[ "$ext" == "txt.gz" ]]; then
         gunzip --keep "$filename"
+    elif [[ "$ext" == "zip" ]]; then
+        unzip "$filename"
     fi
     popd
 }
@@ -78,19 +80,28 @@ main() {
     # https://snap.stanford.edu/data/as-733.html
     SNAP_AS_733_URL="https://snap.stanford.edu/data/as-733.tar.gz"
 
-    # Stanford SNAP AS peering Oregon Route Views
-    # https://snap.stanford.edu/data/Oregon-1.html
-    SNAP_OREGON_1_URL="https://snap.stanford.edu/data/oregon1_010331.txt.gz"
+    # # Stanford SNAP AS peering Oregon Route Views
+    # # https://snap.stanford.edu/data/Oregon-1.html
+    # SNAP_OREGON_1_URL="https://snap.stanford.edu/data/oregon1_010331.txt.gz"
+
+    # Internet firewall data
+    # https://archive.ics.uci.edu/dataset/542/internet+firewall+data
+    FIREWALL_DATA_URL="https://archive.ics.uci.edu/static/public/542/internet+firewall+data.zip"
 
     download_and_extract "$RF_CCH_URL" rf-cch
     download_and_extract "$RF_BB_URL" rf-bb
     download_and_extract "$SNAP_AS_733_URL" as-733
-    download_and_extract "$SNAP_OREGON_1_URL" oregon-1
+    # download_and_extract "$SNAP_OREGON_1_URL" oregon-1
+    download_and_extract "$FIREWALL_DATA_URL" firewall-data
 
     python3 parse-network-dataset.py -i rf-cch -t rocketfuel-cch
     python3 parse-network-dataset.py -i rf-bb -t rocketfuel-bb
     python3 parse-network-dataset.py -i as-733 -t stanford
-    python3 parse-network-dataset.py -i oregon-1 -t stanford
+    # python3 parse-network-dataset.py -i oregon-1 -t stanford
+    python3 parse-network-dataset.py -i firewall-data -t firewall
+
+    # Clean up
+    rm -rf rf-cch rf-bb as-733 oregon-1 firewall-data
 }
 
 main "$@"

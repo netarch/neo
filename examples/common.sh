@@ -43,7 +43,7 @@ docker_clean() {
 }
 
 cleanup() {
-    sleep 3
+    sleep 5
 
     set +e
     export err

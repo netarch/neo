@@ -6,7 +6,6 @@ source "${SCRIPT_DIR}/../common.sh"
 networks=(
     as-733.103-nodes.239-edges.txt
     as-733.1470-nodes.3131-edges.txt
-    # oregon-1.10670-nodes.22002-edges.txt
     rocketfuel-bb-AS-1221.108-nodes.153-edges.txt
     rocketfuel-bb-AS-1239.315-nodes.972-edges.txt
     rocketfuel-bb-AS-1755.87-nodes.161-edges.txt
@@ -19,27 +18,30 @@ networks=(
 # for network in "${networks[@]}"; do
 #     network_name="${network%.*}"
 #     emu_pct=10
+#     fw_pct=20
 #     invs=10
-#     "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$invs" >"$CONF"
+#     "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -f "$fw_pct" -i "$invs" >"$CONF"
 #     procs=8
 #     drop=timeout
-#     name="output.$network_name.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
-#     run "$name" "$procs" "$drop" "$CONF" --parallel-invs
+#     name="output.$network_name.$emu_pct-emulated.$fw_pct-fwleaves.$invs-invariants.$procs-procs.$drop"
+#     run "$name" "$procs" "$drop" "$CONF" #--parallel-invs
 #     rm "$CONF"
 # done
 
 for network in "${networks[@]}"; do
     network_name="${network%.*}"
     for emu_pct in 4 8 12 16 20; do
-        for invs in 1 4 8 12 16; do
-            "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -i "$invs" >"$CONF"
-            for procs in 1 4 8 12 16; do
-                for drop in "${DROP_METHODS[@]}"; do
-                    name="output.$network_name.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
-                    run "$name" "$procs" "$drop" "$CONF" --parallel-invs
+        for fw_pct in 0 5 10; do
+            for invs in 1 4 8 12 16; do
+                "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -f "$fw_pct" -i "$invs" >"$CONF"
+                for procs in 1 4 8 12 16; do
+                    for drop in "${DROP_METHODS[@]}"; do
+                        name="output.$network_name.$emu_pct-emulated.$fw_pct-fwleaves.$invs-invariants.$procs-procs.$drop"
+                        run "$name" "$procs" "$drop" "$CONF"
+                    done
                 done
+                rm "$CONF"
             done
-            rm "$CONF"
         done
     done
 done
