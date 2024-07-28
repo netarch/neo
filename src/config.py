@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
+
 import toml
 
 

@@ -23,38 +23,47 @@ def parse_main_log(output_dir, settings):
     with open(mainlogFn) as mainlog:
         inv_id = 0
         for line in mainlog:
-            if re.search("Loaded (\d+) nodes", line):
-                m = re.search("Loaded (\d+) nodes", line)
+            if re.search(r"Loaded (\d+) nodes", line):
+                m = re.search(r"Loaded (\d+) nodes", line)
+                assert m is not None
                 settings["num_nodes"] = int(m.group(1))
             elif " links" in line:
-                m = re.search("Loaded (\d+) links", line)
+                m = re.search(r"Loaded (\d+) links", line)
+                assert m is not None
                 settings["num_links"] = int(m.group(1))
             elif "openflow updates" in line:
-                m = re.search("Loaded (\d+) openflow updates", line)
+                m = re.search(r"Loaded (\d+) openflow updates", line)
+                assert m is not None
                 settings["num_updates"] = int(m.group(1))
             elif "Initial ECs:" in line:
-                m = re.search("Initial ECs: (\d+)", line)
+                m = re.search(r"Initial ECs: (\d+)", line)
+                assert m is not None
                 settings["total_conn"] = int(m.group(1))
             elif "Initial ports:" in line:
-                m = re.search("Initial ports: (\d+)", line)
+                m = re.search(r"Initial ports: (\d+)", line)
+                assert m is not None
                 settings["total_conn"] *= int(m.group(1))
             elif "Verifying invariant " in line:
-                m = re.search("(\d+)\.?\s*Verifying invariant ", line)
+                m = re.search(r"(\d+)\.?\s*Verifying invariant ", line)
+                assert m is not None
                 inv_id = int(m.group(1))
                 settings["invariant"].append(inv_id)
                 settings["violated"].append(False)
                 # assert (len(settings['invariant']) == inv_id)
             elif "Connection ECs:" in line:
-                m = re.search("Connection ECs: (\d+)", line)
+                m = re.search(r"Connection ECs: (\d+)", line)
+                assert m is not None
                 settings["independent_cec"].append(int(m.group(1)))
                 # assert (len(settings['independent_cec']) == inv_id)
             elif "Invariant violated" in line:
                 settings["violated"][inv_id - 1] = True
             elif "Time:" in line:
-                m = re.search("Time: (\d+) usec", line)
+                m = re.search(r"Time: (\d+) usec", line)
+                assert m is not None
                 settings["total_time"] = int(m.group(1))
             elif "Peak memory:" in line:
-                m = re.search("Peak memory: (\d+) KiB", line)
+                m = re.search(r"Peak memory: (\d+) KiB", line)
+                assert m is not None
                 settings["total_mem"] = int(m.group(1))
 
 
@@ -68,8 +77,9 @@ def parse_02_settings(output_dir):
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
-        "output\.(\d+)-apps\.(\d+)-hosts\.(\d+)-procs\.([a-z]+)(\.fault)?", dirname
+        r"output\.(\d+)-apps\.(\d+)-hosts\.(\d+)-procs\.([a-z]+)(\.fault)?", dirname
     )
+    assert m is not None
     settings["apps"] = int(m.group(1))
     settings["hosts"] = int(m.group(2))
     settings["procs"] = int(m.group(3))
@@ -89,9 +99,10 @@ def parse_03_settings(output_dir):
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
-        "output\.(\d+)-lbs\.(\d+)-servers\.algo-([a-z]+)\.(\d+)-procs\.([a-z]+)",
+        r"output\.(\d+)-lbs\.(\d+)-servers\.algo-([a-z]+)\.(\d+)-procs\.([a-z]+)",
         dirname,
     )
+    assert m is not None
     settings["lbs"] = int(m.group(1))
     settings["servers"] = int(m.group(2))
     settings["algorithm"] = m.group(3)
@@ -110,8 +121,9 @@ def parse_06_settings(output_dir):
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
-        "output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)", dirname
+        r"output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)", dirname
     )
+    assert m is not None
     settings["tenants"] = int(m.group(1))
     settings["updates"] = int(m.group(2))
     settings["procs"] = int(m.group(3))
@@ -130,9 +142,10 @@ def parse_15_settings(output_dir):
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
-        "output\.([^\.]+)\.\d+-nodes\.\d+-edges\.(\d+)-emulated\.(\d+)-invariants\.(\d+)-procs\.([a-z]+)",
+        r"output\.([^\.]+)\.\d+-nodes\.\d+-edges\.(\d+)-emulated\.(\d+)-invariants\.(\d+)-procs\.([a-z]+)",
         dirname,
     )
+    assert m is not None
     settings["network"] = m.group(1)
     settings["emulated_pct"] = int(m.group(2))
     settings["invariants"] = int(m.group(3))
@@ -150,7 +163,10 @@ def parse_18_settings(output_dir):
         "drop_method": "",
     }
     dirname = os.path.basename(output_dir)
-    m = re.search("output\.(\d+)-ary\.(\d+)-update-pct\.(\d+)-procs\.([a-z]+)", dirname)
+    m = re.search(
+        r"output\.(\d+)-ary\.(\d+)-update-pct\.(\d+)-procs\.([a-z]+)", dirname
+    )
+    assert m is not None
     settings["arity"] = int(m.group(1))
     settings["update_pct"] = int(m.group(2))
     settings["procs"] = int(m.group(3))

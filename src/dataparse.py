@@ -1,8 +1,9 @@
-import networkx as nx
-import matplotlib.pyplot as plt
 import ipaddress
 from collections import deque
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import networkx as nx
 
 
 class NetSynthesizer:
@@ -118,14 +119,13 @@ class NetSynthesizer:
 
     def leaves(self):
         return bfs_leaves(self.G, list(self.G)[0])
-    
+
     def get_firewall(self, n):
-        ret = []
         leaves = self.leaves()
         if n not in leaves:
             return -1
         return list(self.G[n])[0]
-    
+
     def get_itf_to_leaf(self, n):
         leaves = self.leaves()
         for i in self.node_to_interfaces[n]:
@@ -133,60 +133,58 @@ class NetSynthesizer:
             dn = self.interface_to_node[di]
             if dn in leaves:
                 return i[0]
-        
-            
-        
 
-class FileParser:
-    """
-    nodefile : the nodes filename. The file must be space-separated, each line describing a single node.
-                node name at the first column, followed by the interfaces
 
-    rulefile : the rules filename. The file must be space-separated, each line descriing a single rule.
-                node name at the first column, destination subnet in the second column, destination address at the third column.
-    """
-
-    def __init__(self, nodefile=None, rulefile=None, linkfile=None):
-        self.nodes = read_dsv(nodefile)
-        self.rules = read_dsv(rulefile)
-        self.ntoidict = dict()
-        self.itondict = dict()
-
-        for line in self.nodes:
-            self.ntoidict[line[0]] = []
-            for interface in line[1:]:
-                self.ntoidict[line[0]].append(interface)
-                self.itondict[interface] = line[0]
-
-    def visualize(self):
-        G = nx.Graph()
-        for n in self.nodes:
-            G.add_node(n[0])
-        for r in self.rules:
-            srcinterface = self.findMatchingInterface(r[0], r[1])
-            dstnode = self.itondict[r[2]]
-            G.add_edge(r[0], dstnode, headlabel=srcinterface, taillabel=r[2])
-
-        pos = nx.spring_layout(G)
-
-        nx.draw_networkx(G, pos)
-        head_labels = nx.get_edge_attributes(G, "headlabel")
-        tail_labels = nx.get_edge_attributes(G, "taillabel")
-
-        nx.draw_networkx_edge_labels(
-            G, pos, label_pos=0.25, edge_labels=head_labels, rotate=False
-        )
-        nx.draw_networkx_edge_labels(
-            G, pos, label_pos=0.75, edge_labels=tail_labels, rotate=False
-        )
-
-        plt.axis("off")
-        plt.savefig("topo.png")
-
-    def findMatchingInterface(self, node, subnet):
-        for interface in self.ntoidict[node]:
-            if ipaddress.ip_address(interface) in ipaddress.ip_network(subnet):
-                return interface
+# class FileParser:
+#     """
+#     nodefile : the nodes filename. The file must be space-separated, each line describing a single node.
+#                 node name at the first column, followed by the interfaces
+#
+#     rulefile : the rules filename. The file must be space-separated, each line descriing a single rule.
+#                 node name at the first column, destination subnet in the second column, destination address at the third column.
+#     """
+#
+#     def __init__(self, nodefile=None, rulefile=None, linkfile=None):
+#         self.nodes = read_dsv(nodefile)
+#         self.rules = read_dsv(rulefile)
+#         self.ntoidict = dict()
+#         self.itondict = dict()
+#
+#         for line in self.nodes:
+#             self.ntoidict[line[0]] = []
+#             for interface in line[1:]:
+#                 self.ntoidict[line[0]].append(interface)
+#                 self.itondict[interface] = line[0]
+#
+#     def visualize(self):
+#         G = nx.Graph()
+#         for n in self.nodes:
+#             G.add_node(n[0])
+#         for r in self.rules:
+#             srcinterface = self.findMatchingInterface(r[0], r[1])
+#             dstnode = self.itondict[r[2]]
+#             G.add_edge(r[0], dstnode, headlabel=srcinterface, taillabel=r[2])
+#
+#         pos = nx.spring_layout(G)
+#
+#         nx.draw_networkx(G, pos)
+#         head_labels = nx.get_edge_attributes(G, "headlabel")
+#         tail_labels = nx.get_edge_attributes(G, "taillabel")
+#
+#         nx.draw_networkx_edge_labels(
+#             G, pos, label_pos=0.25, edge_labels=head_labels, rotate=False
+#         )
+#         nx.draw_networkx_edge_labels(
+#             G, pos, label_pos=0.75, edge_labels=tail_labels, rotate=False
+#         )
+#
+#         plt.axis("off")
+#         plt.savefig("topo.png")
+#
+#     def findMatchingInterface(self, node, subnet):
+#         for interface in self.ntoidict[node]:
+#             if ipaddress.ip_address(interface) in ipaddress.ip_network(subnet):
+#                 return interface
 
 
 def BFSParent(G, s):
