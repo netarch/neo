@@ -15,7 +15,11 @@ void Network::add_link(Link *link) {
     // Add the new link to _links
     auto res = _links.insert(link);
     if (res.second == false) {
-        logger.error("Duplicate link: " + (*res.first)->to_string());
+        // logger.error("Duplicate link: " + (*res.first)->to_string());
+        // Ignore duplicated links, which may be caused by directed graph
+        // inputs.
+        delete link;
+        return;
     }
 
     // Add the new peer to the respective node structures

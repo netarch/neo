@@ -1,6 +1,5 @@
 #include "node.hpp"
 
-#include <typeinfo>
 #include <utility>
 
 #include "logger.hpp"
