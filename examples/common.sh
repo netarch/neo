@@ -52,16 +52,18 @@ cleanup() {
 
     while true; do
         unfinished_cntrs="$(docker ps -a -q)"
-        if [[ -n "$unfinished_cntrs" ]]; then
-            if [[ $num_tries -lt $max_tries ]]; then
-                sleep $timeout
-                num_tries=$((num_tries + 1))
-            else
-                warn "Force cleanup"
-                make -C "$PROJECT_DIR/Dockerfiles" clean
-                sudo pkill -9 "$NEO"
-                err=1
-            fi
+        if [[ -z "$unfinished_cntrs" ]]; then
+            break
+        elif [[ $num_tries -lt $max_tries ]]; then
+            msg "num_tries: $num_tries"
+            sleep $timeout
+            num_tries=$((num_tries + 1))
+        else
+            warn "Force cleanup"
+            make -C "$PROJECT_DIR/Dockerfiles" clean
+            sudo pkill -9 neo
+            err=1
+            break
         fi
     done
     set -e
@@ -95,7 +97,7 @@ run() {
 int_handler() {
     set +e
     hurt "Interrupted. Closing the running processes and containers..."
-    sudo pkill "$NEO"
+    sudo pkill neo
     cleanup
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
