@@ -26,12 +26,14 @@ public:
 class VisitedHops {
 private:
     std::set<std::tuple<EqClass *, uint16_t, Node *>> _hops;
+    std::tuple<EqClass *, uint16_t, Node *> _last_hop;
 
     friend class VisitedHopsHash;
     friend class VisitedHopsEq;
 
 public:
     bool visited(const std::tuple<EqClass *, uint16_t, Node *> &) const;
+    bool is_last_hop(const std::tuple<EqClass *, uint16_t, Node *> &) const;
     void add(std::tuple<EqClass *, uint16_t, Node *> &&);
 };
 

@@ -1,4 +1,5 @@
 #include "unique-storage.hpp"
+#include "invariant/loop.hpp"
 #include "pkt-hist.hpp"
 
 using namespace std;
@@ -61,6 +62,11 @@ void UniqueStorage::reset() {
         delete results;
     }
     this->injection_results_store.clear();
+
+    for (VisitedHops *hops : this->visited_hops_store) {
+        delete hops;
+    }
+    this->visited_hops_store.clear();
 }
 
 Candidates *UniqueStorage::store_candidates(Candidates *candidates) {
