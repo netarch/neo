@@ -43,18 +43,27 @@ docker_clean() {
 }
 
 cleanup() {
-    sleep 5
-
     set +e
     export err
     err=0
-    cntrs="$(docker ps -a -q)"
-    if [[ -n "$cntrs" ]]; then
-        make -C "$PROJECT_DIR/Dockerfiles" clean
-        sudo pkill -9 neo
-        warn "Containers were not cleared up. Something went wrong."
-        err=1
-    fi
+    num_tries=0
+    max_tries=20 # loops
+    timeout=0.5  # sec/loop
+
+    while true; do
+        unfinished_cntrs="$(docker ps -a -q)"
+        if [[ -n "$unfinished_cntrs" ]]; then
+            if [[ $num_tries -lt $max_tries ]]; then
+                sleep $timeout
+                num_tries=$((num_tries + 1))
+            else
+                warn "Force cleanup"
+                make -C "$PROJECT_DIR/Dockerfiles" clean
+                sudo pkill -9 "$NEO"
+                err=1
+            fi
+        fi
+    done
     set -e
 }
 
@@ -69,18 +78,29 @@ run() {
 
     msg "Verifying $name"
     sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
+    cleanup
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
-    cleanup
 
     # # Repeat until no error occurs
     # while [[ $err -eq 1 ]]; do
     #     msg "Re-verifying $name"
     #     sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
+    #     cleanup
     #     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     #     cp "$infile" "$outdir/network.toml"
-    #     cleanup
     # done
+}
+
+int_handler() {
+    set +e
+    hurt "Interrupted. Closing the running processes and containers..."
+    sudo pkill "$NEO"
+    cleanup
+    sudo chown -R "$(id -u):$(id -g)" "$outdir"
+    cp "$infile" "$outdir/network.toml"
+    hurt "Exit (interrupted)"
+    exit 1
 }
 
 setup_hugepages() {
@@ -124,6 +144,7 @@ _main() {
     done
 
     export ASAN_OPTIONS
+    trap int_handler SIGINT
 }
 
 _main "$@"
