@@ -15,7 +15,7 @@ source "${SCRIPT_DIR}/../common.sh"
 
 for emu_pct in 4 8 12 16 20; do
     for invs in 1 4 8 12 16; do
-        "${CONFGEN[@]}" --data "$SCRIPT_DIR/data" -e "$emu_pct" -i "$invs" >"$CONF"
+        "${CONFGEN[@]}" -e "$emu_pct" -i "$invs" >"$CONF"
         for procs in 1 4 8 12 16; do
             for drop in "${DROP_METHODS[@]}"; do
                 name="output.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
