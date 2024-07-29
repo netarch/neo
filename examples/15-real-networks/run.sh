@@ -45,3 +45,5 @@ for network in "${networks[@]}"; do
         done
     done
 done
+
+msg "Done"
