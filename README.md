@@ -77,6 +77,12 @@ $ ./scripts/test.sh
 # peak memory:  7 MiB
 ```
 
+> [!NOTE]
+> During test, there may be intermediate exceptions being thrown, which are
+> expected, as the test covers many corner cases. The test result would be
+> concluded at the end of the command output. In case of failed assertions,
+> please file an issue.
+
 Afterward, you can install Neo to system paths by running the following command,
 or you could also run the binary from the build directory. The example command
 below installs the binary at `/usr/bin/neo`.
