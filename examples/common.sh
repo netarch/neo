@@ -54,14 +54,17 @@ cleanup() {
         unfinished_cntrs="$(docker ps -a -q)"
         if [[ -z "$unfinished_cntrs" ]]; then
             break
+        elif tail -n2 "$outlog" | grep maxresident >/dev/null; then
+            sudo pkill -9 neo
+            make -C "$PROJECT_DIR/Dockerfiles" clean
+            break
         elif [[ $num_tries -lt $max_tries ]]; then
-            msg "num_tries: $num_tries"
             sleep $timeout
             num_tries=$((num_tries + 1))
         else
             warn "Force cleanup"
-            make -C "$PROJECT_DIR/Dockerfiles" clean
             sudo pkill -9 neo
+            make -C "$PROJECT_DIR/Dockerfiles" clean
             err=1
             break
         fi
@@ -75,25 +78,26 @@ run() {
     drop="$3"
     infile="$4"
     outdir="$RESULTS_DIR/$name"
+    outlog="$SCRIPT_DIR/out.log"
     shift 4
     args=("$@")
 
     msg "Verifying $name"
     sudo /usr/bin/time "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" \
-        2>&1 | tee out.log >/dev/null
+        2>&1 | tee "$outlog" >/dev/null
     cleanup
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
-    mv out.log "$outdir/out.log"
+    mv "$outlog" "$outdir/"
     cp "$infile" "$outdir/network.toml"
 
     # Repeat until no error occurs
     while [[ $err -eq 1 ]]; do
         msg "Re-verifying $name"
         sudo /usr/bin/time "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" \
-            2>&1 | tee out.log >/dev/null
+            2>&1 | tee "$outlog" >/dev/null
         cleanup
         sudo chown -R "$(id -u):$(id -g)" "$outdir"
-        mv out.log "$outdir/out.log"
+        mv "$outlog" "$outdir/"
         cp "$infile" "$outdir/network.toml"
     done
 }
