@@ -79,17 +79,21 @@ run() {
     args=("$@")
 
     msg "Verifying $name"
-    sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
+    sudo /usr/bin/time "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" \
+        2>&1 | tee out.log >/dev/null
     cleanup
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
+    mv out.log "$outdir/out.log"
     cp "$infile" "$outdir/network.toml"
 
     # Repeat until no error occurs
     while [[ $err -eq 1 ]]; do
         msg "Re-verifying $name"
-        sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
+        sudo /usr/bin/time "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" \
+            2>&1 | tee out.log >/dev/null
         cleanup
         sudo chown -R "$(id -u):$(id -g)" "$outdir"
+        mv out.log "$outdir/out.log"
         cp "$infile" "$outdir/network.toml"
     done
 }
