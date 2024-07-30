@@ -167,9 +167,16 @@ performance of testing all the specified invariants.
 [1721770397.029933] [69667] [II] Connection ECs: 3
 [1721770397.909497] [66929] [II] ====================
 [1721770397.909542] [66929] [II] Time: 2618897 usec
-[1721770397.909551] [66929] [II] Peak memory: 157148 KiB
+[1721770397.909551] [66929] [II] Peak memory: 10496 KiB
 [1721770397.909559] [66929] [II] Current memory: 10496 KiB
 ```
+
+> [!NOTE]
+> The memory reported on the command output is the resident set size (RSS) of
+> the parent *main* process, and does not account for all children processes
+> (spawned for the connection ECs). `/usr/bin/time` may be used to obtain the
+> end-to-end statistics. Alternatively, the experiments scripts may also be
+> used. Please see [Batch testing with run.sh](#batch-testing-with-runsh).
 
 The structure of the output directory looks like the following. Each `<pid>.log`
 within the invariant directories captures the entire depth-first traversal of
