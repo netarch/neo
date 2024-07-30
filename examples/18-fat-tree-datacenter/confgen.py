@@ -12,7 +12,6 @@ from src.config import (
     Link,
     Node,
     OpenflowUpdate,
-    Reachability,
     ReplyReachability,
     Route,
 )

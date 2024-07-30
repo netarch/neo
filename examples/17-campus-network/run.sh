@@ -15,28 +15,21 @@ networks=(
 )
 
 # # Test
-# emu_pct=8
-# invs=4
-# "${CONFGEN[@]}" -e "$emu_pct" -i "$invs" >"$CONF"
-# procs=4
+# network=core1
+# "${CONFGEN[@]}" -n "$network" >"$CONF"
+# procs=1
 # drop=timeout
-# name="output.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
+# name="output.network-$network.$procs-procs.$drop"
 # run "$name" "$procs" "$drop" "$CONF" #--parallel-invs
 # rm "$CONF"
 
 for network in "${networks[@]}"; do
-    for emu_pct in 4 8 12 16 20; do
-        for invs in 1 4 8 12 16; do
-            "${CONFGEN[@]}" -n "$network" -e "$emu_pct" -i "$invs" >"$CONF"
-            for procs in 1 4 8 12 16; do
-                for drop in "${DROP_METHODS[@]}"; do
-                    name="output.network-$network.$emu_pct-emulated.$invs-invariants.$procs-procs.$drop"
-                    run "$name" "$procs" "$drop" "$CONF"
-                done
-            done
-            rm "$CONF"
-        done
-    done
+    "${CONFGEN[@]}" -n "$network" >"$CONF"
+    procs=1
+    drop=timeout
+    name="output.network-$network.$procs-procs.$drop"
+    run "$name" "$procs" "$drop" "$CONF"
+    rm "$CONF"
 done
 
 msg "Done"

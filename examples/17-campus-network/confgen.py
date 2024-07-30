@@ -38,6 +38,14 @@ def device_use_acls(device: DDevice) -> bool:
     return False
 
 
+def get_device_names_with_acls(network: DNetwork) -> list[str]:
+    results: list[str] = []
+    for device_name, device in network.nodes.items():
+        if device_use_acls(device):
+            results.append(device_name)
+    return results
+
+
 def get_iptables_acl_rules(device: DDevice) -> str:
     rules = (
         "*filter\n"
@@ -95,16 +103,17 @@ def is_connected(network: DNetwork, src_device_name: str, dst_device_name: str) 
     return False
 
 
-def confgen(network_name: str, emu_pct: int, max_invs: int, loop: bool) -> None:
+def confgen(network_name: str, max_invs: int, loop: bool) -> None:
     config = Config()
     random.seed(42)  # Fixed seed for reproducibility
 
     network = DParser.parse(
         os.path.join(os.path.dirname(__file__), "data"), network_name
     )
-    emulated_device_names = random.sample(
-        list(network.nodes.keys()), k=int(len(network.nodes) * emu_pct / 100)
-    )
+    emulated_device_names = get_device_names_with_acls(network)
+    # emulated_device_names = random.sample(
+    #     list(network.nodes.keys()), k=int(len(network.nodes) * emu_pct / 100)
+    # )
 
     # Add nodes
     for device_name, device in network.nodes.items():
@@ -193,12 +202,18 @@ def confgen(network_name: str, emu_pct: int, max_invs: int, loop: bool) -> None:
             )
         )
         num_invs += 1
-    all_device_names = list(network.nodes.keys())
-    random.shuffle(all_device_names)
-    for u in all_device_names:
+    # all_device_names = list(network.nodes.keys())
+    # random.shuffle(all_device_names)
+    bd_device_names: list[str] = [
+        device_name
+        for device_name in network.nodes.keys()
+        if device_name.startswith("bd-")
+    ]
+    random.shuffle(bd_device_names)
+    for u in bd_device_names:
         if num_invs >= max_invs:
             break
-        for v in all_device_names:
+        for v in bd_device_names:
             if num_invs >= max_invs:
                 break
             if u == v:
@@ -240,12 +255,12 @@ def main():
             "all",
         ],
     )
-    parser.add_argument(
-        "-e", "--emulated", type=int, help="Percentage of emulated nodes", required=True
-    )
-    parser.add_argument(
-        "-i", "--invs", type=int, help="Maximum number of invariants", required=True
-    )
+    # parser.add_argument(
+    #     "-e", "--emulated", type=int, help="Percentage of emulated nodes", required=True
+    # )
+    # parser.add_argument(
+    #     "-i", "--invs", type=int, help="Maximum number of invariants", required=True
+    # )
     parser.add_argument(
         "-l",
         "--loop",
@@ -255,7 +270,7 @@ def main():
     )
     arg = parser.parse_args()
 
-    confgen(arg.network, arg.emulated, arg.invs, arg.loop)
+    confgen(arg.network, max_invs=sys.maxsize, loop=arg.loop)
 
 
 if __name__ == "__main__":
