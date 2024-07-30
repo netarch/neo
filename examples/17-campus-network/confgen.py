@@ -95,13 +95,13 @@ def is_connected(network: DNetwork, src_device_name: str, dst_device_name: str) 
     return False
 
 
-def confgen(emu_pct: int, max_invs: int, loop: bool) -> None:
+def confgen(network_name: str, emu_pct: int, max_invs: int, loop: bool) -> None:
     config = Config()
     random.seed(42)  # Fixed seed for reproducibility
 
-    results = DParser.parse(os.path.join(os.path.dirname(__file__), "data"))
-    assert len(results) == 1
-    network = results[0]
+    network = DParser.parse(
+        os.path.join(os.path.dirname(__file__), "data"), network_name
+    )
     emulated_device_names = random.sample(
         list(network.nodes.keys()), k=int(len(network.nodes) * emu_pct / 100)
     )
@@ -223,6 +223,24 @@ def confgen(emu_pct: int, max_invs: int, loop: bool) -> None:
 def main():
     parser = argparse.ArgumentParser(description="17-campus-network")
     parser.add_argument(
+        "-n",
+        "--network",
+        type=str,
+        help="Network name",
+        required=True,
+        choices=[
+            "core1",
+            "core2",
+            "core4",
+            "core5",
+            "core6",
+            "core8",
+            "core9",
+            "core10",
+            "all",
+        ],
+    )
+    parser.add_argument(
         "-e", "--emulated", type=int, help="Percentage of emulated nodes", required=True
     )
     parser.add_argument(
@@ -237,7 +255,7 @@ def main():
     )
     arg = parser.parse_args()
 
-    confgen(arg.emulated, arg.invs, arg.loop)
+    confgen(arg.network, arg.emulated, arg.invs, arg.loop)
 
 
 if __name__ == "__main__":
