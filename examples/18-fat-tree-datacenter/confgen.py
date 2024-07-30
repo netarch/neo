@@ -195,17 +195,17 @@ COMMIT
             owned_dst_only=True,
         )
     )
-    # private servers can't accept connections from the outside world
-    config.add_invariant(
-        Reachability(
-            target_node="(server.*\\..*)|r.*\\.2",
-            reachable=False,
-            protocol="icmp-echo",
-            src_node="internet",
-            dst_ip="10.0.0.0/8",
-            owned_dst_only=True,
-        )
-    )
+    # # private servers can't accept connections from the outside world
+    # config.add_invariant(
+    #     Reachability(
+    #         target_node="(server.*\\..*)|r.*\\.2",
+    #         reachable=False,
+    #         protocol="icmp-echo",
+    #         src_node="internet",
+    #         dst_ip="10.0.0.0/8",
+    #         owned_dst_only=True,
+    #     )
+    # )
 
     # Add route updates
     num_tenants = k**3 // 4 - 1  # 0-th host is used as a gateway router

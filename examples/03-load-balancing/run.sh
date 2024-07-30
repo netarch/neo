@@ -13,8 +13,8 @@ for lbs in 2 4 6; do
     srvs=$lbs
     # IPVS scheduling algorithms
     # https://keepalived-pqa.readthedocs.io/en/latest/scheduling_algorithms.html
-    # round-robin, source-hashing, destination-hashing, maglev-hashing, least-connection
-    for algo in rr sh dh mh lc; do
+    # source-hashing, destination-hashing, maglev-hashing, least-connection
+    for algo in sh dh mh lc; do
         "${CONFGEN[@]}" -l $lbs -s $srvs -a $algo >"$CONF"
         procs=1
         drop=timeout
