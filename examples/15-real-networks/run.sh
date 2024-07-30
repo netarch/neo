@@ -31,17 +31,16 @@ networks=(
 for network in "${networks[@]}"; do
     network_name="${network%.*}"
     for emu_pct in 4 8 12 16 20; do
-        for fw_pct in 0 5 10; do
-            for invs in 1 4 8 12 16; do
-                "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -f "$fw_pct" -i "$invs" >"$CONF"
-                for procs in 1 4 8 12 16; do
-                    for drop in "${DROP_METHODS[@]}"; do
-                        name="output.$network_name.$emu_pct-emulated.$fw_pct-fwleaves.$invs-invariants.$procs-procs.$drop"
-                        run "$name" "$procs" "$drop" "$CONF"
-                    done
+        fw_pct=10
+        for invs in 1 4 8 12 16; do
+            "${CONFGEN[@]}" --topo "$network" -e "$emu_pct" -f "$fw_pct" -i "$invs" >"$CONF"
+            for procs in 1 4 8 12 16; do
+                for drop in "${DROP_METHODS[@]}"; do
+                    name="output.$network_name.$emu_pct-emulated.$fw_pct-fwleaves.$invs-invariants.$procs-procs.$drop"
+                    run "$name" "$procs" "$drop" "$CONF"
                 done
-                rm "$CONF"
             done
+            rm "$CONF"
         done
     done
 done
