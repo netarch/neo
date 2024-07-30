@@ -7,7 +7,7 @@ url="https://github.com/netarch/neo"
 license=()
 depends=(base-devel curl git clang yapf elfutils libelf zlib binutils libcap
          llvm glibc lib32-glibc python meson ninja python-pyelftools numactl
-         python-matplotlib python-numpy python-pandas python-toml
+         time python-matplotlib python-numpy python-pandas python-toml
          python-networkx gcc clang flex bison cmake ninja python-jinja pkgconf
          autoconf automake libtool
          zip unzip     # utils required by vcpkg
