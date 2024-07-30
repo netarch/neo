@@ -49,8 +49,8 @@ pair<long, long> Stats::get_rss() const {
     long maxrss = 0, currrss = 0;
 
     while (getline(ifs, line)) {
-        if (line.starts_with("VmPeak:")) {
-            maxrss = stol(line.substr(7));
+        if (line.starts_with("VmHWM:")) {
+            maxrss = stol(line.substr(6));
         } else if (line.starts_with("VmRSS:")) {
             currrss = stol(line.substr(6));
             break;
