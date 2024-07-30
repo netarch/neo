@@ -12,6 +12,7 @@ networks=(
     core8
     core9
     core10
+    all
 )
 
 # # Test
