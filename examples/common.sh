@@ -84,14 +84,14 @@ run() {
     sudo chown -R "$(id -u):$(id -g)" "$outdir"
     cp "$infile" "$outdir/network.toml"
 
-    # # Repeat until no error occurs
-    # while [[ $err -eq 1 ]]; do
-    #     msg "Re-verifying $name"
-    #     sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
-    #     cleanup
-    #     sudo chown -R "$(id -u):$(id -g)" "$outdir"
-    #     cp "$infile" "$outdir/network.toml"
-    # done
+    # Repeat until no error occurs
+    while [[ $err -eq 1 ]]; do
+        msg "Re-verifying $name"
+        sudo "$NEO" -f -j "$procs" -d "$drop" -i "$infile" -o "$outdir" "${args[@]}" >/dev/null
+        cleanup
+        sudo chown -R "$(id -u):$(id -g)" "$outdir"
+        cp "$infile" "$outdir/network.toml"
+    done
 }
 
 int_handler() {
