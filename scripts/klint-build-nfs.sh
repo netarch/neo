@@ -92,7 +92,7 @@ main() {
     NFs=(firewall maglev nat faulty-nat)
     KLINT_URL=https://github.com/kyechou/klint.git
     KLINT_DIR="$BUILD_DIR/klint"
-    KLINT_COMMIT=34bdb0ea8d0b97ae196d1f44454e810e73c2c334
+    KLINT_COMMIT=b2febb1d3f751b7c627edb0200e9594d9fdfa709
 
     if [ "$DISTRO" = "arch" ]; then
         LIB_DIR="/usr/lib"
