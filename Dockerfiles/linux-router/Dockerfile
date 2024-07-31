@@ -4,6 +4,7 @@ LABEL org.opencontainers.image.authors="kychou2@illinois.edu"
 
 COPY start.sh /start.sh
 
-RUN chmod +x /start.sh
+RUN apk add --upgrade --no-cache iproute2 && \
+    chmod +x /start.sh
 
 ENTRYPOINT ["/start.sh"]
