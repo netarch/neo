@@ -3,6 +3,7 @@
 from typing import Any, Optional
 
 import toml
+import yaml
 
 
 class Interface:
@@ -40,6 +41,12 @@ class Node:
 
     def add_installed_route(self, route: Route):
         self.installed_routes.append(route)
+
+    def is_bridge(self) -> bool:
+        for intf in self.interfaces:
+            if intf.ipv4 is not None:
+                return False
+        return True
 
     def to_dict(self):
         data = self.__dict__
@@ -173,13 +180,13 @@ class Link:
 
 class Network:
     def __init__(self):
-        self.nodes: list[Node] = list()
+        self.nodes: list[Node | DockerNode] = list()
         self.links: list[Link] = list()
 
     def is_empty(self):
         return len(self.nodes) + len(self.links) == 0
 
-    def add_node(self, node: Node):
+    def add_node(self, node: Node | DockerNode):
         self.nodes.append(node)
 
     def add_link(self, link: Link):
@@ -418,7 +425,7 @@ class Config:
         self.openflow = Openflow()
         self.invs = Invariants()
 
-    def add_node(self, node: Node):
+    def add_node(self, node: Node | DockerNode):
         self.network.add_node(node)
 
     def add_link(self, link: Link):
@@ -439,3 +446,220 @@ class Config:
         if not self.invs.is_empty():
             config.update(self.invs.to_dict())
         print(toml.dumps(config))
+
+    def deserialize_toml(self, fn: str) -> None:
+        self.__init__()
+        config = toml.load(fn)
+        assert type(config) is dict
+        if "nodes" in config:
+            for node_cfg in config["nodes"]:
+                assert type(node_cfg) is dict
+                if "type" in node_cfg and node_cfg["type"] == "emulation":
+                    ctnr_cfg = node_cfg["container"]
+                    node = DockerNode(
+                        name=node_cfg["name"],
+                        image=ctnr_cfg["image"],
+                        working_dir=ctnr_cfg["working_dir"],
+                        start_delay=(
+                            node_cfg["start_delay"]
+                            if "start_delay" in node_cfg
+                            else None
+                        ),
+                        reset_delay=(
+                            node_cfg["reset_delay"]
+                            if "reset_delay" in node_cfg
+                            else None
+                        ),
+                        replay_delay=(
+                            node_cfg["replay_delay"]
+                            if "replay_delay" in node_cfg
+                            else None
+                        ),
+                        packets_per_injection=(
+                            node_cfg["packets_per_injection"]
+                            if "packets_per_injection" in node_cfg
+                            else None
+                        ),
+                        daemon=(node_cfg["daemon"] if "daemon" in node_cfg else None),
+                        # dpdk=(ctnr_cfg["dpdk"] if "dpdk" in ctnr_cfg else None),
+                        # command=(
+                        #     ctnr_cfg["command"] if "command" in ctnr_cfg else None
+                        # ),
+                        # args=(ctnr_cfg["args"] if "args" in ctnr_cfg else None),
+                        # config_files=(
+                        #     ctnr_cfg["config_files"]
+                        #     if "config_files" in ctnr_cfg
+                        #     else None
+                        # ),
+                    )
+                    # Merge dict ctnr_cfg into node.container
+                    node.container = {**node.container, **ctnr_cfg}
+                else:
+                    node = Node(
+                        node_cfg["name"],
+                        (node_cfg["type"] if "type" in node_cfg else None),
+                    )
+                if "interfaces" in node_cfg:
+                    for if_cfg in node_cfg["interfaces"]:
+                        assert type(if_cfg) is dict
+                        node.add_interface(
+                            Interface(
+                                if_cfg["name"],
+                                (if_cfg["ipv4"] if "ipv4" in if_cfg else None),
+                            )
+                        )
+                if "static_routes" in node_cfg:
+                    for route_cfg in node_cfg["static_routes"]:
+                        assert type(route_cfg) is dict
+                        node.add_static_route(
+                            Route(
+                                route_cfg["network"],
+                                route_cfg["next_hop"],
+                                (
+                                    route_cfg["adm_dist"]
+                                    if "adm_dist" in route_cfg
+                                    else None
+                                ),
+                            )
+                        )
+                if "installed_routes" in node_cfg:
+                    for route_cfg in node_cfg["installed_routes"]:
+                        assert type(route_cfg) is dict
+                        node.add_static_route(
+                            Route(
+                                route_cfg["network"],
+                                route_cfg["next_hop"],
+                                (
+                                    route_cfg["adm_dist"]
+                                    if "adm_dist" in route_cfg
+                                    else None
+                                ),
+                            )
+                        )
+                self.add_node(node)
+        if "links" in config:
+            for link_cfg in config["links"]:
+                assert type(link_cfg) is dict
+                self.add_link(
+                    Link(
+                        link_cfg["node1"],
+                        link_cfg["intf1"],
+                        link_cfg["node2"],
+                        link_cfg["intf2"],
+                    )
+                )
+        # NOTE: skip openflow updates and invariant specs for now.
+
+    # # We may not need to do this with network-mode set to `none`.
+    # # https://containerlab.dev/manual/nodes/#network-mode
+    # def increment_intf_numbers_by_one_for_clab(self) -> None:
+    #     for node in self.network.nodes:
+    #         for intf in node.interfaces:
+    #             m = re.match(r"eth(\d+)", intf.name)
+    #             if m:
+    #                 num = int(m.group(1))
+    #                 intf.name = "eth{}".format(num + 1)
+
+    def get_bridges(self) -> list[str]:
+        bridges = []
+        for node in self.network.nodes:
+            if node.is_bridge():
+                bridges.append(node.name)
+        return bridges
+
+    def output_clab_yml(self, name: str, outfn: str | None = None) -> None:
+        result = {
+            "name": name,
+            "prefix": "",
+            "topology": {
+                "defaults": {"network-mode": "none"},
+                "kinds": {
+                    "linux": {
+                        "sysctls": {
+                            "net.ipv4.ip_forward": 1,
+                            "net.ipv4.conf.all.forwarding": 1,
+                            "net.ipv4.fib_multipath_hash_policy": 1,
+                        }
+                    }
+                },
+                "nodes": {},
+                "links": [],
+            },
+        }
+
+        def add_ip_addr(node_cfg: dict, intf: Interface) -> None:
+            if "exec" not in node_cfg:
+                node_cfg["exec"] = []
+            assert intf.ipv4 is not None
+            node_cfg["exec"].append(
+                "ip addr add {} dev {}".format(intf.ipv4, intf.name)
+            )
+
+        for node in self.network.nodes:
+            result["topology"]["nodes"][node.name] = dict()
+            node_cfg = result["topology"]["nodes"][node.name]
+            if node.is_bridge():
+                node_cfg["kind"] = "bridge"
+                continue
+            node_cfg["kind"] = "linux"
+            if node.type is None or node.type == "model":
+                node_cfg["image"] = "kyechou/linux-router:latest"
+            else:
+                assert type(node) is DockerNode
+                node_cfg["image"] = node.container["image"]
+                if "command" in node.container and node.container["command"]:
+                    node_cfg["cmd"] = " ".join(node.container["command"])
+                if "env" in node.container and node.container["env"]:
+                    node_cfg["env"] = dict()
+                    for env in node.container["env"]:
+                        node_cfg["env"][env["name"]] = (
+                            int(env["value"])
+                            if env["value"].isnumeric()
+                            else env["value"]
+                        )
+                if "sysctls" in node.container and node.container["sysctls"]:
+                    node_cfg["sysctls"] = dict()
+                    for var in node.container["sysctls"]:
+                        node_cfg["sysctls"][var["key"]] = (
+                            int(var["value"])
+                            if var["value"].isnumeric()
+                            else var["value"]
+                        )
+            for intf in node.interfaces:
+                if intf.ipv4 is not None:
+                    add_ip_addr(node_cfg, intf)
+            # Aggregate all routes. network prefix -> [next hops]
+            all_routes: dict[str, list[str]] = {}
+            for route in node.static_routes + node.installed_routes:
+                if route.network not in all_routes:
+                    all_routes[route.network] = []
+                all_routes[route.network].append(route.next_hop)
+            for prefix, nhops in all_routes.items():
+                cmd = "ip route add {}".format(prefix)
+                if len(nhops) == 1:
+                    cmd += " via {}".format(nhops[0])
+                else:
+                    # ECMP
+                    assert len(nhops) > 1
+                    for nhop in nhops:
+                        cmd += " nexthop via {}".format(nhop)
+                if "exec" not in node_cfg:
+                    node_cfg["exec"] = []
+                node_cfg["exec"].append(cmd)
+
+        for link in self.network.links:
+            result["topology"]["links"].append(
+                {
+                    "endpoints": [
+                        "{}:{}".format(link.node1, link.intf1),
+                        "{}:{}".format(link.node2, link.intf2),
+                    ]
+                }
+            )
+
+        if outfn:
+            with open(outfn, "w") as fout:
+                yaml.dump(result, fout)
+        else:
+            yml_str = yaml.dump(result)
+            print(yml_str)
