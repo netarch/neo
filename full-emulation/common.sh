@@ -99,26 +99,7 @@ int_handler() {
     exit 1
 }
 
-prepull() {
-    local images=(
-        kyechou/ipvs
-        kyechou/iptables
-        kyechou/linux-router
-        kyechou/klint-faulty-nat
-        kyechou/klint-nat
-        kyechou/klint-maglev
-        kyechou/klint-firewall
-        kyechou/click
-        kyechou/dpdk
-    )
-    for image in "${images[@]}"; do
-        docker pull "$image:latest"
-    done
-}
-
 _main() {
-    prepull
-
     # Prepare input for containerlab
     if [[ ! -e "$CONF" ]]; then
         "${CONFGEN[@]}" --network "$TOML_INPUT" >"$CONF"
