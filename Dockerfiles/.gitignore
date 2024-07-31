@@ -1,2 +1,5 @@
 klint-*/*
 !klint-*/Dockerfile
+linux-router/*
+!linux-router/Dockerfile
+!linux-router/*.sh
