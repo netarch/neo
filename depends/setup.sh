@@ -244,7 +244,7 @@ main() {
         style_deps=(clang yapf)
         bpf_deps=(elfutils libelf zlib binutils libcap clang llvm glibc lib32-glibc)
         dpdk_deps=(python meson ninja python-pyelftools numactl)
-        experiment_deps=(time python-matplotlib python-numpy python-pandas python-toml python-networkx)
+        experiment_deps=(time python-yaml python-matplotlib python-numpy python-pandas python-toml python-networkx)
         depends=("${script_deps[@]}" "${style_deps[@]}" "${bpf_deps[@]}"
             "${dpdk_deps[@]}" "${experiment_deps[@]}"
             gcc clang flex bison cmake ninja python-jinja pkgconf autoconf
@@ -265,7 +265,7 @@ main() {
         style_deps=(clang-format yapf3)
         bpf_deps=(elfutils libelf-dev zlib1g-dev binutils-dev libcap-dev clang llvm libc6-dev libc6-dev-i386)
         dpdk_deps=(python3 meson ninja-build python3-pyelftools libnuma-dev)
-        experiment_deps=(time python3-matplotlib python3-numpy python3-pandas python3-toml python3-networkx)
+        experiment_deps=(time python3-yaml python3-matplotlib python3-numpy python3-pandas python3-toml python3-networkx)
         depends=("${script_deps[@]}" "${style_deps[@]}" "${bpf_deps[@]}"
             "${dpdk_deps[@]}" "${experiment_deps[@]}"
             gcc g++ clang clang-tools flex bison libbison-dev cmake ninja-build
