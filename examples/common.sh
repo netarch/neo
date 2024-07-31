@@ -134,6 +134,23 @@ load_vfio_pci_module() {
     fi
 }
 
+prepull() {
+    local images=(
+        kyechou/ipvs
+        kyechou/iptables
+        kyechou/linux-router
+        kyechou/klint-faulty-nat
+        kyechou/klint-nat
+        kyechou/klint-maglev
+        kyechou/klint-firewall
+        kyechou/click
+        kyechou/dpdk
+    )
+    for image in "${images[@]}"; do
+        docker pull "$image:latest"
+    done
+}
+
 _main() {
     mkdir -p "$RESULTS_DIR"
 
@@ -153,6 +170,7 @@ _main() {
         shift
     done
 
+    prepull
     export ASAN_OPTIONS
     trap int_handler SIGINT
 }
