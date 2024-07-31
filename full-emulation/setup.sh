@@ -184,9 +184,6 @@ main() {
 
     elif [[ "$DISTRO" == "ubuntu" ]]; then
         bash -c "$(curl -sL https://get.containerlab.dev)"
-        # curl -sL https://containerlab.dev/setup | sudo bash -s "all"
-        # sudo apt-get update -y -qq
-        # sudo apt-get install -y -qq "${depends[@]}"
 
     else
         die "Unsupported distribution: $DISTRO"
