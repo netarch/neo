@@ -85,7 +85,7 @@ cleanup() {
         make -C "$PROJECT_DIR/Dockerfiles" clean
     fi
 
-    rm -rf "$SCRIPT_DIR"/clab-* "$SCRIPT_DIR"/.*.bak
+    sudo rm -rf "$SCRIPT_DIR"/clab-* "$SCRIPT_DIR"/.*.bak
     set -e
 }
 
