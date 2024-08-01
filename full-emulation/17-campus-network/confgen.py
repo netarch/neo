@@ -45,6 +45,7 @@ def main():
     config = Config()
     config.deserialize_toml(args.network)
     config.prefix_all_node_names("node_")  # Prefix all node names with "node_"
+    config.mangle_l2_switch_intf_names()
 
     if args.bridges:
         for br in config.get_bridges():

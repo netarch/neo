@@ -638,6 +638,25 @@ class Config:
             for conn in inv.connections:
                 conn.src_node = prefix + conn.src_node
 
+    def mangle_l2_switch_intf_names(self) -> None:
+        def mangle_intf_name(intf_name: str, node_name: str) -> str:
+            if intf_name.startswith("en"):
+                intf_name = "en" + node_name.replace("-", "") + intf_name[2:]
+            else:
+                intf_name = "en" + node_name.replace("-", "") + intf_name
+            return intf_name
+
+        for node in self.network.nodes:
+            if node.is_bridge():
+                for intf in node.interfaces:
+                    intf.name = mangle_intf_name(intf.name, node.name)
+        br_names = self.get_bridges()
+        for link in self.network.links:
+            if link.node1 in br_names:
+                link.intf1 = mangle_intf_name(link.intf1, link.node1)
+            if link.node2 in br_names:
+                link.intf2 = mangle_intf_name(link.intf2, link.node2)
+
     def output_clab_yml(self, name: str, outfn: str | None = None) -> None:
         result = {
             "name": name,

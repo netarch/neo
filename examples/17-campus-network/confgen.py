@@ -78,7 +78,7 @@ def get_iptables_acl_rules(device: DDevice) -> str:
 def add_l2_switch(config: Config, switch_name: str, num_intfs: int) -> None:
     node = Node(name=switch_name, type="model")
     for intf_id in range(num_intfs):
-        node.add_interface(Interface(name="en{}".format(intf_id)))
+        node.add_interface(Interface(name="eth{}".format(intf_id)))
     config.add_node(node)
 
 
@@ -183,7 +183,7 @@ def confgen(network_name: str, max_invs: int, loop: bool) -> None:
                 config.add_link(
                     Link(
                         switch_name,
-                        "en{}".format(id),
+                        "eth{}".format(id),
                         ep[0].name,
                         ep[1].get_name(),
                     )
