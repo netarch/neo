@@ -13,8 +13,8 @@ fi
 "${CONFGEN[@]}" --network "$toml" --devices >"$DEVICES_TXT"
 
 for i in {1..100}; do
-    /usr/bin/time bash "$SCRIPT_DIR/single-run.sh" 2>&1 |
-        tee "$RESULTS_DIR/$i.log"
+    msg "Test $i ..."
+    /usr/bin/time bash "$SCRIPT_DIR/single-run.sh" &>"$RESULTS_DIR/$i.log"
 done
 
 msg "Done"
