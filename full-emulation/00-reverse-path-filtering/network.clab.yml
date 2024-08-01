@@ -29,6 +29,48 @@ topology:
       exec:
         - ip addr add 192.168.0.3/24 dev eth0
         - ip route add 0.0.0.0/0 via 192.168.0.254
+    h4:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.4/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
+    h5:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.5/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
+    h6:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.6/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
+    h7:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.7/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
+    h8:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.8/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
+    h9:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.9/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
+    h10:
+      kind: linux
+      image: kyechou/linux-router:latest
+      exec:
+        - ip addr add 192.168.0.10/24 dev eth0
+        - ip route add 0.0.0.0/0 via 192.168.0.254
     s1:
       kind: bridge
     r1:
@@ -98,3 +140,10 @@ topology:
     - endpoints: ["s1:eth1", "h1:eth0"]
     - endpoints: ["s1:eth2", "h2:eth0"]
     - endpoints: ["s1:eth3", "h3:eth0"]
+    - endpoints: ["s1:eth4", "h4:eth0"]
+    - endpoints: ["s1:eth5", "h5:eth0"]
+    - endpoints: ["s1:eth6", "h6:eth0"]
+    - endpoints: ["s1:eth7", "h7:eth0"]
+    - endpoints: ["s1:eth8", "h8:eth0"]
+    - endpoints: ["s1:eth9", "h9:eth0"]
+    - endpoints: ["s1:eth10", "h10:eth0"]

@@ -26,6 +26,69 @@ ipv4 = "192.168.0.3/24"
 network = "0.0.0.0/0"
 next_hop = "192.168.0.254"
 [[nodes]]
+name = "h4"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.4/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
+name = "h5"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.5/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
+name = "h6"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.6/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
+name = "h7"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.7/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
+name = "h8"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.8/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
+name = "h9"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.9/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
+name = "h10"
+type = "model"
+[[nodes.interfaces]]
+name = "eth0"
+ipv4 = "192.168.0.10/24"
+[[nodes.static_routes]]
+network = "0.0.0.0/0"
+next_hop = "192.168.0.254"
+[[nodes]]
 name = "s1"
 type = "model"
 [[nodes.interfaces]]
@@ -36,6 +99,20 @@ name = "eth1"
 name = "eth2"
 [[nodes.interfaces]]
 name = "eth3"
+[[nodes.interfaces]]
+name = "eth4"
+[[nodes.interfaces]]
+name = "eth5"
+[[nodes.interfaces]]
+name = "eth6"
+[[nodes.interfaces]]
+name = "eth7"
+[[nodes.interfaces]]
+name = "eth8"
+[[nodes.interfaces]]
+name = "eth9"
+[[nodes.interfaces]]
+name = "eth10"
 [[nodes]]
 name = "r1"
 type = "model"
@@ -186,6 +263,41 @@ intf2 = "eth0"
 node1 = "s1"
 intf1 = "eth3"
 node2 = "h3"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth4"
+node2 = "h4"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth5"
+node2 = "h5"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth6"
+node2 = "h6"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth7"
+node2 = "h7"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth8"
+node2 = "h8"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth9"
+node2 = "h9"
+intf2 = "eth0"
+[[links]]
+node1 = "s1"
+intf1 = "eth10"
+node2 = "h10"
 intf2 = "eth0"
 
 # Invariants:
