@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import os
 import re
-import logging
-import pandas as pd
 from itertools import islice
 
+import pandas as pd
 
-def parse_main_log(output_dir, settings):
+
+def parse_main_output(output_dir, settings):
     settings["num_nodes"] = None
     settings["num_links"] = None
     settings["num_updates"] = 0
@@ -19,10 +20,10 @@ def parse_main_log(output_dir, settings):
     settings["total_time"] = None
     settings["total_mem"] = None
 
-    mainlogFn = os.path.join(output_dir, "main.log")
-    with open(mainlogFn) as mainlog:
+    outlogFn = os.path.join(output_dir, "out.log")
+    with open(outlogFn) as outlog:
         inv_id = 0
-        for line in mainlog:
+        for line in outlog:
             if re.search(r"Loaded (\d+) nodes", line):
                 m = re.search(r"Loaded (\d+) nodes", line)
                 assert m is not None
@@ -61,32 +62,32 @@ def parse_main_log(output_dir, settings):
                 m = re.search(r"Time: (\d+) usec", line)
                 assert m is not None
                 settings["total_time"] = int(m.group(1))
-            elif "Peak memory:" in line:
-                m = re.search(r"Peak memory: (\d+) KiB", line)
+            elif "maxresident" in line:
+                m = re.search(r" (\d+)maxresident", line)
                 assert m is not None
                 settings["total_mem"] = int(m.group(1))
 
 
-def parse_02_settings(output_dir):
-    settings = {
-        "apps": 0,
-        "hosts": 0,
-        "procs": 0,
-        "drop_method": "",
-        "fault": False,
-    }
-    dirname = os.path.basename(output_dir)
-    m = re.search(
-        r"output\.(\d+)-apps\.(\d+)-hosts\.(\d+)-procs\.([a-z]+)(\.fault)?", dirname
-    )
-    assert m is not None
-    settings["apps"] = int(m.group(1))
-    settings["hosts"] = int(m.group(2))
-    settings["procs"] = int(m.group(3))
-    settings["drop_method"] = m.group(4)
-    settings["fault"] = m.group(5) is not None
-    parse_main_log(output_dir, settings)
-    return settings
+# def parse_02_settings(output_dir):
+#     settings = {
+#         "apps": 0,
+#         "hosts": 0,
+#         "procs": 0,
+#         "drop_method": "",
+#         "fault": False,
+#     }
+#     dirname = os.path.basename(output_dir)
+#     m = re.search(
+#         r"output\.(\d+)-apps\.(\d+)-hosts\.(\d+)-procs\.([a-z]+)(\.fault)?", dirname
+#     )
+#     assert m is not None
+#     settings["apps"] = int(m.group(1))
+#     settings["hosts"] = int(m.group(2))
+#     settings["procs"] = int(m.group(3))
+#     settings["drop_method"] = m.group(4)
+#     settings["fault"] = m.group(5) is not None
+#     parse_main_output(output_dir, settings)
+#     return settings
 
 
 def parse_03_settings(output_dir):
@@ -108,50 +109,68 @@ def parse_03_settings(output_dir):
     settings["algorithm"] = m.group(3)
     settings["procs"] = int(m.group(4))
     settings["drop_method"] = m.group(5)
-    parse_main_log(output_dir, settings)
+    parse_main_output(output_dir, settings)
     return settings
 
 
-def parse_06_settings(output_dir):
-    settings = {
-        "tenants": 0,
-        "updates": 0,
-        "procs": 0,
-        "drop_method": "",
-    }
-    dirname = os.path.basename(output_dir)
-    m = re.search(
-        r"output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)", dirname
-    )
-    assert m is not None
-    settings["tenants"] = int(m.group(1))
-    settings["updates"] = int(m.group(2))
-    settings["procs"] = int(m.group(3))
-    settings["drop_method"] = m.group(4)
-    parse_main_log(output_dir, settings)
-    return settings
+# def parse_06_settings(output_dir):
+#     settings = {
+#         "tenants": 0,
+#         "updates": 0,
+#         "procs": 0,
+#         "drop_method": "",
+#     }
+#     dirname = os.path.basename(output_dir)
+#     m = re.search(
+#         r"output\.(\d+)-tenants\.(\d+)-updates\.(\d+)-procs\.([a-z]+)", dirname
+#     )
+#     assert m is not None
+#     settings["tenants"] = int(m.group(1))
+#     settings["updates"] = int(m.group(2))
+#     settings["procs"] = int(m.group(3))
+#     settings["drop_method"] = m.group(4)
+#     parse_main_output(output_dir, settings)
+#     return settings
 
 
 def parse_15_settings(output_dir):
     settings = {
         "network": "",
         "emulated_pct": 0,
+        "fw_leaves_pct": 0,
         "invariants": 0,
         "procs": 0,
         "drop_method": "",
     }
     dirname = os.path.basename(output_dir)
     m = re.search(
-        r"output\.([^\.]+)\.\d+-nodes\.\d+-edges\.(\d+)-emulated\.(\d+)-invariants\.(\d+)-procs\.([a-z]+)",
+        r"output\.([^\.]+)\.\d+-nodes\.\d+-edges\.(\d+)-emulated\.(\d+)-fwleaves\.(\d+)-invariants\.(\d+)-procs\.([a-z]+)",
         dirname,
     )
     assert m is not None
     settings["network"] = m.group(1)
     settings["emulated_pct"] = int(m.group(2))
-    settings["invariants"] = int(m.group(3))
-    settings["procs"] = int(m.group(4))
-    settings["drop_method"] = m.group(5)
-    parse_main_log(output_dir, settings)
+    settings["fw_leaves_pct"] = int(m.group(3))
+    settings["invariants"] = int(m.group(4))
+    settings["procs"] = int(m.group(5))
+    settings["drop_method"] = m.group(6)
+    parse_main_output(output_dir, settings)
+    return settings
+
+
+def parse_17_settings(output_dir) -> dict:
+    settings = {
+        "network": "",
+        "procs": 0,
+        "drop_method": "",
+    }
+    dirname = os.path.basename(output_dir)
+    m = re.search(r"output\.([^\.]+)\.(\d+)-procs\.([a-z]+)", dirname)
+    assert m is not None
+    settings["network"] = m.group(1)
+    settings["procs"] = int(m.group(2))
+    settings["drop_method"] = m.group(3)
+    parse_main_output(output_dir, settings)
     return settings
 
 
@@ -171,7 +190,7 @@ def parse_18_settings(output_dir):
     settings["update_pct"] = int(m.group(2))
     settings["procs"] = int(m.group(3))
     settings["drop_method"] = m.group(4)
-    parse_main_log(output_dir, settings)
+    parse_main_output(output_dir, settings)
     return settings
 
 
@@ -232,7 +251,7 @@ def parse_latencies(inv_dir, settings, latencies):
             latencies[key].extend([settings[key]] * num_injections)
 
 
-def parse(base_dir):
+def parse_neo_results(base_dir):
     settings = {}
     stats = {
         "inv_time": [],  # usec
@@ -262,23 +281,20 @@ def parse(base_dir):
         logging.info("Processing %s -- %s", exp_name, entry.name)
         output_dir = entry.path
 
-        if exp_id == "02":
-            settings = parse_02_settings(output_dir)
-        elif exp_id == "03":
+        if exp_id == "03":
             settings = parse_03_settings(output_dir)
-        elif exp_id == "06":
-            settings = parse_06_settings(output_dir)
         elif exp_id == "15":
             settings = parse_15_settings(output_dir)
+        elif exp_id == "17":
+            settings = parse_17_settings(output_dir)
         elif exp_id == "18":
             settings = parse_18_settings(output_dir)
         else:
-            raise Exception("Parser not implemented for experiment " + exp_id)
+            raise Exception("Parser not implemented for {}".format(exp_id))
 
         for entry in os.scandir(output_dir):
             if not entry.is_dir() or not entry.name.isdigit():
                 continue
-
             parse_stats(entry.path, settings, stats)
             parse_latencies(entry.path, settings, latencies)
 
@@ -319,15 +335,6 @@ def main():
         "-t", "--target", help="Parser target", type=str, action="store"
     )
     parser.add_argument(
-        "--merge-model", help="Merge the model-based and neo stats", action="store_true"
-    )
-    parser.add_argument(
-        "--model-stats", help="Model-based stats csv file", type=str, action="store"
-    )
-    parser.add_argument(
-        "--neo-stats", help="Neo stats csv file", type=str, action="store"
-    )
-    parser.add_argument(
         "--merge-unopt",
         help="Merge unoptimized and optimized stats",
         action="store_true",
@@ -348,9 +355,7 @@ def main():
 
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-    if args.merge_model:
-        merge_model(args.model_stats, args.neo_stats)
-    elif args.merge_unopt:
+    if args.merge_unopt:
         merge_unoptimized(
             args.opted_stats, args.unopt_stats, args.opted_lat, args.unopt_lat
         )
@@ -358,12 +363,13 @@ def main():
         target_dir = os.path.abspath(args.target)
         if not os.path.isdir(target_dir):
             raise Exception("'" + target_dir + "' is not a directory")
-
-        exp_id = os.path.basename(target_dir)[:2]
-        if exp_id in ["02", "03", "06", "15", "18"]:
-            parse(target_dir)
+        category = os.path.basename(os.path.dirname(target_dir))
+        if category == "examples":
+            parse_neo_results(target_dir)
+        elif category == "full-emulation":
+            parse_emu_results(target_dir)
         else:
-            raise Exception("Parser not implemented for experiment " + exp_id)
+            raise Exception("Unknown category: {}".format(category))
 
 
 if __name__ == "__main__":
