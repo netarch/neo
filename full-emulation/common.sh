@@ -37,6 +37,7 @@ PROJECT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)"
 CONF="$SCRIPT_DIR/network.clab.yml"
 CONFGEN=("python3" "$SCRIPT_DIR/confgen.py")
 BRIDGES_TXT="$(realpath "$SCRIPT_DIR/bridges.txt")"
+DEVICES_TXT="$(realpath "$SCRIPT_DIR/devices.txt")"
 RESULTS_DIR="$(realpath "$SCRIPT_DIR/results")"
 export CONF
 export CONFGEN
@@ -57,6 +58,22 @@ delete_bridges() {
     done
 }
 
+startup() {
+    create_bridges
+    sudo containerlab deploy -t "$CONF"
+}
+
+get_container_memories() {
+    mapfile -t devices <"$DEVICES_TXT"
+    total_mem_kb=0
+    for device in "${devices[@]}"; do
+        pid="$(docker inspect -f '{{.State.Pid}}' "$device")"
+        mem_kb="$(grep VmPeak "/proc/$pid/status" | awk -F ' ' '{print $2}')"
+        total_mem_kb=$((total_mem_kb + mem_kb))
+    done
+    msg "Total container memory: $total_mem_kb KB"
+}
+
 cleanup() {
     set +e
     sudo containerlab destroy -t "$CONF"
@@ -67,7 +84,7 @@ cleanup() {
         make -C "$PROJECT_DIR/Dockerfiles" clean
     fi
 
-    # rm -rf clab-* .*.bak
+    rm -rf "$SCRIPT_DIR"/clab-* "$SCRIPT_DIR"/.*.bak
     set -e
 }
 
@@ -105,6 +122,7 @@ _main() {
         "${CONFGEN[@]}" --network "$TOML_INPUT" >"$CONF"
     fi
     "${CONFGEN[@]}" --network "$TOML_INPUT" --bridges >"$BRIDGES_TXT"
+    "${CONFGEN[@]}" --network "$TOML_INPUT" --devices >"$DEVICES_TXT"
 
     mkdir -p "$RESULTS_DIR"
     trap int_handler SIGINT

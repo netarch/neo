@@ -1,5 +1,5 @@
+results/
 clab-*/
 .*.bak
 bridges.txt
-
-# *.yml
+devices.txt

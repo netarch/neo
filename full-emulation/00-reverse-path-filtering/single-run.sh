@@ -6,9 +6,13 @@ export TOML_INPUT="$EXAMPLE_DIR/network.fault.toml"
 source "$SCRIPT_DIR/../common.sh"
 cd "$SCRIPT_DIR"
 
-for i in {1..100}; do
-    /usr/bin/time bash "$SCRIPT_DIR/single-run.sh" 2>&1 |
-        tee "$RESULTS_DIR/$i.log"
+startup &>/dev/null
+set +e
+# Packet tests
+for i in {1..10}; do
+    docker exec -it "h$i" hping3 10.0.0.1 -c 1 -i u100000 -n --icmp |
+        grep -e "packets received"
 done
-
-msg "Done"
+get_container_memories
+set -e
+cleanup &>/dev/null
