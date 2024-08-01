@@ -59,7 +59,7 @@ delete_bridges() {
 
 startup() {
     create_bridges
-    sudo containerlab deploy -t "$CONF"
+    sudo containerlab deploy -t "$CONF" --reconfigure
 }
 
 get_container_memories() {
