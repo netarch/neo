@@ -4,9 +4,32 @@ import argparse
 import logging
 import os
 import re
+from collections import deque
 from itertools import islice
 
 import pandas as pd
+
+
+def gnu_time_str_to_usec(time_str: str) -> int:
+    if re.match(r"(\d+):(\d+)\.(\d+)", time_str):
+        m = re.match(r"(\d+):(\d+)\.(\d+)", time_str)
+        assert m is not None
+        min = int(m.group(1))
+        sec = int(m.group(2))
+        subsec = str(m.group(3))
+        assert (6 - len(subsec)) >= 0
+        usec = int(subsec) * (10 ** (6 - len(subsec)))
+        usec += (min * 60 + sec) * (10**6)
+    elif re.match(r"(\d+):(\d+):(\d+)", time_str):
+        m = re.match(r"(\d+):(\d+):(\d+)", time_str)
+        assert m is not None
+        hour = int(m.group(1))
+        min = int(m.group(2))
+        sec = int(m.group(3))
+        usec = ((hour * 60 + min) * 60 + sec) * (10**6)
+    else:
+        raise Exception("Unknown GNU time: '" + time_str + "'")
+    return usec
 
 
 def parse_main_output(output_dir, settings):
@@ -277,7 +300,6 @@ def parse_neo_results(base_dir):
     for entry in os.scandir(results_dir):
         if not entry.is_dir():
             continue
-
         logging.info("Processing %s -- %s", exp_name, entry.name)
         output_dir = entry.path
 
@@ -304,13 +326,129 @@ def parse_neo_results(base_dir):
     lat_df.to_csv(os.path.join(base_dir, "lat.csv"), encoding="utf-8", index=False)
 
 
-def merge_model(model_stats_fn, neo_stats_fn):
-    model_stats_df = pd.read_csv(model_stats_fn)
-    neo_stats_df = pd.read_csv(neo_stats_fn)
-    model_stats_df["model_only"] = True
-    neo_stats_df["model_only"] = False
-    stats_df = pd.concat([model_stats_df, neo_stats_df], ignore_index=True)
-    stats_df.to_csv("stats.csv", encoding="utf-8", index=False)
+def parse_emu_00(base_dir: str, results_dir: str) -> None:
+    stats = {
+        "run_id": [],
+        "packets_received": [],
+        "packets_total": [],
+        "container_memory": [],  # KB
+        "total_time": [],  # usec
+        "total_mem": [],  # KB
+    }
+    for entry in os.scandir(results_dir):
+        if not entry.is_file() or not entry.name.endswith(".log"):
+            continue
+        m = re.match(r"(\d+)\.log", entry.name)
+        assert m is not None
+        run_id = int(m.group(1))
+        pkts_recvd = 0
+        pkts_total = 0
+        cntr_mem = None
+        total_time = None
+        total_mem = None
+        with open(entry.path) as fin:
+            for line in fin:
+                if "packets received" in line:
+                    m = re.search(
+                        r"(\d+) packets tr.*mitted, (\d+) packets received", line
+                    )
+                    assert m is not None
+                    pkts_total += int(m.group(1))
+                    pkts_recvd += int(m.group(2))
+                elif "Total container memory" in line:
+                    m = re.search(r"Total container memory: (\d+) KB", line)
+                    assert m is not None
+                    cntr_mem = int(m.group(1))
+                elif "maxresident" in line:
+                    m = re.search(r"([0-9:.]+)elapsed .* (\d+)maxresident", line)
+                    assert m is not None
+                    total_time = gnu_time_str_to_usec(str(m.group(1)))
+                    total_mem = int(m.group(2))
+        stats["run_id"].append(run_id)
+        stats["packets_received"].append(pkts_recvd)
+        stats["packets_total"].append(pkts_total)
+        stats["container_memory"].append(cntr_mem)
+        stats["total_time"].append(total_time)
+        stats["total_mem"].append(total_mem)
+
+    stats_df = pd.DataFrame.from_dict(stats)
+    stats_df = stats_df.sort_values(by=["run_id"])
+    stats_df.to_csv(os.path.join(base_dir, "stats.csv"), encoding="utf-8", index=False)
+
+
+def parse_emu_15_settings(network_dir: str) -> dict:
+    settings = {"network": ""}
+    network_str = os.path.basename(network_dir)
+    m = re.search(r"([^\.]+)\.\d+-nodes\.\d+-edges", network_str)
+    assert m is not None
+    settings["network"] = m.group(1)
+    return settings
+
+
+def parse_emu_17_settings(network_dir: str) -> dict:
+    settings = {"network": ""}
+    network_str = os.path.basename(network_dir)
+    m = re.search(r"network-([^\.]+)", network_str)
+    assert m is not None
+    settings["network"] = m.group(1)
+    return settings
+
+
+def parse_emu_stats(network_dir: str, settings: dict, stats: dict) -> None:
+    logfn = os.path.join(network_dir, "out.log")
+    with open(logfn) as fin:
+        last3 = list(deque(fin, 3))
+        for line in last3:
+            if "Total container memory" in line:
+                m = re.search(r"Total container memory: (\d+) KB", line)
+                assert m is not None
+                stats["container_memory"].append(int(m.group(1)))
+            elif "maxresident" in line:
+                m = re.search(r"([0-9:.]+)elapsed .* (\d+)maxresident", line)
+                assert m is not None
+                stats["total_time"].append(gnu_time_str_to_usec(str(m.group(1))))
+                stats["total_mem"].append(int(m.group(2)))
+
+    for key in settings.keys():
+        if key not in stats:
+            stats[key] = list()
+        assert type(settings[key]) is str
+        stats[key].append(settings[key])
+
+
+def parse_emu_results(base_dir):
+    exp_name = os.path.basename(base_dir)
+    exp_id = exp_name[:2]
+    results_dir = os.path.join(base_dir, "results")
+
+    if exp_id == "00":
+        parse_emu_00(base_dir, results_dir)
+        return
+
+    settings = {}
+    stats = {
+        "container_memory": [],  # KB
+        "total_time": [],  # ? (usec?)
+        "total_mem": [],  # KB
+    }
+    for entry in os.scandir(results_dir):
+        if not entry.is_dir():
+            continue
+        logging.info("Processing %s -- %s", exp_name, entry.name)
+        network_dir = entry.path
+
+        if exp_id == "15":
+            settings = parse_emu_15_settings(network_dir)
+        elif exp_id == "17":
+            settings = parse_emu_17_settings(network_dir)
+        else:
+            raise Exception("Parser not implemented for {}".format(exp_id))
+
+        parse_emu_stats(network_dir, settings, stats)
+
+    stats_df = pd.DataFrame.from_dict(stats)
+    stats_df = stats_df.sort_values(by=["network", "total_mem"])
+    stats_df.to_csv(os.path.join(base_dir, "stats.csv"), encoding="utf-8", index=False)
 
 
 def merge_unoptimized(opted_stats_fn, unopt_stats_fn, opted_lat_fn, unopt_lat_fn):
