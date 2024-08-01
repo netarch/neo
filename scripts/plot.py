@@ -1227,9 +1227,15 @@ def plot_17(neoDir: str, clabDir: str, outDir: str) -> None:
         elif "Memory" in col:
             df[col] /= 1024  # KiB -> MiB
     # Plot time
-    ax = df.plot(
+    time_df = df.rename(
+        columns={
+            "Time (Neo)": "Neo",
+            "Time (Emulation)": "Emulation",
+        }
+    )
+    ax = time_df.plot(
         x="network",
-        y=["Time (Neo)", "Time (Emulation)"],
+        y=["Neo", "Emulation"],
         kind="bar",
         legend=False,
         width=0.8,
@@ -1238,9 +1244,9 @@ def plot_17(neoDir: str, clabDir: str, outDir: str) -> None:
         rot=25,
     )
     ax.legend(
-        bbox_to_anchor=(1.05, 1.46),
+        bbox_to_anchor=(1.05, 1.2),
         columnspacing=0.7,
-        ncol=3,
+        ncol=2,
         fontsize=22,
         frameon=False,
         fancybox=False,
@@ -1256,9 +1262,15 @@ def plot_17(neoDir: str, clabDir: str, outDir: str) -> None:
     fig.savefig(fn, bbox_inches="tight")
     plt.close(fig)
     # Plot memory
-    ax = df.plot(
+    mem_df = df.rename(
+        columns={
+            "Memory (Neo)": "Neo",
+            "Memory (Emulation)": "Emulation",
+        }
+    )
+    ax = mem_df.plot(
         x="network",
-        y=["Memory (Neo)", "Memory (Emulation)"],
+        y=["Neo", "Emulation"],
         kind="bar",
         legend=False,
         width=0.8,
@@ -1267,9 +1279,9 @@ def plot_17(neoDir: str, clabDir: str, outDir: str) -> None:
         rot=25,
     )
     ax.legend(
-        bbox_to_anchor=(1.05, 1.46),
+        bbox_to_anchor=(1.05, 1.2),
         columnspacing=0.7,
-        ncol=3,
+        ncol=2,
         fontsize=22,
         frameon=False,
         fancybox=False,
