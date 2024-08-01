@@ -522,6 +522,53 @@ def plot_03_compare_unopt(invDir):
         f.write(df.to_string())
 
 
+def plot_03(neoDir: str, outDir: str) -> None:
+    def cleanup(df):
+        # Filter rows
+        df = df[df.procs == 1]
+        df = df[df.drop_method == "timeout"]
+        df = df[df.invariant == 1]
+        # Filter columns
+        df = df.drop(
+            [
+                "inv_memory",
+                "procs",
+                "drop_method",
+                "num_nodes",
+                "num_links",
+                "num_updates",
+                "total_conn",
+                "invariant",
+                "independent_cec",
+                "violated",
+                "total_time",
+                "total_mem",
+            ],
+            axis=1,
+        )
+        # Change units
+        df["inv_time"] /= 1e6  # usec -> sec
+        return df
+
+    # Get opt df
+    opt_df = pd.read_csv(os.path.join(neoDir, "stats.csv"))
+    opt_df = cleanup(opt_df)
+    opt_df = opt_df.rename(columns={"inv_time": "time_opt"})
+    # Get unopt df
+    unopt_dir = neoDir + ".unopt"
+    unopt_df = pd.read_csv(os.path.join(unopt_dir, "stats.csv"))
+    unopt_df = cleanup(unopt_df)
+    unopt_df = unopt_df.rename(columns={"inv_time": "time_unopt"})
+    # Combine the dfs
+    df = pd.concat([opt_df, unopt_df])
+    df = df.groupby(["algorithm", "lbs", "servers"]).mean().reset_index()
+    # Sorting
+    df = df.sort_values(by=["lbs", "algorithm"])
+    df["time_improve"] = df["time_unopt"] / df["time_opt"]
+    with open(os.path.join(outDir, "03.compare-unopt.txt"), "w") as f:
+        f.write(df.to_string())
+
+
 def plot_06_perf_vs_tenants(df, outDir):
     def _plot(df, outDir, nproc, drop, inv):
         # Filter columns
@@ -2133,8 +2180,7 @@ def main():
     if exp_id == "00":
         plot_00(clabDir, outDir)
     elif exp_id == "03":
-        # TODO: implement
-        pass
+        plot_03(neoDir, outDir)
     elif exp_id == "15":
         plot_15(neoDir, clabDir, outDir)
     elif exp_id == "17":
