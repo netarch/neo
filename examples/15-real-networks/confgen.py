@@ -128,10 +128,9 @@ def confgen(
 
     # Add invariants
     num_invs = 0
-    random.shuffle(leaves_behind_firewalls)
-    random.shuffle(leaves_wo_firewalls)
-    for u in leaves_wo_firewalls:
-        for v in leaves_behind_firewalls:
+    random.shuffle(leaves)
+    for u in leaves:
+        for v in leaves:
             if u == v:
                 continue
             if not bfs_is_connected(ns.G, u, v):
@@ -140,18 +139,29 @@ def confgen(
                 continue
 
             dst = str(ns.node_to_interfaces[v][0][1])
-            sport, dport, action = fwdata.get_random_rule()
-            config.add_invariant(
-                Reachability(
-                    target_node=v,
-                    reachable=(action == "allow"),
-                    protocol="udp",
-                    src_node=u,
-                    dst_ip=dst,
-                    src_port=sport,
-                    dst_port=[dport],
+            if v in leaves_behind_firewalls:
+                sport, dport, action = fwdata.get_random_rule()
+                config.add_invariant(
+                    Reachability(
+                        target_node=v,
+                        reachable=(action == "allow"),
+                        protocol="udp",
+                        src_node=u,
+                        dst_ip=dst,
+                        src_port=sport,
+                        dst_port=[dport],
+                    )
                 )
-            )
+            else:
+                config.add_invariant(
+                    Reachability(
+                        target_node=v,
+                        reachable=True,
+                        protocol="icmp-echo",
+                        src_node=u,
+                        dst_ip=dst,
+                    )
+                )
             num_invs += 1
             if num_invs >= max_invs:
                 break
