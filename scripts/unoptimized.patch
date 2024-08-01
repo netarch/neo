@@ -1,0 +1,98 @@
+diff --git a/src/process/choose_conn.cpp b/src/process/choose_conn.cpp
+index 5fd7ec6..811512f 100644
+--- a/src/process/choose_conn.cpp
++++ b/src/process/choose_conn.cpp
+@@ -1,6 +1,7 @@
+ #include "process/choose_conn.hpp"
+ 
+ #include <cassert>
++#include <string>
+ 
+ #include "candidates.hpp"
+ #include "logger.hpp"
+@@ -8,6 +9,8 @@
+ #include "process/forwarding.hpp"
+ #include "protocols.hpp"
+ 
++using namespace std;
++
+ static inline std::vector<std::vector<int>> get_conn_map() {
+     std::vector<std::vector<int>> conn_map(3); // executable -> [ conns ]
+ 
+@@ -36,10 +39,8 @@ void ChooseConnProcess::update_choice_count() const {
+      * 0: not executable (missing packet or terminated)
+      */
+ 
+-    if (!conn_map[2].empty()) {
+-        model.set_choice_count(1);
+-    } else if (!conn_map[1].empty()) {
+-        model.set_choice_count(conn_map[1].size());
++    if (!conn_map[2].empty() || !conn_map[1].empty()) {
++        model.set_choice_count(conn_map[2].size() + conn_map[1].size());
+     } else if (!conn_map[0].empty()) {
+         model.set_choice_count(1);
+     } else {
+@@ -58,12 +59,12 @@ void ChooseConnProcess::exec_step() {
+      * 0: not executable (missing packet or terminated)
+      */
+ 
+-    if (!conn_map[2].empty()) {
+-        assert(choice == 0);
+-        model.set_conn(conn_map[2][0]);
+-        model.print_conn_states();
+-    } else if (!conn_map[1].empty()) {
+-        model.set_conn(conn_map[1][choice]);
++    if (!conn_map[2].empty() || !conn_map[1].empty()) {
++        if (choice < (int)conn_map[2].size()) {
++            model.set_conn(conn_map[2][choice]);
++        } else {
++            model.set_conn(conn_map[1][choice - conn_map[2].size()]);
++        }
+         model.set_executable(2);
+         model.print_conn_states();
+     } else if (!conn_map[0].empty()) {
+diff --git a/src/unique-storage.hpp b/src/unique-storage.hpp
+index 306c0ed..2c128c1 100644
+--- a/src/unique-storage.hpp
++++ b/src/unique-storage.hpp
+@@ -19,31 +19,19 @@ private:
+     void reset();
+ 
+     // Variables of unique storage for preventing duplicates
+-    std::unordered_set<Candidates *, CandHash, CandEq> candidates_store;
+-    std::unordered_set<FIB *, FIBHash, FIBEq> fib_store;
++    std::unordered_set<Candidates *> candidates_store;
++    std::unordered_set<FIB *> fib_store;
+     std::unordered_set<Choices *, ChoicesHash, ChoicesEq> choices_store;
+     // All sent packets
+-    std::unordered_set<Packet *, PacketPtrHash, PacketPtrEq> pkt_store;
+-    std::unordered_set<NodePacketHistory *,
+-                       NodePacketHistoryHash,
+-                       NodePacketHistoryEq>
+-        node_pkt_hist_store;
+-    std::unordered_set<PacketHistory *, PacketHistoryHash, PacketHistoryEq>
+-        pkt_hist_store;
+-    std::
+-        unordered_set<OpenflowUpdateState *, OFUpdateStateHash, OFUpdateStateEq>
+-            openflow_update_state_store;
++    std::unordered_set<Packet *> pkt_store;
++    std::unordered_set<NodePacketHistory *> node_pkt_hist_store;
++    std::unordered_set<PacketHistory *> pkt_hist_store;
++    std::unordered_set<OpenflowUpdateState *> openflow_update_state_store;
+     std::unordered_set<ReachCounts *, ReachCountsHash, ReachCountsEq>
+         reach_counts_store;
+-    std::
+-        unordered_set<InjectionResult *, InjectionResultHash, InjectionResultEq>
+-            injection_result_store;
+-    std::unordered_set<InjectionResults *,
+-                       InjectionResultsHash,
+-                       InjectionResultsEq>
+-        injection_results_store;
+-    std::unordered_set<VisitedHops *, VisitedHopsHash, VisitedHopsEq>
+-        visited_hops_store;
++    std::unordered_set<InjectionResult *> injection_result_store;
++    std::unordered_set<InjectionResults *> injection_results_store;
++    std::unordered_set<VisitedHops *> visited_hops_store;
+ 
+ public:
+     // Disable the copy constructor and the copy assignment operator
