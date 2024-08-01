@@ -1232,7 +1232,16 @@ def plot_18_perf_vs_arity(df, outDir):
     def _plot(df, outDir, nproc, drop, inv):
         # Filter columns
         df = df.drop(
-            ["num_nodes", "num_links", "num_updates", "independent_cec", "violated"],
+            [
+                "num_nodes",
+                "num_links",
+                "num_updates",
+                "independent_cec",
+                "violated",
+                "total_conn",
+                "total_time",
+                "total_mem",
+            ],
             axis=1,
         )
         # Sorting
@@ -1321,16 +1330,29 @@ def plot_18_perf_vs_arity(df, outDir):
         )
         fig.savefig(fn, bbox_inches="tight")
         plt.close("all")
+        fn = os.path.join(
+            outDir,
+            (
+                "18.perf-arity.inv-"
+                + str(inv)
+                + "."
+                + str(nproc)
+                + "-procs."
+                + drop
+                + ".txt"
+            ),
+        )
+        with open(fn, "w") as fout:
+            fout.write(merged_df.to_string())
 
-    for nproc in df.procs.unique():
-        nproc_df = df[df.procs == nproc].drop(["procs"], axis=1)
-
-        for drop in nproc_df.drop_method.unique():
-            d_df = nproc_df[nproc_df.drop_method == drop].drop(["drop_method"], axis=1)
-
-            for inv in d_df.invariant.unique():
-                inv_df = d_df[d_df.invariant == inv].drop(["invariant"], axis=1)
-                _plot(inv_df, outDir, nproc, drop, inv)
+    # Fixed parameters
+    nproc = 1
+    drop = "timeout"
+    inv = 1
+    new_df = df[df.procs == nproc].drop(["procs"], axis=1)
+    new_df = new_df[new_df.drop_method == drop].drop(["drop_method"], axis=1)
+    new_df = new_df[new_df.invariant == inv].drop(["invariant"], axis=1)
+    _plot(new_df, outDir, nproc, drop, inv)
 
 
 def plot_18_perf_vs_nprocs(df, outDir):
@@ -1344,7 +1366,9 @@ def plot_18_perf_vs_nprocs(df, outDir):
                 "num_updates",
                 "independent_cec",
                 "violated",
-                "update_pct",
+                "total_conn",
+                "total_time",
+                "total_mem",
             ],
             axis=1,
         )
@@ -1356,6 +1380,8 @@ def plot_18_perf_vs_nprocs(df, outDir):
         df["arity"] = df["arity"].astype(str) + "-ary"
 
         df = df.pivot(index="procs", columns="arity", values="inv_time").reset_index()
+        # print(df)
+        # exit(0)
 
         # Plot time vs nprocs
         ax = df.plot(
@@ -1363,6 +1389,7 @@ def plot_18_perf_vs_nprocs(df, outDir):
             y=["4-ary", "6-ary", "8-ary", "10-ary", "12-ary"],
             kind="line",
             style=["^-", "o-", "D-", "s-", "x-"],
+            xticks=df["procs"],
             legend=False,
             xlabel="",
             ylabel="",
@@ -1378,21 +1405,24 @@ def plot_18_perf_vs_nprocs(df, outDir):
         ax.tick_params(axis="x", which="both", top=False, bottom=False)
         fig = ax.get_figure()
         fn = os.path.join(
-            outDir, ("18.perf-nproc.inv-" + str(inv) + "." + drop + ".pdf")
+            outDir, ("18.time-nproc.inv-" + str(inv) + "." + drop + ".pdf")
         )
         fig.savefig(fn, bbox_inches="tight")
         plt.close(fig)
+        fn = os.path.join(
+            outDir, ("18.time-nproc.inv-" + str(inv) + "." + drop + ".txt")
+        )
+        with open(fn, "w") as fout:
+            fout.write(df.to_string())
 
-    # Filter rows
-    # df = df[df.model_only == False]
-    df = df[df.update_pct == "None"]
-
-    for drop in df.drop_method.unique():
-        d_df = df[df.drop_method == drop].drop(["drop_method"], axis=1)
-
-        for inv in d_df.invariant.unique():
-            inv_df = d_df[d_df.invariant == inv].drop(["invariant"], axis=1)
-            _plot(inv_df, outDir, drop, inv)
+    # Fixed parameters
+    update_pct = "None"
+    drop = "timeout"
+    inv = 1
+    df = df[df.update_pct == update_pct].drop(["update_pct"], axis=1)
+    df = df[df.drop_method == drop].drop(["drop_method"], axis=1)
+    df = df[df.invariant == inv].drop(["invariant"], axis=1)
+    _plot(df, outDir, drop, inv)
 
 
 def plot_18_perf_vs_drop_methods(df, outDir):
@@ -1461,9 +1491,6 @@ def plot_18_perf_vs_drop_methods(df, outDir):
         fig.savefig(fn, bbox_inches="tight")
         plt.close(fig)
 
-    # Filter rows
-    # df = df[df.model_only == False]
-
     for updates in df.update_pct.unique():
         upd_df = df[df.update_pct == updates].drop(["update_pct"], axis=1)
 
@@ -1481,12 +1508,9 @@ def plot_18_stats(invDir, outDir):
     df.loc[df["update_pct"] == 0, "update_pct"] = "None"
     df.loc[df["update_pct"] == 50, "update_pct"] = "Half-tenant"
     df.loc[df["update_pct"] == 100, "update_pct"] = "All-tenant"
-    # Filter rows
-    # df = df[df.optimization == True].drop(['optimization'], axis=1)
 
     plot_18_perf_vs_arity(df, outDir)
     plot_18_perf_vs_nprocs(df, outDir)
-    plot_18_perf_vs_drop_methods(df, outDir)
 
 
 def plot_latency(df, outFn, sample_limit=None):
@@ -2028,15 +2052,14 @@ def plot_18_latency(invDir, outDir):
     df.loc[df["update_pct"] == 50, "update_pct"] = "Half-tenant"
     df.loc[df["update_pct"] == 100, "update_pct"] = "All-tenant"
     # Filter rows
-    df = df[df.procs == 1]
-    # df = df[df.optimization == True]
+    df = df[df.procs == 1].drop(["procs"], axis=1)
+    df = df[df.arity == 12].drop(["arity"], axis=1)
+    df = df[df.invariant == 1]
     # Filter columns
     df = df.drop(
         [
             "rewind_injections",
-            "arity",
             "update_pct",
-            "procs",
             "num_nodes",
             "num_links",
             "num_updates",
@@ -2052,9 +2075,9 @@ def plot_18_latency(invDir, outDir):
         os.path.join(outDir, "18.latency.recv.pdf"),
         sample_limit=300,
     )
-    plot_latency(
-        df[df.drop_lat > 0].copy(), os.path.join(outDir, "18.latency.drop.pdf")
-    )
+    # plot_latency(
+    #     df[df.drop_lat > 0].copy(), os.path.join(outDir, "18.latency.drop.pdf")
+    # )
 
     # latency CDF
     plot_latency_cdf(
