@@ -26,12 +26,6 @@ fi
 if [ -z "${SCRIPT_DIR+x}" ]; then
     die '"SCRIPT_DIR" is unset'
 fi
-if [ -z "${TOML_INPUT+x}" ]; then
-    die '"TOML_INPUT" is unset'
-fi
-if [[ ! -e "$TOML_INPUT" ]]; then
-    die "File not found: $TOML_INPUT"
-fi
 
 PROJECT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)"
 CONF="$SCRIPT_DIR/network.clab.yml"
@@ -117,13 +111,6 @@ int_handler() {
 }
 
 _main() {
-    # Prepare input for containerlab
-    if [[ ! -e "$CONF" ]]; then
-        "${CONFGEN[@]}" --network "$TOML_INPUT" >"$CONF"
-    fi
-    "${CONFGEN[@]}" --network "$TOML_INPUT" --bridges >"$BRIDGES_TXT"
-    "${CONFGEN[@]}" --network "$TOML_INPUT" --devices >"$DEVICES_TXT"
-
     mkdir -p "$RESULTS_DIR"
     trap int_handler SIGINT
 }

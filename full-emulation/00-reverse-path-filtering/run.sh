@@ -1,10 +1,16 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-EXAMPLE_DIR="$SCRIPT_DIR/../../examples/00-reverse-path-filtering"
-export TOML_INPUT="$EXAMPLE_DIR/network.fault.toml"
 source "$SCRIPT_DIR/../common.sh"
 cd "$SCRIPT_DIR"
+
+# Prepare inputs: CONF, BRIDGES_TXT, DEVICES_TXT
+toml="$SCRIPT_DIR/../../examples/00-reverse-path-filtering/network.fault.toml"
+if [[ ! -e "$CONF" ]]; then
+    "${CONFGEN[@]}" --network "$toml" >"$CONF"
+fi
+"${CONFGEN[@]}" --network "$toml" --bridges >"$BRIDGES_TXT"
+"${CONFGEN[@]}" --network "$toml" --devices >"$DEVICES_TXT"
 
 for i in {1..100}; do
     /usr/bin/time bash "$SCRIPT_DIR/single-run.sh" 2>&1 |
