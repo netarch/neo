@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import ipaddress
+import re
 from typing import Any, Optional
 
 import toml
@@ -761,14 +763,35 @@ class Config:
             assert len(inv.connections) == 1
             conn: Connection = inv.connections[0]
             if conn.owned_dst_only:
-                continue
-            # target_node, reachable, protocol, src_node, dst_ip
-            print(
-                "{},{},{},{},{}".format(
-                    inv.target_node,
-                    inv.reachable,
-                    conn.protocol,
-                    conn.src_node,
-                    conn.dst_ip,
+                # Here we assume target_node is literal and not a regex.
+                for node in self.network.nodes:
+                    if re.match(inv.target_node, node.name):
+                        for intf in node.interfaces:
+                            if intf.ipv4:
+                                # target_node, reachable, protocol, src_node, dst_ip
+                                print(
+                                    "{},{},{},{},{}".format(
+                                        inv.target_node,
+                                        inv.reachable,
+                                        conn.protocol,
+                                        conn.src_node,
+                                        ipaddress.ip_interface(intf.ipv4).ip,
+                                    )
+                                )
+                                # ipaddress.ip_interface(intf.ipv4).network.subnet_of(
+                                #     ipaddress.ip_network(conn.dst_ip)
+                                # )
+                                # ipaddress.ip_network(conn.dst_ip).supernet_of(
+                                #     ipaddress.ip_interface(intf.ipv4).network
+                                # )
+            else:
+                # target_node, reachable, protocol, src_node, dst_ip
+                print(
+                    "{},{},{},{},{}".format(
+                        inv.target_node,
+                        inv.reachable,
+                        conn.protocol,
+                        conn.src_node,
+                        conn.dst_ip,
+                    )
                 )
-            )
