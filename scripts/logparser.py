@@ -44,6 +44,8 @@ def parse_main_output(output_dir, settings):
     settings["total_mem"] = None
 
     outlogFn = os.path.join(output_dir, "out.log")
+    if not os.path.exists(outlogFn):
+        outlogFn = os.path.join(output_dir, "main.log")
     with open(outlogFn) as outlog:
         inv_id = 0
         for line in outlog:
@@ -219,10 +221,14 @@ def parse_18_settings(output_dir):
 
 def parse_stats(inv_dir, settings, stats):
     invStatsFn = os.path.join(inv_dir, "invariant.stats.csv")
-    with open(invStatsFn) as inv_stats:
-        tokens = next(islice(inv_stats, 1, 2)).strip().split(",")
-        stats["inv_time"].append(int(tokens[0]))
-        stats["inv_memory"].append(int(tokens[1]))
+    if os.path.exists(invStatsFn):
+        with open(invStatsFn) as inv_stats:
+            tokens = next(islice(inv_stats, 1, 2)).strip().split(",")
+            stats["inv_time"].append(int(tokens[0]))
+            stats["inv_memory"].append(int(tokens[1]))
+    else:
+        stats["inv_time"].append(None)
+        stats["inv_memory"].append(None)
 
     inv_id = int(os.path.basename(inv_dir))
     for key in settings.keys():
@@ -235,6 +241,9 @@ def parse_stats(inv_dir, settings, stats):
 
 
 def parse_latencies(inv_dir, settings, latencies):
+    if ".unopt" in inv_dir:
+        return
+
     num_injections = 0
 
     for entry in os.scandir(inv_dir):

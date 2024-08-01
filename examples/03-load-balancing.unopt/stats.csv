@@ -1,0 +1,13 @@
+inv_time,inv_memory,lbs,servers,algorithm,procs,drop_method,num_nodes,num_links,num_updates,total_conn,invariant,independent_cec,violated,total_time,total_mem
+493432.0,5192.0,4,4,dh,1,timeout,26,25,0,128,1,1,True,496322.0,141560.0
+2187910.0,4984.0,2,2,dh,1,timeout,10,9,0,52,1,1,False,2192274.0,143512.0
+2301595.0,5140.0,2,2,sh,1,timeout,10,9,0,52,1,1,False,2305318.0,143812.0
+,,6,6,lc,1,timeout,50,49,0,236,1,1,False,,
+1718382.0,5124.0,2,2,lc,1,timeout,10,9,0,52,1,1,False,1722446.0,144084.0
+366812.0,5224.0,4,4,mh,1,timeout,26,25,0,128,1,1,True,368490.0,141592.0
+499122.0,5328.0,6,6,mh,1,timeout,50,49,0,236,1,1,True,502946.0,141840.0
+,,4,4,lc,1,timeout,26,25,0,128,1,1,False,,
+486897.0,5320.0,6,6,dh,1,timeout,50,49,0,236,1,1,True,491667.0,141976.0
+,,4,4,sh,1,timeout,26,25,0,128,1,1,False,,
+,,6,6,sh,1,timeout,50,49,0,236,1,1,False,,
+1341978.0,5120.0,2,2,mh,1,timeout,10,9,0,52,1,1,False,1344312.0,143360.0
