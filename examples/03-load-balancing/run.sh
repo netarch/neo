@@ -19,7 +19,7 @@ for lbs in 2 4 6; do
         procs=1
         drop=timeout
         name="output.$lbs-lbs.$srvs-servers.algo-$algo.$procs-procs.$drop"
-        timeout --signal=INT 1h bash "$SCRIPT_DIR/single-run.sh" "$name" "$procs" "$drop" "$CONF"
+        timeout --signal=INT 10m bash "$SCRIPT_DIR/single-run.sh" "$name" "$procs" "$drop" "$CONF"
         rm "$CONF"
     done
 done
