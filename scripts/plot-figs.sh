@@ -17,10 +17,11 @@ die() {
 
 main() {
     local targets=(
-        # "00-reverse-path-filtering"
+        "00-reverse-path-filtering"
+        # "03-load-balancing"
         "15-real-networks"
-        # "17-campus-network"
-        # "18-fat-tree-datacenter"
+        "17-campus-network"
+        "18-fat-tree-datacenter"
     )
 
     for target in "${targets[@]}"; do

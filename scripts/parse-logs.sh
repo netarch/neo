@@ -18,6 +18,8 @@ die() {
 
 main() {
     local targets=(
+        # "$PROJECT_DIR/examples/03-load-balancing"
+        # "$PROJECT_DIR/examples/03-load-balancing.unopt"
         "$PROJECT_DIR/examples/15-real-networks"
         "$PROJECT_DIR/examples/17-campus-network"
         "$PROJECT_DIR/examples/18-fat-tree-datacenter"

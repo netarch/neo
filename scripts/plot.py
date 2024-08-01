@@ -94,6 +94,20 @@ def rewrite_values(df):
     return df
 
 
+def plot_00(clabDir, outDir):
+    # Get emulation (clab) df
+    df = pd.read_csv(os.path.join(clabDir, "stats.csv"))
+    df["total_mem"] = df["total_mem"] + df["container_memory"]
+    df = df.drop(["container_memory"], axis=1)
+    df["total_time"] /= 1e6  # usec -> sec
+    df["total_mem"] /= 1024  # KiB -> MiB
+    summary = df.mean()
+
+    fn = os.path.join(outDir, "00.full-emulation.summary.txt")
+    with open(fn, "w") as fout:
+        fout.write(str(summary))
+
+
 def plot_02_perf_vs_apps_hosts(df, outDir):
     def _plot(df, outDir, nproc, drop, inv):
         # Filter columns
@@ -2099,6 +2113,7 @@ def main():
         required=True,
         choices=[
             "00-reverse-path-filtering",
+            "03-load-balancing",
             "15-real-networks",
             "17-campus-network",
             "18-fat-tree-datacenter",
@@ -2116,8 +2131,7 @@ def main():
 
     exp_id = args.target[:2]
     if exp_id == "00":
-        # TODO: implement
-        pass
+        plot_00(clabDir, outDir)
     elif exp_id == "03":
         # TODO: implement
         pass
