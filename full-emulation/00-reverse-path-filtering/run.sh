@@ -5,7 +5,7 @@ source "$SCRIPT_DIR/../common.sh"
 cd "$SCRIPT_DIR"
 
 # Prepare inputs: CONF, BRIDGES_TXT, DEVICES_TXT
-toml="$SCRIPT_DIR/../../examples/00-reverse-path-filtering/network.fault.toml"
+toml="$(realpath "$SCRIPT_DIR/../../examples/00-reverse-path-filtering/network.fault.toml")"
 if [[ ! -e "$CONF" ]]; then
     "${CONFGEN[@]}" --network "$toml" >"$CONF"
 fi

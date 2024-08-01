@@ -32,9 +32,14 @@ CONF="$SCRIPT_DIR/network.clab.yml"
 CONFGEN=("python3" "$SCRIPT_DIR/confgen.py")
 BRIDGES_TXT="$(realpath "$SCRIPT_DIR/bridges.txt")"
 DEVICES_TXT="$(realpath "$SCRIPT_DIR/devices.txt")"
+INVS_TXT="$(realpath "$SCRIPT_DIR/invariants.txt")"
 RESULTS_DIR="$(realpath "$SCRIPT_DIR/results")"
 export CONF
 export CONFGEN
+export BRIDGES_TXT
+export DEVICES_TXT
+export INVS_TXT
+export RESULTS_DIR
 
 create_bridges() {
     mapfile -t bridges <"$BRIDGES_TXT"
@@ -58,14 +63,16 @@ startup() {
 }
 
 get_container_memories() {
+    set +e
     mapfile -t devices <"$DEVICES_TXT"
     total_mem_kb=0
     for device in "${devices[@]}"; do
         pid="$(docker inspect -f '{{.State.Pid}}' "$device")"
-        mem_kb="$(grep VmPeak "/proc/$pid/status" | awk -F ' ' '{print $2}')"
+        mem_kb="$(grep VmPeak "/proc/$pid/status" 2>/dev/null | awk -F ' ' '{print $2}')"
         total_mem_kb=$((total_mem_kb + mem_kb))
     done
     msg "Total container memory: $total_mem_kb KB"
+    set -e
 }
 
 cleanup() {

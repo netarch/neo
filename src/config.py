@@ -548,7 +548,60 @@ class Config:
                         link_cfg["intf2"],
                     )
                 )
-        # NOTE: skip openflow updates and invariant specs for now.
+        if "invariants" in config:
+            for inv_cfg in config["invariants"]:
+                assert type(inv_cfg) is dict
+                if inv_cfg["type"] == "reachability":
+                    assert len(inv_cfg["connections"]) == 1
+                    conn_cfg = inv_cfg["connections"][0]
+                    assert type(conn_cfg) is dict
+                    self.add_invariant(
+                        Reachability(
+                            target_node=inv_cfg["target_node"],
+                            reachable=inv_cfg["reachable"],
+                            protocol=conn_cfg["protocol"],
+                            src_node=conn_cfg["src_node"],
+                            dst_ip=conn_cfg["dst_ip"],
+                            src_port=(
+                                conn_cfg["src_port"] if "src_port" in conn_cfg else None
+                            ),
+                            dst_port=(
+                                conn_cfg["dst_port"] if "dst_port" in conn_cfg else None
+                            ),
+                            owned_dst_only=(
+                                conn_cfg["owned_dst_only"]
+                                if "owned_dst_only" in conn_cfg
+                                else None
+                            ),
+                        )
+                    )
+                elif inv_cfg["type"] == "reply-reachability":
+                    assert len(inv_cfg["connections"]) == 1
+                    conn_cfg = inv_cfg["connections"][0]
+                    assert type(conn_cfg) is dict
+                    self.add_invariant(
+                        ReplyReachability(
+                            target_node=inv_cfg["target_node"],
+                            reachable=inv_cfg["reachable"],
+                            protocol=conn_cfg["protocol"],
+                            src_node=conn_cfg["src_node"],
+                            dst_ip=conn_cfg["dst_ip"],
+                            src_port=(
+                                conn_cfg["src_port"] if "src_port" in conn_cfg else None
+                            ),
+                            dst_port=(
+                                conn_cfg["dst_port"] if "dst_port" in conn_cfg else None
+                            ),
+                            owned_dst_only=(
+                                conn_cfg["owned_dst_only"]
+                                if "owned_dst_only" in conn_cfg
+                                else None
+                            ),
+                        )
+                    )
+                else:
+                    continue  # NOTE: other inv types are not implemented yet.
+        # NOTE: skip openflow updates for now.
 
     # # We may not need to do this with network-mode set to `none`.
     # # https://containerlab.dev/manual/nodes/#network-mode
@@ -566,6 +619,24 @@ class Config:
             if node.is_bridge():
                 bridges.append(node.name)
         return bridges
+
+    def prefix_all_node_names(self, prefix: str) -> None:
+        for node in self.network.nodes:
+            node.name = prefix + node.name
+        for link in self.network.links:
+            link.node1 = prefix + link.node1
+            link.node2 = prefix + link.node2
+        for inv in self.invs.invs:
+            if (
+                type(inv) is Reachability
+                or type(inv) is ReplyReachability
+                or type(inv) is Waypoint
+                or type(inv) is OneRequest
+                or type(inv) is LoadBalance
+            ):
+                inv.target_node = prefix + inv.target_node
+            for conn in inv.connections:
+                conn.src_node = prefix + conn.src_node
 
     def output_clab_yml(self, name: str, outfn: str | None = None) -> None:
         result = {
@@ -663,3 +734,22 @@ class Config:
         else:
             yml_str = yaml.dump(result)
             print(yml_str)
+
+    def output_invariants(self) -> None:
+        for inv in self.invs.invs:
+            if type(inv) is not Reachability and type(inv) is not ReplyReachability:
+                continue
+            assert len(inv.connections) == 1
+            conn: Connection = inv.connections[0]
+            if conn.owned_dst_only:
+                continue
+            # target_node, reachable, protocol, src_node, dst_ip
+            print(
+                "{},{},{},{},{}".format(
+                    inv.target_node,
+                    inv.reachable,
+                    conn.protocol,
+                    conn.src_node,
+                    conn.dst_ip,
+                )
+            )

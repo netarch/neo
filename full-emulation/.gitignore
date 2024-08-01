@@ -1,5 +1,4 @@
 results/
 clab-*/
 .*.bak
-bridges.txt
-devices.txt
+*.txt
