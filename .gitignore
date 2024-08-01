@@ -30,3 +30,6 @@ __pycache__
 # Packages
 *.tar.*
 *.deb
+
+# Experiment figures
+figures/

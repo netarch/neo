@@ -70,8 +70,20 @@ def rewrite_values(df):
         .replace("rocketfuel-bb-AS-3257", "ISP-5")
         .replace("rocketfuel-bb-AS-1239", "ISP-6")
     )
-    df.loc[(df["network"] == "as-733") & (df["num_nodes"] == 103), "network"] = "ST-1"
-    df.loc[(df["network"] == "as-733") & (df["num_nodes"] == 1470), "network"] = "ST-2"
+    if "num_nodes" in df:
+        df.loc[(df["network"] == "as-733") & (df["num_nodes"] == 103), "network"] = (
+            "ST-1"
+        )
+        df.loc[(df["network"] == "as-733") & (df["num_nodes"] == 1470), "network"] = (
+            "ST-2"
+        )
+    else:
+        df.loc[(df["network"] == "as-733") & (df["total_mem"] < 1000000), "network"] = (
+            "ST-1"
+        )
+        df.loc[
+            (df["network"] == "as-733") & (df["total_mem"] >= 1000000), "network"
+        ] = "ST-2"
     return df
 
 
@@ -327,8 +339,8 @@ def plot_03_stats(invDir, outDir):
     # Filter rows
     df = df[df.procs == 1]
     df = df[df.drop_method == "timeout"]
-    df = df[df.invariant == 1]
-    df = df[df.optimization == True].drop(["optimization"], axis=1)
+    df = df[df["invariant"] == 1]
+    df = df[df["optimization"] == True].drop(["optimization"], axis=1)
     # Filter columns
     df = df.drop(
         [
@@ -1412,14 +1424,19 @@ def plot_15_perf_vs_drop_methods(df, outDir):
                 _plot(nproc_df, outDir, emu_pct, num_invs, nproc)
 
 
-def plot_15_stats(invDir, outDir):
-    df = pd.read_csv(os.path.join(invDir, "stats.csv"))
-    df = rewrite_values(df)
+def plot_15(neoDir: str, clabDir: str, outDir: str) -> None:
+    # Get neo df
+    neo_df = pd.read_csv(os.path.join(neoDir, "stats.csv"))
+    neo_df = rewrite_values(neo_df)
     # Filter columns
-    df = df.drop(
+    neo_df = neo_df.drop(
         [
             "inv_time",
             "inv_memory",
+            "fw_leaves_pct",
+            "invariants",
+            "procs",
+            "drop_method",
             "num_nodes",
             "num_links",
             "num_updates",
@@ -1430,15 +1447,22 @@ def plot_15_stats(invDir, outDir):
         ],
         axis=1,
     )
-    df.drop_duplicates(inplace=True)
-    # Filter rows
-    # df = df[df.optimization == True].drop(['optimization'], axis=1)
+    neo_df.drop_duplicates(inplace=True)
+    # Get emulation (clab) df
+    clab_df = pd.read_csv(os.path.join(clabDir, "stats.csv"))
+    clab_df = rewrite_values(clab_df)
+    clab_df["total_mem"] = clab_df["total_mem"] + clab_df["container_memory"]
+    clab_df = clab_df.drop(["container_memory"], axis=1)
+    clab_df["emulated_pct"] = 100
+    # Combine the dfs
+    df = pd.concat([neo_df, clab_df])
+    df = df.sort_values(by=["network", "emulated_pct"])
 
-    plot_15_perf_vs_networks(df, outDir)
-    plot_15_perf_vs_emulated_pct(df, outDir)
-    plot_15_perf_vs_invariants(df, outDir)
-    plot_15_perf_vs_nprocs(df, outDir)
-    plot_15_perf_vs_drop_methods(df, outDir)
+    # TODO
+    # plot_15_perf_vs_networks(neo_df, outDir)
+    # plot_15_perf_vs_emulated_pct(neo_df, outDir)
+    print(df)
+    return
 
 
 def plot_18_perf_vs_arity(df, outDir):
@@ -2061,186 +2085,6 @@ def plot_02_latency(invDir, outDir):
     plot_latency_cdf(df, outDir, os.path.basename(invDir)[:2])
 
 
-def plot_03_latency(invDir, outDir):
-    df = pd.read_csv(os.path.join(invDir, "lat.csv"))
-    # Merge latency values
-    df.loc[:, "latency"] = df["pkt_lat"] + df["drop_lat"]
-    # Filter rows
-    df = df[df.procs == 1]
-    df = df[df.drop_method == "timeout"]
-    df = df[df.invariant == 1]
-    df = df[df.optimization == True]
-    # Filter columns
-    df = df.drop(
-        [
-            "overall_lat",
-            "servers",
-            "algorithm",
-            "procs",
-            "drop_method",
-            "num_nodes",
-            "num_links",
-            "num_updates",
-            "total_conn",
-            "invariant",
-            "independent_cec",
-            "violated",
-            "optimization",
-        ],
-        axis=1,
-    )
-    df = df.reset_index().drop(["index"], axis=1)
-
-    def _plot_latency(df, outFn):
-        # Filter columns
-        df = df.drop(
-            ["rewind", "rewind_injections", "pkt_lat", "drop_lat", "lbs"], axis=1
-        )
-        # Rename column titles
-        df = df.rename(columns={"latency": "Latency", "timeout": "Drop timeout"})
-
-        ax = df.plot(
-            y=["Latency", "Drop timeout"],
-            kind="line",
-            legend=False,
-            xlabel="",
-            ylabel="",
-            rot=0,
-            lw=2,
-        )
-        ax.legend(
-            bbox_to_anchor=(1.0, 1.2),
-            columnspacing=0.8,
-            ncol=2,
-            fontsize=22,
-            frameon=False,
-            fancybox=False,
-        )
-        ax.grid(axis="y")
-        # ax.set_yscale('log')
-        ax.set_xlabel("Packet injections", fontsize=22)
-        ax.set_ylabel("Latency (microseconds)", fontsize=22)
-        ax.tick_params(axis="both", which="both", labelsize=22)
-        ax.tick_params(
-            axis="x", which="both", top=False, bottom=False, labelbottom=False
-        )
-        fig = ax.get_figure()
-        fig.savefig(outFn, bbox_inches="tight")
-        plt.close(fig)
-
-    def _plot_latency_cdf(df, outFn):
-        df.loc[:, "latency_w_reset"] = df["latency"] + df["rewind"]
-        # Filter columns
-        df = df.drop(
-            [
-                "ec_time",
-                "ec_mem",
-                "emu_startup",
-                "rewind",
-                "emu_reset",
-                "replay",
-                "rewind_injections",
-                "pkt_lat",
-                "drop_lat",
-                "timeout",
-                "lbs",
-                "total_time",
-                "total_mem",
-            ],
-            axis=1,
-        )
-        # Rename column titles
-        df = df.rename(
-            columns={"latency": "Exclude reset", "latency_w_reset": "Include reset"}
-        )
-
-        def __get_cdf_df(df, col):
-            df = df[col].to_frame().dropna()
-            df = df.sort_values(by=[col]).reset_index().rename(columns={col: "latency"})
-            df[col] = df.index + 1
-            df = df[df.columns.drop(list(df.filter(regex="index")))]
-            return df
-
-        cdf_df = pd.DataFrame()
-        peak_latencies = []
-
-        for col in list(df.columns):
-            df1 = __get_cdf_df(df, col)
-            peak_latencies.append(df1.latency.iloc[-1])
-            if cdf_df.empty:
-                cdf_df = df1
-            else:
-                cdf_df = pd.merge(cdf_df, df1, how="outer", on="latency")
-            del df1
-
-        df = cdf_df.sort_values(by="latency").interpolate(limit_area="inside")
-        del cdf_df
-
-        # Change units
-        df["latency"] /= 1e3  # usec -> sec
-        peak_latencies = [l / 1e3 for l in peak_latencies]
-
-        ax = df.plot(
-            x="latency",
-            y=["Exclude reset", "Include reset"],
-            kind="line",
-            legend=False,
-            xlabel="",
-            ylabel="",
-            rot=0,
-            lw=LINE_WIDTH + 1,
-        )
-        ax.legend(
-            bbox_to_anchor=(1.07, 1.2),
-            columnspacing=0.8,
-            ncol=2,
-            fontsize=22,
-            frameon=False,
-            fancybox=False,
-        )
-        ax.grid(axis="both")
-        ax.set_xscale("log")
-        ax.set_xlabel("Latency (milliseconds)", fontsize=24)
-        ax.set_ylabel("Packet injections", fontsize=24)
-        ax.tick_params(axis="both", which="both", labelsize=24)
-        ax.tick_params(axis="x", which="both", top=False, bottom=False)
-        i = 0
-        for peak_lat in peak_latencies:
-            ax.axvline(
-                peak_lat,
-                ymax=0.95,
-                linestyle="--",
-                linewidth=LINE_WIDTH,
-                color=colors[i],
-            )
-            i += 1
-        fig = ax.get_figure()
-        fig.savefig(outFn, bbox_inches="tight")
-        plt.close(fig)
-
-    tbl = {}
-
-    for lbs in df.lbs.unique():
-        lbs_df = df[df.lbs == lbs]
-        injections = lbs_df.rewind_injections
-        tbl[lbs] = {"lbs": lbs}
-        tbl[lbs]["num_reset"] = injections[injections != -1].count()
-        tbl[lbs]["num_reset_injections"] = injections[injections != -1].sum()
-
-        # latency line charts
-        _plot_latency(
-            lbs_df, os.path.join(outDir, ("03.latency." + str(lbs) + "-lbs.pdf"))
-        )
-
-    # latency CDF
-    _plot_latency_cdf(df, os.path.join(outDir, "03.latency-cdf.pdf"))
-
-    reset_stats_df = pd.DataFrame(tbl)
-    reset_stats_df.sort_values(by="lbs", axis=1, inplace=True)
-    with open(os.path.join(invDir, "reset_stats.txt"), "w") as f:
-        f.write(reset_stats_df.to_string())
-
-
 def plot_06_latency(invDir, outDir):
     df = pd.read_csv(os.path.join(invDir, "lat.csv"))
     # Merge latency values
@@ -2461,39 +2305,45 @@ def plot_18_latency(invDir, outDir):
 def main():
     parser = argparse.ArgumentParser(description="Plotting for Neo")
     parser.add_argument(
-        "-t", "--target", help="Plot target", type=str, action="store", required=True
+        "-t",
+        "--target",
+        help="Plot target",
+        type=str,
+        action="store",
+        required=True,
+        choices=[
+            "00-reverse-path-filtering",
+            "15-real-networks",
+            "17-campus-network",
+            "18-fat-tree-datacenter",
+        ],
     )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-    targetDir = os.path.abspath(args.target)
-    if not os.path.isdir(targetDir):
-        raise Exception("'" + targetDir + "' is not a directory")
-    sourceDir = os.path.abspath(os.path.dirname(__file__))
-    outDir = os.path.join(sourceDir, "figures")
+    projectDir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+    neoDir = os.path.join(projectDir, "examples/{}".format(args.target))
+    clabDir = os.path.join(projectDir, "full-emulation/{}".format(args.target))
+    outDir = os.path.join(projectDir, "figures")
     os.makedirs(outDir, exist_ok=True)
 
-    exp_id = os.path.basename(targetDir)[:2]
-    if exp_id == "02":
-        plot_02_stats(targetDir, outDir)
-        plot_02_latency(targetDir, outDir)
+    exp_id = args.target[:2]
+    if exp_id == "00":
+        # TODO: implement
+        pass
     elif exp_id == "03":
-        plot_03_stats(targetDir, outDir)
-        plot_03_latency(targetDir, outDir)
-        plot_03_compare_unopt(targetDir)
-    elif exp_id == "06":  # Old, replaced by 18
-        plot_06_stats(targetDir, outDir)
-        plot_06_latency(targetDir, outDir)
-        plot_06_compare_unopt(targetDir, outDir)
+        # TODO: implement
+        pass
     elif exp_id == "15":
-        plot_15_stats(targetDir, outDir)
-        plot_15_latency(targetDir, outDir)
-        # plot_15_compare_unopt(targetDir, outDir)
+        plot_15(neoDir, clabDir, outDir)
+    elif exp_id == "17":
+        # TODO: implement
+        # plot_17_stats(neoDir, clabDir, outDir)
+        pass
     elif exp_id == "18":
-        plot_18_stats(targetDir, outDir)
-        plot_18_latency(targetDir, outDir)
-        # plot_18_compare_unopt(targetDir, outDir)
+        plot_18_stats(neoDir, outDir)
+        plot_18_latency(neoDir, outDir)
     else:
         raise Exception("Parser not implemented for experiment " + exp_id)
 
