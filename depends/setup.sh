@@ -273,7 +273,7 @@ main() {
             zip unzip      # utils required by vcpkg
             linux-libc-dev # openssl
             libpthread-stubs0-dev
-            libstdc++-13-dev
+            libstdc++-12-dev
             libnl-3-200 libnl-3-dev libnl-genl-3-200 libnl-genl-3-dev)
         llvm_pkgs=("clang-$llvm_version" "lld-$llvm_version"
             "clang-tools-$llvm_version" "clang-format-$llvm_version"
