@@ -119,7 +119,16 @@ prepare_flags() {
         CMAKE_ARGS+=('-DBUILD_TESTS=OFF')
     fi
     if [[ "$COMPILER" = 'clang' ]]; then
-        CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
+        local llvm_version=18 # should match the value in depends/setup.sh
+        if command -v "clang-$llvm_version" &>/dev/null &&
+            command -v "clang++-$llvm_version" &>/dev/null; then
+            CMAKE_ARGS+=(
+                "-DCMAKE_C_COMPILER=clang-$llvm_version"
+                "-DCMAKE_CXX_COMPILER=clang++-$llvm_version"
+            )
+        else
+            CMAKE_ARGS+=('-DCMAKE_C_COMPILER=clang' '-DCMAKE_CXX_COMPILER=clang++')
+        fi
     elif [[ "$COMPILER" = 'gcc' ]]; then
         CMAKE_ARGS+=('-DCMAKE_C_COMPILER=gcc' '-DCMAKE_CXX_COMPILER=g++')
     fi
