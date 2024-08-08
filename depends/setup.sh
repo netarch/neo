@@ -26,7 +26,6 @@ fi
 #
 get_distro() {
     export DISTRO
-
     if test -f /etc/os-release; then # freedesktop.org and systemd
         source /etc/os-release
         DISTRO="$(echo "$NAME" | cut -f 1 -d ' ' | tr '[:upper:]' '[:lower:]')"
