@@ -16,16 +16,18 @@ for arity in 4 6 8 10 12; do
     done
 done
 
-# Fix arity=12, procs=1. Change update_pct, drop
-arity=12
-for update_pct in 0 50 100; do
-    "${CONFGEN[@]}" -k "$arity" -u "$update_pct" -s 1 >"$CONF"
-    procs=1
-    for drop in "${DROP_METHODS[@]}"; do
-        name="output.$arity-ary.$update_pct-update-pct.$procs-procs.$drop"
-        run "$name" "$procs" "$drop" "$CONF"
+# Fix procs=1. Change arity, update_pct, drop
+for arity in 4 6 8 10 12; do
+    for update_pct in 0 50 100; do
+        "${CONFGEN[@]}" -k "$arity" -u "$update_pct" -s 1 >"$CONF"
+        for procs in 1 4 8 12 16; do
+            for drop in "${DROP_METHODS[@]}"; do
+                name="output.$arity-ary.$update_pct-update-pct.$procs-procs.$drop"
+                run "$name" "$procs" "$drop" "$CONF"
+            done
+        done
+        rm "$CONF"
     done
-    rm "$CONF"
 done
 
 msg "Done"

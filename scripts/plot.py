@@ -2126,12 +2126,13 @@ def plot_18_latency(invDir, outDir):
     df.loc[df["update_pct"] == 100, "update_pct"] = "All-tenant"
     # Filter rows
     df = df[df.procs == 1].drop(["procs"], axis=1)
-    df = df[df.arity == 12].drop(["arity"], axis=1)
     df = df[df.invariant == 1]
+    assert type(df) is pd.DataFrame
     # Filter columns
     df = df.drop(
         [
             "rewind_injections",
+            "arity",
             "update_pct",
             "num_nodes",
             "num_links",
@@ -2146,11 +2147,11 @@ def plot_18_latency(invDir, outDir):
     plot_latency(
         df[df.pkt_lat > 0].copy(),
         os.path.join(outDir, "18.latency.recv.pdf"),
-        sample_limit=300,
+        sample_limit=500,
     )
-    # plot_latency(
-    #     df[df.drop_lat > 0].copy(), os.path.join(outDir, "18.latency.drop.pdf")
-    # )
+    plot_latency(
+        df[df.drop_lat > 0].copy(), os.path.join(outDir, "18.latency.drop.pdf")
+    )
 
     # latency CDF
     plot_latency_cdf(
