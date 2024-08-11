@@ -2147,7 +2147,7 @@ def plot_18_latency(invDir, outDir):
     plot_latency(
         df[df.pkt_lat > 0].copy(),
         os.path.join(outDir, "18.latency.recv.pdf"),
-        sample_limit=500,
+        sample_limit=400,
     )
     plot_latency(
         df[df.drop_lat > 0].copy(), os.path.join(outDir, "18.latency.drop.pdf")
